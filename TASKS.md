@@ -1,19 +1,67 @@
-# TASKS — ci4-domain-starter
+# TASKS — ci4-website-builder-domain
 
 > Fuente de verdad para trabajo en este repo.
 > Historial de completadas: ver `TASKS_ARCHIVE.md`.
-> Cross-repo: ver `../TASKS.md`.
-> Última actualización: 2026-06-04 (DOM-109 completado — sync-permissions fail-loud + HubClient fix)
+> Para el plan de implementación detallado, ver la sesión en: [implementation_plan.md](file:///Users/davidcardenas/.gemini/antigravity/brain/4d3ad335-9c0d-44b8-80d4-ddc18cfd113f/implementation_plan.md)
+> Última actualización: 2026-06-11 (CMS core tasks planificado)
 
 ---
 
 ## 🔴 En progreso
 
-*(vacío)*
+*(vacío - listo para comenzar Fase 1)*
 
----## 🟡 Próximo
+---
 
-*(vacío)*
+## 🟡 Próximo
+
+Las tareas están ordenadas por fases de dependencias para asegurar la integridad de la base de datos (30 tablas de `erd_cms_v4.html`) y las APIs.
+
+### Fase 1: Bootstrapping & Setup
+- [ ] **CMS-002 (#2) — Languages & Settings API**
+  - Implementar CRUD de idiomas y settings
+  - Crear el deep module `TranslationResolver` con unit tests
+- [ ] **CMS-003 (#10) — File translations**
+  - Implementar CRUD de traducciones de archivos (`cms_file_translations`)
+  - Integrar metadatos en `BlockInstanceSerializer`
+
+---
+
+## ✅ Completadas
+
+### CMS-001 (#1) — Bootstrap & Schema completo
+- Registrar la app CMS en el hub (`php spark apps:bootstrap cms --create-api-key`)
+- Definir permisos `cms.*` en `DomainPermissions.php`
+- Crear e integrar la migración única con las 30 tablas del ERD v4
+- Adaptar `init.sh` para la orquestación desatendida
+- Proteger endpoints `/api/v1/cms/*` y abrir `/api/v1/public/*`
+
+### Fase 2: Base Content & Navigation APIs
+- [ ] **CMS-004 (#3) — Pages API**
+  - Implementar CRUD de páginas (jerárquicas, traducción, estado borrador/programado)
+  - Desarrollar deep module `SlugRouter`
+- [ ] **CMS-005 (#4) — Menus API**
+  - Implementar CRUD de menús y de sus items de menú (anidados, ordenados, traducibles)
+
+### Fase 3: Composable Block System
+- [ ] **CMS-006 (#5) — Block system**
+  - CRUD de block types (`cms_content_blocks`) con seeds (`rich_text`, `image`, `cta`)
+  - CRUD de block instances en páginas y entries (split `block_config` / `block_data`)
+  - Desarrollar deep module `BlockInstanceSerializer` y conectarlo a Pages/Entries GET slug
+
+### Fase 4: Collections & Entries
+- [ ] **CMS-007 (#6) — Collections API**
+  - CRUD de colecciones personalizables (`collection_key`)
+- [ ] **CMS-008 (#7) — Entries API**
+  - CRUD de entries vinculando instancias de bloques de contenido por entry
+- [ ] **CMS-009 (#8) — Taxonomías: Categories & Tags**
+  - CRUD de categorías scoped y tags globales + pivots + filtros en listado de entries
+
+### Fase 5: Publishing & Utilities
+- [ ] **CMS-010 (#9) — Redirects & Slug history**
+  - CRUD de redirecciones manuales + observador `SlugRedirectRecorder` para slugs históricos
+- [ ] **CMS-011 (#11) — Scheduled publishing**
+  - Queue job `ScheduledPublishingJob` para publicar páginas y entries en segundo plano
 
 ---
 
