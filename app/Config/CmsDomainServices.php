@@ -115,4 +115,32 @@ trait CmsDomainServices
 
         return new \App\Libraries\Cms\SlugRouter();
     }
+    public static function menuResponseMapper(bool $getShared = true): \dcardenasl\Ci4ApiCore\Mappers\ResponseMapperInterface
+    {
+        if ($getShared) {
+            return static::getSharedInstance('menuResponseMapper');
+        }
+        return new \dcardenasl\Ci4ApiCore\Mappers\DtoResponseMapper(\App\DTO\Response\Cms\MenuResponseDTO::class);
+    }
+    public static function menuService(bool $getShared = true): \App\Interfaces\Cms\MenuServiceInterface
+    {
+        if ($getShared) {
+            return static::getSharedInstance('menuService');
+        }
+        return new \App\Services\Cms\MenuService(new \dcardenasl\Ci4ApiCore\Repositories\GenericRepository(model(\App\Models\MenuModel::class)), static::menuResponseMapper());
+    }
+    public static function menuItemResponseMapper(bool $getShared = true): \dcardenasl\Ci4ApiCore\Mappers\ResponseMapperInterface
+    {
+        if ($getShared) {
+            return static::getSharedInstance('menuItemResponseMapper');
+        }
+        return new \dcardenasl\Ci4ApiCore\Mappers\DtoResponseMapper(\App\DTO\Response\Cms\MenuItemResponseDTO::class);
+    }
+    public static function menuItemService(bool $getShared = true): \App\Interfaces\Cms\MenuItemServiceInterface
+    {
+        if ($getShared) {
+            return static::getSharedInstance('menuItemService');
+        }
+        return new \App\Services\Cms\MenuItemService(new \dcardenasl\Ci4ApiCore\Repositories\GenericRepository(model(\App\Models\MenuItemModel::class)), static::menuItemResponseMapper());
+    }
 }

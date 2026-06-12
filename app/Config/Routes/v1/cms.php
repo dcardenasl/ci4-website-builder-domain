@@ -5,19 +5,32 @@ declare (strict_types=1);
 $routes->group('cms', ['namespace' => '\App\Controllers\Api\V1\Cms'], function ($routes): void {
     // Auth & Admin Protected Group
     $routes->group('', ['filter' => ['domainauth', 'throttle']], function ($routes): void {
+        // Menus CRUD
+        $routes->get('menus', 'MenuController::index', ['filter' => 'permission:cms.menus.read']);
+        $routes->get('menus/(:num)', 'MenuController::show/$1', ['filter' => 'permission:cms.menus.read']);
+        $routes->post('menus', 'MenuController::create', ['filter' => 'permission:cms.menus.write']);
+        $routes->put('menus/(:num)', 'MenuController::update/$1', ['filter' => 'permission:cms.menus.write']);
+        $routes->delete('menus/(:num)', 'MenuController::delete/$1', ['filter' => 'permission:cms.menus.write']);
+
+        // Menu Items CRUD
+        $routes->get('menu-items', 'MenuItemController::index', ['filter' => 'permission:cms.menus.read']);
+        $routes->get('menu-items/(:num)', 'MenuItemController::show/$1', ['filter' => 'permission:cms.menus.read']);
+        $routes->post('menu-items', 'MenuItemController::create', ['filter' => 'permission:cms.menus.write']);
+        $routes->put('menu-items/(:num)', 'MenuItemController::update/$1', ['filter' => 'permission:cms.menus.write']);
+        $routes->delete('menu-items/(:num)', 'MenuItemController::delete/$1', ['filter' => 'permission:cms.menus.write']);
+
         // Pages CRUD
         $routes->get('pages', 'PageController::index', ['filter' => 'permission:cms.pages.read']);
-        $routes->get('pages/(:num)', 'PageController::show/$1', ['filter' => 'permission:cms.pages.read']);
         $routes->post('pages', 'PageController::create', ['filter' => 'permission:cms.pages.write']);
-        $routes->put('pages/(:num)', 'PageController::update/$1', ['filter' => 'permission:cms.pages.write']);
-        $routes->delete('pages/(:num)', 'PageController::delete/$1', ['filter' => 'permission:cms.pages.write']);
-
         // Languages CRUD
         $routes->get('languages', 'LanguageController::index', ['filter' => 'permission:cms.languages.read']);
         $routes->post('languages', 'LanguageController::create', ['filter' => 'permission:cms.languages.write']);
         // Settings CRUD
         $routes->get('settings', 'SettingController::index', ['filter' => 'permission:cms.settings.read']);
         $routes->post('settings', 'SettingController::create', ['filter' => 'permission:cms.settings.write']);
+        $routes->get('pages/(:num)', 'PageController::show/$1', ['filter' => 'permission:cms.pages.read']);
+        $routes->put('pages/(:num)', 'PageController::update/$1', ['filter' => 'permission:cms.pages.write']);
+        $routes->delete('pages/(:num)', 'PageController::delete/$1', ['filter' => 'permission:cms.pages.write']);
         $routes->get('languages/(:num)', 'LanguageController::show/$1', ['filter' => 'permission:cms.languages.read']);
         $routes->put('languages/(:num)', 'LanguageController::update/$1', ['filter' => 'permission:cms.languages.write']);
         $routes->delete('languages/(:num)', 'LanguageController::delete/$1', ['filter' => 'permission:cms.languages.write']);
@@ -32,6 +45,6 @@ $routes->group('cms', ['namespace' => '\App\Controllers\Api\V1\Cms'], function (
         $routes->delete('files/(:num)/translations/(:num)', 'FileTranslationController::delete/$1/$2', ['filter' => 'permission:cms.pages.write']);
     });
 });
-
 // Public endpoints
 $routes->get('public/(:segment)/pages/(.+)', '\App\Controllers\Api\V1\Cms\PublicPageController::show/$1/$2', ['filter' => 'throttle']);
+$routes->get('public/menus/(:segment)', '\App\Controllers\Api\V1\Cms\PublicMenuController::show/$1', ['filter' => 'throttle']);

@@ -1,0 +1,255 @@
+<?php
+
+declare(strict_types=1);
+
+namespace App\Services\Cms;
+
+use App\Entities\MenuItemEntity;
+use App\Interfaces\Cms\MenuItemServiceInterface;
+use dcardenasl\Ci4ApiCore\Dto\SecurityContext;
+use dcardenasl\Ci4ApiCore\Exceptions\ValidationException;
+use dcardenasl\Ci4ApiCore\Mappers\ResponseMapperInterface;
+use dcardenasl\Ci4ApiCore\Repositories\RepositoryInterface;
+use dcardenasl\Ci4ApiCore\Services\BaseCrudService;
+
+/**
+ * @extends BaseCrudService<MenuItemEntity>
+ */
+class MenuItemService extends BaseCrudService implements MenuItemServiceInterface
+{
+    /** @var array<mixed>|null */
+    private ?array $tempTranslations = null;
+
+    /**
+     * @param RepositoryInterface<MenuItemEntity> $menuItemRepository
+     */
+    public function __construct(
+        RepositoryInterface $menuItemRepository,
+        ResponseMapperInterface $responseMapper
+    ) {
+        parent::__construct($menuItemRepository, $responseMapper);
+    }
+
+    protected function beforeStore(array $data, ?SecurityContext $context): array
+    {
+        $data = parent::beforeStore($data, $context);
+
+        $menuId = (int) $data['menu_id'];
+        $parentId = isset($data['parent_id']) && $data['parent_id'] !== '' ? (int) $data['parent_id'] : null;
+
+        $this->validateMenuExists($menuId);
+        $this->validateLinkConstraints($data);
+
+        if ($parentId !== null) {
+            $this->validateParentExistsAndBelongsToMenu($parentId, $menuId);
+        }
+
+        $this->tempTranslations = $data['translations'] ?? null;
+        unset($data['translations']);
+        return $data;
+    }
+
+    protected function afterStore(object $entity, ?SecurityContext $context): void
+    {
+        parent::afterStore($entity, $context);
+        if ($this->tempTranslations !== null) {
+            $this->saveTranslations((int) $entity->id, $this->tempTranslations);
+        }
+        $this->tempTranslations = null;
+    }
+
+    protected function beforeUpdate(int $id, array $data, ?SecurityContext $context): array
+    {
+        $data = parent::beforeUpdate($id, $data, $context);
+
+        // Fetch current item to merge state for validation
+        $currentItem = $this->repository->find($id);
+        if (!$currentItem) {
+            return $data;
+        }
+
+        $menuId = (int) ($data['menu_id'] ?? $currentItem->menu_id);
+        $parentId = array_key_exists('parent_id', $data)
+            ? ($data['parent_id'] !== '' && $data['parent_id'] !== null ? (int) $data['parent_id'] : null)
+            : ($currentItem->parent_id !== null ? (int) $currentItem->parent_id : null);
+
+        if (array_key_exists('menu_id', $data)) {
+            $this->validateMenuExists($menuId);
+        }
+
+        // Validate links based on updated payload merged with existing item fields
+        $mergedDataForLinks = array_merge($currentItem->toArray(), $data);
+        $this->validateLinkConstraints($mergedDataForLinks);
+
+        if ($parentId !== null) {
+            $this->validateParentExistsAndBelongsToMenu($parentId, $menuId);
+            $this->validateCircularHierarchy($id, $parentId);
+        }
+
+        if (array_key_exists('translations', $data)) {
+            $this->tempTranslations = $data['translations'];
+            unset($data['translations']);
+        } else {
+            $this->tempTranslations = null;
+        }
+
+        return $data;
+    }
+
+    protected function afterUpdate(object $entity, ?SecurityContext $context): void
+    {
+        parent::afterUpdate($entity, $context);
+        if ($this->tempTranslations !== null) {
+            $this->saveTranslations((int) $entity->id, $this->tempTranslations);
+        }
+        $this->tempTranslations = null;
+    }
+
+    protected function enrichEntities(array $entities): array
+    {
+        if (empty($entities)) {
+            return $entities;
+        }
+
+        $itemIds = array_map(fn ($entity) => (int) $entity->id, $entities);
+
+        /** @var \App\Models\MenuItemTranslationModel $translationModel */
+        $translationModel = model(\App\Models\MenuItemTranslationModel::class);
+        $translations = $translationModel->whereIn('menu_item_id', $itemIds)->findAll();
+
+        $translationsGrouped = [];
+        foreach ($translations as $translation) {
+            if ($translation instanceof \App\Entities\MenuItemTranslationEntity) {
+                $translationsGrouped[$translation->menu_item_id][] = [
+                    'language_id' => (int) $translation->language_id,
+                    'label'       => $translation->label,
+                    'custom_url'  => $translation->custom_url,
+                ];
+            }
+        }
+
+        foreach ($entities as $entity) {
+            $entity->translations = $translationsGrouped[$entity->id] ?? [];
+        }
+
+        return $entities;
+    }
+
+    /**
+     * @param array<mixed> $translations
+     */
+    private function saveTranslations(int $menuItemId, array $translations): void
+    {
+        /** @var \App\Models\MenuItemTranslationModel $translationModel */
+        $translationModel = model(\App\Models\MenuItemTranslationModel::class);
+
+        $translationModel->where('menu_item_id', $menuItemId)->delete();
+
+        foreach ($translations as $translation) {
+            $translationModel->insert([
+                'menu_item_id' => $menuItemId,
+                'language_id'  => (int) $translation['language_id'],
+                'label'        => $translation['label'],
+                'custom_url'   => $translation['custom_url'] ?? null,
+            ]);
+        }
+    }
+
+    private function validateMenuExists(int $menuId): void
+    {
+        $menuModel = model(\App\Models\MenuModel::class);
+        if (!$menuModel->find($menuId)) {
+            throw new ValidationException(
+                lang('Menus.invalid_hierarchy'),
+                ['menu_id' => lang('Menus.menu_not_found')]
+            );
+        }
+    }
+
+    private function validateParentExistsAndBelongsToMenu(int $parentId, int $menuId): void
+    {
+        $parent = $this->repository->find($parentId);
+        if (!$parent) {
+            throw new ValidationException(
+                lang('Menus.invalid_hierarchy'),
+                ['parent_id' => lang('Menus.parent_not_exists')]
+            );
+        }
+
+        if ((int) $parent->menu_id !== $menuId) {
+            throw new ValidationException(
+                lang('Menus.invalid_hierarchy'),
+                ['parent_id' => lang('Menus.parent_different_menu')]
+            );
+        }
+    }
+
+    private function validateCircularHierarchy(int $id, int $parentId): void
+    {
+        if ($id === $parentId) {
+            throw new ValidationException(
+                lang('Menus.invalid_hierarchy'),
+                ['parent_id' => lang('Menus.cannot_be_own_parent')]
+            );
+        }
+
+        $parent = $this->repository->find($parentId);
+        $currentParentId = $parent ? $parent->parent_id : null;
+
+        while ($currentParentId !== null) {
+            if ((int) $currentParentId === $id) {
+                throw new ValidationException(
+                    lang('Menus.invalid_hierarchy'),
+                    ['parent_id' => lang('Menus.circular_reference')]
+                );
+            }
+
+            $ancestor = $this->repository->find($currentParentId);
+            $currentParentId = $ancestor ? $ancestor->parent_id : null;
+        }
+    }
+
+    /**
+     * @param array<string, mixed> $data
+     */
+    private function validateLinkConstraints(array $data): void
+    {
+        $linkType = $data['link_type'] ?? '';
+        $pageId = isset($data['page_id']) && $data['page_id'] !== '' ? (int) $data['page_id'] : null;
+        $entryId = isset($data['entry_id']) && $data['entry_id'] !== '' ? (int) $data['entry_id'] : null;
+        $collectionId = isset($data['collection_id']) && $data['collection_id'] !== '' ? (int) $data['collection_id'] : null;
+
+        $valid = false;
+
+        switch ($linkType) {
+            case 'page':
+                if ($pageId !== null && $entryId === null && $collectionId === null) {
+                    $valid = true;
+                }
+                break;
+            case 'entry':
+                if ($entryId !== null && $pageId === null && $collectionId === null) {
+                    $valid = true;
+                }
+                break;
+            case 'collection_listing':
+                if ($collectionId !== null && $pageId === null && $entryId === null) {
+                    $valid = true;
+                }
+                break;
+            case 'custom_url':
+            case 'no_link':
+                if ($pageId === null && $entryId === null && $collectionId === null) {
+                    $valid = true;
+                }
+                break;
+        }
+
+        if (!$valid) {
+            throw new ValidationException(
+                lang('Menus.invalid_hierarchy'),
+                ['link_type' => lang('Menus.invalid_link_type')]
+            );
+        }
+    }
+}

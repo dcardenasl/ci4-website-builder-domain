@@ -9,7 +9,8 @@
 
 ## 🔴 En progreso
 
-*(vacío)*
+- [ ] **CMS-005 (#4) — Menus API**
+  - Implementar CRUD de menús y de sus items de menú (anidados, ordenados, traducibles)
 
 ---
 
@@ -18,8 +19,6 @@
 Las tareas están ordenadas por fases de dependencias para asegurar la integridad de la base de datos (30 tablas de `erd_cms_v4.html`) y las APIs.
 
 ### Fase 2: Base Content & Navigation APIs
-- [ ] **CMS-005 (#4) — Menus API**
-  - Implementar CRUD de menús y de sus items de menú (anidados, ordenados, traducibles)
 
 ---
 

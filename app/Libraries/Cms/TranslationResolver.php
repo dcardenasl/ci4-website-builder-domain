@@ -34,7 +34,7 @@ class TranslationResolver
         'menu_item' => [
             'table'  => 'cms_menu_item_translations',
             'fk'     => 'menu_item_id',
-            'fields' => ['label', 'url'],
+            'fields' => ['label', 'custom_url'],
         ],
         'category' => [
             'table'  => 'cms_category_translations',
