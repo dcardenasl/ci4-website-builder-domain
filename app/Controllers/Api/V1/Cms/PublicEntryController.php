@@ -56,6 +56,41 @@ class PublicEntryController extends ApiController
                 // Build query via model
                 $now = date('Y-m-d H:i:s');
                 $entryModel = model(\App\Models\EntryModel::class);
+
+                // Category filtering
+                $categorySlug = $this->request->getGet('category');
+                if (!empty($categorySlug)) {
+                    $db = \Config\Database::connect();
+                    $categoryRes = $db->table('cms_category_translations')
+                        ->where('slug', $categorySlug)
+                        ->get();
+                    $categoryTrans = $categoryRes instanceof \CodeIgniter\Database\ResultInterface ? $categoryRes->getRowArray() : null;
+                    if ($categoryTrans) {
+                        $entryModel->join('cms_entry_categories', 'cms_entry_categories.entry_id = cms_entries.id')
+                            ->where('cms_entry_categories.category_id', (int) $categoryTrans['category_id']);
+                    } else {
+                        // force empty results
+                        $entryModel->where('1 = 0');
+                    }
+                }
+
+                // Tag filtering
+                $tagSlug = $this->request->getGet('tag');
+                if (!empty($tagSlug)) {
+                    $db = \Config\Database::connect();
+                    $tagRes = $db->table('cms_tag_translations')
+                        ->where('slug', $tagSlug)
+                        ->get();
+                    $tagTrans = $tagRes instanceof \CodeIgniter\Database\ResultInterface ? $tagRes->getRowArray() : null;
+                    if ($tagTrans) {
+                        $entryModel->join('cms_entry_tags', 'cms_entry_tags.entry_id = cms_entries.id')
+                            ->where('cms_entry_tags.tag_id', (int) $tagTrans['tag_id']);
+                    } else {
+                        // force empty results
+                        $entryModel->where('1 = 0');
+                    }
+                }
+
                 $builder = $entryModel->where('collection_id', $collectionId)
                     ->where('workflow_status', 'published')
                     ->groupStart()
@@ -68,8 +103,8 @@ class PublicEntryController extends ApiController
                     ->groupEnd();
 
                 $total = $builder->countAllResults(false);
-                $entries = $builder->orderBy('sort_order', 'ASC')
-                    ->orderBy('created_at', 'DESC')
+                $entries = $builder->orderBy('cms_entries.sort_order', 'ASC')
+                    ->orderBy('cms_entries.created_at', 'DESC')
                     ->findAll($perPage, $offset);
 
                 $resolver = Services::translationResolver();
@@ -79,7 +114,37 @@ class PublicEntryController extends ApiController
                     if ($entry instanceof \App\Entities\EntryEntity) {
                         $entryId = (int)$entry->id;
                         $resolved = $resolver->resolve('entry', $entryId, $lang);
-                        $dataList[] = array_merge($entry->toArray(), $resolved);
+
+                        // Resolve associated categories
+                        $db = \Config\Database::connect();
+                        $catsRes = $db->table('cms_entry_categories')
+                            ->select('category_id')
+                            ->where('entry_id', $entryId)
+                            ->orderBy('sort_order', 'ASC')
+                            ->get();
+                        $cats = $catsRes instanceof \CodeIgniter\Database\ResultInterface ? $catsRes->getResultArray() : [];
+                        $resolvedCats = [];
+                        foreach ($cats as $cat) {
+                            $catTrans = $resolver->resolve('category', (int)$cat['category_id'], $lang);
+                            $resolvedCats[] = array_merge(['id' => (int)$cat['category_id']], $catTrans);
+                        }
+
+                        // Resolve associated tags
+                        $tagsRes = $db->table('cms_entry_tags')
+                            ->select('tag_id')
+                            ->where('entry_id', $entryId)
+                            ->get();
+                        $tags = $tagsRes instanceof \CodeIgniter\Database\ResultInterface ? $tagsRes->getResultArray() : [];
+                        $resolvedTags = [];
+                        foreach ($tags as $t) {
+                            $tagTrans = $resolver->resolve('tag', (int)$t['tag_id'], $lang);
+                            $resolvedTags[] = array_merge(['id' => (int)$t['tag_id']], $tagTrans);
+                        }
+
+                        $itemData = array_merge($entry->toArray(), $resolved);
+                        $itemData['categories'] = $resolvedCats;
+                        $itemData['tags'] = $resolvedTags;
+                        $dataList[] = $itemData;
                     }
                 }
 
@@ -179,8 +244,36 @@ class PublicEntryController extends ApiController
                 $blockSerializer = Services::blockInstanceSerializer();
                 $blocks = $blockSerializer->forContent('entry', $entryId, $lang);
 
+                // Resolve associated categories
+                $db = \Config\Database::connect();
+                $catsRes = $db->table('cms_entry_categories')
+                    ->select('category_id')
+                    ->where('entry_id', $entryId)
+                    ->orderBy('sort_order', 'ASC')
+                    ->get();
+                $cats = $catsRes instanceof \CodeIgniter\Database\ResultInterface ? $catsRes->getResultArray() : [];
+                $resolvedCats = [];
+                foreach ($cats as $cat) {
+                    $catTrans = $resolver->resolve('category', (int)$cat['category_id'], $lang);
+                    $resolvedCats[] = array_merge(['id' => (int)$cat['category_id']], $catTrans);
+                }
+
+                // Resolve associated tags
+                $tagsRes = $db->table('cms_entry_tags')
+                    ->select('tag_id')
+                    ->where('entry_id', $entryId)
+                    ->get();
+                $tags = $tagsRes instanceof \CodeIgniter\Database\ResultInterface ? $tagsRes->getResultArray() : [];
+                $resolvedTags = [];
+                foreach ($tags as $t) {
+                    $tagTrans = $resolver->resolve('tag', (int)$t['tag_id'], $lang);
+                    $resolvedTags[] = array_merge(['id' => (int)$t['tag_id']], $tagTrans);
+                }
+
                 $data = array_merge($entry->toArray(), $resolved);
                 $data['blocks'] = $blocks;
+                $data['categories'] = $resolvedCats;
+                $data['tags'] = $resolvedTags;
 
                 return $this->response->setJSON([
                     'status' => 'success',

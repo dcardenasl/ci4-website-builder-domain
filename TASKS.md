@@ -55,7 +55,7 @@ Las tareas están ordenadas por fases de dependencias para asegurar la integrida
   - CRUD de colecciones personalizables (`collection_key`)
 - [x] **CMS-008 (#7) — Entries API**
   - CRUD de entries vinculando instancias de bloques de contenido por entry
-- [ ] **CMS-009 (#8) — Taxonomías: Categories & Tags**
+- [x] **CMS-009 (#8) — Taxonomías: Categories & Tags**
   - CRUD de categorías scoped y tags globales + pivots + filtros en listado de entries
 
 ### Fase 5: Publishing & Utilities

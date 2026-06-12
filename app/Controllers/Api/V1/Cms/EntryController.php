@@ -90,4 +90,63 @@ class EntryController extends ApiController
             }
         );
     }
+
+    public function setCategories(int $id): ResponseInterface
+    {
+        return $this->handleRequest(
+            function (array $dto, SecurityContext $context) use ($id): mixed {
+                if (!$context->hasPermission('cms.entries.write')) {
+                    throw new \dcardenasl\Ci4ApiCore\Exceptions\AuthorizationException(lang('Api.forbidden'));
+                }
+
+                $body = $this->request->getJSON(true);
+                $categoryIds = is_array($body) ? ($body['category_ids'] ?? []) : [];
+                if (!is_array($categoryIds)) {
+                    throw new \InvalidArgumentException(lang('Categories.invalid_array'));
+                }
+
+                // Update entry categories pivot
+                $db = \Config\Database::connect();
+                $db->table('cms_entry_categories')->where('entry_id', $id)->delete();
+                foreach ($categoryIds as $order => $catId) {
+                    $db->table('cms_entry_categories')->insert([
+                        'entry_id'    => $id,
+                        'category_id' => (int) $catId,
+                        'sort_order'  => $order,
+                    ]);
+                }
+
+                return ['status' => 'success'];
+            }
+        );
+    }
+
+    public function setTags(int $id): ResponseInterface
+    {
+        return $this->handleRequest(
+            function (array $dto, SecurityContext $context) use ($id): mixed {
+                if (!$context->hasPermission('cms.entries.write')) {
+                    throw new \dcardenasl\Ci4ApiCore\Exceptions\AuthorizationException(lang('Api.forbidden'));
+                }
+
+                $body = $this->request->getJSON(true);
+                $tagIds = is_array($body) ? ($body['tag_ids'] ?? []) : [];
+                if (!is_array($tagIds)) {
+                    throw new \InvalidArgumentException(lang('Tags.invalid_array'));
+                }
+
+                // Update entry tags pivot
+                $db = \Config\Database::connect();
+                $db->table('cms_entry_tags')->where('entry_id', $id)->delete();
+                foreach ($tagIds as $tagId) {
+                    $db->table('cms_entry_tags')->insert([
+                        'entry_id' => $id,
+                        'tag_id'   => (int) $tagId,
+                    ]);
+                }
+
+                return ['status' => 'success'];
+            }
+        );
+    }
 }

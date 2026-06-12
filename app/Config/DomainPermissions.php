@@ -85,5 +85,11 @@ class DomainPermissions
         ['code' => 'entry.read', 'resource' => 'entries', 'action' => 'read', 'description' => 'Read Entrys'],
         ['code' => 'entry.write', 'resource' => 'entries', 'action' => 'write', 'description' => 'Create or update Entry'],
         ['code' => 'entry.delete', 'resource' => 'entries', 'action' => 'delete', 'description' => 'Delete Entry'],
+        ['code' => 'category.read', 'resource' => 'categories', 'action' => 'read', 'description' => 'Read Categorys'],
+        ['code' => 'category.write', 'resource' => 'categories', 'action' => 'write', 'description' => 'Create or update Category'],
+        ['code' => 'category.delete', 'resource' => 'categories', 'action' => 'delete', 'description' => 'Delete Category'],
+        ['code' => 'tag.read', 'resource' => 'tags', 'action' => 'read', 'description' => 'Read Tags'],
+        ['code' => 'tag.write', 'resource' => 'tags', 'action' => 'write', 'description' => 'Create or update Tag'],
+        ['code' => 'tag.delete', 'resource' => 'tags', 'action' => 'delete', 'description' => 'Delete Tag'],
     ];
 }

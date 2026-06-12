@@ -26,6 +26,9 @@ $routes->group('cms', ['namespace' => '\App\Controllers\Api\V1\Cms'], function (
         // Collections CRUD
         $routes->get('collections', 'CollectionController::index', ['filter' => 'permission:cms.collections.read']);
         $routes->post('collections', 'CollectionController::create', ['filter' => 'permission:cms.collections.write']);
+        // Entries CRUD
+        $routes->get('entries', 'EntryController::index', ['filter' => 'permission:cms.entries.read']);
+        $routes->post('entries', 'EntryController::create', ['filter' => 'permission:cms.entries.write']);
         $routes->get('menus/(:num)', 'MenuController::show/$1', ['filter' => 'permission:cms.menus.read']);
         $routes->put('menus/(:num)', 'MenuController::update/$1', ['filter' => 'permission:cms.menus.write']);
         $routes->delete('menus/(:num)', 'MenuController::delete/$1', ['filter' => 'permission:cms.menus.write']);
@@ -59,20 +62,32 @@ $routes->group('cms', ['namespace' => '\App\Controllers\Api\V1\Cms'], function (
         $routes->get('collections/(:num)', 'CollectionController::show/$1', ['filter' => 'permission:cms.collections.read']);
         $routes->put('collections/(:num)', 'CollectionController::update/$1', ['filter' => 'permission:cms.collections.write']);
         $routes->delete('collections/(:num)', 'CollectionController::delete/$1', ['filter' => 'permission:cms.collections.admin']);
-
-        // Entries CRUD
-        $routes->get('entries', 'EntryController::index', ['filter' => 'permission:cms.entries.read']);
-        $routes->post('entries', 'EntryController::create', ['filter' => 'permission:cms.entries.write']);
         $routes->get('entries/(:num)', 'EntryController::show/$1', ['filter' => 'permission:cms.entries.read']);
         $routes->put('entries/(:num)', 'EntryController::update/$1', ['filter' => 'permission:cms.entries.write']);
         $routes->delete('entries/(:num)', 'EntryController::delete/$1', ['filter' => 'permission:cms.entries.admin']);
-
         // Block Instances CRUD nested under entries
         $routes->get('entries/(:num)/blocks', 'BlockInstanceController::index', ['filter' => 'permission:cms.pages.read']);
         $routes->get('entries/(:num)/blocks/(:num)', 'BlockInstanceController::show/$2', ['filter' => 'permission:cms.pages.read']);
         $routes->post('entries/(:num)/blocks', 'BlockInstanceController::create', ['filter' => 'permission:cms.pages.write']);
         $routes->put('entries/(:num)/blocks/(:num)', 'BlockInstanceController::update/$2', ['filter' => 'permission:cms.pages.write']);
         $routes->delete('entries/(:num)/blocks/(:num)', 'BlockInstanceController::delete/$2', ['filter' => 'permission:cms.pages.write']);
+        // Category CRUD
+        $routes->get('categories', 'CategoryController::index', ['filter' => 'permission:cms.categories.read']);
+        $routes->post('categories', 'CategoryController::create', ['filter' => 'permission:cms.categories.write']);
+        $routes->get('categories/(:num)', 'CategoryController::show/$1', ['filter' => 'permission:cms.categories.read']);
+        $routes->put('categories/(:num)', 'CategoryController::update/$1', ['filter' => 'permission:cms.categories.write']);
+        $routes->delete('categories/(:num)', 'CategoryController::delete/$1', ['filter' => 'permission:cms.categories.write']);
+
+        // Tag CRUD
+        $routes->get('tags', 'TagController::index', ['filter' => 'permission:cms.tags.read']);
+        $routes->post('tags', 'TagController::create', ['filter' => 'permission:cms.tags.write']);
+        $routes->get('tags/(:num)', 'TagController::show/$1', ['filter' => 'permission:cms.tags.read']);
+        $routes->put('tags/(:num)', 'TagController::update/$1', ['filter' => 'permission:cms.tags.write']);
+        $routes->delete('tags/(:num)', 'TagController::delete/$1', ['filter' => 'permission:cms.tags.write']);
+
+        // Entry Pivot relations
+        $routes->post('entries/(:num)/categories', 'EntryController::setCategories/$1', ['filter' => 'permission:cms.entries.write']);
+        $routes->post('entries/(:num)/tags', 'EntryController::setTags/$1', ['filter' => 'permission:cms.entries.write']);
     });
 });
 // Public endpoints

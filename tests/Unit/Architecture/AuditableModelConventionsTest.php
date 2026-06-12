@@ -29,6 +29,8 @@ class AuditableModelConventionsTest extends CIUnitTestCase
         'AuditLogModel',
         'MetricModel',
         'RequestLogModel',
+        'CategoryTranslationModel',
+        'TagTranslationModel',
     ];
 
     public function testAuditableModelsExtendSharedBaseAuditableModel(): void

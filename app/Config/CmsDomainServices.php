@@ -199,4 +199,32 @@ trait CmsDomainServices
         }
         return new \App\Services\Cms\EntryService(new \dcardenasl\Ci4ApiCore\Repositories\GenericRepository(model(\App\Models\EntryModel::class)), static::entryResponseMapper());
     }
+    public static function categoryResponseMapper(bool $getShared = true): \dcardenasl\Ci4ApiCore\Mappers\ResponseMapperInterface
+    {
+        if ($getShared) {
+            return static::getSharedInstance('categoryResponseMapper');
+        }
+        return new \dcardenasl\Ci4ApiCore\Mappers\DtoResponseMapper(\App\DTO\Response\Cms\CategoryResponseDTO::class);
+    }
+    public static function categoryService(bool $getShared = true): \App\Interfaces\Cms\CategoryServiceInterface
+    {
+        if ($getShared) {
+            return static::getSharedInstance('categoryService');
+        }
+        return new \App\Services\Cms\CategoryService(new \dcardenasl\Ci4ApiCore\Repositories\GenericRepository(model(\App\Models\CategoryModel::class)), static::categoryResponseMapper());
+    }
+    public static function tagResponseMapper(bool $getShared = true): \dcardenasl\Ci4ApiCore\Mappers\ResponseMapperInterface
+    {
+        if ($getShared) {
+            return static::getSharedInstance('tagResponseMapper');
+        }
+        return new \dcardenasl\Ci4ApiCore\Mappers\DtoResponseMapper(\App\DTO\Response\Cms\TagResponseDTO::class);
+    }
+    public static function tagService(bool $getShared = true): \App\Interfaces\Cms\TagServiceInterface
+    {
+        if ($getShared) {
+            return static::getSharedInstance('tagService');
+        }
+        return new \App\Services\Cms\TagService(new \dcardenasl\Ci4ApiCore\Repositories\GenericRepository(model(\App\Models\TagModel::class)), static::tagResponseMapper());
+    }
 }

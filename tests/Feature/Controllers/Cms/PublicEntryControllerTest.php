@@ -123,4 +123,104 @@ final class PublicEntryControllerTest extends CIUnitTestCase
         $result = $this->get('/api/v1/public/es/entries/blog/no-existe');
         $result->assertStatus(404);
     }
+
+    public function testGetPublicEntriesFilteredByCategoryAndTag(): void
+    {
+        // Truncate taxonomy tables
+        $this->db->disableForeignKeyChecks();
+        $this->db->table('cms_entry_categories')->truncate();
+        $this->db->table('cms_entry_tags')->truncate();
+        $this->db->table('cms_category_translations')->truncate();
+        $this->db->table('cms_categories')->truncate();
+        $this->db->table('cms_tag_translations')->truncate();
+        $this->db->table('cms_tags')->truncate();
+        $this->db->enableForeignKeyChecks();
+
+        // 1. Setup category
+        $this->db->table('cms_categories')->insert([
+            'collection_id' => $this->collectionId,
+            'sort_order'    => 1,
+            'is_active'     => 1,
+        ]);
+        $categoryId = $this->db->insertID();
+        $this->db->table('cms_category_translations')->insert([
+            'category_id' => $categoryId,
+            'language_id' => $this->langEsId,
+            'slug'        => 'noticias',
+            'name'        => 'Noticias',
+        ]);
+
+        // 2. Setup tag
+        $this->db->table('cms_tags')->insert([
+            'is_active' => 1,
+        ]);
+        $tagId = $this->db->insertID();
+        $this->db->table('cms_tag_translations')->insert([
+            'tag_id'      => $tagId,
+            'language_id' => $this->langEsId,
+            'slug'        => 'php',
+            'name'        => 'PHP',
+        ]);
+
+        // 3. Create entry
+        $this->db->table('cms_entries')->insert([
+            'collection_id'   => $this->collectionId,
+            'workflow_status' => 'published',
+            'is_featured'     => 1,
+            'view_count'      => 10,
+            'sort_order'      => 1,
+            'is_in_sitemap'   => 1,
+        ]);
+        $entryId = $this->db->insertID();
+        $this->db->table('cms_entry_translations')->insert([
+            'entry_id'    => $entryId,
+            'language_id' => $this->langEsId,
+            'slug'        => 'post-filtrado',
+            'title'       => 'Post Filtrado',
+            'excerpt'     => 'Texto de prueba',
+        ]);
+
+        // 4. Link category and tag
+        $this->db->table('cms_entry_categories')->insert([
+            'entry_id'    => $entryId,
+            'category_id' => $categoryId,
+            'sort_order'  => 0,
+        ]);
+        $this->db->table('cms_entry_tags')->insert([
+            'entry_id' => $entryId,
+            'tag_id'   => $tagId,
+        ]);
+
+        // 5. Query without filters -> should return it and include categories & tags
+        $result = $this->get('/api/v1/public/es/entries/blog');
+        $result->assertStatus(200);
+        $body = json_decode($result->getJSON(), true);
+        $this->assertCount(1, $body['data']);
+        $this->assertSame('noticias', $body['data'][0]['categories'][0]['slug']);
+        $this->assertSame('php', $body['data'][0]['tags'][0]['slug']);
+
+        // 6. Query with correct category filter -> should return it
+        $result = $this->get('/api/v1/public/es/entries/blog?category=noticias');
+        $result->assertStatus(200);
+        $body = json_decode($result->getJSON(), true);
+        $this->assertCount(1, $body['data']);
+
+        // 7. Query with incorrect category filter -> should return empty
+        $result = $this->get('/api/v1/public/es/entries/blog?category=deportes');
+        $result->assertStatus(200);
+        $body = json_decode($result->getJSON(), true);
+        $this->assertCount(0, $body['data']);
+
+        // 8. Query with correct tag filter -> should return it
+        $result = $this->get('/api/v1/public/es/entries/blog?tag=php');
+        $result->assertStatus(200);
+        $body = json_decode($result->getJSON(), true);
+        $this->assertCount(1, $body['data']);
+
+        // 9. Query with incorrect tag filter -> should return empty
+        $result = $this->get('/api/v1/public/es/entries/blog?tag=java');
+        $result->assertStatus(200);
+        $body = json_decode($result->getJSON(), true);
+        $this->assertCount(0, $body['data']);
+    }
 }
