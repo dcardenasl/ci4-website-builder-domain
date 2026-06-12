@@ -143,4 +143,32 @@ trait CmsDomainServices
         }
         return new \App\Services\Cms\MenuItemService(new \dcardenasl\Ci4ApiCore\Repositories\GenericRepository(model(\App\Models\MenuItemModel::class)), static::menuItemResponseMapper());
     }
+    public static function blockTypeResponseMapper(bool $getShared = true): \dcardenasl\Ci4ApiCore\Mappers\ResponseMapperInterface
+    {
+        if ($getShared) {
+            return static::getSharedInstance('blockTypeResponseMapper');
+        }
+        return new \dcardenasl\Ci4ApiCore\Mappers\DtoResponseMapper(\App\DTO\Response\Cms\BlockTypeResponseDTO::class);
+    }
+    public static function blockTypeService(bool $getShared = true): \App\Interfaces\Cms\BlockTypeServiceInterface
+    {
+        if ($getShared) {
+            return static::getSharedInstance('blockTypeService');
+        }
+        return new \App\Services\Cms\BlockTypeService(new \dcardenasl\Ci4ApiCore\Repositories\GenericRepository(model(\App\Models\BlockTypeModel::class)), static::blockTypeResponseMapper());
+    }
+    public static function blockInstanceResponseMapper(bool $getShared = true): \dcardenasl\Ci4ApiCore\Mappers\ResponseMapperInterface
+    {
+        if ($getShared) {
+            return static::getSharedInstance('blockInstanceResponseMapper');
+        }
+        return new \dcardenasl\Ci4ApiCore\Mappers\DtoResponseMapper(\App\DTO\Response\Cms\BlockInstanceResponseDTO::class);
+    }
+    public static function blockInstanceService(bool $getShared = true): \App\Interfaces\Cms\BlockInstanceServiceInterface
+    {
+        if ($getShared) {
+            return static::getSharedInstance('blockInstanceService');
+        }
+        return new \App\Services\Cms\BlockInstanceService(new \dcardenasl\Ci4ApiCore\Repositories\GenericRepository(model(\App\Models\BlockInstanceModel::class)), static::blockInstanceResponseMapper());
+    }
 }

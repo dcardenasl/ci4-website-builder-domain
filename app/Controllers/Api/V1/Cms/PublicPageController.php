@@ -43,8 +43,13 @@ class PublicPageController extends ApiController
                 $translationResolver = Services::translationResolver();
                 $translation = $translationResolver->resolve('page', $pageId, $lang);
 
+                // Load blocks
+                $blockSerializer = Services::blockInstanceSerializer();
+                $blocks = $blockSerializer->forContent('page', $pageId, $lang);
+
                 // Build response structure
                 $data = array_merge($page->toArray(), $translation);
+                $data['blocks'] = $blocks;
 
                 return $this->response->setJSON([
                     'status' => 'success',

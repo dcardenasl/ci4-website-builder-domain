@@ -73,5 +73,11 @@ class DomainPermissions
         ['code' => 'cms.redirects.read', 'resource' => 'redirects', 'action' => 'read', 'description' => 'Read CMS redirects'],
         ['code' => 'cms.redirects.write', 'resource' => 'redirects', 'action' => 'write', 'description' => 'Create/Edit CMS redirects'],
         ['code' => 'cms.redirects.admin', 'resource' => 'redirects', 'action' => 'admin', 'description' => 'Full administration of CMS redirects'],
+        ['code' => 'blockType.read', 'resource' => 'block-types', 'action' => 'read', 'description' => 'Read BlockTypes'],
+        ['code' => 'blockType.write', 'resource' => 'block-types', 'action' => 'write', 'description' => 'Create or update BlockType'],
+        ['code' => 'blockType.delete', 'resource' => 'block-types', 'action' => 'delete', 'description' => 'Delete BlockType'],
+        ['code' => 'blockInstance.read', 'resource' => 'block-instances', 'action' => 'read', 'description' => 'Read BlockInstances'],
+        ['code' => 'blockInstance.write', 'resource' => 'block-instances', 'action' => 'write', 'description' => 'Create or update BlockInstance'],
+        ['code' => 'blockInstance.delete', 'resource' => 'block-instances', 'action' => 'delete', 'description' => 'Delete BlockInstance'],
     ];
 }

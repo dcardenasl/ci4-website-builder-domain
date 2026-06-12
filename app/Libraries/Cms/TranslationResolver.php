@@ -58,7 +58,7 @@ class TranslationResolver
         ],
         'block_instance' => [
             'table'  => 'cms_block_instance_translations',
-            'fk'     => 'block_instance_id',
+            'fk'     => 'instance_id',
             'fields' => ['block_data'],
         ],
         'file' => [
