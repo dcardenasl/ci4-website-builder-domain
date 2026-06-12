@@ -92,4 +92,27 @@ trait CmsDomainServices
 
         return new \App\Libraries\Cms\BlockInstanceSerializer();
     }
+    public static function pageResponseMapper(bool $getShared = true): \dcardenasl\Ci4ApiCore\Mappers\ResponseMapperInterface
+    {
+        if ($getShared) {
+            return static::getSharedInstance('pageResponseMapper');
+        }
+        return new \dcardenasl\Ci4ApiCore\Mappers\DtoResponseMapper(\App\DTO\Response\Cms\PageResponseDTO::class);
+    }
+    public static function pageService(bool $getShared = true): \App\Interfaces\Cms\PageServiceInterface
+    {
+        if ($getShared) {
+            return static::getSharedInstance('pageService');
+        }
+        return new \App\Services\Cms\PageService(new \dcardenasl\Ci4ApiCore\Repositories\GenericRepository(model(\App\Models\PageModel::class)), static::pageResponseMapper());
+    }
+
+    public static function slugRouter(bool $getShared = true): \App\Libraries\Cms\SlugRouter
+    {
+        if ($getShared) {
+            return static::getSharedInstance('slugRouter');
+        }
+
+        return new \App\Libraries\Cms\SlugRouter();
+    }
 }

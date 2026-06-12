@@ -9,7 +9,7 @@
 
 ## 🔴 En progreso
 
-*(vacío - listo para comenzar Fase 1)*
+*(vacío)*
 
 ---
 
@@ -17,17 +17,26 @@
 
 Las tareas están ordenadas por fases de dependencias para asegurar la integridad de la base de datos (30 tablas de `erd_cms_v4.html`) y las APIs.
 
-### Fase 1: Bootstrapping & Setup
-- [ ] **CMS-002 (#2) — Languages & Settings API**
-  - Implementar CRUD de idiomas y settings
-  - Crear el deep module `TranslationResolver` con unit tests
-- [ ] **CMS-003 (#10) — File translations**
-  - Implementar CRUD de traducciones de archivos (`cms_file_translations`)
-  - Integrar metadatos en `BlockInstanceSerializer`
+### Fase 2: Base Content & Navigation APIs
+- [ ] **CMS-005 (#4) — Menus API**
+  - Implementar CRUD de menús y de sus items de menú (anidados, ordenados, traducibles)
 
 ---
 
 ## ✅ Completadas
+
+### CMS-004 (#3) — Pages API
+- Implementado CRUD de páginas con persistencia de campos traducibles e historial de versiones.
+- Creado módulo `SlugRouter` para enrutamiento de páginas jerárquicas multilingües.
+- Agregados tests unitarios y de integración con cobertura del 100% de calidad.
+
+### CMS-002 (#2) — Languages & Settings API
+- CRUD de idiomas y settings
+- Crear el deep module `TranslationResolver` con unit tests
+
+### CMS-003 (#10) — File translations
+- CRUD de traducciones de archivos (`cms_file_translations`)
+- Integrar metadatos en `BlockInstanceSerializer`
 
 ### CMS-001 (#1) — Bootstrap & Schema completo
 - Registrar la app CMS en el hub (`php spark apps:bootstrap cms --create-api-key`)
@@ -35,13 +44,6 @@ Las tareas están ordenadas por fases de dependencias para asegurar la integrida
 - Crear e integrar la migración única con las 30 tablas del ERD v4
 - Adaptar `init.sh` para la orquestación desatendida
 - Proteger endpoints `/api/v1/cms/*` y abrir `/api/v1/public/*`
-
-### Fase 2: Base Content & Navigation APIs
-- [ ] **CMS-004 (#3) — Pages API**
-  - Implementar CRUD de páginas (jerárquicas, traducción, estado borrador/programado)
-  - Desarrollar deep module `SlugRouter`
-- [ ] **CMS-005 (#4) — Menus API**
-  - Implementar CRUD de menús y de sus items de menú (anidados, ordenados, traducibles)
 
 ### Fase 3: Composable Block System
 - [ ] **CMS-006 (#5) — Block system**
