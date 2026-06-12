@@ -20,14 +20,18 @@ class PageService extends BaseCrudService implements PageServiceInterface
     /** @var array<mixed>|null */
     private ?array $tempTranslations = null;
 
+    private \App\Libraries\Cms\SlugRedirectRecorder $slugRedirectRecorder;
+
     /**
      * @param RepositoryInterface<PageEntity> $pageRepository
      */
     public function __construct(
         RepositoryInterface $pageRepository,
-        ResponseMapperInterface $responseMapper
+        ResponseMapperInterface $responseMapper,
+        ?\App\Libraries\Cms\SlugRedirectRecorder $slugRedirectRecorder = null
     ) {
         parent::__construct($pageRepository, $responseMapper);
+        $this->slugRedirectRecorder = $slugRedirectRecorder ?? service('slugRedirectRecorder');
     }
 
     protected function beforeStore(array $data, ?SecurityContext $context): array
@@ -152,13 +156,32 @@ class PageService extends BaseCrudService implements PageServiceInterface
             }
         }
 
+        // Query current translations to compare slugs
+        $currentTranslations = $translationModel->where('page_id', $pageId)->findAll();
+        $currentSlugs = [];
+        foreach ($currentTranslations as $ct) {
+            if ($ct instanceof \App\Entities\PageTranslationEntity) {
+                $currentSlugs[(int)$ct->language_id] = $ct->slug;
+            }
+        }
+
         $translationModel->where('page_id', $pageId)->delete();
 
         foreach ($translations as $translation) {
+            $langId = (int) $translation['language_id'];
+            $newSlug = (string) $translation['slug'];
+
+            // Record redirection if slug changed
+            if (isset($currentSlugs[$langId]) && $currentSlugs[$langId] !== $newSlug) {
+                // Determine old path for page (simple slug for now or we could load path logic)
+                // Since parent could have slugs, let's look at the old slug itself
+                $this->slugRedirectRecorder->record('page', $pageId, $langId, $currentSlugs[$langId], $newSlug, $currentSlugs[$langId]);
+            }
+
             $translationModel->insert([
                 'page_id'          => $pageId,
-                'language_id'      => (int) $translation['language_id'],
-                'slug'             => $translation['slug'],
+                'language_id'      => $langId,
+                'slug'             => $newSlug,
                 'title'            => $translation['title'],
                 'excerpt'          => $translation['excerpt'] ?? null,
                 'meta_title'       => $translation['meta_title'] ?? null,

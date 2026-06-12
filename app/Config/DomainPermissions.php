@@ -91,5 +91,8 @@ class DomainPermissions
         ['code' => 'tag.read', 'resource' => 'tags', 'action' => 'read', 'description' => 'Read Tags'],
         ['code' => 'tag.write', 'resource' => 'tags', 'action' => 'write', 'description' => 'Create or update Tag'],
         ['code' => 'tag.delete', 'resource' => 'tags', 'action' => 'delete', 'description' => 'Delete Tag'],
+        ['code' => 'redirect.read', 'resource' => 'redirects', 'action' => 'read', 'description' => 'Read Redirects'],
+        ['code' => 'redirect.write', 'resource' => 'redirects', 'action' => 'write', 'description' => 'Create or update Redirect'],
+        ['code' => 'redirect.delete', 'resource' => 'redirects', 'action' => 'delete', 'description' => 'Delete Redirect'],
     ];
 }

@@ -24,6 +24,12 @@ Las tareas están ordenadas por fases de dependencias para asegurar la integrida
 
 ## ✅ Completadas
 
+### CMS-010 (#9) — Redirects & Slug history
+- Implementado CRUD de redirecciones manuales y automáticas (historial de slugs).
+- Creado módulo `SlugRedirectRecorder` para registrar cambios de slugs históricos de páginas y entradas.
+- Implementado endpoint público de resolución de redirecciones con soporte para múltiples segmentos de path.
+- Agregados tests unitarios y de integración con cobertura del 100% de calidad.
+
 ### CMS-004 (#3) — Pages API
 - Implementado CRUD de páginas con persistencia de campos traducibles e historial de versiones.
 - Creado módulo `SlugRouter` para enrutamiento de páginas jerárquicas multilingües.
@@ -59,8 +65,6 @@ Las tareas están ordenadas por fases de dependencias para asegurar la integrida
   - CRUD de categorías scoped y tags globales + pivots + filtros en listado de entries
 
 ### Fase 5: Publishing & Utilities
-- [ ] **CMS-010 (#9) — Redirects & Slug history**
-  - CRUD de redirecciones manuales + observador `SlugRedirectRecorder` para slugs históricos
 - [ ] **CMS-011 (#11) — Scheduled publishing**
   - Queue job `ScheduledPublishingJob` para publicar páginas y entries en segundo plano
 

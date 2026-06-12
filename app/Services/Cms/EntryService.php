@@ -20,14 +20,18 @@ class EntryService extends BaseCrudService implements EntryServiceInterface
     /** @var array<mixed>|null */
     private ?array $tempTranslations = null;
 
+    private \App\Libraries\Cms\SlugRedirectRecorder $slugRedirectRecorder;
+
     /**
      * @param RepositoryInterface<EntryEntity> $entryRepository
      */
     public function __construct(
         RepositoryInterface $entryRepository,
-        ResponseMapperInterface $responseMapper
+        ResponseMapperInterface $responseMapper,
+        ?\App\Libraries\Cms\SlugRedirectRecorder $slugRedirectRecorder = null
     ) {
         parent::__construct($entryRepository, $responseMapper);
+        $this->slugRedirectRecorder = $slugRedirectRecorder ?? service('slugRedirectRecorder');
     }
 
     protected function beforeStore(array $data, ?SecurityContext $context): array
@@ -163,13 +167,42 @@ class EntryService extends BaseCrudService implements EntryServiceInterface
             }
         }
 
+        // Query current translations to compare slugs
+        $currentTranslations = $translationModel->where('entry_id', $entryId)->findAll();
+        $currentSlugs = [];
+        foreach ($currentTranslations as $ct) {
+            if ($ct instanceof \App\Entities\EntryTranslationEntity) {
+                $currentSlugs[(int)$ct->language_id] = $ct->slug;
+            }
+        }
+
         $translationModel->where('entry_id', $entryId)->delete();
 
         foreach ($translations as $translation) {
+            $langId = (int) $translation['language_id'];
+            $newSlug = (string) $translation['slug'];
+
+            // Record redirection if slug changed
+            if (isset($currentSlugs[$langId]) && $currentSlugs[$langId] !== $newSlug) {
+                // Determine collection URL prefix to form a full path redirect if possible
+                $entryModel = model(\App\Models\EntryModel::class);
+                $entry = $entryModel->find($entryId);
+                $prefix = '';
+                if ($entry instanceof \App\Entities\EntryEntity) {
+                    $collectionModel = model(\App\Models\CollectionModel::class);
+                    $collection = $collectionModel->find((int)$entry->collection_id);
+                    if ($collection instanceof \App\Entities\CollectionEntity) {
+                        $prefix = trim($collection->url_prefix, '/') . '/';
+                    }
+                }
+                $oldFullPath = $prefix . $currentSlugs[$langId];
+                $this->slugRedirectRecorder->record('entry', $entryId, $langId, $currentSlugs[$langId], $newSlug, $oldFullPath);
+            }
+
             $translationModel->insert([
                 'entry_id'          => $entryId,
-                'language_id'      => (int) $translation['language_id'],
-                'slug'             => $translation['slug'],
+                'language_id'      => $langId,
+                'slug'             => $newSlug,
                 'title'            => $translation['title'],
                 'excerpt'          => $translation['excerpt'] ?? null,
                 'featured_file_id' => isset($translation['featured_file_id']) && $translation['featured_file_id'] !== '' ? (int) $translation['featured_file_id'] : null,

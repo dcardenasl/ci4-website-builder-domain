@@ -227,4 +227,27 @@ trait CmsDomainServices
         }
         return new \App\Services\Cms\TagService(new \dcardenasl\Ci4ApiCore\Repositories\GenericRepository(model(\App\Models\TagModel::class)), static::tagResponseMapper());
     }
+    public static function redirectResponseMapper(bool $getShared = true): \dcardenasl\Ci4ApiCore\Mappers\ResponseMapperInterface
+    {
+        if ($getShared) {
+            return static::getSharedInstance('redirectResponseMapper');
+        }
+        return new \dcardenasl\Ci4ApiCore\Mappers\DtoResponseMapper(\App\DTO\Response\Cms\RedirectResponseDTO::class);
+    }
+    public static function redirectService(bool $getShared = true): \App\Interfaces\Cms\RedirectServiceInterface
+    {
+        if ($getShared) {
+            return static::getSharedInstance('redirectService');
+        }
+        return new \App\Services\Cms\RedirectService(new \dcardenasl\Ci4ApiCore\Repositories\GenericRepository(model(\App\Models\RedirectModel::class)), static::redirectResponseMapper());
+    }
+
+    public static function slugRedirectRecorder(bool $getShared = true): \App\Libraries\Cms\SlugRedirectRecorder
+    {
+        if ($getShared) {
+            return static::getSharedInstance('slugRedirectRecorder');
+        }
+
+        return new \App\Libraries\Cms\SlugRedirectRecorder();
+    }
 }

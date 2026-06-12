@@ -29,6 +29,16 @@ $routes->group('cms', ['namespace' => '\App\Controllers\Api\V1\Cms'], function (
         // Entries CRUD
         $routes->get('entries', 'EntryController::index', ['filter' => 'permission:cms.entries.read']);
         $routes->post('entries', 'EntryController::create', ['filter' => 'permission:cms.entries.write']);
+        // Category CRUD
+        $routes->get('categories', 'CategoryController::index', ['filter' => 'permission:cms.categories.read']);
+        $routes->post('categories', 'CategoryController::create', ['filter' => 'permission:cms.categories.write']);
+        // Tag CRUD
+        $routes->get('tags', 'TagController::index', ['filter' => 'permission:cms.tags.read']);
+        $routes->post('tags', 'TagController::create', ['filter' => 'permission:cms.tags.write']);
+
+        // Redirects CRUD
+        $routes->get('redirects', 'RedirectController::index', ['filter' => 'permission:cms.redirects.read']);
+        $routes->post('redirects', 'RedirectController::create', ['filter' => 'permission:cms.redirects.write']);
         $routes->get('menus/(:num)', 'MenuController::show/$1', ['filter' => 'permission:cms.menus.read']);
         $routes->put('menus/(:num)', 'MenuController::update/$1', ['filter' => 'permission:cms.menus.write']);
         $routes->delete('menus/(:num)', 'MenuController::delete/$1', ['filter' => 'permission:cms.menus.write']);
@@ -71,19 +81,16 @@ $routes->group('cms', ['namespace' => '\App\Controllers\Api\V1\Cms'], function (
         $routes->post('entries/(:num)/blocks', 'BlockInstanceController::create', ['filter' => 'permission:cms.pages.write']);
         $routes->put('entries/(:num)/blocks/(:num)', 'BlockInstanceController::update/$2', ['filter' => 'permission:cms.pages.write']);
         $routes->delete('entries/(:num)/blocks/(:num)', 'BlockInstanceController::delete/$2', ['filter' => 'permission:cms.pages.write']);
-        // Category CRUD
-        $routes->get('categories', 'CategoryController::index', ['filter' => 'permission:cms.categories.read']);
-        $routes->post('categories', 'CategoryController::create', ['filter' => 'permission:cms.categories.write']);
         $routes->get('categories/(:num)', 'CategoryController::show/$1', ['filter' => 'permission:cms.categories.read']);
         $routes->put('categories/(:num)', 'CategoryController::update/$1', ['filter' => 'permission:cms.categories.write']);
         $routes->delete('categories/(:num)', 'CategoryController::delete/$1', ['filter' => 'permission:cms.categories.write']);
-
-        // Tag CRUD
-        $routes->get('tags', 'TagController::index', ['filter' => 'permission:cms.tags.read']);
-        $routes->post('tags', 'TagController::create', ['filter' => 'permission:cms.tags.write']);
         $routes->get('tags/(:num)', 'TagController::show/$1', ['filter' => 'permission:cms.tags.read']);
         $routes->put('tags/(:num)', 'TagController::update/$1', ['filter' => 'permission:cms.tags.write']);
         $routes->delete('tags/(:num)', 'TagController::delete/$1', ['filter' => 'permission:cms.tags.write']);
+
+        $routes->get('redirects/(:num)', 'RedirectController::show/$1', ['filter' => 'permission:cms.redirects.read']);
+        $routes->put('redirects/(:num)', 'RedirectController::update/$1', ['filter' => 'permission:cms.redirects.write']);
+        $routes->delete('redirects/(:num)', 'RedirectController::delete/$1', ['filter' => 'permission:cms.redirects.admin']);
 
         // Entry Pivot relations
         $routes->post('entries/(:num)/categories', 'EntryController::setCategories/$1', ['filter' => 'permission:cms.entries.write']);
@@ -96,3 +103,4 @@ $routes->get('public/menus/(:segment)', '\App\Controllers\Api\V1\Cms\PublicMenuC
 $routes->get('public/(:segment)/collections', '\App\Controllers\Api\V1\Cms\PublicCollectionController::index/$1', ['filter' => 'throttle']);
 $routes->get('public/(:segment)/entries/(:segment)', '\App\Controllers\Api\V1\Cms\PublicEntryController::index/$1/$2', ['filter' => 'throttle']);
 $routes->get('public/(:segment)/entries/(:segment)/(.+)', '\App\Controllers\Api\V1\Cms\PublicEntryController::show/$1/$2/$3', ['filter' => 'throttle']);
+$routes->get('public/redirects/(.*)', '\App\Controllers\Api\V1\Cms\PublicRedirectController::resolve/$1', ['filter' => 'throttle']);
