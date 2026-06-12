@@ -11,7 +11,11 @@ return [
     'slug_already_taken' => "The slug '{0}' is already taken for this language.",
     'invalid_collection' => 'Invalid collection.',
     'collection_not_exists' => 'Collection does not exist.',
-    'language_not_found' => 'Language not found.',
+    'language_not_found'        => 'Language not found.',
+    'invalid_categories'        => 'One or more category IDs are invalid.',
+    'some_categories_not_found' => 'Some provided category IDs do not exist.',
+    'invalid_tags'              => 'One or more tag IDs are invalid.',
+    'some_tags_not_found'       => 'Some provided tag IDs do not exist.',
     'fields'         => [
         'collection_id' => 'Collection',
         'collection_id_placeholder' => 'Select Collection',

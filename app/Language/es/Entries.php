@@ -11,7 +11,11 @@ return [
     'slug_already_taken' => "El slug '{0}' ya está en uso para este idioma.",
     'invalid_collection' => 'Colección inválida.',
     'collection_not_exists' => 'La colección no existe.',
-    'language_not_found' => 'Idioma no encontrado.',
+    'language_not_found'        => 'Idioma no encontrado.',
+    'invalid_categories'        => 'Uno o más IDs de categoría son inválidos.',
+    'some_categories_not_found' => 'Algunos IDs de categoría proporcionados no existen.',
+    'invalid_tags'              => 'Uno o más IDs de etiqueta son inválidos.',
+    'some_tags_not_found'       => 'Algunos IDs de etiqueta proporcionados no existen.',
     'fields'         => [
         'collection_id' => 'Collection',
         'collection_id_placeholder' => 'Selecciona Collection',

@@ -4,9 +4,17 @@ declare(strict_types=1);
 
 namespace App\Services\Cms;
 
+use App\DTO\Request\Cms\EntrySetCategoriesRequestDTO;
+use App\DTO\Request\Cms\EntrySetTagsRequestDTO;
+use App\DTO\Request\Cms\PublicEntryIndexRequestDTO;
+use App\DTO\Request\Cms\PublicEntryShowRequestDTO;
 use App\Entities\EntryEntity;
 use App\Interfaces\Cms\EntryServiceInterface;
+use dcardenasl\Ci4ApiCore\Dto\Common\PayloadResponseDTO;
+use dcardenasl\Ci4ApiCore\Dto\DataTransferObjectInterface;
+use dcardenasl\Ci4ApiCore\Dto\PaginatedResponseDTO;
 use dcardenasl\Ci4ApiCore\Dto\SecurityContext;
+use dcardenasl\Ci4ApiCore\Exceptions\NotFoundException;
 use dcardenasl\Ci4ApiCore\Exceptions\ValidationException;
 use dcardenasl\Ci4ApiCore\Mappers\ResponseMapperInterface;
 use dcardenasl\Ci4ApiCore\Repositories\RepositoryInterface;
@@ -215,6 +223,483 @@ class EntryService extends BaseCrudService implements EntryServiceInterface
                 'schema_data'      => isset($translation['schema_data']) ? json_encode($translation['schema_data']) : null,
             ]);
         }
+    }
+
+    public function syncCategories(
+        int $entryId,
+        EntrySetCategoriesRequestDTO $dto,
+        ?SecurityContext $context = null
+    ): DataTransferObjectInterface {
+        if (!$this->repository->find($entryId)) {
+            throw new NotFoundException(lang('Api.resourceNotFound'));
+        }
+
+        return $this->wrapInTransaction(function () use ($entryId, $dto): DataTransferObjectInterface {
+            $categoryIds = $dto->category_ids;
+
+            if (!empty($categoryIds)) {
+                /** @var \App\Models\CategoryModel $categoryModel */
+                $categoryModel = model(\App\Models\CategoryModel::class);
+                $found = $categoryModel->whereIn('id', $categoryIds)->findAll();
+                if (count($found) !== count(array_unique($categoryIds))) {
+                    throw new ValidationException(
+                        lang('Entries.invalid_categories'),
+                        ['category_ids' => lang('Entries.some_categories_not_found')]
+                    );
+                }
+            }
+
+            $db = \Config\Database::connect();
+            $db->table('cms_entry_categories')->where('entry_id', $entryId)->delete();
+
+            foreach ($categoryIds as $order => $catId) {
+                $db->table('cms_entry_categories')->insert([
+                    'entry_id'    => $entryId,
+                    'category_id' => $catId,
+                    'sort_order'  => $order,
+                ]);
+            }
+
+            return PayloadResponseDTO::fromArray([
+                'entry_id'     => $entryId,
+                'category_ids' => $categoryIds,
+            ]);
+        });
+    }
+
+    public function syncTags(
+        int $entryId,
+        EntrySetTagsRequestDTO $dto,
+        ?SecurityContext $context = null
+    ): DataTransferObjectInterface {
+        if (!$this->repository->find($entryId)) {
+            throw new NotFoundException(lang('Api.resourceNotFound'));
+        }
+
+        return $this->wrapInTransaction(function () use ($entryId, $dto): DataTransferObjectInterface {
+            $tagIds = $dto->tag_ids;
+
+            if (!empty($tagIds)) {
+                /** @var \App\Models\TagModel $tagModel */
+                $tagModel = model(\App\Models\TagModel::class);
+                $found = $tagModel->whereIn('id', $tagIds)->findAll();
+                if (count($found) !== count(array_unique($tagIds))) {
+                    throw new ValidationException(
+                        lang('Entries.invalid_tags'),
+                        ['tag_ids' => lang('Entries.some_tags_not_found')]
+                    );
+                }
+            }
+
+            $db = \Config\Database::connect();
+            $db->table('cms_entry_tags')->where('entry_id', $entryId)->delete();
+
+            foreach ($tagIds as $tagId) {
+                $db->table('cms_entry_tags')->insert([
+                    'entry_id' => $entryId,
+                    'tag_id'   => $tagId,
+                ]);
+            }
+
+            return PayloadResponseDTO::fromArray([
+                'entry_id' => $entryId,
+                'tag_ids'  => $tagIds,
+            ]);
+        });
+    }
+
+    public function listPublic(PublicEntryIndexRequestDTO $dto): DataTransferObjectInterface
+    {
+        /** @var \App\Models\CollectionModel $collectionModel */
+        $collectionModel = model(\App\Models\CollectionModel::class);
+        $collection = $collectionModel
+            ->where('collection_key', $dto->collection_key)
+            ->where('is_active', 1)
+            ->first();
+
+        if (!$collection instanceof \App\Entities\CollectionEntity) {
+            throw new NotFoundException(lang('Collections.not_found'));
+        }
+
+        $langId = $this->resolveLanguageId($dto->lang);
+
+        /** @var \App\Models\EntryModel $entryModel */
+        $entryModel = model(\App\Models\EntryModel::class);
+
+        if ($dto->category !== null) {
+            /** @var \App\Models\CategoryTranslationModel $catTransModel */
+            $catTransModel = model(\App\Models\CategoryTranslationModel::class);
+            $catTrans = $catTransModel->where('slug', $dto->category)->first();
+            if (!$catTrans instanceof \App\Entities\CategoryTranslationEntity) {
+                return PaginatedResponseDTO::fromArray([
+                    'data'     => [],
+                    'total'    => 0,
+                    'page'     => $dto->page,
+                    'per_page' => $dto->per_page,
+                ]);
+            }
+            $entryModel->join('cms_entry_categories', 'cms_entry_categories.entry_id = cms_entries.id')
+                ->where('cms_entry_categories.category_id', (int) $catTrans->category_id);
+        }
+
+        if ($dto->tag !== null) {
+            /** @var \App\Models\TagTranslationModel $tagTransModel */
+            $tagTransModel = model(\App\Models\TagTranslationModel::class);
+            $tagTrans = $tagTransModel->where('slug', $dto->tag)->first();
+            if (!$tagTrans instanceof \App\Entities\TagTranslationEntity) {
+                return PaginatedResponseDTO::fromArray([
+                    'data'     => [],
+                    'total'    => 0,
+                    'page'     => $dto->page,
+                    'per_page' => $dto->per_page,
+                ]);
+            }
+            $entryModel->join('cms_entry_tags', 'cms_entry_tags.entry_id = cms_entries.id')
+                ->where('cms_entry_tags.tag_id', (int) $tagTrans->tag_id);
+        }
+
+        $now    = date('Y-m-d H:i:s');
+        $offset = ($dto->page - 1) * $dto->per_page;
+
+        $builder = $entryModel
+            ->where('collection_id', (int) $collection->id)
+            ->where('workflow_status', 'published')
+            ->groupStart()
+                ->where('published_at IS NULL')
+                ->orWhere('published_at <=', $now)
+            ->groupEnd()
+            ->groupStart()
+                ->where('scheduled_at IS NULL')
+                ->orWhere('scheduled_at <=', $now)
+            ->groupEnd();
+
+        $total   = (int) $builder->countAllResults(false);
+        $entries = $builder
+            ->orderBy('cms_entries.sort_order', 'ASC')
+            ->orderBy('cms_entries.created_at', 'DESC')
+            ->findAll($dto->per_page, $offset);
+
+        if (empty($entries)) {
+            return PaginatedResponseDTO::fromArray([
+                'data'     => [],
+                'total'    => $total,
+                'page'     => $dto->page,
+                'per_page' => $dto->per_page,
+            ]);
+        }
+
+        $entryIds = [];
+        foreach ($entries as $e) {
+            if ($e instanceof EntryEntity) {
+                $entryIds[] = (int) $e->id;
+            }
+        }
+
+        $entryTransMap  = $this->batchResolveEntryTranslations($entryIds, $langId);
+        $categoriesMap  = $this->batchResolveCategoryPivot($entryIds, $langId);
+        $tagsMap        = $this->batchResolveTagPivot($entryIds, $langId);
+
+        $data = [];
+        foreach ($entries as $entry) {
+            if (!$entry instanceof EntryEntity) {
+                continue;
+            }
+            $entryId = (int) $entry->id;
+            $item    = array_merge($entry->toArray(), $entryTransMap[$entryId] ?? []);
+            $item['categories'] = $categoriesMap[$entryId] ?? [];
+            $item['tags']       = $tagsMap[$entryId] ?? [];
+            $data[] = $item;
+        }
+
+        return PaginatedResponseDTO::fromArray([
+            'data'     => $data,
+            'total'    => (int) $total,
+            'page'     => $dto->page,
+            'per_page' => $dto->per_page,
+        ]);
+    }
+
+    public function showPublic(PublicEntryShowRequestDTO $dto): DataTransferObjectInterface
+    {
+        /** @var \App\Models\CollectionModel $collectionModel */
+        $collectionModel = model(\App\Models\CollectionModel::class);
+        $collection = $collectionModel
+            ->where('collection_key', $dto->collection_key)
+            ->where('is_active', 1)
+            ->first();
+
+        if (!$collection instanceof \App\Entities\CollectionEntity) {
+            throw new NotFoundException(lang('Collections.not_found'));
+        }
+
+        $langId = $this->resolveLanguageId($dto->lang);
+
+        /** @var \App\Models\EntryTranslationModel $translationModel */
+        $translationModel = model(\App\Models\EntryTranslationModel::class);
+        $entryTranslation = $translationModel
+            ->where('slug', $dto->slug)
+            ->where('language_id', $langId)
+            ->first();
+
+        if (!$entryTranslation instanceof \App\Entities\EntryTranslationEntity) {
+            /** @var \App\Models\LanguageModel $langModel */
+            $langModel   = model(\App\Models\LanguageModel::class);
+            $defaultLang = $langModel->where('is_default', 1)->where('is_active', 1)->first();
+            if ($defaultLang instanceof \App\Entities\LanguageEntity
+                && (int) $defaultLang->id !== $langId
+            ) {
+                $entryTranslation = $translationModel
+                    ->where('slug', $dto->slug)
+                    ->where('language_id', (int) $defaultLang->id)
+                    ->first();
+            }
+        }
+
+        if (!$entryTranslation instanceof \App\Entities\EntryTranslationEntity) {
+            throw new NotFoundException(lang('Entries.not_found'));
+        }
+
+        $entryId = (int) $entryTranslation->entry_id;
+
+        $now    = date('Y-m-d H:i:s');
+        /** @var \App\Models\EntryModel $entryModel */
+        $entryModel = model(\App\Models\EntryModel::class);
+        $entry = $entryModel
+            ->where('id', $entryId)
+            ->where('collection_id', (int) $collection->id)
+            ->where('workflow_status', 'published')
+            ->groupStart()
+                ->where('published_at IS NULL')
+                ->orWhere('published_at <=', $now)
+            ->groupEnd()
+            ->groupStart()
+                ->where('scheduled_at IS NULL')
+                ->orWhere('scheduled_at <=', $now)
+            ->groupEnd()
+            ->first();
+
+        if (!$entry instanceof EntryEntity) {
+            throw new NotFoundException(lang('Entries.not_found'));
+        }
+
+        $entryTransMap = $this->batchResolveEntryTranslations([$entryId], $langId);
+        $categoriesMap = $this->batchResolveCategoryPivot([$entryId], $langId);
+        $tagsMap       = $this->batchResolveTagPivot([$entryId], $langId);
+
+        $blockSerializer = service('blockInstanceSerializer');
+        $blocks = $blockSerializer->forContent('entry', $entryId, $dto->lang);
+
+        $data               = array_merge($entry->toArray(), $entryTransMap[$entryId] ?? []);
+        $data['categories'] = $categoriesMap[$entryId] ?? [];
+        $data['tags']       = $tagsMap[$entryId] ?? [];
+        $data['blocks']     = $blocks;
+
+        return PayloadResponseDTO::fromArray($data);
+    }
+
+    private function resolveLanguageId(string $langCode): int
+    {
+        /** @var \App\Models\LanguageModel $langModel */
+        $langModel = model(\App\Models\LanguageModel::class);
+
+        $lang = $langModel->where('code', $langCode)->where('is_active', 1)->first();
+        if (!$lang instanceof \App\Entities\LanguageEntity) {
+            $lang = $langModel->where('is_default', 1)->where('is_active', 1)->first();
+        }
+        if (!$lang instanceof \App\Entities\LanguageEntity) {
+            throw new NotFoundException(lang('Entries.language_not_found'));
+        }
+
+        return (int) $lang->id;
+    }
+
+    /**
+     * @param  list<int>  $entryIds
+     * @return array<int, array<string, mixed>>
+     */
+    private function batchResolveEntryTranslations(array $entryIds, int $langId): array
+    {
+        if (empty($entryIds)) {
+            return [];
+        }
+
+        /** @var \App\Models\LanguageModel $langModel */
+        $langModel     = model(\App\Models\LanguageModel::class);
+        $defaultLang   = $langModel->where('is_default', 1)->where('is_active', 1)->first();
+        $defaultLangId = $defaultLang instanceof \App\Entities\LanguageEntity
+            ? (int) $defaultLang->id
+            : $langId;
+
+        /** @var \App\Models\EntryTranslationModel $model */
+        $model = model(\App\Models\EntryTranslationModel::class);
+        $rows  = $model
+            ->whereIn('entry_id', $entryIds)
+            ->whereIn('language_id', array_unique([$langId, $defaultLangId]))
+            ->findAll();
+
+        $map = [];
+        foreach ($rows as $row) {
+            if (!$row instanceof \App\Entities\EntryTranslationEntity) {
+                continue;
+            }
+            $eid = (int) $row->entry_id;
+            $lid = (int) $row->language_id;
+            if (!isset($map[$eid]) || $lid === $langId) {
+                $map[$eid] = [
+                    'slug'             => $row->slug,
+                    'title'            => $row->title,
+                    'excerpt'          => $row->excerpt,
+                    'featured_file_id' => $row->featured_file_id,
+                    'meta_title'       => $row->meta_title,
+                    'meta_description' => $row->meta_description,
+                    'og_image_file_id' => $row->og_image_file_id,
+                    'og_type'          => $row->og_type,
+                    'canonical_url'    => $row->canonical_url,
+                    'robots'           => $row->robots,
+                    'schema_data'      => $row->schema_data,
+                    'is_fallback'      => $lid !== $langId,
+                ];
+            }
+        }
+
+        return $map;
+    }
+
+    /**
+     * @param  list<int>  $entryIds
+     * @return array<int, list<array<string, mixed>>>
+     */
+    private function batchResolveCategoryPivot(array $entryIds, int $langId): array
+    {
+        if (empty($entryIds)) {
+            return [];
+        }
+
+        /** @var \App\Models\LanguageModel $langModel */
+        $langModel     = model(\App\Models\LanguageModel::class);
+        $defaultLang   = $langModel->where('is_default', 1)->where('is_active', 1)->first();
+        $defaultLangId = $defaultLang instanceof \App\Entities\LanguageEntity
+            ? (int) $defaultLang->id
+            : $langId;
+
+        $langIds          = array_unique([$langId, $defaultLangId]);
+        $langPlaceholders = implode(',', array_fill(0, count($langIds), '?'));
+        $entryPlaceholders = implode(',', array_fill(0, count($entryIds), '?'));
+
+        $sql = "
+            SELECT ec.entry_id, ec.category_id, ec.sort_order,
+                   ct.name, ct.slug, ct.description, ct.language_id
+            FROM cms_entry_categories ec
+            LEFT JOIN cms_category_translations ct
+                ON ct.category_id = ec.category_id
+               AND ct.language_id IN ({$langPlaceholders})
+            WHERE ec.entry_id IN ({$entryPlaceholders})
+            ORDER BY ec.entry_id ASC, ec.sort_order ASC, ct.language_id DESC
+        ";
+
+        $db     = \Config\Database::connect();
+        $result = $db->query($sql, array_merge($langIds, $entryIds));
+
+        if (!$result instanceof \CodeIgniter\Database\BaseResult) {
+            return [];
+        }
+
+        $map      = [];
+        $seenCats = [];
+
+        foreach ($result->getResultArray() as $row) {
+            $eid   = (int) $row['entry_id'];
+            $catId = (int) $row['category_id'];
+            $lid   = (int) ($row['language_id'] ?? 0);
+
+            if (!isset($map[$eid])) {
+                $map[$eid]      = [];
+                $seenCats[$eid] = [];
+            }
+
+            if (isset($seenCats[$eid][$catId]) && $lid !== $langId) {
+                continue;
+            }
+
+            $seenCats[$eid][$catId] = true;
+            $map[$eid][] = [
+                'id'          => $catId,
+                'name'        => $row['name'],
+                'slug'        => $row['slug'],
+                'description' => $row['description'],
+                'is_fallback' => $lid !== $langId,
+            ];
+        }
+
+        return $map;
+    }
+
+    /**
+     * @param  list<int>  $entryIds
+     * @return array<int, list<array<string, mixed>>>
+     */
+    private function batchResolveTagPivot(array $entryIds, int $langId): array
+    {
+        if (empty($entryIds)) {
+            return [];
+        }
+
+        /** @var \App\Models\LanguageModel $langModel */
+        $langModel     = model(\App\Models\LanguageModel::class);
+        $defaultLang   = $langModel->where('is_default', 1)->where('is_active', 1)->first();
+        $defaultLangId = $defaultLang instanceof \App\Entities\LanguageEntity
+            ? (int) $defaultLang->id
+            : $langId;
+
+        $langIds           = array_unique([$langId, $defaultLangId]);
+        $langPlaceholders  = implode(',', array_fill(0, count($langIds), '?'));
+        $entryPlaceholders = implode(',', array_fill(0, count($entryIds), '?'));
+
+        $sql = "
+            SELECT et.entry_id, et.tag_id,
+                   tt.name, tt.slug, tt.language_id
+            FROM cms_entry_tags et
+            LEFT JOIN cms_tag_translations tt
+                ON tt.tag_id = et.tag_id
+               AND tt.language_id IN ({$langPlaceholders})
+            WHERE et.entry_id IN ({$entryPlaceholders})
+            ORDER BY et.entry_id ASC, et.tag_id ASC, tt.language_id DESC
+        ";
+
+        $db     = \Config\Database::connect();
+        $result = $db->query($sql, array_merge($langIds, $entryIds));
+
+        if (!$result instanceof \CodeIgniter\Database\BaseResult) {
+            return [];
+        }
+
+        $map      = [];
+        $seenTags = [];
+
+        foreach ($result->getResultArray() as $row) {
+            $eid   = (int) $row['entry_id'];
+            $tagId = (int) $row['tag_id'];
+            $lid   = (int) ($row['language_id'] ?? 0);
+
+            if (!isset($map[$eid])) {
+                $map[$eid]       = [];
+                $seenTags[$eid]  = [];
+            }
+
+            if (isset($seenTags[$eid][$tagId]) && $lid !== $langId) {
+                continue;
+            }
+
+            $seenTags[$eid][$tagId] = true;
+            $map[$eid][] = [
+                'id'          => $tagId,
+                'name'        => $row['name'],
+                'slug'        => $row['slug'],
+                'is_fallback' => $lid !== $langId,
+            ];
+        }
+
+        return $map;
     }
 
     public function createVersionSnapshot(int $entryId, string $note = ''): void
