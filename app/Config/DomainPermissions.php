@@ -82,5 +82,8 @@ class DomainPermissions
         ['code' => 'collection.read', 'resource' => 'collections', 'action' => 'read', 'description' => 'Read Collections'],
         ['code' => 'collection.write', 'resource' => 'collections', 'action' => 'write', 'description' => 'Create or update Collection'],
         ['code' => 'collection.delete', 'resource' => 'collections', 'action' => 'delete', 'description' => 'Delete Collection'],
+        ['code' => 'entry.read', 'resource' => 'entries', 'action' => 'read', 'description' => 'Read Entrys'],
+        ['code' => 'entry.write', 'resource' => 'entries', 'action' => 'write', 'description' => 'Create or update Entry'],
+        ['code' => 'entry.delete', 'resource' => 'entries', 'action' => 'delete', 'description' => 'Delete Entry'],
     ];
 }

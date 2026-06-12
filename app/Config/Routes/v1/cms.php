@@ -23,6 +23,9 @@ $routes->group('cms', ['namespace' => '\App\Controllers\Api\V1\Cms'], function (
         // Block Types CRUD
         $routes->get('block-types', 'BlockTypeController::index', ['filter' => 'permission:cms.blocks.read']);
         $routes->post('block-types', 'BlockTypeController::create', ['filter' => 'permission:cms.blocks.write']);
+        // Collections CRUD
+        $routes->get('collections', 'CollectionController::index', ['filter' => 'permission:cms.collections.read']);
+        $routes->post('collections', 'CollectionController::create', ['filter' => 'permission:cms.collections.write']);
         $routes->get('menus/(:num)', 'MenuController::show/$1', ['filter' => 'permission:cms.menus.read']);
         $routes->put('menus/(:num)', 'MenuController::update/$1', ['filter' => 'permission:cms.menus.write']);
         $routes->delete('menus/(:num)', 'MenuController::delete/$1', ['filter' => 'permission:cms.menus.write']);
@@ -53,16 +56,28 @@ $routes->group('cms', ['namespace' => '\App\Controllers\Api\V1\Cms'], function (
         $routes->post('pages/(:num)/blocks', 'BlockInstanceController::create', ['filter' => 'permission:cms.pages.write']);
         $routes->put('pages/(:num)/blocks/(:num)', 'BlockInstanceController::update/$2', ['filter' => 'permission:cms.pages.write']);
         $routes->delete('pages/(:num)/blocks/(:num)', 'BlockInstanceController::delete/$2', ['filter' => 'permission:cms.pages.write']);
-
-        // Collections CRUD
-        $routes->get('collections', 'CollectionController::index', ['filter' => 'permission:cms.collections.read']);
-        $routes->post('collections', 'CollectionController::create', ['filter' => 'permission:cms.collections.write']);
         $routes->get('collections/(:num)', 'CollectionController::show/$1', ['filter' => 'permission:cms.collections.read']);
         $routes->put('collections/(:num)', 'CollectionController::update/$1', ['filter' => 'permission:cms.collections.write']);
         $routes->delete('collections/(:num)', 'CollectionController::delete/$1', ['filter' => 'permission:cms.collections.admin']);
+
+        // Entries CRUD
+        $routes->get('entries', 'EntryController::index', ['filter' => 'permission:cms.entries.read']);
+        $routes->post('entries', 'EntryController::create', ['filter' => 'permission:cms.entries.write']);
+        $routes->get('entries/(:num)', 'EntryController::show/$1', ['filter' => 'permission:cms.entries.read']);
+        $routes->put('entries/(:num)', 'EntryController::update/$1', ['filter' => 'permission:cms.entries.write']);
+        $routes->delete('entries/(:num)', 'EntryController::delete/$1', ['filter' => 'permission:cms.entries.admin']);
+
+        // Block Instances CRUD nested under entries
+        $routes->get('entries/(:num)/blocks', 'BlockInstanceController::index', ['filter' => 'permission:cms.pages.read']);
+        $routes->get('entries/(:num)/blocks/(:num)', 'BlockInstanceController::show/$2', ['filter' => 'permission:cms.pages.read']);
+        $routes->post('entries/(:num)/blocks', 'BlockInstanceController::create', ['filter' => 'permission:cms.pages.write']);
+        $routes->put('entries/(:num)/blocks/(:num)', 'BlockInstanceController::update/$2', ['filter' => 'permission:cms.pages.write']);
+        $routes->delete('entries/(:num)/blocks/(:num)', 'BlockInstanceController::delete/$2', ['filter' => 'permission:cms.pages.write']);
     });
 });
 // Public endpoints
 $routes->get('public/(:segment)/pages/(.+)', '\App\Controllers\Api\V1\Cms\PublicPageController::show/$1/$2', ['filter' => 'throttle']);
 $routes->get('public/menus/(:segment)', '\App\Controllers\Api\V1\Cms\PublicMenuController::show/$1', ['filter' => 'throttle']);
 $routes->get('public/(:segment)/collections', '\App\Controllers\Api\V1\Cms\PublicCollectionController::index/$1', ['filter' => 'throttle']);
+$routes->get('public/(:segment)/entries/(:segment)', '\App\Controllers\Api\V1\Cms\PublicEntryController::index/$1/$2', ['filter' => 'throttle']);
+$routes->get('public/(:segment)/entries/(:segment)/(.+)', '\App\Controllers\Api\V1\Cms\PublicEntryController::show/$1/$2/$3', ['filter' => 'throttle']);

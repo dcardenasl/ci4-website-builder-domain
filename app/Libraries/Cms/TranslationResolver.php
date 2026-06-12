@@ -54,7 +54,10 @@ class TranslationResolver
         'entry' => [
             'table'  => 'cms_entry_translations',
             'fk'     => 'entry_id',
-            'fields' => ['slug', 'title'],
+            'fields' => [
+                'slug', 'title', 'excerpt', 'featured_file_id', 'meta_title', 'meta_description',
+                'og_image_file_id', 'og_type', 'canonical_url', 'robots', 'schema_data'
+            ],
         ],
         'block_instance' => [
             'table'  => 'cms_block_instance_translations',

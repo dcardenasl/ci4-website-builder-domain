@@ -185,4 +185,18 @@ trait CmsDomainServices
         }
         return new \App\Services\Cms\CollectionService(new \dcardenasl\Ci4ApiCore\Repositories\GenericRepository(model(\App\Models\CollectionModel::class)), static::collectionResponseMapper());
     }
+    public static function entryResponseMapper(bool $getShared = true): \dcardenasl\Ci4ApiCore\Mappers\ResponseMapperInterface
+    {
+        if ($getShared) {
+            return static::getSharedInstance('entryResponseMapper');
+        }
+        return new \dcardenasl\Ci4ApiCore\Mappers\DtoResponseMapper(\App\DTO\Response\Cms\EntryResponseDTO::class);
+    }
+    public static function entryService(bool $getShared = true): \App\Interfaces\Cms\EntryServiceInterface
+    {
+        if ($getShared) {
+            return static::getSharedInstance('entryService');
+        }
+        return new \App\Services\Cms\EntryService(new \dcardenasl\Ci4ApiCore\Repositories\GenericRepository(model(\App\Models\EntryModel::class)), static::entryResponseMapper());
+    }
 }
