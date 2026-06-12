@@ -94,6 +94,8 @@ php spark tests:prepare-db           # Sync the test DB before feature tests
 # Hub permission sync (idempotent — safe to rerun)
 php spark domain:sync-permissions --admin-token=<jwt>     # or set hub.adminToken in .env
 
+This command traverses the full manifest, so `created`, `existing`, and `rejected` can all appear in the result. In this stack, `self-permissions` only accepts permissions that match the app namespace, so a `rejected: 21` count is expected when the manifest also includes shared, non-namespaced permissions that are handled separately during role attachment.
+
 # Tests
 vendor/bin/phpunit                   # All
 vendor/bin/phpunit tests/Unit        # Fast, no DB

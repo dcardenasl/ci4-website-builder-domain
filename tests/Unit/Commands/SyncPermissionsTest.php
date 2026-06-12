@@ -6,6 +6,7 @@ namespace Tests\Unit\Commands;
 
 use App\Commands\SyncPermissions;
 use App\Libraries\Hub\HubClient;
+use CodeIgniter\CLI\CLI;
 use CodeIgniter\CLI\Commands;
 use Config\DomainPermissions;
 use Config\Services;
@@ -84,6 +85,36 @@ final class SyncPermissionsTest extends TestCase
         $this->assertSame(1, $exitCode);
     }
 
+    public function testDevelopmentCacheClearUsesAbsoluteSparkPath(): void
+    {
+        $command = $this->makeCommand(false);
+        $command->clearDevelopmentCachesForTest();
+
+        $this->assertSame([realpath(__DIR__ . '/../../../spark')], $command->sparkPaths);
+    }
+
+    public function testResolveOptionSupportsEqualsSyntax(): void
+    {
+        $previousArgv = $_SERVER['argv'] ?? null;
+
+        try {
+            $_SERVER['argv'] = [
+                'spark',
+                'domain:sync-permissions',
+                '--assign-to-role=superadmin',
+            ];
+
+            CLI::init();
+
+            $this->assertSame('superadmin', $this->makeCommand(false)->resolveOptionForTest('assign-to-role'));
+        } finally {
+            if ($previousArgv !== null) {
+                $_SERVER['argv'] = $previousArgv;
+                CLI::init();
+            }
+        }
+    }
+
     private function makeHubStub(): object
     {
         return new class () extends HubClient {
@@ -147,6 +178,9 @@ final class SyncPermissionsTest extends TestCase
         $commands = $this->createMock(Commands::class);
 
         return new class ($logger, $commands, $mirrorToSelf) extends SyncPermissions {
+            /** @var list<string> */
+            public array $sparkPaths = [];
+
             public function __construct($logger, $commands, private bool $mirrorToSelf)
             {
                 parent::__construct($logger, $commands);
@@ -172,6 +206,21 @@ final class SyncPermissionsTest extends TestCase
 
             protected function newLine(int $repeat = 1): void
             {
+            }
+
+            public function clearDevelopmentCachesForTest(): void
+            {
+                $this->clearDevelopmentCaches();
+            }
+
+            public function resolveOptionForTest(string $name, ?string $default = null): ?string
+            {
+                return $this->resolveOption($name, $default);
+            }
+
+            protected function runSparkCacheClear(string $sparkPath): void
+            {
+                $this->sparkPaths[] = $sparkPath;
             }
         };
     }
