@@ -115,6 +115,21 @@ final class SyncPermissionsTest extends TestCase
         }
     }
 
+    public function testScaffoldingUsesDomainAuthThrottleAndCmsPermissionPrefix(): void
+    {
+        $config = (new \Config\Scaffolding())->build();
+
+        $this->assertSame(['domainauth', 'throttle'], $config->protectedRouteFilters);
+        $this->assertSame('cms', $config->permissionCodePrefix);
+    }
+
+    public function testAssignToRoleHelpDoesNotRecommendSuperadminAutoAttach(): void
+    {
+        $command = $this->makeCommand(false);
+
+        $this->assertStringNotContainsString('superadmin', $command->assignToRoleHelpForTest());
+    }
+
     private function makeHubStub(): object
     {
         return new class () extends HubClient {
@@ -216,6 +231,11 @@ final class SyncPermissionsTest extends TestCase
             public function resolveOptionForTest(string $name, ?string $default = null): ?string
             {
                 return $this->resolveOption($name, $default);
+            }
+
+            public function assignToRoleHelpForTest(): string
+            {
+                return $this->options['--assign-to-role'];
             }
 
             protected function runSparkCacheClear(string $sparkPath): void

@@ -19,7 +19,7 @@ use Config\Services;
  *
  * --admin-token is only required when:
  *   - --mirror-to-self is set (registers under hub app self, ID=1, for admin UI access)
- *   - --assign-to-role is set (links permissions to a role)
+ *   - --assign-to-role is set (links permissions to a non-superadmin role)
  */
 class SyncPermissions extends BaseCommand
 {
@@ -31,7 +31,7 @@ class SyncPermissions extends BaseCommand
     /** @var array<string, string> */
     protected $options = [
         '--admin-token'    => 'Superadmin JWT. Required only for --mirror-to-self or --assign-to-role.',
-        '--assign-to-role' => 'Automatically link new permissions to this role ID or code (e.g. superadmin).',
+        '--assign-to-role' => 'Optionally link synced permissions to another role ID or code. Superadmin is attached by the hub.',
         '--mirror-to-self' => 'Also register the same permissions under hub app self (ID=1) for admin UI access.',
     ];
 

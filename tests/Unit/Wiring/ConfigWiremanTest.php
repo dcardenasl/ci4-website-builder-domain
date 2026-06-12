@@ -31,17 +31,18 @@ final class ConfigWiremanTest extends TestCase
         file_put_contents($this->permissionsFile, $this->originalPermissions);
     }
 
-    public function testRegistersReadWriteDeletePermissionsFromSchema(): void
+    public function testRegistersReadCreateUpdateDeletePermissionsFromSchema(): void
     {
         $this->makeWireman()->callRegisterPermissions($this->makeSchema('Product'));
 
         $content = (string) file_get_contents($this->permissionsFile);
 
-        $this->assertStringContainsString("'code' => 'product.read'", $content);
+        $this->assertStringContainsString("'code' => 'cms.product.read'", $content);
         $this->assertStringContainsString("'resource' => 'products'", $content);
         $this->assertStringContainsString("'description' => 'Read Products'", $content);
-        $this->assertStringContainsString("'code' => 'product.write'", $content);
-        $this->assertStringContainsString("'code' => 'product.delete'", $content);
+        $this->assertStringContainsString("'code' => 'cms.product.create'", $content);
+        $this->assertStringContainsString("'code' => 'cms.product.update'", $content);
+        $this->assertStringContainsString("'code' => 'cms.product.delete'", $content);
     }
 
     public function testRegisterPermissionsIsIdempotent(): void
@@ -53,9 +54,10 @@ final class ConfigWiremanTest extends TestCase
 
         $content = (string) file_get_contents($this->permissionsFile);
 
-        $this->assertSame(1, substr_count($content, "'code' => 'product.read'"));
-        $this->assertSame(1, substr_count($content, "'code' => 'product.write'"));
-        $this->assertSame(1, substr_count($content, "'code' => 'product.delete'"));
+        $this->assertSame(1, substr_count($content, "'code' => 'cms.product.read'"));
+        $this->assertSame(1, substr_count($content, "'code' => 'cms.product.create'"));
+        $this->assertSame(1, substr_count($content, "'code' => 'cms.product.update'"));
+        $this->assertSame(1, substr_count($content, "'code' => 'cms.product.delete'"));
     }
 
     private function makeSchema(string $resource): ResourceSchema
@@ -70,7 +72,26 @@ final class ConfigWiremanTest extends TestCase
 
     private function makeWireman(): ConfigWireman
     {
-        return new class (ScaffoldingConfig::defaults()) extends ConfigWireman {
+        $defaults = ScaffoldingConfig::defaults();
+
+        return new class (new ScaffoldingConfig(
+            controllerBaseClass: $defaults->controllerBaseClass,
+            serviceBaseClass: $defaults->serviceBaseClass,
+            serviceContractInterface: $defaults->serviceContractInterface,
+            modelBaseClass: $defaults->modelBaseClass,
+            entityBaseClass: $defaults->entityBaseClass,
+            migrationBaseClass: $defaults->migrationBaseClass,
+            requestDtoBaseClass: $defaults->requestDtoBaseClass,
+            responseDtoInterface: $defaults->responseDtoInterface,
+            repositoryInterface: $defaults->repositoryInterface,
+            responseMapperInterface: $defaults->responseMapperInterface,
+            repositoryImplementation: $defaults->repositoryImplementation,
+            responseMapperImplementation: $defaults->responseMapperImplementation,
+            servicesFactoryClass: $defaults->servicesFactoryClass,
+            paths: $defaults->paths,
+            protectedRouteFilters: $defaults->protectedRouteFilters,
+            permissionCodePrefix: 'cms',
+        )) extends ConfigWireman {
             public function callRegisterPermissions(ResourceSchema $schema): void
             {
                 $this->registerPermissions($schema);
