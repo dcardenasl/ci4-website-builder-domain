@@ -65,7 +65,7 @@ Las tareas están ordenadas por fases de dependencias para asegurar la integrida
   - CRUD de categorías scoped y tags globales + pivots + filtros en listado de entries
 
 ### Fase 5: Publishing & Utilities
-- [ ] **CMS-011 (#11) — Scheduled publishing**
+- [x] **CMS-011 (#11) — Scheduled publishing**
   - Queue job `ScheduledPublishingJob` para publicar páginas y entries en segundo plano
 
 ---

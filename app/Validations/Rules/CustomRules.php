@@ -209,4 +209,26 @@ class CustomRules
 
         return true;
     }
+
+    /**
+     * Validate that a value is a valid JSON string.
+     *
+     * @param mixed $value
+     */
+    public function json($value, ?string &$error = null): bool
+    {
+        if (!is_string($value)) {
+            $error = 'The {field} field must be a valid JSON string.';
+            return false;
+        }
+
+        json_decode($value);
+
+        if (json_last_error() !== JSON_ERROR_NONE) {
+            $error = 'The {field} field must be a valid JSON string.';
+            return false;
+        }
+
+        return true;
+    }
 }
