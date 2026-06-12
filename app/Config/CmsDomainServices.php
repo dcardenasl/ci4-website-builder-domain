@@ -60,4 +60,36 @@ trait CmsDomainServices
 
         return new \App\Libraries\Cms\TranslationResolver();
     }
+
+    public static function fileTranslationResponseMapper(bool $getShared = true): \dcardenasl\Ci4ApiCore\Mappers\ResponseMapperInterface
+    {
+        if ($getShared) {
+            return static::getSharedInstance('fileTranslationResponseMapper');
+        }
+
+        return new \dcardenasl\Ci4ApiCore\Mappers\DtoResponseMapper(
+            \App\DTO\Response\Cms\FileTranslationResponseDTO::class
+        );
+    }
+
+    public static function fileTranslationService(bool $getShared = true): \App\Interfaces\Cms\FileTranslationServiceInterface
+    {
+        if ($getShared) {
+            return static::getSharedInstance('fileTranslationService');
+        }
+
+        return new \App\Services\Cms\FileTranslationService(
+            new \dcardenasl\Ci4ApiCore\Repositories\GenericRepository(model(\App\Models\FileTranslationModel::class)),
+            static::fileTranslationResponseMapper()
+        );
+    }
+
+    public static function blockInstanceSerializer(bool $getShared = true): \App\Libraries\Cms\BlockInstanceSerializer
+    {
+        if ($getShared) {
+            return static::getSharedInstance('blockInstanceSerializer');
+        }
+
+        return new \App\Libraries\Cms\BlockInstanceSerializer();
+    }
 }

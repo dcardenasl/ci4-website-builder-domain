@@ -6,7 +6,6 @@ namespace App\Services\Cms;
 
 use App\Entities\SettingEntity;
 use App\Interfaces\Cms\SettingServiceInterface;
-use App\Models\SettingTranslationModel;
 use dcardenasl\Ci4ApiCore\Dto\SecurityContext;
 use dcardenasl\Ci4ApiCore\Mappers\ResponseMapperInterface;
 use dcardenasl\Ci4ApiCore\Repositories\RepositoryInterface;
@@ -76,8 +75,8 @@ class SettingService extends BaseCrudService implements SettingServiceInterface
 
         $settingIds = array_map(fn ($entity) => (int) $entity->id, $entities);
 
-        /** @var SettingTranslationModel $translationModel */
-        $translationModel = model(SettingTranslationModel::class);
+        /** @var \App\Models\SettingTranslationModel $translationModel */
+        $translationModel = model(\App\Models\SettingTranslationModel::class);
         $translations = $translationModel->whereIn('setting_id', $settingIds)->findAll();
 
         $translationsGrouped = [];
@@ -101,8 +100,8 @@ class SettingService extends BaseCrudService implements SettingServiceInterface
      */
     private function saveTranslations(int $settingId, array $translations): void
     {
-        /** @var SettingTranslationModel $translationModel */
-        $translationModel = model(SettingTranslationModel::class);
+        /** @var \App\Models\SettingTranslationModel $translationModel */
+        $translationModel = model(\App\Models\SettingTranslationModel::class);
 
         // Clear existing translations for this setting
         $translationModel->where('setting_id', $settingId)->delete();
