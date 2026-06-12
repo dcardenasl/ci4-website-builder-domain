@@ -16,4 +16,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **FileTranslation API** — full CRUD for managing file translations with BlockInstanceSerializer for content block serialization
 - **Menu API** — full CRUD with multi-language translations, hierarchical structure support, and public menu resolution endpoints
 - **Block System API** — full CRUD for managing BlockTypes (seeded with rich_text, image, cta) and BlockInstances nested under pages, with a unified BlockInstanceSerializer for merging structural config and localized data, supporting translation fallbacks and image metadata enrichment
+- **Collections API** — full CRUD under `/cms/collections` protected with permissions, multi-language translation integration resolved via `TranslationResolver` with fallbacks, and a public listing endpoint on `GET public/{lang}/collections` for active collections
+
 

@@ -171,4 +171,18 @@ trait CmsDomainServices
         }
         return new \App\Services\Cms\BlockInstanceService(new \dcardenasl\Ci4ApiCore\Repositories\GenericRepository(model(\App\Models\BlockInstanceModel::class)), static::blockInstanceResponseMapper());
     }
+    public static function collectionResponseMapper(bool $getShared = true): \dcardenasl\Ci4ApiCore\Mappers\ResponseMapperInterface
+    {
+        if ($getShared) {
+            return static::getSharedInstance('collectionResponseMapper');
+        }
+        return new \dcardenasl\Ci4ApiCore\Mappers\DtoResponseMapper(\App\DTO\Response\Cms\CollectionResponseDTO::class);
+    }
+    public static function collectionService(bool $getShared = true): \App\Interfaces\Cms\CollectionServiceInterface
+    {
+        if ($getShared) {
+            return static::getSharedInstance('collectionService');
+        }
+        return new \App\Services\Cms\CollectionService(new \dcardenasl\Ci4ApiCore\Repositories\GenericRepository(model(\App\Models\CollectionModel::class)), static::collectionResponseMapper());
+    }
 }

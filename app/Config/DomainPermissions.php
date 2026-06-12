@@ -79,5 +79,8 @@ class DomainPermissions
         ['code' => 'blockInstance.read', 'resource' => 'block-instances', 'action' => 'read', 'description' => 'Read BlockInstances'],
         ['code' => 'blockInstance.write', 'resource' => 'block-instances', 'action' => 'write', 'description' => 'Create or update BlockInstance'],
         ['code' => 'blockInstance.delete', 'resource' => 'block-instances', 'action' => 'delete', 'description' => 'Delete BlockInstance'],
+        ['code' => 'collection.read', 'resource' => 'collections', 'action' => 'read', 'description' => 'Read Collections'],
+        ['code' => 'collection.write', 'resource' => 'collections', 'action' => 'write', 'description' => 'Create or update Collection'],
+        ['code' => 'collection.delete', 'resource' => 'collections', 'action' => 'delete', 'description' => 'Delete Collection'],
     ];
 }

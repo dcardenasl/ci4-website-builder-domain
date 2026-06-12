@@ -1,0 +1,43 @@
+<?php
+
+declare(strict_types=1);
+
+return [
+    'create_success' => 'Colección creada exitosamente.',
+    'update_success' => 'Colección actualizada exitosamente.',
+    'delete_success' => 'Colección eliminada exitosamente.',
+    'not_found'      => 'Colección no encontrada.',
+    'key_must_be_unique' => 'La clave de la colección debe ser única.',
+    'key_already_taken' => 'La clave de la colección "{0}" ya está en uso.',
+    'prefix_must_be_unique' => 'El prefijo URL debe ser único.',
+    'prefix_already_taken' => 'El prefijo URL "{0}" ya está en uso.',
+    'fields'         => [
+        'collection_key' => 'Collection Key',
+        'collection_key_placeholder' => 'Ingresa Collection Key',
+        'collection_key_help' => 'Ingresa Collection Key.',
+        'url_prefix' => 'Url Prefix',
+        'url_prefix_placeholder' => 'Ingresa Url Prefix',
+        'url_prefix_help' => 'Ingresa Url Prefix.',
+        'is_active' => 'Is Active',
+        'is_active_placeholder' => 'Activa o desactiva Is Active',
+        'is_active_help' => 'Activa o desactiva Is Active.',
+        'requires_approval' => 'Requires Approval',
+        'requires_approval_placeholder' => 'Activa o desactiva Requires Approval',
+        'requires_approval_help' => 'Activa o desactiva Requires Approval.',
+        'enables_categories' => 'Enables Categories',
+        'enables_categories_placeholder' => 'Activa o desactiva Enables Categories',
+        'enables_categories_help' => 'Activa o desactiva Enables Categories.',
+        'enables_tags' => 'Enables Tags',
+        'enables_tags_placeholder' => 'Activa o desactiva Enables Tags',
+        'enables_tags_help' => 'Activa o desactiva Enables Tags.',
+        'default_sitemap_priority' => 'Default Sitemap Priority',
+        'default_sitemap_priority_placeholder' => 'Ingresa Default Sitemap Priority',
+        'default_sitemap_priority_help' => 'Ingresa Default Sitemap Priority.',
+        'default_changefreq' => 'Default Changefreq',
+        'default_changefreq_placeholder' => 'Ingresa Default Changefreq',
+        'default_changefreq_help' => 'Ingresa Default Changefreq.',
+        'sort_order' => 'Sort Order',
+        'sort_order_placeholder' => 'Ingresa Sort Order',
+        'sort_order_help' => 'Ingresa Sort Order.',
+    ],
+];

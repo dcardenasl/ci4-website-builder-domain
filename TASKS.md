@@ -51,7 +51,7 @@ Las tareas están ordenadas por fases de dependencias para asegurar la integrida
   - Desarrollar deep module `BlockInstanceSerializer` y conectarlo a Pages/Entries GET slug
 
 ### Fase 4: Collections & Entries
-- [ ] **CMS-007 (#6) — Collections API**
+- [x] **CMS-007 (#6) — Collections API**
   - CRUD de colecciones personalizables (`collection_key`)
 - [ ] **CMS-008 (#7) — Entries API**
   - CRUD de entries vinculando instancias de bloques de contenido por entry

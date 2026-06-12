@@ -20,6 +20,9 @@ $routes->group('cms', ['namespace' => '\App\Controllers\Api\V1\Cms'], function (
         // Settings CRUD
         $routes->get('settings', 'SettingController::index', ['filter' => 'permission:cms.settings.read']);
         $routes->post('settings', 'SettingController::create', ['filter' => 'permission:cms.settings.write']);
+        // Block Types CRUD
+        $routes->get('block-types', 'BlockTypeController::index', ['filter' => 'permission:cms.blocks.read']);
+        $routes->post('block-types', 'BlockTypeController::create', ['filter' => 'permission:cms.blocks.write']);
         $routes->get('menus/(:num)', 'MenuController::show/$1', ['filter' => 'permission:cms.menus.read']);
         $routes->put('menus/(:num)', 'MenuController::update/$1', ['filter' => 'permission:cms.menus.write']);
         $routes->delete('menus/(:num)', 'MenuController::delete/$1', ['filter' => 'permission:cms.menus.write']);
@@ -41,22 +44,25 @@ $routes->group('cms', ['namespace' => '\App\Controllers\Api\V1\Cms'], function (
         $routes->post('files/(:num)/translations', 'FileTranslationController::create/$1', ['filter' => 'permission:cms.pages.write']);
         $routes->put('files/(:num)/translations/(:num)', 'FileTranslationController::update/$1/$2', ['filter' => 'permission:cms.pages.write']);
         $routes->delete('files/(:num)/translations/(:num)', 'FileTranslationController::delete/$1/$2', ['filter' => 'permission:cms.pages.write']);
-
-        // Block Types CRUD
-        $routes->get('block-types', 'BlockTypeController::index', ['filter' => 'permission:cms.blocks.read']);
         $routes->get('block-types/(:num)', 'BlockTypeController::show/$1', ['filter' => 'permission:cms.blocks.read']);
-        $routes->post('block-types', 'BlockTypeController::create', ['filter' => 'permission:cms.blocks.write']);
         $routes->put('block-types/(:num)', 'BlockTypeController::update/$1', ['filter' => 'permission:cms.blocks.write']);
         $routes->delete('block-types/(:num)', 'BlockTypeController::delete/$1', ['filter' => 'permission:cms.blocks.write']);
-
         // Block Instances CRUD nested under pages
         $routes->get('pages/(:num)/blocks', 'BlockInstanceController::index', ['filter' => 'permission:cms.pages.read']);
         $routes->get('pages/(:num)/blocks/(:num)', 'BlockInstanceController::show/$2', ['filter' => 'permission:cms.pages.read']);
         $routes->post('pages/(:num)/blocks', 'BlockInstanceController::create', ['filter' => 'permission:cms.pages.write']);
         $routes->put('pages/(:num)/blocks/(:num)', 'BlockInstanceController::update/$2', ['filter' => 'permission:cms.pages.write']);
         $routes->delete('pages/(:num)/blocks/(:num)', 'BlockInstanceController::delete/$2', ['filter' => 'permission:cms.pages.write']);
+
+        // Collections CRUD
+        $routes->get('collections', 'CollectionController::index', ['filter' => 'permission:cms.collections.read']);
+        $routes->post('collections', 'CollectionController::create', ['filter' => 'permission:cms.collections.write']);
+        $routes->get('collections/(:num)', 'CollectionController::show/$1', ['filter' => 'permission:cms.collections.read']);
+        $routes->put('collections/(:num)', 'CollectionController::update/$1', ['filter' => 'permission:cms.collections.write']);
+        $routes->delete('collections/(:num)', 'CollectionController::delete/$1', ['filter' => 'permission:cms.collections.admin']);
     });
 });
 // Public endpoints
 $routes->get('public/(:segment)/pages/(.+)', '\App\Controllers\Api\V1\Cms\PublicPageController::show/$1/$2', ['filter' => 'throttle']);
 $routes->get('public/menus/(:segment)', '\App\Controllers\Api\V1\Cms\PublicMenuController::show/$1', ['filter' => 'throttle']);
+$routes->get('public/(:segment)/collections', '\App\Controllers\Api\V1\Cms\PublicCollectionController::index/$1', ['filter' => 'throttle']);
