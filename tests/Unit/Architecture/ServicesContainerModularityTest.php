@@ -15,11 +15,12 @@ class ServicesContainerModularityTest extends CIUnitTestCase
 
         $this->assertIsString($source);
         $this->assertStringContainsString('use ApiCoreServices;', $source);
-        $this->assertStringContainsString('use ExampleDomainServices;', $source);
+        $this->assertStringContainsString('use CmsDomainServices;', $source);
         $this->assertStringContainsString('use SystemMonitoringServices;', $source);
         $this->assertStringContainsString('use RepositoryModelServices;', $source);
 
         // Domain factories should live in traits, not in the root Services class.
+        $this->assertStringNotContainsString('use ExampleDomainServices;', $source);
         $this->assertStringNotContainsString('public static function itemService(', $source);
         $this->assertStringNotContainsString('public static function auditService(', $source);
     }

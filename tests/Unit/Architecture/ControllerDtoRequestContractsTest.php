@@ -28,12 +28,17 @@ class ControllerDtoRequestContractsTest extends CIUnitTestCase
     private function controllerSnippets(): array
     {
         return [
-            'app/Controllers/Api/V1/Example/ItemController.php' => [
-                "handleRequest('index', ItemIndexRequestDTO::class)",
-                "handleRequest('store', ItemCreateRequestDTO::class)",
-                "ItemUpdateRequestDTO::class",
-                "itemService->show(\$id, \$context)",
-                "itemService->destroy(\$id, \$context)",
+            'app/Controllers/Api/V1/Cms/EntryController.php' => [
+                'EntryIndexRequestDTO::class',
+                'EntryCreateRequestDTO::class',
+                'EntryUpdateRequestDTO::class',
+                'entryService->show($id, $context)',
+                'entryService->destroy($id, $context)',
+            ],
+            'app/Controllers/Api/V1/Cms/PageController.php' => [
+                'PageIndexRequestDTO::class',
+                'PageCreateRequestDTO::class',
+                'PageUpdateRequestDTO::class',
             ],
         ];
     }

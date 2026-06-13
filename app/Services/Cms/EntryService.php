@@ -186,31 +186,35 @@ class EntryService extends BaseCrudService implements EntryServiceInterface
 
         $translationModel->where('entry_id', $entryId)->delete();
 
-        foreach ($translations as $translation) {
-            $langId = (int) $translation['language_id'];
-            $newSlug = (string) $translation['slug'];
-
-            // Record redirection if slug changed
-            if (isset($currentSlugs[$langId]) && $currentSlugs[$langId] !== $newSlug) {
-                // Determine collection URL prefix to form a full path redirect if possible
-                $entryModel = model(\App\Models\EntryModel::class);
-                $entry = $entryModel->find($entryId);
-                $prefix = '';
-                if ($entry instanceof \App\Entities\EntryEntity) {
-                    $collectionModel = model(\App\Models\CollectionModel::class);
-                    $collection = $collectionModel->find((int)$entry->collection_id);
-                    if ($collection instanceof \App\Entities\CollectionEntity) {
-                        $prefix = trim($collection->url_prefix, '/') . '/';
-                    }
+        // Record slug redirects before batch-inserting new translations
+        if (!empty($currentSlugs)) {
+            $entryModel      = model(\App\Models\EntryModel::class);
+            $entry           = $entryModel->find($entryId);
+            $collectionModel = model(\App\Models\CollectionModel::class);
+            $prefix          = '';
+            if ($entry instanceof \App\Entities\EntryEntity) {
+                $collection = $collectionModel->find((int) $entry->collection_id);
+                if ($collection instanceof \App\Entities\CollectionEntity) {
+                    $prefix = trim($collection->url_prefix, '/') . '/';
                 }
-                $oldFullPath = $prefix . $currentSlugs[$langId];
-                $this->slugRedirectRecorder->record('entry', $entryId, $langId, $currentSlugs[$langId], $newSlug, $oldFullPath);
             }
 
-            $translationModel->insert([
-                'entry_id'          => $entryId,
-                'language_id'      => $langId,
-                'slug'             => $newSlug,
+            foreach ($translations as $translation) {
+                $langId  = (int) $translation['language_id'];
+                $newSlug = (string) $translation['slug'];
+                if (isset($currentSlugs[$langId]) && $currentSlugs[$langId] !== $newSlug) {
+                    $oldFullPath = $prefix . $currentSlugs[$langId];
+                    $this->slugRedirectRecorder->record('entry', $entryId, $langId, $currentSlugs[$langId], $newSlug, $oldFullPath);
+                }
+            }
+        }
+
+        $rows = [];
+        foreach ($translations as $translation) {
+            $rows[] = [
+                'entry_id'         => $entryId,
+                'language_id'      => (int) $translation['language_id'],
+                'slug'             => (string) $translation['slug'],
                 'title'            => $translation['title'],
                 'excerpt'          => $translation['excerpt'] ?? null,
                 'featured_file_id' => isset($translation['featured_file_id']) && $translation['featured_file_id'] !== '' ? (int) $translation['featured_file_id'] : null,
@@ -221,7 +225,10 @@ class EntryService extends BaseCrudService implements EntryServiceInterface
                 'canonical_url'    => $translation['canonical_url'] ?? null,
                 'robots'           => $translation['robots'] ?? null,
                 'schema_data'      => isset($translation['schema_data']) ? json_encode($translation['schema_data']) : null,
-            ]);
+            ];
+        }
+        if (!empty($rows)) {
+            $translationModel->insertBatch($rows);
         }
     }
 
@@ -252,12 +259,16 @@ class EntryService extends BaseCrudService implements EntryServiceInterface
             $db = \Config\Database::connect();
             $db->table('cms_entry_categories')->where('entry_id', $entryId)->delete();
 
-            foreach ($categoryIds as $order => $catId) {
-                $db->table('cms_entry_categories')->insert([
-                    'entry_id'    => $entryId,
-                    'category_id' => $catId,
-                    'sort_order'  => $order,
-                ]);
+            if (!empty($categoryIds)) {
+                $rows = [];
+                foreach ($categoryIds as $order => $catId) {
+                    $rows[] = [
+                        'entry_id'    => $entryId,
+                        'category_id' => $catId,
+                        'sort_order'  => $order,
+                    ];
+                }
+                $db->table('cms_entry_categories')->insertBatch($rows);
             }
 
             return PayloadResponseDTO::fromArray([
@@ -294,11 +305,15 @@ class EntryService extends BaseCrudService implements EntryServiceInterface
             $db = \Config\Database::connect();
             $db->table('cms_entry_tags')->where('entry_id', $entryId)->delete();
 
-            foreach ($tagIds as $tagId) {
-                $db->table('cms_entry_tags')->insert([
-                    'entry_id' => $entryId,
-                    'tag_id'   => $tagId,
-                ]);
+            if (!empty($tagIds)) {
+                $rows = [];
+                foreach ($tagIds as $tagId) {
+                    $rows[] = [
+                        'entry_id' => $entryId,
+                        'tag_id'   => $tagId,
+                    ];
+                }
+                $db->table('cms_entry_tags')->insertBatch($rows);
             }
 
             return PayloadResponseDTO::fromArray([
@@ -321,7 +336,7 @@ class EntryService extends BaseCrudService implements EntryServiceInterface
             throw new NotFoundException(lang('Collections.not_found'));
         }
 
-        $langId = $this->resolveLanguageId($dto->lang);
+        ['langId' => $langId, 'defaultLangId' => $defaultLangId] = $this->resolveLanguageIds($dto->lang);
 
         /** @var \App\Models\EntryModel $entryModel */
         $entryModel = model(\App\Models\EntryModel::class);
@@ -395,9 +410,9 @@ class EntryService extends BaseCrudService implements EntryServiceInterface
             }
         }
 
-        $entryTransMap  = $this->batchResolveEntryTranslations($entryIds, $langId);
-        $categoriesMap  = $this->batchResolveCategoryPivot($entryIds, $langId);
-        $tagsMap        = $this->batchResolveTagPivot($entryIds, $langId);
+        $entryTransMap  = $this->batchResolveEntryTranslations($entryIds, $langId, $defaultLangId);
+        $categoriesMap  = $this->batchResolveCategoryPivot($entryIds, $langId, $defaultLangId);
+        $tagsMap        = $this->batchResolveTagPivot($entryIds, $langId, $defaultLangId);
 
         $data = [];
         foreach ($entries as $entry) {
@@ -432,7 +447,7 @@ class EntryService extends BaseCrudService implements EntryServiceInterface
             throw new NotFoundException(lang('Collections.not_found'));
         }
 
-        $langId = $this->resolveLanguageId($dto->lang);
+        ['langId' => $langId, 'defaultLangId' => $defaultLangId] = $this->resolveLanguageIds($dto->lang);
 
         /** @var \App\Models\EntryTranslationModel $translationModel */
         $translationModel = model(\App\Models\EntryTranslationModel::class);
@@ -441,18 +456,13 @@ class EntryService extends BaseCrudService implements EntryServiceInterface
             ->where('language_id', $langId)
             ->first();
 
-        if (!$entryTranslation instanceof \App\Entities\EntryTranslationEntity) {
-            /** @var \App\Models\LanguageModel $langModel */
-            $langModel   = model(\App\Models\LanguageModel::class);
-            $defaultLang = $langModel->where('is_default', 1)->where('is_active', 1)->first();
-            if ($defaultLang instanceof \App\Entities\LanguageEntity
-                && (int) $defaultLang->id !== $langId
-            ) {
-                $entryTranslation = $translationModel
-                    ->where('slug', $dto->slug)
-                    ->where('language_id', (int) $defaultLang->id)
-                    ->first();
-            }
+        if (!$entryTranslation instanceof \App\Entities\EntryTranslationEntity
+            && $defaultLangId !== $langId
+        ) {
+            $entryTranslation = $translationModel
+                ->where('slug', $dto->slug)
+                ->where('language_id', $defaultLangId)
+                ->first();
         }
 
         if (!$entryTranslation instanceof \App\Entities\EntryTranslationEntity) {
@@ -482,9 +492,9 @@ class EntryService extends BaseCrudService implements EntryServiceInterface
             throw new NotFoundException(lang('Entries.not_found'));
         }
 
-        $entryTransMap = $this->batchResolveEntryTranslations([$entryId], $langId);
-        $categoriesMap = $this->batchResolveCategoryPivot([$entryId], $langId);
-        $tagsMap       = $this->batchResolveTagPivot([$entryId], $langId);
+        $entryTransMap = $this->batchResolveEntryTranslations([$entryId], $langId, $defaultLangId);
+        $categoriesMap = $this->batchResolveCategoryPivot([$entryId], $langId, $defaultLangId);
+        $tagsMap       = $this->batchResolveTagPivot([$entryId], $langId, $defaultLangId);
 
         $blockSerializer = service('blockInstanceSerializer');
         $blocks = $blockSerializer->forContent('entry', $entryId, $dto->lang);
@@ -497,38 +507,58 @@ class EntryService extends BaseCrudService implements EntryServiceInterface
         return PayloadResponseDTO::fromArray($data);
     }
 
-    private function resolveLanguageId(string $langCode): int
+    /**
+     * Resolves target and default language IDs in a single query.
+     *
+     * @return array{langId: int, defaultLangId: int}
+     */
+    private function resolveLanguageIds(string $langCode): array
     {
         /** @var \App\Models\LanguageModel $langModel */
         $langModel = model(\App\Models\LanguageModel::class);
 
-        $lang = $langModel->where('code', $langCode)->where('is_active', 1)->first();
-        if (!$lang instanceof \App\Entities\LanguageEntity) {
-            $lang = $langModel->where('is_default', 1)->where('is_active', 1)->first();
+        $rows = $langModel
+            ->groupStart()
+                ->where('code', $langCode)
+                ->orWhere('is_default', 1)
+            ->groupEnd()
+            ->where('is_active', 1)
+            ->findAll();
+
+        $langId        = null;
+        $defaultLangId = null;
+
+        foreach ($rows as $row) {
+            if (!$row instanceof \App\Entities\LanguageEntity) {
+                continue;
+            }
+            if ($row->code === $langCode) {
+                $langId = (int) $row->id;
+            }
+            if ((int) $row->is_default === 1) {
+                $defaultLangId = (int) $row->id;
+            }
         }
-        if (!$lang instanceof \App\Entities\LanguageEntity) {
+
+        if ($langId === null && $defaultLangId === null) {
             throw new NotFoundException(lang('Entries.language_not_found'));
         }
 
-        return (int) $lang->id;
+        $resolvedLangId    = $langId ?? $defaultLangId;
+        $resolvedDefaultId = $defaultLangId ?? $langId;
+
+        return ['langId' => $resolvedLangId, 'defaultLangId' => $resolvedDefaultId];
     }
 
     /**
      * @param  list<int>  $entryIds
      * @return array<int, array<string, mixed>>
      */
-    private function batchResolveEntryTranslations(array $entryIds, int $langId): array
+    private function batchResolveEntryTranslations(array $entryIds, int $langId, int $defaultLangId): array
     {
         if (empty($entryIds)) {
             return [];
         }
-
-        /** @var \App\Models\LanguageModel $langModel */
-        $langModel     = model(\App\Models\LanguageModel::class);
-        $defaultLang   = $langModel->where('is_default', 1)->where('is_active', 1)->first();
-        $defaultLangId = $defaultLang instanceof \App\Entities\LanguageEntity
-            ? (int) $defaultLang->id
-            : $langId;
 
         /** @var \App\Models\EntryTranslationModel $model */
         $model = model(\App\Models\EntryTranslationModel::class);
@@ -569,18 +599,11 @@ class EntryService extends BaseCrudService implements EntryServiceInterface
      * @param  list<int>  $entryIds
      * @return array<int, list<array<string, mixed>>>
      */
-    private function batchResolveCategoryPivot(array $entryIds, int $langId): array
+    private function batchResolveCategoryPivot(array $entryIds, int $langId, int $defaultLangId): array
     {
         if (empty($entryIds)) {
             return [];
         }
-
-        /** @var \App\Models\LanguageModel $langModel */
-        $langModel     = model(\App\Models\LanguageModel::class);
-        $defaultLang   = $langModel->where('is_default', 1)->where('is_active', 1)->first();
-        $defaultLangId = $defaultLang instanceof \App\Entities\LanguageEntity
-            ? (int) $defaultLang->id
-            : $langId;
 
         $langIds          = array_unique([$langId, $defaultLangId]);
         $langPlaceholders = implode(',', array_fill(0, count($langIds), '?'));
@@ -638,18 +661,11 @@ class EntryService extends BaseCrudService implements EntryServiceInterface
      * @param  list<int>  $entryIds
      * @return array<int, list<array<string, mixed>>>
      */
-    private function batchResolveTagPivot(array $entryIds, int $langId): array
+    private function batchResolveTagPivot(array $entryIds, int $langId, int $defaultLangId): array
     {
         if (empty($entryIds)) {
             return [];
         }
-
-        /** @var \App\Models\LanguageModel $langModel */
-        $langModel     = model(\App\Models\LanguageModel::class);
-        $defaultLang   = $langModel->where('is_default', 1)->where('is_active', 1)->first();
-        $defaultLangId = $defaultLang instanceof \App\Entities\LanguageEntity
-            ? (int) $defaultLang->id
-            : $langId;
 
         $langIds           = array_unique([$langId, $defaultLangId]);
         $langPlaceholders  = implode(',', array_fill(0, count($langIds), '?'));
