@@ -38,7 +38,7 @@ readonly class SettingCreateRequestDTO extends BaseRequestDTO
             'setting_value'            => 'permit_empty|string',
             'setting_type'             => 'required|in_list[string,int,bool,json,file_id]',
             'setting_group'            => 'permit_empty|string|max_length[50]',
-            'is_translatable'          => 'permit_empty|in_list[0,1,true,false]',
+            'is_translatable'          => 'permit_empty|boolean_like',
             'sort_order'               => 'permit_empty|integer',
             'description'              => 'permit_empty|string|max_length[255]',
             'translations'             => 'permit_empty|array',

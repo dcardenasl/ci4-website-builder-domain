@@ -33,8 +33,8 @@ readonly class LanguageUpdateRequestDTO extends BaseRequestDTO
             'code'                 => 'permit_empty|string|max_length[10]',
             'name'                 => 'permit_empty|string|max_length[50]',
             'native_name'          => 'permit_empty|string|max_length[50]',
-            'is_default'           => 'permit_empty|in_list[0,1,true,false]',
-            'is_active'            => 'permit_empty|in_list[0,1,true,false]',
+            'is_default'           => 'permit_empty|boolean_like',
+            'is_active'            => 'permit_empty|boolean_like',
             'fallback_language_id' => 'permit_empty|is_natural_no_zero',
             'sort_order'           => 'permit_empty|integer',
         ];
