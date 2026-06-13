@@ -64,8 +64,8 @@ final readonly class BlockTypeResponseDTO implements DataTransferObjectInterface
             is_container: (bool) ($data['is_container'] ?? false),
             is_active: (bool) ($data['is_active'] ?? false),
             sort_order: (int) ($data['sort_order'] ?? 0),
-            createdAt: $data['created_at'] ?? null,
-            updatedAt: $data['updated_at'] ?? null,
+            createdAt: DateValue::toString($data['created_at'] ?? null),
+            updatedAt: DateValue::toString($data['updated_at'] ?? null),
         );
     }
 

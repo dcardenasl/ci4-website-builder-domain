@@ -49,8 +49,8 @@ final readonly class RedirectResponseDTO implements DataTransferObjectInterface
             is_active: (bool) ($data['is_active'] ?? false),
             hit_count: (int) ($data['hit_count'] ?? 0),
             note: (string) ($data['note'] ?? ''),
-            createdAt: $data['created_at'] ?? null,
-            updatedAt: $data['updated_at'] ?? null,
+            createdAt: DateValue::toString($data['created_at'] ?? null),
+            updatedAt: DateValue::toString($data['updated_at'] ?? null),
         );
     }
 

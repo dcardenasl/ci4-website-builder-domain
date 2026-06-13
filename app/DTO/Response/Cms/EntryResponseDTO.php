@@ -69,8 +69,8 @@ final readonly class EntryResponseDTO implements DataTransferObjectInterface
             sitemap_priority: isset($data['sitemap_priority']) ? (float) $data['sitemap_priority'] : null,
             sitemap_changefreq: $data['sitemap_changefreq'] ?? null,
             is_in_sitemap: (bool) ($data['is_in_sitemap'] ?? false),
-            createdAt: $data['created_at'] ?? null,
-            updatedAt: $data['updated_at'] ?? null,
+            createdAt: DateValue::toString($data['created_at'] ?? null),
+            updatedAt: DateValue::toString($data['updated_at'] ?? null),
             translations: $data['translations'] ?? null,
         );
     }

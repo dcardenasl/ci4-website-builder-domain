@@ -60,8 +60,8 @@ final readonly class CollectionResponseDTO implements DataTransferObjectInterfac
             default_sitemap_priority: isset($data['default_sitemap_priority']) ? (float) $data['default_sitemap_priority'] : null,
             default_changefreq: $data['default_changefreq'] ?? null,
             sort_order: (int) ($data['sort_order'] ?? 0),
-            createdAt: $data['created_at'] ?? null,
-            updatedAt: $data['updated_at'] ?? null,
+            createdAt: DateValue::toString($data['created_at'] ?? null),
+            updatedAt: DateValue::toString($data['updated_at'] ?? null),
             translations: $data['translations'] ?? []
         );
     }

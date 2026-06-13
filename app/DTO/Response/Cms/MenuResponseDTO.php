@@ -45,8 +45,8 @@ final readonly class MenuResponseDTO implements DataTransferObjectInterface
             menu_key: (string) ($data['menu_key'] ?? ''),
             location: (string) ($data['location'] ?? ''),
             is_active: (bool) ($data['is_active'] ?? false),
-            createdAt: $data['created_at'] ?? null,
-            updatedAt: $data['updated_at'] ?? null,
+            createdAt: DateValue::toString($data['created_at'] ?? null),
+            updatedAt: DateValue::toString($data['updated_at'] ?? null),
             translations: $data['translations'] ?? null,
         );
     }

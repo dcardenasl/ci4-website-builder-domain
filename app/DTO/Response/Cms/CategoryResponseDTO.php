@@ -43,8 +43,8 @@ final readonly class CategoryResponseDTO implements DataTransferObjectInterface
             parent_id: isset($data['parent_id']) ? (int) $data['parent_id'] : null,
             sort_order: (int) ($data['sort_order'] ?? 0),
             is_active: (bool) ($data['is_active'] ?? false),
-            createdAt: $data['created_at'] ?? null,
-            updatedAt: $data['updated_at'] ?? null,
+            createdAt: DateValue::toString($data['created_at'] ?? null),
+            updatedAt: DateValue::toString($data['updated_at'] ?? null),
         );
     }
 

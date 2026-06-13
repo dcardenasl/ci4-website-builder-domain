@@ -34,8 +34,8 @@ final readonly class TagResponseDTO implements DataTransferObjectInterface
         return new static(
             id: (int) ($data['id'] ?? 0),
             is_active: (bool) ($data['is_active'] ?? false),
-            createdAt: $data['created_at'] ?? null,
-            updatedAt: $data['updated_at'] ?? null,
+            createdAt: DateValue::toString($data['created_at'] ?? null),
+            updatedAt: DateValue::toString($data['updated_at'] ?? null),
         );
     }
 
