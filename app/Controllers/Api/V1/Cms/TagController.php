@@ -32,7 +32,7 @@ class TagController extends ApiController
     {
         return $this->handleRequest(
             function (TagIndexRequestDTO $dto, SecurityContext $context): mixed {
-                if (!$context->hasPermission('tag.read')) {
+                if (!$context->hasPermission('cms.tags.read')) {
                     throw new \dcardenasl\Ci4ApiCore\Exceptions\AuthorizationException(lang('Api.forbidden'));
                 }
                 return $this->tagService->index($dto, $context);
@@ -45,7 +45,7 @@ class TagController extends ApiController
     {
         return $this->handleRequest(
             function (TagCreateRequestDTO $dto, SecurityContext $context): mixed {
-                if (!$context->hasPermission('tag.write')) {
+                if (!$context->hasPermission('cms.tags.write')) {
                     throw new \dcardenasl\Ci4ApiCore\Exceptions\AuthorizationException(lang('Api.forbidden'));
                 }
                 return $this->tagService->store($dto, $context);
@@ -58,7 +58,7 @@ class TagController extends ApiController
     {
         return $this->handleRequest(
             function (TagUpdateRequestDTO $dto, SecurityContext $context) use ($id): mixed {
-                if (!$context->hasPermission('tag.write')) {
+                if (!$context->hasPermission('cms.tags.write')) {
                     throw new \dcardenasl\Ci4ApiCore\Exceptions\AuthorizationException(lang('Api.forbidden'));
                 }
                 return $this->tagService->update($id, $dto, $context);
@@ -71,7 +71,7 @@ class TagController extends ApiController
     {
         return $this->handleRequest(
             function (array $dto, SecurityContext $context) use ($id): mixed {
-                if (!$context->hasPermission('tag.read')) {
+                if (!$context->hasPermission('cms.tags.read')) {
                     throw new \dcardenasl\Ci4ApiCore\Exceptions\AuthorizationException(lang('Api.forbidden'));
                 }
                 return $this->tagService->show($id, $context);
@@ -83,7 +83,7 @@ class TagController extends ApiController
     {
         return $this->handleRequest(
             function (array $dto, SecurityContext $context) use ($id): mixed {
-                if (!$context->hasPermission('tag.delete')) {
+                if (!$context->hasPermission('cms.tags.write')) {
                     throw new \dcardenasl\Ci4ApiCore\Exceptions\AuthorizationException(lang('Api.forbidden'));
                 }
                 return $this->tagService->destroy($id, $context);

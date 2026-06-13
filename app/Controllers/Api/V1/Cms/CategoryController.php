@@ -32,7 +32,7 @@ class CategoryController extends ApiController
     {
         return $this->handleRequest(
             function (CategoryIndexRequestDTO $dto, SecurityContext $context): mixed {
-                if (!$context->hasPermission('category.read')) {
+                if (!$context->hasPermission('cms.categories.read')) {
                     throw new \dcardenasl\Ci4ApiCore\Exceptions\AuthorizationException(lang('Api.forbidden'));
                 }
                 return $this->categoryService->index($dto, $context);
@@ -45,7 +45,7 @@ class CategoryController extends ApiController
     {
         return $this->handleRequest(
             function (CategoryCreateRequestDTO $dto, SecurityContext $context): mixed {
-                if (!$context->hasPermission('category.write')) {
+                if (!$context->hasPermission('cms.categories.write')) {
                     throw new \dcardenasl\Ci4ApiCore\Exceptions\AuthorizationException(lang('Api.forbidden'));
                 }
                 return $this->categoryService->store($dto, $context);
@@ -58,7 +58,7 @@ class CategoryController extends ApiController
     {
         return $this->handleRequest(
             function (CategoryUpdateRequestDTO $dto, SecurityContext $context) use ($id): mixed {
-                if (!$context->hasPermission('category.write')) {
+                if (!$context->hasPermission('cms.categories.write')) {
                     throw new \dcardenasl\Ci4ApiCore\Exceptions\AuthorizationException(lang('Api.forbidden'));
                 }
                 return $this->categoryService->update($id, $dto, $context);
@@ -71,7 +71,7 @@ class CategoryController extends ApiController
     {
         return $this->handleRequest(
             function (array $dto, SecurityContext $context) use ($id): mixed {
-                if (!$context->hasPermission('category.read')) {
+                if (!$context->hasPermission('cms.categories.read')) {
                     throw new \dcardenasl\Ci4ApiCore\Exceptions\AuthorizationException(lang('Api.forbidden'));
                 }
                 return $this->categoryService->show($id, $context);
@@ -83,7 +83,7 @@ class CategoryController extends ApiController
     {
         return $this->handleRequest(
             function (array $dto, SecurityContext $context) use ($id): mixed {
-                if (!$context->hasPermission('category.delete')) {
+                if (!$context->hasPermission('cms.categories.write')) {
                     throw new \dcardenasl\Ci4ApiCore\Exceptions\AuthorizationException(lang('Api.forbidden'));
                 }
                 return $this->categoryService->destroy($id, $context);
