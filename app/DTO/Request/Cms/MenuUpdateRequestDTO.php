@@ -45,35 +45,37 @@ readonly class MenuUpdateRequestDTO extends BaseRequestDTO
      */
     protected function map(array $data): void
     {
-        $this->mappedFields = [];
+        $mappedFields = [];
 
         if (array_key_exists('menu_key', $data)) {
             $this->menu_key = (string) $data['menu_key'];
-            $this->mappedFields['menu_key'] = $this->menu_key;
+            $mappedFields['menu_key'] = $this->menu_key;
         } else {
             $this->menu_key = null;
         }
 
         if (array_key_exists('location', $data)) {
             $this->location = (string) $data['location'];
-            $this->mappedFields['location'] = $this->location;
+            $mappedFields['location'] = $this->location;
         } else {
             $this->location = null;
         }
 
         if (array_key_exists('is_active', $data)) {
             $this->is_active = (bool) $data['is_active'];
-            $this->mappedFields['is_active'] = $this->is_active;
+            $mappedFields['is_active'] = $this->is_active;
         } else {
             $this->is_active = null;
         }
 
         if (array_key_exists('translations', $data)) {
             $this->translations = (array) $data['translations'];
-            $this->mappedFields['translations'] = $this->translations;
+            $mappedFields['translations'] = $this->translations;
         } else {
             $this->translations = null;
         }
+
+        $this->mappedFields = $mappedFields;
     }
 
     /**

@@ -51,63 +51,65 @@ readonly class SettingUpdateRequestDTO extends BaseRequestDTO
 
     protected function map(array $data): void
     {
-        $this->mappedFields = [];
+        $mappedFields = [];
 
         if (array_key_exists('setting_key', $data)) {
             $this->settingKey = (string) $data['setting_key'];
-            $this->mappedFields['setting_key'] = $this->settingKey;
+            $mappedFields['setting_key'] = $this->settingKey;
         } else {
             $this->settingKey = null;
         }
 
         if (array_key_exists('setting_value', $data)) {
             $this->settingValue = $data['setting_value'] !== null ? (string) $data['setting_value'] : null;
-            $this->mappedFields['setting_value'] = $this->settingValue;
+            $mappedFields['setting_value'] = $this->settingValue;
         } else {
             $this->settingValue = null;
         }
 
         if (array_key_exists('setting_type', $data)) {
             $this->settingType = (string) $data['setting_type'];
-            $this->mappedFields['setting_type'] = $this->settingType;
+            $mappedFields['setting_type'] = $this->settingType;
         } else {
             $this->settingType = null;
         }
 
         if (array_key_exists('setting_group', $data)) {
             $this->settingGroup = (string) $data['setting_group'];
-            $this->mappedFields['setting_group'] = $this->settingGroup;
+            $mappedFields['setting_group'] = $this->settingGroup;
         } else {
             $this->settingGroup = null;
         }
 
         if (array_key_exists('is_translatable', $data)) {
             $this->isTranslatable = filter_var($data['is_translatable'], FILTER_VALIDATE_BOOLEAN);
-            $this->mappedFields['is_translatable'] = $this->isTranslatable;
+            $mappedFields['is_translatable'] = $this->isTranslatable;
         } else {
             $this->isTranslatable = null;
         }
 
         if (array_key_exists('sort_order', $data)) {
             $this->sortOrder = (int) $data['sort_order'];
-            $this->mappedFields['sort_order'] = $this->sortOrder;
+            $mappedFields['sort_order'] = $this->sortOrder;
         } else {
             $this->sortOrder = null;
         }
 
         if (array_key_exists('description', $data)) {
             $this->description = $data['description'] !== null ? (string) $data['description'] : null;
-            $this->mappedFields['description'] = $this->description;
+            $mappedFields['description'] = $this->description;
         } else {
             $this->description = null;
         }
 
         if (array_key_exists('translations', $data)) {
             $this->translations = (array) $data['translations'];
-            $this->mappedFields['translations'] = $this->translations;
+            $mappedFields['translations'] = $this->translations;
         } else {
             $this->translations = null;
         }
+
+        $this->mappedFields = $mappedFields;
     }
 
     public function toArray(): array

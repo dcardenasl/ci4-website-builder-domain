@@ -72,77 +72,79 @@ readonly class PageUpdateRequestDTO extends BaseRequestDTO
      */
     protected function map(array $data): void
     {
-        $this->mappedFields = [];
+        $mappedFields = [];
 
         if (array_key_exists('parent_id', $data)) {
             $this->parent_id = $data['parent_id'] !== null && $data['parent_id'] !== '' ? (int) $data['parent_id'] : null;
-            $this->mappedFields['parent_id'] = $this->parent_id;
+            $mappedFields['parent_id'] = $this->parent_id;
         } else {
             $this->parent_id = null;
         }
 
         if (array_key_exists('page_type', $data)) {
             $this->page_type = (string) $data['page_type'];
-            $this->mappedFields['page_type'] = $this->page_type;
+            $mappedFields['page_type'] = $this->page_type;
         } else {
             $this->page_type = null;
         }
 
         if (array_key_exists('status', $data)) {
             $this->status = (string) $data['status'];
-            $this->mappedFields['status'] = $this->status;
+            $mappedFields['status'] = $this->status;
         } else {
             $this->status = null;
         }
 
         if (array_key_exists('published_at', $data)) {
             $this->published_at = $data['published_at'];
-            $this->mappedFields['published_at'] = $this->published_at;
+            $mappedFields['published_at'] = $this->published_at;
         } else {
             $this->published_at = null;
         }
 
         if (array_key_exists('scheduled_at', $data)) {
             $this->scheduled_at = $data['scheduled_at'];
-            $this->mappedFields['scheduled_at'] = $this->scheduled_at;
+            $mappedFields['scheduled_at'] = $this->scheduled_at;
         } else {
             $this->scheduled_at = null;
         }
 
         if (array_key_exists('sort_order', $data)) {
             $this->sort_order = (int) $data['sort_order'];
-            $this->mappedFields['sort_order'] = $this->sort_order;
+            $mappedFields['sort_order'] = $this->sort_order;
         } else {
             $this->sort_order = null;
         }
 
         if (array_key_exists('sitemap_priority', $data)) {
             $this->sitemap_priority = $data['sitemap_priority'] !== null && $data['sitemap_priority'] !== '' ? (float) $data['sitemap_priority'] : null;
-            $this->mappedFields['sitemap_priority'] = $this->sitemap_priority;
+            $mappedFields['sitemap_priority'] = $this->sitemap_priority;
         } else {
             $this->sitemap_priority = null;
         }
 
         if (array_key_exists('sitemap_changefreq', $data)) {
             $this->sitemap_changefreq = $data['sitemap_changefreq'];
-            $this->mappedFields['sitemap_changefreq'] = $this->sitemap_changefreq;
+            $mappedFields['sitemap_changefreq'] = $this->sitemap_changefreq;
         } else {
             $this->sitemap_changefreq = null;
         }
 
         if (array_key_exists('is_in_sitemap', $data)) {
             $this->is_in_sitemap = (bool) $data['is_in_sitemap'];
-            $this->mappedFields['is_in_sitemap'] = $this->is_in_sitemap;
+            $mappedFields['is_in_sitemap'] = $this->is_in_sitemap;
         } else {
             $this->is_in_sitemap = null;
         }
 
         if (array_key_exists('translations', $data)) {
             $this->translations = (array) $data['translations'];
-            $this->mappedFields['translations'] = $this->translations;
+            $mappedFields['translations'] = $this->translations;
         } else {
             $this->translations = null;
         }
+
+        $this->mappedFields = $mappedFields;
     }
 
     /**

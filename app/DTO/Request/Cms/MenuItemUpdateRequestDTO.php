@@ -70,91 +70,93 @@ readonly class MenuItemUpdateRequestDTO extends BaseRequestDTO
      */
     protected function map(array $data): void
     {
-        $this->mappedFields = [];
+        $mappedFields = [];
 
         if (array_key_exists('menu_id', $data)) {
             $this->menu_id = (int) $data['menu_id'];
-            $this->mappedFields['menu_id'] = $this->menu_id;
+            $mappedFields['menu_id'] = $this->menu_id;
         } else {
             $this->menu_id = null;
         }
 
         if (array_key_exists('parent_id', $data)) {
             $this->parent_id = $data['parent_id'] !== null && $data['parent_id'] !== '' ? (int) $data['parent_id'] : null;
-            $this->mappedFields['parent_id'] = $this->parent_id;
+            $mappedFields['parent_id'] = $this->parent_id;
         } else {
             $this->parent_id = null;
         }
 
         if (array_key_exists('link_type', $data)) {
             $this->link_type = (string) $data['link_type'];
-            $this->mappedFields['link_type'] = $this->link_type;
+            $mappedFields['link_type'] = $this->link_type;
         } else {
             $this->link_type = null;
         }
 
         if (array_key_exists('page_id', $data)) {
             $this->page_id = $data['page_id'] !== null && $data['page_id'] !== '' ? (int) $data['page_id'] : null;
-            $this->mappedFields['page_id'] = $this->page_id;
+            $mappedFields['page_id'] = $this->page_id;
         } else {
             $this->page_id = null;
         }
 
         if (array_key_exists('entry_id', $data)) {
             $this->entry_id = $data['entry_id'] !== null && $data['entry_id'] !== '' ? (int) $data['entry_id'] : null;
-            $this->mappedFields['entry_id'] = $this->entry_id;
+            $mappedFields['entry_id'] = $this->entry_id;
         } else {
             $this->entry_id = null;
         }
 
         if (array_key_exists('collection_id', $data)) {
             $this->collection_id = $data['collection_id'] !== null && $data['collection_id'] !== '' ? (int) $data['collection_id'] : null;
-            $this->mappedFields['collection_id'] = $this->collection_id;
+            $mappedFields['collection_id'] = $this->collection_id;
         } else {
             $this->collection_id = null;
         }
 
         if (array_key_exists('link_target', $data)) {
             $this->link_target = (string) $data['link_target'];
-            $this->mappedFields['link_target'] = $this->link_target;
+            $mappedFields['link_target'] = $this->link_target;
         } else {
             $this->link_target = null;
         }
 
         if (array_key_exists('icon', $data)) {
             $this->icon = $data['icon'] !== null ? (string) $data['icon'] : null;
-            $this->mappedFields['icon'] = $this->icon;
+            $mappedFields['icon'] = $this->icon;
         } else {
             $this->icon = null;
         }
 
         if (array_key_exists('css_class', $data)) {
             $this->css_class = $data['css_class'] !== null ? (string) $data['css_class'] : null;
-            $this->mappedFields['css_class'] = $this->css_class;
+            $mappedFields['css_class'] = $this->css_class;
         } else {
             $this->css_class = null;
         }
 
         if (array_key_exists('sort_order', $data)) {
             $this->sort_order = (int) $data['sort_order'];
-            $this->mappedFields['sort_order'] = $this->sort_order;
+            $mappedFields['sort_order'] = $this->sort_order;
         } else {
             $this->sort_order = null;
         }
 
         if (array_key_exists('is_active', $data)) {
             $this->is_active = (bool) $data['is_active'];
-            $this->mappedFields['is_active'] = $this->is_active;
+            $mappedFields['is_active'] = $this->is_active;
         } else {
             $this->is_active = null;
         }
 
         if (array_key_exists('translations', $data)) {
             $this->translations = (array) $data['translations'];
-            $this->mappedFields['translations'] = $this->translations;
+            $mappedFields['translations'] = $this->translations;
         } else {
             $this->translations = null;
         }
+
+        $this->mappedFields = $mappedFields;
     }
 
     /**
