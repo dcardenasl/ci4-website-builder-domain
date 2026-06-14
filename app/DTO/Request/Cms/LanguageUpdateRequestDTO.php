@@ -42,56 +42,58 @@ readonly class LanguageUpdateRequestDTO extends BaseRequestDTO
 
     protected function map(array $data): void
     {
-        $this->mappedFields = [];
+        $mappedFields = [];
 
         if (array_key_exists('code', $data)) {
             $this->code = (string) $data['code'];
-            $this->mappedFields['code'] = $this->code;
+            $mappedFields['code'] = $this->code;
         } else {
             $this->code = null;
         }
 
         if (array_key_exists('name', $data)) {
             $this->name = (string) $data['name'];
-            $this->mappedFields['name'] = $this->name;
+            $mappedFields['name'] = $this->name;
         } else {
             $this->name = null;
         }
 
         if (array_key_exists('native_name', $data)) {
             $this->nativeName = (string) $data['native_name'];
-            $this->mappedFields['native_name'] = $this->nativeName;
+            $mappedFields['native_name'] = $this->nativeName;
         } else {
             $this->nativeName = null;
         }
 
         if (array_key_exists('is_default', $data)) {
             $this->isDefault = filter_var($data['is_default'], FILTER_VALIDATE_BOOLEAN);
-            $this->mappedFields['is_default'] = $this->isDefault;
+            $mappedFields['is_default'] = $this->isDefault;
         } else {
             $this->isDefault = null;
         }
 
         if (array_key_exists('is_active', $data)) {
             $this->isActive = filter_var($data['is_active'], FILTER_VALIDATE_BOOLEAN);
-            $this->mappedFields['is_active'] = $this->isActive;
+            $mappedFields['is_active'] = $this->isActive;
         } else {
             $this->isActive = null;
         }
 
         if (array_key_exists('fallback_language_id', $data)) {
             $this->fallbackLanguageId = $data['fallback_language_id'] !== null ? (int) $data['fallback_language_id'] : null;
-            $this->mappedFields['fallback_language_id'] = $this->fallbackLanguageId;
+            $mappedFields['fallback_language_id'] = $this->fallbackLanguageId;
         } else {
             $this->fallbackLanguageId = null;
         }
 
         if (array_key_exists('sort_order', $data)) {
             $this->sortOrder = (int) $data['sort_order'];
-            $this->mappedFields['sort_order'] = $this->sortOrder;
+            $mappedFields['sort_order'] = $this->sortOrder;
         } else {
             $this->sortOrder = null;
         }
+
+        $this->mappedFields = $mappedFields;
     }
 
     public function toArray(): array
