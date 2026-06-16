@@ -98,6 +98,8 @@ $routes->group('cms', ['namespace' => '\App\Controllers\Api\V1\Cms'], function (
     });
 });
 // Public endpoints
+$routes->get('public/settings', '\App\Controllers\Api\V1\Cms\PublicSettingController::index', ['filter' => 'throttle']);
+$routes->get('public/(:segment)/pages', '\App\Controllers\Api\V1\Cms\PublicPageController::index/$1', ['filter' => 'throttle']);
 $routes->get('public/(:segment)/pages/(.+)', '\App\Controllers\Api\V1\Cms\PublicPageController::show/$1/$2', ['filter' => 'throttle']);
 $routes->get('public/menus/(:segment)', '\App\Controllers\Api\V1\Cms\PublicMenuController::show/$1', ['filter' => 'throttle']);
 $routes->get('public/(:segment)/collections', '\App\Controllers\Api\V1\Cms\PublicCollectionController::index/$1', ['filter' => 'throttle']);

@@ -41,7 +41,8 @@ class SettingController extends ApiController
     {
         return $this->handleRequest(
             fn ($dto, $context) => $this->settingService->update($id, $dto, $context),
-            SettingUpdateRequestDTO::class
+            SettingUpdateRequestDTO::class,
+            ['id' => $id]
         );
     }
 
