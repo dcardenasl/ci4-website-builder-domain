@@ -13,6 +13,7 @@ $routes->group('cms', ['namespace' => '\App\Controllers\Api\V1\Cms'], function (
         $routes->post('menu-items', 'MenuItemController::create', ['filter' => 'permission:cms.menus.write']);
         // Pages CRUD
         $routes->get('pages', 'PageController::index', ['filter' => 'permission:cms.pages.read']);
+        $routes->get('pages/check-slug', 'PageController::checkSlug', ['filter' => 'permission:cms.pages.read']);
         $routes->post('pages', 'PageController::create', ['filter' => 'permission:cms.pages.write']);
         // Languages CRUD
         $routes->get('languages', 'LanguageController::index', ['filter' => 'permission:cms.languages.read']);
@@ -28,9 +29,11 @@ $routes->group('cms', ['namespace' => '\App\Controllers\Api\V1\Cms'], function (
         $routes->post('collections', 'CollectionController::create', ['filter' => 'permission:cms.collections.write']);
         // Entries CRUD
         $routes->get('entries', 'EntryController::index', ['filter' => 'permission:cms.entries.read']);
+        $routes->get('entries/check-slug', 'EntryController::checkSlug', ['filter' => 'permission:cms.entries.read']);
         $routes->post('entries', 'EntryController::create', ['filter' => 'permission:cms.entries.write']);
         // Category CRUD
         $routes->get('categories', 'CategoryController::index', ['filter' => 'permission:cms.categories.read']);
+        $routes->get('categories/check-slug', 'CategoryController::checkSlug', ['filter' => 'permission:cms.categories.read']);
         $routes->post('categories', 'CategoryController::create', ['filter' => 'permission:cms.categories.write']);
         // Tag CRUD
         $routes->get('tags', 'TagController::index', ['filter' => 'permission:cms.tags.read']);

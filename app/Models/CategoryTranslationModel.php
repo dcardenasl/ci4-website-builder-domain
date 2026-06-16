@@ -15,6 +15,15 @@ class CategoryTranslationModel extends Model
     protected $allowedFields = ['category_id', 'language_id', 'slug', 'name', 'description', 'meta_title', 'meta_description'];
     protected $useTimestamps = false;
 
+    public function isSlugAvailable(string $slug, int $languageId, ?int $currentCategoryId = null): bool
+    {
+        $builder = $this->where('slug', $slug)->where('language_id', $languageId);
+        if ($currentCategoryId !== null) {
+            $builder = $builder->where('category_id !=', $currentCategoryId);
+        }
+        return $builder->countAllResults() === 0;
+    }
+
     protected $validationRules = [
         'category_id' => 'required|integer',
         'language_id' => 'required|integer',

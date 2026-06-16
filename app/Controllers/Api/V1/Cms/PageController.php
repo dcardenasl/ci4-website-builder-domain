@@ -8,6 +8,7 @@ use App\DTO\Request\Cms\PageCreateRequestDTO;
 use App\DTO\Request\Cms\PageIndexRequestDTO;
 use App\DTO\Request\Cms\PageUpdateRequestDTO;
 use App\Interfaces\Cms\PageServiceInterface;
+use App\Models\PageTranslationModel;
 use CodeIgniter\HTTP\ResponseInterface;
 use Config\Services;
 use dcardenasl\Ci4ApiCore\Dto\SecurityContext;
@@ -87,6 +88,27 @@ class PageController extends ApiController
                     throw new \dcardenasl\Ci4ApiCore\Exceptions\AuthorizationException(lang('Api.forbidden'));
                 }
                 return $this->pageService->destroy($id, $context);
+            }
+        );
+    }
+
+    public function checkSlug(): ResponseInterface
+    {
+        return $this->handleRequest(
+            function (array $dto, SecurityContext $context): mixed {
+                if (!$context->hasPermission('cms.pages.read')) {
+                    throw new \dcardenasl\Ci4ApiCore\Exceptions\AuthorizationException(lang('Api.forbidden'));
+                }
+                $slug       = (string) ($dto['slug'] ?? '');
+                $languageId = (int) ($dto['language_id'] ?? 0);
+                $currentId  = isset($dto['current_id']) && $dto['current_id'] !== '' ? (int) $dto['current_id'] : null;
+
+                if ($slug === '' || $languageId === 0) {
+                    return ['available' => false];
+                }
+
+                $available = (new PageTranslationModel())->isSlugAvailable($slug, $languageId, $currentId);
+                return ['available' => $available];
             }
         );
     }

@@ -10,6 +10,7 @@ use App\DTO\Request\Cms\EntrySetCategoriesRequestDTO;
 use App\DTO\Request\Cms\EntrySetTagsRequestDTO;
 use App\DTO\Request\Cms\EntryUpdateRequestDTO;
 use App\Interfaces\Cms\EntryServiceInterface;
+use App\Models\EntryTranslationModel;
 use CodeIgniter\HTTP\ResponseInterface;
 use Config\Services;
 use dcardenasl\Ci4ApiCore\Dto\SecurityContext;
@@ -116,6 +117,27 @@ class EntryController extends ApiController
                 return $this->entryService->syncTags($id, $dto, $context);
             },
             EntrySetTagsRequestDTO::class
+        );
+    }
+
+    public function checkSlug(): ResponseInterface
+    {
+        return $this->handleRequest(
+            function (array $dto, SecurityContext $context): mixed {
+                if (!$context->hasPermission('cms.entries.read')) {
+                    throw new \dcardenasl\Ci4ApiCore\Exceptions\AuthorizationException(lang('Api.forbidden'));
+                }
+                $slug       = (string) ($dto['slug'] ?? '');
+                $languageId = (int) ($dto['language_id'] ?? 0);
+                $currentId  = isset($dto['current_id']) && $dto['current_id'] !== '' ? (int) $dto['current_id'] : null;
+
+                if ($slug === '' || $languageId === 0) {
+                    return ['available' => false];
+                }
+
+                $available = (new EntryTranslationModel())->isSlugAvailable($slug, $languageId, $currentId);
+                return ['available' => $available];
+            }
         );
     }
 }

@@ -31,6 +31,15 @@ class EntryTranslationModel extends BaseAuditableModel
         'schema_data',
     ];
 
+    public function isSlugAvailable(string $slug, int $languageId, ?int $currentEntryId = null): bool
+    {
+        $builder = $this->where('slug', $slug)->where('language_id', $languageId);
+        if ($currentEntryId !== null) {
+            $builder = $builder->where('entry_id !=', $currentEntryId);
+        }
+        return $builder->countAllResults() === 0;
+    }
+
     protected $validationRules = [
         'entry_id'          => 'required|is_natural_no_zero',
         'language_id'      => 'required|is_natural_no_zero',

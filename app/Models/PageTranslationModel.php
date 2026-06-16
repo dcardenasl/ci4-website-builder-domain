@@ -30,6 +30,15 @@ class PageTranslationModel extends BaseAuditableModel
         'schema_data',
     ];
 
+    public function isSlugAvailable(string $slug, int $languageId, ?int $currentPageId = null): bool
+    {
+        $builder = $this->where('slug', $slug)->where('language_id', $languageId);
+        if ($currentPageId !== null) {
+            $builder = $builder->where('page_id !=', $currentPageId);
+        }
+        return $builder->countAllResults() === 0;
+    }
+
     protected $validationRules = [
         'page_id'          => 'required|is_natural_no_zero',
         'language_id'      => 'required|is_natural_no_zero',
