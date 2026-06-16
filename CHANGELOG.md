@@ -11,6 +11,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Public Settings endpoint** — `GET /api/v1/public/{lang}/settings` to expose public settings with `public` flag filtering
 
 ### Fixed
+- **Hub configuration** — enforce required `hub.url`, `hub.apiKey`, and `hub.appCode` with clear error messages and i18n support
+- **BlockType service** — validate `block_key` uniqueness with translated error messages
 - **CMS Request DTOs** — Refined field validation rules and type hinting across all request DTOs
 - **Settings model and service** — Added support for public flag and active status with database migration and language keys
 
