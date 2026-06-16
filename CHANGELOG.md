@@ -8,6 +8,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- **Slug availability validation endpoints** — new `checkSlug()` methods in `PageController`, `EntryController`, and `CategoryController` to validate slug uniqueness within a language context
 - **Public Settings endpoint** — `GET /api/v1/public/{lang}/settings` to expose public settings with `public` flag filtering
 
 ### Fixed
