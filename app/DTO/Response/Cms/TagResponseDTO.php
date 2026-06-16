@@ -19,6 +19,12 @@ final readonly class TagResponseDTO implements DataTransferObjectInterface
         public int $id,
         #[OA\Property(description: 'is_active', type: 'boolean')]
         public bool $is_active,
+        #[OA\Property(description: 'Tag name', example: 'News', nullable: true)]
+        public ?string $name = null,
+        #[OA\Property(description: 'Tag slug', example: 'news', nullable: true)]
+        public ?string $slug = null,
+        #[OA\Property(description: 'Translations list', type: 'array', items: new OA\Items(type: 'object'))]
+        public array $translations = [],
         #[OA\Property(property: 'created_at', description: 'Creation timestamp', example: '2026-02-26 12:00:00', nullable: true)]
         public ?string $createdAt = null,
         #[OA\Property(property: 'updated_at', description: 'Last update timestamp', example: '2026-02-26 12:00:00', nullable: true)]
@@ -34,6 +40,9 @@ final readonly class TagResponseDTO implements DataTransferObjectInterface
         return new static(
             id: (int) ($data['id'] ?? 0),
             is_active: (bool) ($data['is_active'] ?? false),
+            name: isset($data['name']) ? (string) $data['name'] : null,
+            slug: isset($data['slug']) ? (string) $data['slug'] : null,
+            translations: $data['translations'] ?? [],
             createdAt: DateValue::toString($data['created_at'] ?? null),
             updatedAt: DateValue::toString($data['updated_at'] ?? null),
         );
@@ -46,7 +55,10 @@ final readonly class TagResponseDTO implements DataTransferObjectInterface
     {
         return [
             'id' => $this->id,
+            'name' => $this->name,
+            'slug' => $this->slug,
             'is_active' => $this->is_active,
+            'translations' => $this->translations,
             'created_at' => $this->createdAt,
             'updated_at' => $this->updatedAt,
         ];

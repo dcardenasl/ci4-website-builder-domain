@@ -39,7 +39,7 @@ readonly class BlockTypeCreateRequestDTO extends BaseRequestDTO
     public function rules(): array
     {
         return [
-            'block_key' => 'required|string|max_length[255]|is_unique[block_types.block_key]',
+            'block_key' => 'required|string|max_length[255]|is_unique[cms_content_blocks.block_key]',
             'name' => 'required|string|max_length[255]',
             'description' => 'permit_empty|string',
             'category' => 'required|string|max_length[255]',

@@ -47,7 +47,11 @@ final readonly class EntryResponseDTO implements DataTransferObjectInterface
         #[OA\Property(property: 'updated_at', description: 'Last update timestamp', example: '2026-02-26 12:00:00', nullable: true)]
         public ?string $updatedAt = null,
         #[OA\Property(property: 'translations', type: 'array', items: new OA\Items(type: 'object'), nullable: true)]
-        public ?array $translations = null
+        public ?array $translations = null,
+        #[OA\Property(description: 'title', type: 'string', nullable: true)]
+        public ?string $title = null,
+        #[OA\Property(description: 'slug', type: 'string', nullable: true)]
+        public ?string $slug = null
     ) {
     }
 
@@ -72,6 +76,8 @@ final readonly class EntryResponseDTO implements DataTransferObjectInterface
             createdAt: DateValue::toString($data['created_at'] ?? null),
             updatedAt: DateValue::toString($data['updated_at'] ?? null),
             translations: $data['translations'] ?? null,
+            title: $data['title'] ?? null,
+            slug: $data['slug'] ?? null,
         );
     }
 
@@ -83,6 +89,8 @@ final readonly class EntryResponseDTO implements DataTransferObjectInterface
         $res = [
             'id' => $this->id,
             'collection_id' => $this->collection_id,
+            'title' => $this->title,
+            'slug' => $this->slug,
             'author_id' => $this->author_id,
             'workflow_status' => $this->workflow_status,
             'published_at' => $this->published_at,

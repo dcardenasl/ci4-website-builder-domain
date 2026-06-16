@@ -93,7 +93,10 @@ class CategoryService extends BaseCrudService implements CategoryServiceInterfac
         }
 
         foreach ($entities as $entity) {
-            $entity->translations = $translationsGrouped[$entity->id] ?? [];
+            $entityTranslations = $translationsGrouped[$entity->id] ?? [];
+            $entity->translations = $entityTranslations;
+            $entity->name = $entityTranslations[0]['name'] ?? null;
+            $entity->slug = $entityTranslations[0]['slug'] ?? null;
         }
 
         return $entities;

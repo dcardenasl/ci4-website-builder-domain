@@ -28,7 +28,11 @@ final readonly class CategoryResponseDTO implements DataTransferObjectInterface
         #[OA\Property(property: 'created_at', description: 'Creation timestamp', example: '2026-02-26 12:00:00', nullable: true)]
         public ?string $createdAt = null,
         #[OA\Property(property: 'updated_at', description: 'Last update timestamp', example: '2026-02-26 12:00:00', nullable: true)]
-        public ?string $updatedAt = null
+        public ?string $updatedAt = null,
+        #[OA\Property(description: 'name', type: 'string', nullable: true)]
+        public ?string $name = null,
+        #[OA\Property(description: 'slug', type: 'string', nullable: true)]
+        public ?string $slug = null
     ) {
     }
 
@@ -45,6 +49,8 @@ final readonly class CategoryResponseDTO implements DataTransferObjectInterface
             is_active: (bool) ($data['is_active'] ?? false),
             createdAt: DateValue::toString($data['created_at'] ?? null),
             updatedAt: DateValue::toString($data['updated_at'] ?? null),
+            name: $data['name'] ?? null,
+            slug: $data['slug'] ?? null,
         );
     }
 
@@ -56,6 +62,8 @@ final readonly class CategoryResponseDTO implements DataTransferObjectInterface
         return [
             'id' => $this->id,
             'collection_id' => $this->collection_id,
+            'name' => $this->name,
+            'slug' => $this->slug,
             'parent_id' => $this->parent_id,
             'sort_order' => $this->sort_order,
             'is_active' => $this->is_active,

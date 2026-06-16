@@ -31,12 +31,12 @@ readonly class MenuUpdateRequestDTO extends BaseRequestDTO
     public function rules(): array
     {
         return [
-            'menu_key'                   => 'permit_empty|string|max_length[50]',
-            'location'                   => 'permit_empty|string|max_length[50]',
-            'is_active'                  => 'permit_empty|boolean_like',
-            'translations'               => 'permit_empty',
-            'translations.*.language_id' => 'required_with[translations]|is_natural_no_zero',
-            'translations.*.name'        => 'required_with[translations]|string|max_length[150]',
+            'menu_key'                  => 'permit_empty|string|max_length[50]',
+            'location'                  => 'permit_empty|string|max_length[50]',
+            'is_active'                 => 'permit_empty|boolean_like',
+            'translations'              => 'permit_empty',
+            'translations.*.language_id' => 'permit_empty|is_natural_no_zero',
+            'translations.*.name'       => 'permit_empty|string|max_length[150]',
         ];
     }
 
@@ -69,7 +69,7 @@ readonly class MenuUpdateRequestDTO extends BaseRequestDTO
         }
 
         if (array_key_exists('translations', $data)) {
-            $this->translations = (array) $data['translations'];
+            $this->translations = $this->normalizeTranslations((array) $data['translations']);
             $mappedFields['translations'] = $this->translations;
         } else {
             $this->translations = null;
@@ -84,5 +84,36 @@ readonly class MenuUpdateRequestDTO extends BaseRequestDTO
     public function toArray(): array
     {
         return $this->mappedFields;
+    }
+
+    /**
+     * @param array<mixed> $translations
+     * @return array<int, array{language_id: int, name: string}>
+     */
+    private function normalizeTranslations(array $translations): array
+    {
+        return array_values(array_filter(
+            array_map(
+                static function (mixed $translation): ?array {
+                    if (! is_array($translation)) {
+                        return null;
+                    }
+
+                    $languageId = isset($translation['language_id']) ? (int) $translation['language_id'] : 0;
+                    $name = trim((string) ($translation['name'] ?? ''));
+
+                    if ($languageId <= 0 || $name === '') {
+                        return null;
+                    }
+
+                    return [
+                        'language_id' => $languageId,
+                        'name' => $name,
+                    ];
+                },
+                $translations
+            ),
+            static fn (?array $translation): bool => $translation !== null
+        ));
     }
 }
