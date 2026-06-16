@@ -45,10 +45,10 @@ readonly class BlockTypeCreateRequestDTO extends BaseRequestDTO
             'category' => 'required|string|max_length[255]',
             'icon' => 'permit_empty|string|max_length[255]',
             'schema_definition' => 'required|permit_empty',
-            'supports_pages' => 'required|boolean_like',
-            'supports_entries' => 'required|boolean_like',
-            'is_container' => 'required|boolean_like',
-            'is_active' => 'required|boolean_like',
+            'supports_pages' => 'permit_empty|boolean_like',
+            'supports_entries' => 'permit_empty|boolean_like',
+            'is_container' => 'permit_empty|boolean_like',
+            'is_active' => 'permit_empty|boolean_like',
             'sort_order' => 'required|integer',
         ];
     }

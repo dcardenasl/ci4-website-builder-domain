@@ -40,7 +40,7 @@ class LanguageModel extends BaseAuditableModel
     protected array $sortableFields = ['id', 'sort_order', 'code', 'name'];
 
     protected $validationRules = [
-        'code'                 => 'required|string|max_length[10]|is_unique[cms_languages.code,id,{id}]',
+        'code'                 => 'required|string|max_length[10]',
         'name'                 => 'required|string|max_length[50]',
         'native_name'          => 'required|string|max_length[50]',
         'is_default'           => 'permit_empty|boolean_like',

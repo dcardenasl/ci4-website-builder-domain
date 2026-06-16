@@ -7,6 +7,12 @@ return [
         'cannot_deactivate_default'         => 'Cannot deactivate the default language.',
         'must_have_default'                 => 'Must have at least one default language. Mark another language as default instead.',
         'cannot_delete_default'             => 'Cannot delete the default language.',
+        'code_must_be_unique'               => 'Language code must be unique.',
+        'code_already_taken'                => "The language code '{0}' is already taken.",
+    ],
+    'block_types' => [
+        'block_key_must_be_unique'          => 'Block key must be unique.',
+        'block_key_already_taken'           => "The block key '{0}' is already taken.",
     ],
     'settings' => [
         'create_success' => 'Setting created successfully.',

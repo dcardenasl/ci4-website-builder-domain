@@ -32,7 +32,7 @@ readonly class RedirectCreateRequestDTO extends BaseRequestDTO
             'old_path' => 'required|string|max_length[255]',
             'new_url' => 'required|string|max_length[255]',
             'redirect_type' => 'required|integer',
-            'is_active' => 'required|boolean_like',
+            'is_active' => 'permit_empty|boolean_like',
             'hit_count' => 'permit_empty|integer',
             'note' => 'permit_empty|string|max_length[255]',
         ];

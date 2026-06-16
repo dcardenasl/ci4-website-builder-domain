@@ -34,6 +34,6 @@ class MenuModel extends BaseAuditableModel
     protected $validationRules = [
         'menu_key' => 'required|string|max_length[50]',
         'location' => 'required|string|max_length[50]',
-        'is_active' => 'required|boolean_like',
+        'is_active' => 'permit_empty|boolean_like',
     ];
 }

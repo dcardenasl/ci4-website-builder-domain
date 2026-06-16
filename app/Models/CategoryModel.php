@@ -35,6 +35,6 @@ class CategoryModel extends BaseAuditableModel
         'collection_id' => 'required|integer',
         'parent_id' => 'permit_empty|integer',
         'sort_order' => 'required|integer',
-        'is_active' => 'required|boolean_like',
+        'is_active' => 'permit_empty|boolean_like',
     ];
 }

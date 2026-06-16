@@ -32,6 +32,6 @@ class TagModel extends BaseAuditableModel
     protected array $sortableFields = ['id', 'created_at'];
 
     protected $validationRules = [
-        'is_active' => 'required|boolean_like',
+        'is_active' => 'permit_empty|boolean_like',
     ];
 }

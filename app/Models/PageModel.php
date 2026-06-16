@@ -40,6 +40,6 @@ class PageModel extends BaseAuditableModel
         'sort_order' => 'required|integer',
         'sitemap_priority' => 'permit_empty|decimal',
         'sitemap_changefreq' => 'permit_empty|in_list[always,hourly,daily,weekly,monthly,yearly,never]',
-        'is_in_sitemap' => 'required|boolean_like',
+        'is_in_sitemap' => 'permit_empty|boolean_like',
     ];
 }

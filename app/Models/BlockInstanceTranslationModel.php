@@ -32,6 +32,6 @@ class BlockInstanceTranslationModel extends BaseAuditableModel
         'instance_id'  => 'required|is_natural_no_zero|is_not_unique[cms_block_instances.id]',
         'language_id'  => 'required|is_natural_no_zero|is_not_unique[cms_languages.id]',
         'block_data'   => 'required',
-        'is_published' => 'required|boolean_like',
+        'is_published' => 'permit_empty|boolean_like',
     ];
 }

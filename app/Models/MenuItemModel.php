@@ -42,6 +42,6 @@ class MenuItemModel extends BaseAuditableModel
         'icon' => 'permit_empty|string|max_length[50]',
         'css_class' => 'permit_empty|string|max_length[100]',
         'sort_order' => 'required|integer',
-        'is_active' => 'required|boolean_like',
+        'is_active' => 'permit_empty|boolean_like',
     ];
 }

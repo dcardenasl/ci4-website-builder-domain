@@ -31,7 +31,7 @@ readonly class MenuCreateRequestDTO extends BaseRequestDTO
         return [
             'menu_key'                   => 'required|string|max_length[50]',
             'location'                   => 'required|string|max_length[50]',
-            'is_active'                  => 'required|boolean_like',
+            'is_active'                  => 'permit_empty|boolean_like',
             'translations'               => 'permit_empty',
             'translations.*.language_id' => 'required_with[translations]|is_natural_no_zero',
             'translations.*.name'        => 'required_with[translations]|string|max_length[150]',

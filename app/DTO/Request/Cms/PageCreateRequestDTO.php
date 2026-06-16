@@ -50,7 +50,7 @@ readonly class PageCreateRequestDTO extends BaseRequestDTO
             'sort_order' => 'required|integer',
             'sitemap_priority' => 'permit_empty|decimal',
             'sitemap_changefreq' => 'permit_empty|' . CmsEnums::inListRule(CmsEnums::SITEMAP_CHANGEFREQ),
-            'is_in_sitemap' => 'required|boolean_like',
+            'is_in_sitemap' => 'permit_empty|boolean_like',
             'translations' => 'permit_empty',
             'translations.*.language_id' => 'required_with[translations]|is_natural_no_zero',
             'translations.*.slug' => 'required_with[translations]|string|max_length[150]',

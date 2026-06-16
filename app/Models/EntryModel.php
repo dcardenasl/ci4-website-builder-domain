@@ -37,11 +37,11 @@ class EntryModel extends BaseAuditableModel
         'workflow_status' => 'required|in_list[draft,in_review,approved,published,archived]',
         'published_at' => 'permit_empty|valid_date',
         'scheduled_at' => 'permit_empty|valid_date',
-        'is_featured' => 'required|boolean_like',
+        'is_featured' => 'permit_empty|boolean_like',
         'view_count' => 'required|integer',
         'sort_order' => 'required|integer',
         'sitemap_priority' => 'permit_empty|decimal',
         'sitemap_changefreq' => 'permit_empty|in_list[always,hourly,daily,weekly,monthly,yearly,never]',
-        'is_in_sitemap' => 'required|boolean_like',
+        'is_in_sitemap' => 'permit_empty|boolean_like',
     ];
 }

@@ -32,16 +32,16 @@ class BlockTypeModel extends BaseAuditableModel
     protected array $sortableFields = ['id', 'created_at', 'block_key', 'name', 'category', 'is_active'];
 
     protected $validationRules = [
-        'block_key' => 'required|string|max_length[50]|is_unique[cms_content_blocks.block_key,id,{id}]',
+        'block_key' => 'required|string|max_length[50]',
         'name' => 'required|string|max_length[100]',
         'description' => 'permit_empty|string',
         'category' => 'required|string|max_length[50]',
         'icon' => 'permit_empty|string|max_length[50]',
         'schema_definition' => 'required',
-        'supports_pages' => 'required|boolean_like',
-        'supports_entries' => 'required|boolean_like',
-        'is_container' => 'required|boolean_like',
-        'is_active' => 'required|boolean_like',
+        'supports_pages' => 'permit_empty|boolean_like',
+        'supports_entries' => 'permit_empty|boolean_like',
+        'is_container' => 'permit_empty|boolean_like',
+        'is_active' => 'permit_empty|boolean_like',
         'sort_order' => 'required|integer',
     ];
 }

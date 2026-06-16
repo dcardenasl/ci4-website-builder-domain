@@ -8,6 +8,7 @@ use App\Entities\LanguageEntity;
 use App\Interfaces\Cms\LanguageServiceInterface;
 use dcardenasl\Ci4ApiCore\Dto\SecurityContext;
 use dcardenasl\Ci4ApiCore\Exceptions\BadRequestException;
+use dcardenasl\Ci4ApiCore\Exceptions\ValidationException;
 use dcardenasl\Ci4ApiCore\Mappers\ResponseMapperInterface;
 use dcardenasl\Ci4ApiCore\Repositories\RepositoryInterface;
 use dcardenasl\Ci4ApiCore\Services\BaseCrudService;
@@ -31,6 +32,14 @@ class LanguageService extends BaseCrudService implements LanguageServiceInterfac
     {
         $data = parent::beforeStore($data, $context);
 
+        $existing = $this->repository->findBy('code', $data['code']);
+        if ($existing) {
+            throw new ValidationException(
+                lang('Api.validationFailed'),
+                ['code' => lang('Cms.languages.code_already_taken', [$data['code']])]
+            );
+        }
+
         // If this is the first language being created, force is_default = true
         /** @var \App\Models\LanguageModel $model */
         $model = model(\App\Models\LanguageModel::class);
@@ -51,6 +60,16 @@ class LanguageService extends BaseCrudService implements LanguageServiceInterfac
     protected function beforeUpdate(int $id, array $data, ?SecurityContext $context): array
     {
         $data = parent::beforeUpdate($id, $data, $context);
+
+        if (array_key_exists('code', $data)) {
+            $existing = $this->repository->findBy('code', $data['code']);
+            if ($existing && (int) $existing->id !== $id) {
+                throw new ValidationException(
+                    lang('Api.validationFailed'),
+                    ['code' => lang('Cms.languages.code_already_taken', [$data['code']])]
+                );
+            }
+        }
 
         /** @var LanguageEntity|null $entity */
         $entity = $this->repository->find($id);
