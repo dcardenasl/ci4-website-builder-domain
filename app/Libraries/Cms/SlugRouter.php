@@ -73,6 +73,53 @@ class SlugRouter
     }
 
     /**
+     * Resolve a content ID to its full slug path.
+     *
+     * @param string $langCode Language code (e.g., 'es')
+     * @param string $type Resource type (only 'page' supported)
+     * @param int $id Content ID
+     * @return string|null Full slug path (e.g., 'nosotros/vision') or null if not found
+     */
+    public function resolveSlug(string $langCode, string $type, int $id): ?string
+    {
+        if ($type !== 'page') {
+            return null;
+        }
+
+        $lang = $this->getLanguageByCode($langCode);
+        if (!$lang) {
+            return null;
+        }
+        $langId = (int) $lang['id'];
+
+        $segments = [];
+        $currentId = $id;
+
+        while ($currentId !== null) {
+            $query = $this->db->table('cms_pages p')
+                ->select('p.parent_id, pt.slug')
+                ->join('cms_page_translations pt', 'p.id = pt.page_id AND pt.language_id = ' . $langId)
+                ->where('p.id', $currentId)
+                ->where('p.deleted_at IS NULL')
+                ->get();
+
+            if ($query === false) {
+                return null;
+            }
+
+            $row = $query->getRowArray();
+            if (!is_array($row) || !isset($row['slug'])) {
+                return null;
+            }
+
+            array_unshift($segments, (string) $row['slug']);
+            $currentId = array_key_exists('parent_id', $row) && $row['parent_id'] !== null ? (int) $row['parent_id'] : null;
+        }
+
+        return implode('/', $segments);
+    }
+
+    /**
      * Find a page ID by its slug and parent_id for a given language.
      */
     private function findPageBySlugAndParent(string $slug, ?int $parentId, int $langId): ?int

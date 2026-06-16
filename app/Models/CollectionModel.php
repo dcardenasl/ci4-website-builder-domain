@@ -39,7 +39,7 @@ class CollectionModel extends BaseAuditableModel
         'enables_categories' => 'required|boolean_like',
         'enables_tags' => 'required|boolean_like',
         'default_sitemap_priority' => 'permit_empty|decimal',
-        'default_changefreq' => 'permit_empty|string|max_length[255]',
+        'default_changefreq' => 'permit_empty|in_list[always,hourly,daily,weekly,monthly,yearly,never]',
         'sort_order' => 'required|integer',
     ];
 }

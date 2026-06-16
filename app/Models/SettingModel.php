@@ -26,6 +26,8 @@ class SettingModel extends BaseAuditableModel
         'setting_type',
         'setting_group',
         'is_translatable',
+        'is_public',
+        'is_active',
         'sort_order',
         'description',
     ];
@@ -40,7 +42,7 @@ class SettingModel extends BaseAuditableModel
     protected array $sortableFields = ['id', 'sort_order', 'setting_key'];
 
     protected $validationRules = [
-        'setting_key'     => 'required|string|max_length[100]|is_unique[cms_settings.setting_key,id,{id}]',
+        'setting_key'     => 'required|string|max_length[100]',
         'setting_value'   => 'permit_empty|string',
         'setting_type'    => 'required|in_list[string,int,bool,json,file_id]',
         'setting_group'   => 'permit_empty|string|max_length[50]',

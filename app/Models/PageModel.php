@@ -33,13 +33,13 @@ class PageModel extends BaseAuditableModel
 
     protected $validationRules = [
         'parent_id' => 'permit_empty|integer',
-        'page_type' => 'required|string|max_length[255]',
-        'status' => 'required|string|max_length[255]',
+        'page_type' => 'required|in_list[home,generic,contact,privacy,terms,404,500,maintenance]',
+        'status' => 'required|in_list[draft,published,archived]',
         'published_at' => 'permit_empty|valid_date',
         'scheduled_at' => 'permit_empty|valid_date',
         'sort_order' => 'required|integer',
         'sitemap_priority' => 'permit_empty|decimal',
-        'sitemap_changefreq' => 'permit_empty|string|max_length[255]',
+        'sitemap_changefreq' => 'permit_empty|in_list[always,hourly,daily,weekly,monthly,yearly,never]',
         'is_in_sitemap' => 'required|boolean_like',
     ];
 }

@@ -173,9 +173,8 @@ class PageService extends BaseCrudService implements PageServiceInterface
 
             // Record redirection if slug changed
             if (isset($currentSlugs[$langId]) && $currentSlugs[$langId] !== $newSlug) {
-                // Determine old path for page (simple slug for now or we could load path logic)
-                // Since parent could have slugs, let's look at the old slug itself
-                $this->slugRedirectRecorder->record('page', $pageId, $langId, $currentSlugs[$langId], $newSlug, $currentSlugs[$langId]);
+                $oldFullPath = $this->buildCurrentFullPath($pageId, $langId);
+                $this->slugRedirectRecorder->record('page', $pageId, $langId, $currentSlugs[$langId], $newSlug, $oldFullPath);
             }
 
             $translationModel->insert([
@@ -235,6 +234,37 @@ class PageService extends BaseCrudService implements PageServiceInterface
             'snapshot'       => json_encode($snapshot),
             'note'           => $note,
         ]);
+    }
+
+    private function buildCurrentFullPath(int $pageId, int $langId): string
+    {
+        /** @var \App\Models\PageTranslationModel $translationModel */
+        $translationModel = model(\App\Models\PageTranslationModel::class);
+        /** @var \App\Models\PageModel $pageModel */
+        $pageModel = model(\App\Models\PageModel::class);
+
+        $segments = [];
+        $currentId = $pageId;
+
+        while ($currentId !== null) {
+            $page = $pageModel->withDeleted()->find($currentId);
+            if (!$page instanceof \App\Entities\PageEntity) {
+                break;
+            }
+
+            $trans = $translationModel
+                ->where('page_id', $currentId)
+                ->where('language_id', $langId)
+                ->first();
+
+            if ($trans instanceof \App\Entities\PageTranslationEntity) {
+                array_unshift($segments, $trans->slug);
+            }
+
+            $currentId = $page->parent_id !== null ? (int) $page->parent_id : null;
+        }
+
+        return implode('/', $segments);
     }
 
     private function validateParent(int $id, ?int $parentId): void

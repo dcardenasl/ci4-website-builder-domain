@@ -7,6 +7,7 @@ namespace App\Services\Cms;
 use App\Entities\SettingEntity;
 use App\Interfaces\Cms\SettingServiceInterface;
 use dcardenasl\Ci4ApiCore\Dto\SecurityContext;
+use dcardenasl\Ci4ApiCore\Exceptions\ValidationException;
 use dcardenasl\Ci4ApiCore\Mappers\ResponseMapperInterface;
 use dcardenasl\Ci4ApiCore\Repositories\RepositoryInterface;
 use dcardenasl\Ci4ApiCore\Services\BaseCrudService;
@@ -32,6 +33,16 @@ class SettingService extends BaseCrudService implements SettingServiceInterface
     protected function beforeStore(array $data, ?SecurityContext $context): array
     {
         $data = parent::beforeStore($data, $context);
+        if (array_key_exists('setting_key', $data)) {
+            $existing = $this->repository->findBy('setting_key', $data['setting_key']);
+            if ($existing) {
+                throw new ValidationException(
+                    lang('Api.validationFailed'),
+                    ['setting_key' => lang('Settings.key_must_be_unique')]
+                );
+            }
+        }
+
         $this->tempTranslations = $data['translations'] ?? null;
         unset($data['translations']);
         return $data;
@@ -49,6 +60,16 @@ class SettingService extends BaseCrudService implements SettingServiceInterface
     protected function beforeUpdate(int $id, array $data, ?SecurityContext $context): array
     {
         $data = parent::beforeUpdate($id, $data, $context);
+        if (array_key_exists('setting_key', $data)) {
+            $existing = $this->repository->findBy('setting_key', $data['setting_key']);
+            if ($existing && (int) $existing->id !== $id) {
+                throw new ValidationException(
+                    lang('Api.validationFailed'),
+                    ['setting_key' => lang('Settings.key_must_be_unique')]
+                );
+            }
+        }
+
         if (array_key_exists('translations', $data)) {
             $this->tempTranslations = $data['translations'];
             unset($data['translations']);
