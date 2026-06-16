@@ -8,6 +8,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- **Public Settings endpoint** — `GET /api/v1/public/{lang}/settings` to expose public settings with `public` flag filtering
+
+### Fixed
+- **CMS Request DTOs** — Refined field validation rules and type hinting across all request DTOs
+- **Settings model and service** — Added support for public flag and active status with database migration and language keys
+
+### Added
 - **Scheduled Publishing (CMS-011)** — developed `ScheduledPublishingJob` queue job and `cms:publish-scheduled` Spark CLI command to transition scheduled pages and entries to published status on schedule, with automatic version snapshot generation and transaction-backed idempotency
 - **Redirects & Slug history (CMS-010)** — manual redirects CRUD and automatic slug history tracking with a deep module trigger `SlugRedirectRecorder`, resolved via `PublicRedirectController` with full path resolution
 - **Pages API** — full CRUD with multi-language translations, draft/published versioning, and hierarchical slug routing for SEO-friendly URLs
