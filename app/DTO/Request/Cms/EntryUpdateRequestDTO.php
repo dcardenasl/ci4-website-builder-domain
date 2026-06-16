@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\DTO\Request\Cms;
 
+use App\Libraries\Cms\CmsEnums;
 use dcardenasl\Ci4ApiCore\Dto\BaseRequestDTO;
 use OpenApi\Attributes as OA;
 
@@ -14,7 +15,7 @@ readonly class EntryUpdateRequestDTO extends BaseRequestDTO
     public ?int $collection_id;
     #[OA\Property(description: 'author_id', type: 'integer', nullable: true)]
     public ?int $author_id;
-    #[OA\Property(description: 'workflow_status', type: 'string', nullable: true)]
+    #[OA\Property(description: 'workflow_status', type: 'string', nullable: true, enum: ['draft', 'in_review', 'approved', 'published', 'archived'])]
     public ?string $workflow_status;
     #[OA\Property(description: 'published_at', type: 'string', format: 'date-time', nullable: true)]
     public ?string $published_at;
@@ -28,7 +29,7 @@ readonly class EntryUpdateRequestDTO extends BaseRequestDTO
     public ?int $sort_order;
     #[OA\Property(description: 'sitemap_priority', type: 'number', format: 'float', nullable: true)]
     public ?float $sitemap_priority;
-    #[OA\Property(description: 'sitemap_changefreq', type: 'string', nullable: true)]
+    #[OA\Property(description: 'sitemap_changefreq', type: 'string', nullable: true, enum: ['always', 'hourly', 'daily', 'weekly', 'monthly', 'yearly', 'never'])]
     public ?string $sitemap_changefreq;
     #[OA\Property(description: 'is_in_sitemap', type: 'boolean', nullable: true)]
     public ?bool $is_in_sitemap;
@@ -47,16 +48,16 @@ readonly class EntryUpdateRequestDTO extends BaseRequestDTO
         return [
             'collection_id' => 'permit_empty|integer',
             'author_id' => 'permit_empty|integer',
-            'workflow_status' => 'permit_empty|string|max_length[255]',
+            'workflow_status' => 'permit_empty|' . CmsEnums::inListRule(CmsEnums::WORKFLOW_STATUS),
             'published_at' => 'permit_empty|valid_date',
             'scheduled_at' => 'permit_empty|valid_date',
             'is_featured' => 'permit_empty|boolean_like',
             'view_count' => 'permit_empty|integer',
             'sort_order' => 'permit_empty|integer',
             'sitemap_priority' => 'permit_empty|decimal',
-            'sitemap_changefreq' => 'permit_empty|string|max_length[255]',
+            'sitemap_changefreq' => 'permit_empty|' . CmsEnums::inListRule(CmsEnums::SITEMAP_CHANGEFREQ),
             'is_in_sitemap' => 'permit_empty|boolean_like',
-            'translations' => 'permit_empty|array',
+            'translations' => 'permit_empty',
             'translations.*.language_id' => 'required_with[translations]|is_natural_no_zero',
             'translations.*.slug' => 'required_with[translations]|string|max_length[150]',
             'translations.*.title' => 'required_with[translations]|string|max_length[255]',
@@ -68,7 +69,7 @@ readonly class EntryUpdateRequestDTO extends BaseRequestDTO
             'translations.*.og_type' => 'permit_empty|string|max_length[50]',
             'translations.*.canonical_url' => 'permit_empty|string|max_length[500]',
             'translations.*.robots' => 'permit_empty|string|max_length[100]',
-            'translations.*.schema_data' => 'permit_empty|array',
+            'translations.*.schema_data' => 'permit_empty',
         ];
     }
 

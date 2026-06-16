@@ -34,7 +34,7 @@ readonly class MenuUpdateRequestDTO extends BaseRequestDTO
             'menu_key'                   => 'permit_empty|string|max_length[50]',
             'location'                   => 'permit_empty|string|max_length[50]',
             'is_active'                  => 'permit_empty|boolean_like',
-            'translations'               => 'permit_empty|array',
+            'translations'               => 'permit_empty',
             'translations.*.language_id' => 'required_with[translations]|is_natural_no_zero',
             'translations.*.name'        => 'required_with[translations]|string|max_length[150]',
         ];

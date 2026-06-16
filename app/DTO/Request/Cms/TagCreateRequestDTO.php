@@ -23,7 +23,7 @@ readonly class TagCreateRequestDTO extends BaseRequestDTO
     {
         return [
             'is_active' => 'required|boolean_like',
-            'translations' => 'permit_empty|array',
+            'translations' => 'permit_empty',
         ];
     }
 

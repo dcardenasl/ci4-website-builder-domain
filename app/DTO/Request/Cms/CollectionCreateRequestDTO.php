@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\DTO\Request\Cms;
 
+use App\Libraries\Cms\CmsEnums;
 use dcardenasl\Ci4ApiCore\Dto\BaseRequestDTO;
 use OpenApi\Attributes as OA;
 
@@ -24,7 +25,7 @@ readonly class CollectionCreateRequestDTO extends BaseRequestDTO
     public bool $enables_tags;
     #[OA\Property(description: 'default_sitemap_priority', type: 'number', format: 'float', nullable: true)]
     public ?float $default_sitemap_priority;
-    #[OA\Property(description: 'default_changefreq', type: 'string', nullable: true)]
+    #[OA\Property(description: 'default_changefreq', type: 'string', nullable: true, enum: ['always', 'hourly', 'daily', 'weekly', 'monthly', 'yearly', 'never'])]
     public ?string $default_changefreq;
     #[OA\Property(description: 'sort_order', type: 'integer')]
     public int $sort_order;
@@ -48,9 +49,9 @@ readonly class CollectionCreateRequestDTO extends BaseRequestDTO
             'enables_categories' => 'required|boolean_like',
             'enables_tags' => 'required|boolean_like',
             'default_sitemap_priority' => 'permit_empty|decimal',
-            'default_changefreq' => 'permit_empty|string|max_length[255]',
+            'default_changefreq' => 'permit_empty|' . CmsEnums::inListRule(CmsEnums::SITEMAP_CHANGEFREQ),
             'sort_order' => 'required|integer',
-            'translations' => 'permit_empty|array',
+            'translations' => 'permit_empty',
             'translations.*.language_id' => 'required_with[translations]|is_natural_no_zero',
             'translations.*.name' => 'required_with[translations]|string|max_length[150]',
             'translations.*.description' => 'permit_empty|string',

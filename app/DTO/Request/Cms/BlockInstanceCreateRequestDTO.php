@@ -47,9 +47,9 @@ readonly class BlockInstanceCreateRequestDTO extends BaseRequestDTO
             'column_index' => 'permit_empty|integer',
             'is_active' => 'required|boolean_like',
             'block_config' => 'permit_empty',
-            'translations' => 'permit_empty|array',
+            'translations' => 'permit_empty',
             'translations.*.language_id' => 'required_with[translations]|is_natural_no_zero|is_not_unique[cms_languages.id]',
-            'translations.*.block_data' => 'required_with[translations]|array',
+            'translations.*.block_data' => 'required_with[translations]|permit_empty',
             'translations.*.is_published' => 'required_with[translations]|boolean_like',
         ];
     }

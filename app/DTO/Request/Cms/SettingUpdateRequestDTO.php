@@ -10,6 +10,8 @@ use OpenApi\Attributes as OA;
 #[OA\Schema(schema: 'SettingUpdateRequest')]
 readonly class SettingUpdateRequestDTO extends BaseRequestDTO
 {
+    #[OA\Property(description: 'id', type: 'integer', nullable: true)]
+    public ?int $id;
     #[OA\Property(description: 'setting_key', type: 'string')]
     public ?string $settingKey;
     #[OA\Property(description: 'setting_value', type: 'string', nullable: true)]
@@ -43,15 +45,20 @@ readonly class SettingUpdateRequestDTO extends BaseRequestDTO
             'is_translatable'          => 'permit_empty|boolean_like',
             'sort_order'               => 'permit_empty|integer',
             'description'              => 'permit_empty|string|max_length[255]',
-            'translations'             => 'permit_empty|array',
-            'translations.*.language_id' => 'required_with[translations]|is_natural_no_zero',
-            'translations.*.setting_value' => 'permit_empty|string',
+            'translations' => 'permit_empty',
         ];
     }
 
     protected function map(array $data): void
     {
         $mappedFields = [];
+
+        if (array_key_exists('id', $data)) {
+            $this->id = $data['id'] !== null ? (int) $data['id'] : null;
+            $mappedFields['id'] = $this->id;
+        } else {
+            $this->id = null;
+        }
 
         if (array_key_exists('setting_key', $data)) {
             $this->settingKey = (string) $data['setting_key'];

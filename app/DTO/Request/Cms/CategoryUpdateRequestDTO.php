@@ -32,7 +32,7 @@ readonly class CategoryUpdateRequestDTO extends BaseRequestDTO
             'parent_id' => 'permit_empty|integer',
             'sort_order' => 'permit_empty|integer',
             'is_active' => 'permit_empty|boolean_like',
-            'translations' => 'permit_empty|array',
+            'translations' => 'permit_empty',
         ];
     }
 

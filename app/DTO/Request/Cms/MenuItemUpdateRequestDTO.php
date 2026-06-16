@@ -58,7 +58,7 @@ readonly class MenuItemUpdateRequestDTO extends BaseRequestDTO
             'css_class'                  => 'permit_empty|string|max_length[100]',
             'sort_order'                 => 'permit_empty|integer',
             'is_active'                  => 'permit_empty|boolean_like',
-            'translations'               => 'permit_empty|array',
+            'translations'               => 'permit_empty',
             'translations.*.language_id' => 'required_with[translations]|is_natural_no_zero',
             'translations.*.label'       => 'required_with[translations]|string|max_length[150]',
             'translations.*.custom_url'  => 'permit_empty|string|max_length[500]',

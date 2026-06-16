@@ -41,9 +41,7 @@ readonly class SettingCreateRequestDTO extends BaseRequestDTO
             'is_translatable'          => 'permit_empty|boolean_like',
             'sort_order'               => 'permit_empty|integer',
             'description'              => 'permit_empty|string|max_length[255]',
-            'translations'             => 'permit_empty|array',
-            'translations.*.language_id' => 'required_with[translations]|is_natural_no_zero',
-            'translations.*.setting_value' => 'permit_empty|string',
+            'translations' => 'permit_empty',
         ];
     }
 
