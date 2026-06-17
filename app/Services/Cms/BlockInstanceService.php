@@ -120,4 +120,31 @@ class BlockInstanceService extends BaseCrudService implements BlockInstanceServi
             ]);
         }
     }
+
+    protected function applyBaseCriteria(object $builder): void
+    {
+        $uri = service('request')->getUri();
+        $segments = $uri->getSegments();
+
+        $ownerType = null;
+        $ownerId = null;
+
+        foreach ($segments as $index => $segment) {
+            if ($segment === 'pages' && isset($segments[$index + 1]) && is_numeric($segments[$index + 1])) {
+                $ownerType = 'page';
+                $ownerId = (int) $segments[$index + 1];
+                break;
+            }
+            if ($segment === 'entries' && isset($segments[$index + 1]) && is_numeric($segments[$index + 1])) {
+                $ownerType = 'entry';
+                $ownerId = (int) $segments[$index + 1];
+                break;
+            }
+        }
+
+        if ($ownerType !== null && $ownerId !== null) {
+            $builder->where('owner_type', $ownerType)
+                    ->where('owner_id', $ownerId);
+        }
+    }
 }

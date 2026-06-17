@@ -47,6 +47,21 @@ class SlugRouter
 
         // Clean slug path
         $slugPath = trim($slugPath, '/');
+        if ($slugPath === '' || $slugPath === 'home') {
+            $result = $this->db->table('cms_pages')
+                ->select('id')
+                ->where('page_type', 'home')
+                ->where('status', 'published')
+                ->where('deleted_at IS NULL')
+                ->get();
+            if ($result !== false) {
+                $homePage = $result->getRow();
+                if ($homePage) {
+                    return (int) $homePage->id;
+                }
+            }
+        }
+
         if ($slugPath === '') {
             return null;
         }

@@ -49,13 +49,22 @@ class PublicMenuController extends ApiController
 
                 // Resolve translations for each menu item
                 $flatList = [];
+                $slugRouter = Services::slugRouter();
                 foreach ($items as $item) {
                     if ($item instanceof \App\Entities\MenuItemEntity) {
                         $resolved = $translationResolver->resolve('menu_item', (int) $item->id, $lang);
 
+                        $customUrl = $resolved['custom_url'] ?? null;
+                        if (($item->link_type ?? '') === 'page' && $item->page_id !== null) {
+                            $pageSlug = $slugRouter->resolveSlug($lang, 'page', (int) $item->page_id);
+                            if ($pageSlug !== null) {
+                                $customUrl = '/' . ltrim($pageSlug, '/');
+                            }
+                        }
+
                         $itemData = array_merge($item->toArray(), [
                             'label'       => $resolved['label'] ?? '',
-                            'custom_url'  => $resolved['custom_url'] ?? null,
+                            'custom_url'  => $customUrl,
                             'is_fallback' => $resolved['is_fallback'] ?? false,
                         ]);
 
