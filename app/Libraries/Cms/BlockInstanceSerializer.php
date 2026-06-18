@@ -21,7 +21,7 @@ class BlockInstanceSerializer
         $db = \Config\Database::connect();
 
         $query = $db->table('cms_block_instances i')
-            ->select('i.*, b.block_key, b.name as block_type_name')
+            ->select('i.*, b.block_key, b.name as block_type_name, b.schema_definition')
             ->join('cms_content_blocks b', 'b.id = i.block_id')
             ->where('i.owner_type', $ownerType)
             ->where('i.owner_id', $ownerId)
@@ -39,31 +39,35 @@ class BlockInstanceSerializer
 
         $translationsMap = $this->batchResolveBlockTranslations($instanceIds, $langCode, $db);
 
-        $imageFileIds = [];
+        // Collect all file IDs in a single pre-pass via schema field declarations
+        $allFileIds = [];
         foreach ($instances as $instance) {
-            if ($instance['block_key'] === 'image') {
-                $translationData = $translationsMap[(int) $instance['id']] ?? [];
-                $rawData = $translationData['block_data'] ?? null;
-                $parsed = is_string($rawData) ? (json_decode($rawData, true) ?? []) : (array) $rawData;
-                $fileId = $parsed['file_id'] ?? null;
-                if ($fileId !== null) {
-                    $imageFileIds[] = (int) $fileId;
+            $translationData = $translationsMap[(int) $instance['id']] ?? [];
+            $rawData         = $translationData['block_data'] ?? null;
+            $blockData       = is_string($rawData) ? (json_decode($rawData, true) ?? []) : (array) $rawData;
+
+            $schemaFields = $this->parseSchemaFields((string) ($instance['schema_definition'] ?? ''));
+            foreach ($schemaFields as $fieldKey => $fieldDef) {
+                foreach ($this->collectFileIds($blockData, $fieldKey, $fieldDef) as $fid) {
+                    $allFileIds[] = $fid;
                 }
             }
         }
 
-        $fileTranslationsMap = !empty($imageFileIds)
-            ? $this->batchResolveFileTranslations($imageFileIds, $langCode, $db)
+        $allFileIds        = array_values(array_unique($allFileIds));
+        $fileTranslationsMap = !empty($allFileIds)
+            ? $this->batchResolveFileTranslations($allFileIds, $langCode, $db)
             : [];
 
-        $serialized = [];
+        // Serialize ALL instances (top-level and children alike) into a map keyed by id
+        $serializedMap = [];
 
         foreach ($instances as $instance) {
-            $instanceId = (int) $instance['id'];
+            $instanceId  = (int) $instance['id'];
             $translation = $translationsMap[$instanceId] ?? [];
 
             $rawBlockData = $translation['block_data'] ?? null;
-            $blockData = is_string($rawBlockData)
+            $blockData    = is_string($rawBlockData)
                 ? (json_decode($rawBlockData, true) ?? [])
                 : (array) $rawBlockData;
 
@@ -75,32 +79,204 @@ class BlockInstanceSerializer
             }
 
             $blockPayload = [
-                'id'           => $instanceId,
-                'block_key'    => $instance['block_key'],
-                'sort_order'   => (int) $instance['sort_order'],
-                'column_index' => isset($instance['column_index']) ? (int) $instance['column_index'] : null,
-                'block_config' => $blockConfig,
-                'block_data'   => $blockData,
-                'is_fallback'  => $translation['is_fallback'] ?? true,
+                'id'                 => $instanceId,
+                'block_key'          => $instance['block_key'],
+                'sort_order'         => (int) $instance['sort_order'],
+                'column_index'       => isset($instance['column_index']) ? (int) $instance['column_index'] : null,
+                'parent_instance_id' => isset($instance['parent_instance_id']) ? (int) $instance['parent_instance_id'] : null,
+                'block_config'       => $blockConfig,
+                'block_data'         => $blockData,
+                'is_fallback'        => $translation['is_fallback'] ?? true,
+                'children'           => [],
             ];
 
-            if ($instance['block_key'] === 'image') {
-                $fileId = $blockData['file_id'] ?? null;
-                if ($fileId !== null) {
-                    $fileTrans = $fileTranslationsMap[(int) $fileId] ?? [];
-                    $blockPayload['block_data']['alt_text']        = $fileTrans['alt_text'] ?? null;
-                    $blockPayload['block_data']['caption']         = $fileTrans['caption'] ?? null;
-                    $blockPayload['block_data']['title']           = $fileTrans['title'] ?? null;
-                    $blockPayload['block_data']['credit']          = $fileTrans['credit'] ?? null;
-                    $blockPayload['block_data']['description']     = $fileTrans['description'] ?? null;
-                    $blockPayload['block_data']['file_is_fallback'] = $fileTrans['is_fallback'] ?? true;
-                }
-            }
+            // Resolve file-type fields and expand file IDs inside repeater items
+            $schemaFields = $this->parseSchemaFields((string) ($instance['schema_definition'] ?? ''));
+            $blockPayload['block_data'] = $this->mergeFileMetadata(
+                $blockPayload['block_data'],
+                $schemaFields,
+                $fileTranslationsMap
+            );
 
-            $serialized[] = $blockPayload;
+            $serializedMap[$instanceId] = $blockPayload;
         }
 
-        return $serialized;
+        // Build tree: attach children to their parent's 'children' array, return only top-level
+        $childrenByParent = [];
+        foreach ($serializedMap as $instanceId => $block) {
+            $parentId = $block['parent_instance_id'];
+            if ($parentId !== null) {
+                $childrenByParent[$parentId][] = $instanceId;
+            }
+        }
+
+        $topLevel = [];
+        foreach ($serializedMap as $instanceId => $block) {
+            if ($block['parent_instance_id'] === null) {
+                $block['children'] = $this->buildChildren($instanceId, $serializedMap, $childrenByParent);
+                $topLevel[] = $block;
+            }
+        }
+
+        return $topLevel;
+    }
+
+    // ─── Private helpers ────────────────────────────────────────────────────────
+
+    /**
+     * Recursively build the children array for a given parent instance.
+     *
+     * @param  int                                   $parentId
+     * @param  array<int, array<string, mixed>>      $serializedMap
+     * @param  array<int, list<int>>                 $childrenByParent
+     * @return list<array<string, mixed>>
+     */
+    private function buildChildren(int $parentId, array $serializedMap, array $childrenByParent): array
+    {
+        $childIds = $childrenByParent[$parentId] ?? [];
+        if (empty($childIds)) {
+            return [];
+        }
+
+        $children = [];
+        foreach ($childIds as $childId) {
+            if (!isset($serializedMap[$childId])) {
+                continue;
+            }
+            $child             = $serializedMap[$childId];
+            $child['children'] = $this->buildChildren($childId, $serializedMap, $childrenByParent);
+            $children[]        = $child;
+        }
+
+        usort($children, static fn (array $a, array $b): int => $a['sort_order'] <=> $b['sort_order']);
+
+        return $children;
+    }
+
+    /**
+     * Parse the schema_definition JSON string and return only the 'fields' map.
+     *
+     * @return array<string, array<string, mixed>>
+     */
+    private function parseSchemaFields(string $schemaDef): array
+    {
+        if ($schemaDef === '') {
+            return [];
+        }
+        $schema = json_decode($schemaDef, true);
+        if (!is_array($schema)) {
+            return [];
+        }
+        $fields = $schema['fields'] ?? [];
+        return is_array($fields) ? $fields : [];
+    }
+
+    /**
+     * Collect all file IDs referenced by a single schema field and its current value.
+     *
+     * Convention for 'file' type fields:
+     *   Schema key:  "image"           (type: "file")
+     *   block_data:  {"image_file_id": 42, "image_url": "https://..."}
+     *
+     * @param  array<string, mixed>        $blockData
+     * @param  string                      $fieldKey
+     * @param  array<string, mixed>        $fieldDef
+     * @return list<int>
+     */
+    private function collectFileIds(array $blockData, string $fieldKey, array $fieldDef): array
+    {
+        $type    = $fieldDef['type'] ?? 'string';
+        $fileIds = [];
+
+        if ($type === 'file') {
+            $fileId = $blockData[$fieldKey . '_file_id'] ?? null;
+            if ($fileId !== null && is_numeric($fileId)) {
+                $fileIds[] = (int) $fileId;
+            }
+        } elseif ($type === 'repeater') {
+            $items      = $blockData[$fieldKey] ?? [];
+            $itemFields = $fieldDef['item_fields'] ?? [];
+            if (!is_array($items) || !is_array($itemFields)) {
+                return [];
+            }
+            foreach ($items as $item) {
+                if (!is_array($item)) {
+                    continue;
+                }
+                foreach ($itemFields as $subKey => $subDef) {
+                    if (($subDef['type'] ?? '') === 'file') {
+                        $fileId = $item[$subKey . '_file_id'] ?? null;
+                        if ($fileId !== null && is_numeric($fileId)) {
+                            $fileIds[] = (int) $fileId;
+                        }
+                    }
+                }
+            }
+        }
+
+        return $fileIds;
+    }
+
+    /**
+     * Merge resolved file metadata into block_data for all file-type and repeater fields.
+     *
+     * For a 'file' field named "image":
+     *   - Reads  block_data["image_file_id"]
+     *   - Writes block_data["image_alt_text"], ["image_caption"], ["image_title"], ["image_credit"]
+     *
+     * For a 'repeater' field, the same enrichment is applied inside each item.
+     *
+     * @param  array<string, mixed>        $blockData
+     * @param  array<string, array<string, mixed>> $schemaFields
+     * @param  array<int, array<string, mixed>>    $fileTransMap   keyed by file_id
+     * @return array<string, mixed>
+     */
+    private function mergeFileMetadata(array $blockData, array $schemaFields, array $fileTransMap): array
+    {
+        foreach ($schemaFields as $fieldKey => $fieldDef) {
+            $type = $fieldDef['type'] ?? 'string';
+
+            if ($type === 'file') {
+                $fileId = $blockData[$fieldKey . '_file_id'] ?? null;
+                if ($fileId !== null && is_numeric($fileId)) {
+                    $fileTrans = $fileTransMap[(int) $fileId] ?? [];
+                    $blockData[$fieldKey . '_alt_text'] = $fileTrans['alt_text'] ?? null;
+                    $blockData[$fieldKey . '_caption']  = $fileTrans['caption'] ?? null;
+                    $blockData[$fieldKey . '_title']    = $fileTrans['title'] ?? null;
+                    $blockData[$fieldKey . '_credit']   = $fileTrans['credit'] ?? null;
+                }
+            } elseif ($type === 'repeater') {
+                $items      = $blockData[$fieldKey] ?? [];
+                $itemFields = $fieldDef['item_fields'] ?? [];
+                if (!is_array($items) || !is_array($itemFields)) {
+                    continue;
+                }
+
+                $enriched = [];
+                foreach ($items as $item) {
+                    if (!is_array($item)) {
+                        $enriched[] = $item;
+                        continue;
+                    }
+                    foreach ($itemFields as $subKey => $subDef) {
+                        if (($subDef['type'] ?? '') === 'file') {
+                            $fileId = $item[$subKey . '_file_id'] ?? null;
+                            if ($fileId !== null && is_numeric($fileId)) {
+                                $fileTrans = $fileTransMap[(int) $fileId] ?? [];
+                                $item[$subKey . '_alt_text'] = $fileTrans['alt_text'] ?? null;
+                                $item[$subKey . '_caption']  = $fileTrans['caption'] ?? null;
+                                $item[$subKey . '_title']    = $fileTrans['title'] ?? null;
+                                $item[$subKey . '_credit']   = $fileTrans['credit'] ?? null;
+                            }
+                        }
+                    }
+                    $enriched[] = $item;
+                }
+                $blockData[$fieldKey] = $enriched;
+            }
+        }
+
+        return $blockData;
     }
 
     /**
@@ -108,6 +284,7 @@ class BlockInstanceSerializer
      * Falls back to the default language when no translation exists for the target.
      *
      * @param  list<int> $instanceIds
+     * @param  string    $langCode
      * @param  object    $db
      * @return array<int, array<string, mixed>>     keyed by instance_id
      */
@@ -149,6 +326,7 @@ class BlockInstanceSerializer
      * Batch-resolve file translations for a list of file IDs.
      *
      * @param  list<int> $fileIds
+     * @param  string    $langCode
      * @param  object    $db
      * @return array<int, array<string, mixed>>     keyed by file_id
      */
@@ -172,7 +350,7 @@ class BlockInstanceSerializer
         $rows = $result ? $result->getResultArray() : [];
 
         $fields = ['alt_text', 'caption', 'title', 'credit', 'description'];
-        $map = [];
+        $map    = [];
         foreach ($rows as $row) {
             $fid = (int) $row['file_id'];
             $lid = (int) $row['language_id'];

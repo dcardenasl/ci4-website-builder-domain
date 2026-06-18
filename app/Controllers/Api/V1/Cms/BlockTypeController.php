@@ -8,6 +8,7 @@ use App\DTO\Request\Cms\BlockTypeCreateRequestDTO;
 use App\DTO\Request\Cms\BlockTypeIndexRequestDTO;
 use App\DTO\Request\Cms\BlockTypeUpdateRequestDTO;
 use App\Interfaces\Cms\BlockTypeServiceInterface;
+use App\Libraries\Cms\BlockTemplateCatalog;
 use CodeIgniter\HTTP\ResponseInterface;
 use Config\Services;
 use dcardenasl\Ci4ApiCore\Dto\SecurityContext;
@@ -87,6 +88,18 @@ class BlockTypeController extends ApiController
                     throw new \dcardenasl\Ci4ApiCore\Exceptions\AuthorizationException(lang('Api.forbidden'));
                 }
                 return $this->blockTypeService->destroy($id, $context);
+            }
+        );
+    }
+
+    public function templates(): ResponseInterface
+    {
+        return $this->handleRequest(
+            function (array $dto, SecurityContext $context): mixed {
+                if (!$context->hasPermission('cms.blocks.read')) {
+                    throw new \dcardenasl\Ci4ApiCore\Exceptions\AuthorizationException(lang('Api.forbidden'));
+                }
+                return BlockTemplateCatalog::all();
             }
         );
     }

@@ -23,6 +23,7 @@ $routes->group('cms', ['namespace' => '\App\Controllers\Api\V1\Cms'], function (
         $routes->post('settings', 'SettingController::create', ['filter' => 'permission:cms.settings.write']);
         // Block Types CRUD
         $routes->get('block-types', 'BlockTypeController::index', ['filter' => 'permission:cms.blocks.read']);
+        $routes->get('block-types/templates', 'BlockTypeController::templates', ['filter' => 'permission:cms.blocks.read']);
         $routes->post('block-types', 'BlockTypeController::create', ['filter' => 'permission:cms.blocks.write']);
         // Collections CRUD
         $routes->get('collections', 'CollectionController::index', ['filter' => 'permission:cms.collections.read']);

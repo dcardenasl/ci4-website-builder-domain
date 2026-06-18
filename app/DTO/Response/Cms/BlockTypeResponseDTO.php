@@ -14,6 +14,11 @@ use OpenApi\Attributes as OA;
 )]
 final readonly class BlockTypeResponseDTO implements DataTransferObjectInterface
 {
+    /**
+     * @param array<string, mixed> $schema_definition
+     * @param array<string, mixed> $fields
+     * @param array<string, mixed> $config_fields
+     */
     public function __construct(
         #[OA\Property(description: 'Unique identifier', example: 1)]
         public int $id,
@@ -29,6 +34,10 @@ final readonly class BlockTypeResponseDTO implements DataTransferObjectInterface
         public ?string $icon,
         #[OA\Property(description: 'schema_definition', type: 'object')]
         public array $schema_definition,
+        #[OA\Property(description: 'Content fields extracted from schema_definition.fields', type: 'object')]
+        public array $fields,
+        #[OA\Property(description: 'Config fields extracted from schema_definition.config_fields', type: 'object')]
+        public array $config_fields,
         #[OA\Property(description: 'supports_pages', type: 'boolean')]
         public bool $supports_pages,
         #[OA\Property(description: 'supports_entries', type: 'boolean')]
@@ -51,6 +60,12 @@ final readonly class BlockTypeResponseDTO implements DataTransferObjectInterface
      */
     public static function fromArray(array $data): static
     {
+        $raw = $data['schema_definition'] ?? [];
+        if (is_string($raw)) {
+            $raw = json_decode($raw, true) ?? [];
+        }
+        $schema = (array) $raw;
+
         return new static(
             id: (int) ($data['id'] ?? 0),
             block_key: (string) ($data['block_key'] ?? ''),
@@ -58,7 +73,9 @@ final readonly class BlockTypeResponseDTO implements DataTransferObjectInterface
             description: $data['description'] ?? null,
             category: (string) ($data['category'] ?? ''),
             icon: $data['icon'] ?? null,
-            schema_definition: (array) ($data['schema_definition'] ?? []),
+            schema_definition: $schema,
+            fields: (array) ($schema['fields'] ?? []),
+            config_fields: (array) ($schema['config_fields'] ?? []),
             supports_pages: (bool) ($data['supports_pages'] ?? false),
             supports_entries: (bool) ($data['supports_entries'] ?? false),
             is_container: (bool) ($data['is_container'] ?? false),
@@ -82,6 +99,8 @@ final readonly class BlockTypeResponseDTO implements DataTransferObjectInterface
             'category' => $this->category,
             'icon' => $this->icon,
             'schema_definition' => $this->schema_definition,
+            'fields' => $this->fields,
+            'config_fields' => $this->config_fields,
             'supports_pages' => $this->supports_pages,
             'supports_entries' => $this->supports_entries,
             'is_container' => $this->is_container,

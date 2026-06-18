@@ -83,6 +83,17 @@ final class BlockInstanceSerializerTest extends CIUnitTestCase
             'is_active'         => 1,
             'sort_order'        => 20,
         ]);
+        $db->table('cms_content_blocks')->insert([
+            'id'                => 3,
+            'block_key'         => 'hero_slider',
+            'name'              => 'Hero Slider',
+            'schema_definition' => '{}',
+            'supports_pages'    => 1,
+            'supports_entries'  => 0,
+            'is_container'      => 1,
+            'is_active'         => 1,
+            'sort_order'        => 5,
+        ]);
 
         // Block instances for page 10
         $db->table('cms_block_instances')->insert([
@@ -102,6 +113,19 @@ final class BlockInstanceSerializerTest extends CIUnitTestCase
             'sort_order'   => 2,
             'is_active'    => 1,
             'block_config' => json_encode(['aspect_ratio' => '16:9']),
+        ]);
+        $db->table('cms_block_instances')->insert([
+            'id'           => 102,
+            'block_id'     => 3, // hero_slider
+            'owner_type'   => 'page',
+            'owner_id'     => 10,
+            'sort_order'   => 3,
+            'is_active'    => 1,
+            'block_config' => json_encode([
+                'caption_position'  => 'below',
+                'controls_position' => 'below',
+                'overlay_opacity'   => '0',
+            ]),
         ]);
 
         // Block instance translations
@@ -153,7 +177,7 @@ final class BlockInstanceSerializerTest extends CIUnitTestCase
     {
         $blocks = $this->serializer->forContent('page', 10, 'es');
 
-        $this->assertCount(2, $blocks);
+        $this->assertCount(3, $blocks);
 
         // First block: rich_text in Spanish
         $this->assertEquals(100, $blocks[0]['id']);
@@ -173,13 +197,19 @@ final class BlockInstanceSerializerTest extends CIUnitTestCase
         $this->assertEquals('Texto Alt Español', $blocks[1]['block_data']['alt_text']);
         $this->assertEquals('Subtítulo Español', $blocks[1]['block_data']['caption']);
         $this->assertFalse($blocks[1]['block_data']['file_is_fallback']);
+
+        // Third block: hero slider keeps the presentation config as stored
+        $this->assertEquals(102, $blocks[2]['id']);
+        $this->assertEquals('hero_slider', $blocks[2]['block_key']);
+        $this->assertSame('below', $blocks[2]['block_config']['caption_position']);
+        $this->assertSame('below', $blocks[2]['block_config']['controls_position']);
     }
 
     public function testForContentRetrievesDefaultWhenNoSpanishFileTranslation(): void
     {
         $blocks = $this->serializer->forContent('page', 10, 'en');
 
-        $this->assertCount(2, $blocks);
+        $this->assertCount(3, $blocks);
         $this->assertEquals('Hello World', $blocks[0]['block_data']['content']);
         $this->assertEquals('English Alt Text', $blocks[1]['block_data']['alt_text']);
     }
