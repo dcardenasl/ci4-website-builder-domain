@@ -107,6 +107,7 @@ $routes->get('public/(:segment)/pages', '\App\Controllers\Api\V1\Cms\PublicPageC
 $routes->get('public/(:segment)/pages/(.+)', '\App\Controllers\Api\V1\Cms\PublicPageController::show/$1/$2', ['filter' => 'throttle']);
 $routes->get('public/menus/(:segment)', '\App\Controllers\Api\V1\Cms\PublicMenuController::show/$1', ['filter' => 'throttle']);
 $routes->get('public/(:segment)/collections', '\App\Controllers\Api\V1\Cms\PublicCollectionController::index/$1', ['filter' => 'throttle']);
+$routes->get('public/(:segment)/categories/(:segment)', '\App\Controllers\Api\V1\Cms\PublicCategoryController::index/$1/$2', ['filter' => 'throttle']);
 $routes->get('public/(:segment)/entries/(:segment)', '\App\Controllers\Api\V1\Cms\PublicEntryController::index/$1/$2', ['filter' => 'throttle']);
 $routes->get('public/(:segment)/entries/(:segment)/(.+)', '\App\Controllers\Api\V1\Cms\PublicEntryController::show/$1/$2/$3', ['filter' => 'throttle']);
 $routes->get('public/redirects/(.*)', '\App\Controllers\Api\V1\Cms\PublicRedirectController::resolve/$1', ['filter' => 'throttle']);

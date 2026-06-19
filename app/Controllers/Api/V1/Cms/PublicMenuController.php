@@ -54,12 +54,57 @@ class PublicMenuController extends ApiController
                     if ($item instanceof \App\Entities\MenuItemEntity) {
                         $resolved = $translationResolver->resolve('menu_item', (int) $item->id, $lang);
 
-                        $customUrl = $resolved['custom_url'] ?? null;
-                        if (($item->link_type ?? '') === 'page' && $item->page_id !== null) {
-                            $pageSlug = $slugRouter->resolveSlug($lang, 'page', (int) $item->page_id);
-                            if ($pageSlug !== null) {
-                                $customUrl = '/' . ltrim($pageSlug, '/');
-                            }
+                        $customUrl = $resolved['custom_url'] ?: null;
+
+                        switch ($item->link_type ?? '') {
+                            case 'page':
+                                if ($item->page_id !== null) {
+                                    $pageSlug = $slugRouter->resolveSlug($lang, 'page', (int) $item->page_id);
+                                    if ($pageSlug !== null) {
+                                        $customUrl = '/' . ltrim($pageSlug, '/');
+                                    }
+                                }
+                                break;
+
+                            case 'collection_listing':
+                                if ($item->collection_id !== null) {
+                                    $collectionModel = model(\App\Models\CollectionModel::class);
+                                    $collection = $collectionModel->find($item->collection_id);
+                                    if ($collection) {
+                                        $prefix = is_object($collection) ? $collection->url_prefix : ($collection['url_prefix'] ?? null);
+                                        if ($prefix) {
+                                            $customUrl = '/' . ltrim((string) $prefix, '/');
+                                        }
+                                    }
+                                }
+                                break;
+
+                            case 'entry':
+                                if ($item->entry_id !== null) {
+                                    $entryModel = model(\App\Models\EntryModel::class);
+                                    $entry = $entryModel->find($item->entry_id);
+                                    if ($entry) {
+                                        $collectionId = is_object($entry) ? $entry->collection_id : ($entry['collection_id'] ?? null);
+                                        $collectionModel = model(\App\Models\CollectionModel::class);
+                                        $collection = $collectionModel->find($collectionId);
+                                        if ($collection) {
+                                            $prefix = is_object($collection) ? $collection->url_prefix : ($collection['url_prefix'] ?? '');
+                                            $entryTransModel = model(\App\Models\EntryTranslationModel::class);
+                                            $db = \Config\Database::connect();
+                                            $langResult = $db->table('cms_languages')->where('code', $lang)->get();
+                                            $langRow = $langResult ? $langResult->getRowArray() : null;
+                                            $langId = $langRow ? (int) ($langRow['id'] ?? 0) : null;
+                                            if ($langId) {
+                                                $trans = $entryTransModel->where('entry_id', $item->entry_id)->where('language_id', $langId)->first();
+                                                $slug = $trans ? (is_object($trans) ? $trans->slug : ($trans['slug'] ?? '')) : '';
+                                                if ($slug) {
+                                                    $customUrl = '/' . ltrim((string) $prefix, '/') . '/' . $slug;
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
+                                break;
                         }
 
                         $itemData = array_merge($item->toArray(), [

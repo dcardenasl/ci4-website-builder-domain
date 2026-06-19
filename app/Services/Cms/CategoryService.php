@@ -103,6 +103,58 @@ class CategoryService extends BaseCrudService implements CategoryServiceInterfac
     }
 
     /**
+     * List active categories for a collection, with language-resolved translations.
+     *
+     * @return array<int, array{id: int, slug: string, name: string, description: string|null}>
+     */
+    public function listPublic(string $lang, string $collectionKey): array
+    {
+        /** @var \App\Models\CollectionModel $collectionModel */
+        $collectionModel = model(\App\Models\CollectionModel::class);
+        $collection      = $collectionModel->where('collection_key', $collectionKey)
+            ->where('is_active', 1)
+            ->first();
+
+        if ($collection === null) {
+            return [];
+        }
+
+        if (!$collection instanceof \App\Entities\CollectionEntity) {
+            return [];
+        }
+
+        /** @var \App\Models\CategoryModel $categoryModel */
+        $categoryModel = model(\App\Models\CategoryModel::class);
+        $categories    = $categoryModel
+            ->where('collection_id', (int) $collection->id)
+            ->where('is_active', 1)
+            ->orderBy('sort_order', 'ASC')
+            ->findAll();
+
+        if ($categories === []) {
+            return [];
+        }
+
+        $translationResolver = \Config\Services::translationResolver();
+        $result              = [];
+
+        foreach ($categories as $category) {
+            /** @var \App\Entities\CategoryEntity $category */
+            $resolved = $translationResolver->resolve('category', (int) $category->id, $lang);
+
+            $result[] = [
+                'id'          => (int) $category->id,
+                'slug'        => $resolved['slug'] ?? '',
+                'name'        => $resolved['name'] ?? '',
+                'description' => $resolved['description'] ?? null,
+                'is_fallback' => $resolved['is_fallback'] ?? false,
+            ];
+        }
+
+        return $result;
+    }
+
+    /**
      * @param array<array{language_id: int, slug: string, name: string, description?: string, meta_title?: string, meta_description?: string}> $translations
      */
     private function saveTranslations(int $categoryId, array $translations): void

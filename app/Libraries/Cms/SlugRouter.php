@@ -107,22 +107,20 @@ class SlugRouter
         }
         $langId = (int) $lang['id'];
 
-        $segments = [];
+        $defaultLang    = $this->getDefaultLanguage();
+        $defaultLangId  = $defaultLang ? (int) $defaultLang['id'] : null;
+
+        $segments  = [];
         $currentId = $id;
 
         while ($currentId !== null) {
-            $query = $this->db->table('cms_pages p')
-                ->select('p.parent_id, pt.slug')
-                ->join('cms_page_translations pt', 'p.id = pt.page_id AND pt.language_id = ' . $langId)
-                ->where('p.id', $currentId)
-                ->where('p.deleted_at IS NULL')
-                ->get();
+            $row = $this->fetchPageSlugRow($currentId, $langId);
 
-            if ($query === false) {
-                return null;
+            // Fall back to default language when the requested translation is missing
+            if (!is_array($row) && $defaultLangId !== null && $langId !== $defaultLangId) {
+                $row = $this->fetchPageSlugRow($currentId, $defaultLangId);
             }
 
-            $row = $query->getRowArray();
             if (!is_array($row) || !isset($row['slug'])) {
                 return null;
             }
@@ -132,6 +130,27 @@ class SlugRouter
         }
 
         return implode('/', $segments);
+    }
+
+    /**
+     * @return array<string, mixed>|null
+     */
+    private function fetchPageSlugRow(int $pageId, int $langId): ?array
+    {
+        $query = $this->db->table('cms_pages p')
+            ->select('p.parent_id, pt.slug')
+            ->join('cms_page_translations pt', 'p.id = pt.page_id AND pt.language_id = ' . $langId)
+            ->where('p.id', $pageId)
+            ->where('p.deleted_at IS NULL')
+            ->get();
+
+        if ($query === false) {
+            return null;
+        }
+
+        $row = $query->getRowArray();
+
+        return is_array($row) ? $row : null;
     }
 
     /**
