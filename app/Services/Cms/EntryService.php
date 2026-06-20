@@ -142,11 +142,23 @@ class EntryService extends BaseCrudService implements EntryServiceInterface
             ];
         }
 
+        $collectionIds = array_unique(array_map(fn ($e) => (int) $e->collection_id, $entities));
+        /** @var \App\Models\CollectionModel $collectionModel */
+        $collectionModel = model(\App\Models\CollectionModel::class);
+        $collections = $collectionModel->whereIn('id', $collectionIds)->findAll();
+        $collectionKeyMap = [];
+        foreach ($collections as $col) {
+            if ($col instanceof \App\Entities\CollectionEntity) {
+                $collectionKeyMap[(int) $col->id] = $col->collection_key;
+            }
+        }
+
         foreach ($entities as $entity) {
             $entityTranslations = $translationsGrouped[$entity->id] ?? [];
             $entity->translations = $entityTranslations;
             $entity->title = $entityTranslations[0]['title'] ?? null;
             $entity->slug = $entityTranslations[0]['slug'] ?? null;
+            $entity->collection_key = $collectionKeyMap[(int) $entity->collection_id] ?? null;
         }
 
         return $entities;

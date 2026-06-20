@@ -11,6 +11,8 @@ return [
     'key_already_taken' => 'La clave de la colección "{0}" ya está en uso.',
     'prefix_must_be_unique' => 'El prefijo URL debe ser único.',
     'prefix_already_taken' => 'El prefijo URL "{0}" ya está en uso.',
+    'cannot_delete_has_entries' => 'Esta colección no se puede eliminar porque tiene entradas.',
+    'delete_entries_first' => 'Elimina o mueve las {0} entradas existentes antes de eliminar esta colección.',
     'fields'         => [
         'collection_key' => 'Collection Key',
         'collection_key_placeholder' => 'Ingresa Collection Key',

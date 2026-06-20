@@ -11,6 +11,8 @@ return [
     'key_already_taken' => 'The collection key "{0}" is already taken.',
     'prefix_must_be_unique' => 'URL prefix must be unique.',
     'prefix_already_taken' => 'The URL prefix "{0}" is already taken.',
+    'cannot_delete_has_entries' => 'This collection cannot be deleted because it has entries.',
+    'delete_entries_first' => 'Delete or move the {0} existing entries before deleting this collection.',
     'fields'         => [
         'collection_key' => 'Collection Key',
         'collection_key_placeholder' => 'Enter Collection Key',

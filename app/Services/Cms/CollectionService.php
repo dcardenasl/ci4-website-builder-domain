@@ -109,6 +109,23 @@ class CollectionService extends BaseCrudService implements CollectionServiceInte
         $this->tempTranslations = null;
     }
 
+    protected function beforeDelete(int $id, ?SecurityContext $context): void
+    {
+        /** @var \App\Models\EntryModel $entryModel */
+        $entryModel = model(\App\Models\EntryModel::class);
+
+        $activeCount = $entryModel->where('collection_id', $id)->countAllResults();
+        if ($activeCount > 0) {
+            throw new ValidationException(
+                lang('Collections.cannot_delete_has_entries'),
+                ['entries' => lang('Collections.delete_entries_first', [$activeCount])]
+            );
+        }
+
+        // Soft-deleted entries still hold the FK — purge them so the collection DELETE isn't blocked.
+        $entryModel->withDeleted()->where('collection_id', $id)->purgeDeleted();
+    }
+
     protected function enrichEntities(array $entities): array
     {
         if (empty($entities)) {

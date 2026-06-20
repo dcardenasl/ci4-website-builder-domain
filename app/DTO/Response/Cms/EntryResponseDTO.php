@@ -51,7 +51,9 @@ final readonly class EntryResponseDTO implements DataTransferObjectInterface
         #[OA\Property(description: 'title', type: 'string', nullable: true)]
         public ?string $title = null,
         #[OA\Property(description: 'slug', type: 'string', nullable: true)]
-        public ?string $slug = null
+        public ?string $slug = null,
+        #[OA\Property(description: 'collection_key', type: 'string', nullable: true)]
+        public ?string $collection_key = null
     ) {
     }
 
@@ -78,6 +80,7 @@ final readonly class EntryResponseDTO implements DataTransferObjectInterface
             translations: $data['translations'] ?? null,
             title: $data['title'] ?? null,
             slug: $data['slug'] ?? null,
+            collection_key: $data['collection_key'] ?? null,
         );
     }
 
@@ -104,6 +107,10 @@ final readonly class EntryResponseDTO implements DataTransferObjectInterface
             'created_at' => $this->createdAt,
             'updated_at' => $this->updatedAt,
         ];
+
+        if ($this->collection_key !== null) {
+            $res['collection_key'] = $this->collection_key;
+        }
 
         if ($this->translations !== null) {
             $res['translations'] = $this->translations;
