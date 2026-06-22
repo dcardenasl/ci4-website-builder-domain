@@ -3,14 +3,12 @@
 > Fuente de verdad para trabajo en este repo.
 > Historial de completadas: ver `TASKS_ARCHIVE.md`.
 > Para el plan de implementación detallado, ver la sesión en: [implementation_plan.md](file:///Users/davidcardenas/.gemini/antigravity/brain/4d3ad335-9c0d-44b8-80d4-ddc18cfd113f/implementation_plan.md)
-> Última actualización: 2026-06-11 (CMS core tasks planificado)
+> Última actualización: 2026-06-22 (CMS-005 verificado y CMS-006 en curso)
 
 ---
 
 ## 🔴 En progreso
-
-- [ ] **CMS-005 (#4) — Menus API**
-  - Implementar CRUD de menús y de sus items de menú (anidados, ordenados, traducibles)
+*(vacío)*
 
 ---
 
@@ -29,6 +27,16 @@ Las tareas están ordenadas por fases de dependencias para asegurar la integrida
 - Creado módulo `SlugRedirectRecorder` para registrar cambios de slugs históricos de páginas y entradas.
 - Implementado endpoint público de resolución de redirecciones con soporte para múltiples segmentos de path.
 - Agregados tests unitarios y de integración con cobertura del 100% de calidad.
+
+### CMS-005 (#4) — Menus API
+- Implementado CRUD de menús y de sus items de menú (anidados, ordenados, traducibles).
+- Implementado el árbol público de menús con traducción por `Accept-Language` y `is_fallback`.
+- Agregados tests de feature e integración para admin, público y `TranslationResolver`.
+
+### CMS-006 (#5) — Block system
+- Implementado CRUD de block types (`cms_content_blocks`) con seeds (`rich_text`, `image`, `cta`).
+- Implementado CRUD de block instances con `block_config` / `block_data` y serialización para páginas y entradas.
+- Agregados tests de integración para `BlockInstanceSerializer`, block types y consumo público de páginas/entries.
 
 ### CMS-004 (#3) — Pages API
 - Implementado CRUD de páginas con persistencia de campos traducibles e historial de versiones.
@@ -51,10 +59,6 @@ Las tareas están ordenadas por fases de dependencias para asegurar la integrida
 - Proteger endpoints `/api/v1/cms/*` y abrir `/api/v1/public/*`
 
 ### Fase 3: Composable Block System
-- [ ] **CMS-006 (#5) — Block system**
-  - CRUD de block types (`cms_content_blocks`) con seeds (`rich_text`, `image`, `cta`)
-  - CRUD de block instances en páginas y entries (split `block_config` / `block_data`)
-  - Desarrollar deep module `BlockInstanceSerializer` y conectarlo a Pages/Entries GET slug
 
 ### Fase 4: Collections & Entries
 - [x] **CMS-007 (#6) — Collections API**
