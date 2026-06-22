@@ -8,6 +8,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- **Translation audit module** — new `TranslationAuditController` with audit endpoints for multi-language translation coverage, completeness tracking, and language statistics across pages, menu items, and settings
 - **Localized slugs in entry and page responses** — API responses now include `localized_slugs` map for all active languages, enabling multi-language URL construction on the frontend without additional API calls
 - **Block composition hierarchy** — define `allowed_children` configuration for container block types to enforce structural constraints and prevent invalid nesting
 - **Slug availability validation endpoints** — new `checkSlug()` methods in `PageController`, `EntryController`, and `CategoryController` to validate slug uniqueness within a language context
