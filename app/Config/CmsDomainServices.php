@@ -211,7 +211,11 @@ trait CmsDomainServices
         if ($getShared) {
             return static::getSharedInstance('categoryService');
         }
-        return new \App\Services\Cms\CategoryService(new \dcardenasl\Ci4ApiCore\Repositories\GenericRepository(model(\App\Models\CategoryModel::class)), static::categoryResponseMapper());
+        return new \App\Services\Cms\CategoryService(
+            new \dcardenasl\Ci4ApiCore\Repositories\GenericRepository(model(\App\Models\CategoryModel::class)),
+            static::categoryResponseMapper(),
+            static::translationResolver()
+        );
     }
     public static function tagResponseMapper(bool $getShared = true): \dcardenasl\Ci4ApiCore\Mappers\ResponseMapperInterface
     {
@@ -249,5 +253,14 @@ trait CmsDomainServices
         }
 
         return new \App\Libraries\Cms\SlugRedirectRecorder();
+    }
+
+    public static function translationAuditService(bool $getShared = true): \App\Interfaces\Cms\TranslationAuditServiceInterface
+    {
+        if ($getShared) {
+            return static::getSharedInstance('translationAuditService');
+        }
+
+        return new \App\Services\Cms\TranslationAuditService();
     }
 }

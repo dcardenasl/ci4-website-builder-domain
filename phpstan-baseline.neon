@@ -1,2 +1,24 @@
 parameters:
-	ignoreErrors: []
+	ignoreErrors:
+		# CodeIgniter dynamic model properties
+		-
+			message: '#Access to an undefined property App\\Models\\LanguageModel::\$#'
+			path: app/Services/Cms/TranslationAuditService.php
+		-
+			message: '#Access to an undefined property App\\Models\\PageModel::\$#'
+			path: app/Services/Cms/TranslationAuditService.php
+		-
+			message: '#Access to an undefined property App\\Models\\MenuItemModel::\$#'
+			path: app/Services/Cms/TranslationAuditService.php
+		-
+			message: '#Access to an undefined property App\\Models\\SettingModel::\$#'
+			path: app/Services/Cms/TranslationAuditService.php
+		-
+			message: '#Cannot access property \$language_id on array#'
+			path: app/Services/Cms/TranslationAuditService.php
+		-
+			message: '#Cannot access property \$id on array#'
+			path: app/Services/Cms/TranslationAuditService.php
+		-
+			message: '#Cannot access property \$code on array#'
+			path: app/Services/Cms/TranslationAuditService.php

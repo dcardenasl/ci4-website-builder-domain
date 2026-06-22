@@ -43,6 +43,11 @@ $routes->group('cms', ['namespace' => '\App\Controllers\Api\V1\Cms'], function (
         // Redirects CRUD
         $routes->get('redirects', 'RedirectController::index', ['filter' => 'permission:cms.redirects.read']);
         $routes->post('redirects', 'RedirectController::create', ['filter' => 'permission:cms.redirects.write']);
+
+        // Translation Auditing
+        $routes->get('translations/audit/stats', 'TranslationAuditController::stats', ['filter' => 'permission:cms.languages.read']);
+        $routes->get('translations/audit/report', 'TranslationAuditController::report', ['filter' => 'permission:cms.languages.read']);
+        $routes->get('translations/audit/resource/(:segment)/(:num)', 'TranslationAuditController::resource/$1/$2', ['filter' => 'permission:cms.languages.read']);
         $routes->get('menus/(:num)', 'MenuController::show/$1', ['filter' => 'permission:cms.menus.read']);
         $routes->put('menus/(:num)', 'MenuController::update/$1', ['filter' => 'permission:cms.menus.write']);
         $routes->delete('menus/(:num)', 'MenuController::delete/$1', ['filter' => 'permission:cms.menus.write']);

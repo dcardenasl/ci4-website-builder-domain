@@ -19,14 +19,18 @@ class CategoryService extends BaseCrudService implements CategoryServiceInterfac
     /** @var array<array{language_id: int, slug: string, name: string, description?: string, meta_title?: string, meta_description?: string}>|null */
     private ?array $tempTranslations = null;
 
+    protected \App\Libraries\Cms\TranslationResolver $translationResolver;
+
     /**
      * @param RepositoryInterface<CategoryEntity> $categoryRepository
      */
     public function __construct(
         RepositoryInterface $categoryRepository,
-        ResponseMapperInterface $responseMapper
+        ResponseMapperInterface $responseMapper,
+        \App\Libraries\Cms\TranslationResolver $translationResolver
     ) {
         parent::__construct($categoryRepository, $responseMapper);
+        $this->translationResolver = $translationResolver;
     }
 
     protected function beforeStore(array $data, ?SecurityContext $context): array
@@ -135,7 +139,7 @@ class CategoryService extends BaseCrudService implements CategoryServiceInterfac
             return [];
         }
 
-        $translationResolver = \Config\Services::translationResolver();
+        $translationResolver = $this->translationResolver;
         $result              = [];
 
         foreach ($categories as $category) {
