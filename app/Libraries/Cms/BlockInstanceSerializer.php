@@ -52,13 +52,6 @@ class BlockInstanceSerializer
                     $allFileIds[] = $fid;
                 }
             }
-
-            if ($instance['block_key'] === 'image') {
-                $fileId = $blockData['file_id'] ?? null;
-                if ($fileId !== null && is_numeric($fileId)) {
-                    $allFileIds[] = (int) $fileId;
-                }
-            }
         }
 
         $allFileIds        = array_values(array_unique($allFileIds));
@@ -104,19 +97,6 @@ class BlockInstanceSerializer
                 $schemaFields,
                 $fileTranslationsMap
             );
-
-            if ($instance['block_key'] === 'image') {
-                $fileId = $blockPayload['block_data']['file_id'] ?? null;
-                if ($fileId !== null && is_numeric($fileId)) {
-                    $fileTrans = $fileTranslationsMap[(int) $fileId] ?? [];
-                    $blockPayload['block_data']['alt_text']         = $fileTrans['alt_text'] ?? null;
-                    $blockPayload['block_data']['caption']          = $fileTrans['caption'] ?? null;
-                    $blockPayload['block_data']['title']            = $fileTrans['title'] ?? null;
-                    $blockPayload['block_data']['credit']           = $fileTrans['credit'] ?? null;
-                    $blockPayload['block_data']['description']      = $fileTrans['description'] ?? null;
-                    $blockPayload['block_data']['file_is_fallback'] = $fileTrans['is_fallback'] ?? true;
-                }
-            }
 
             $serializedMap[$instanceId] = $blockPayload;
         }
