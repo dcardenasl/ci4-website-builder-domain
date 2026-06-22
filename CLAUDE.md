@@ -166,7 +166,11 @@ You can re-run `domain:sync-permissions` at any time — it is idempotent.
 
 ## Static analysis
 
-PHPStan runs at level 8 with no baseline. Run before pushing:
+PHPStan runs at level 8 with a `phpstan-baseline.neon` that tracks historical type-debt.
+**Rule:** the baseline entry count can only decrease. New code must not introduce new errors.
+Current count after audit cleanup: **0 entries** (fully drained; all real errors resolved).
+
+Run before pushing:
 
 ```bash
 composer quality
