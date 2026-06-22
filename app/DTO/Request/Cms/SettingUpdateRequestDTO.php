@@ -26,6 +26,8 @@ readonly class SettingUpdateRequestDTO extends BaseRequestDTO
     public ?int $sortOrder;
     #[OA\Property(description: 'description', type: 'string', nullable: true)]
     public ?string $description;
+    #[OA\Property(description: 'setting_meta', type: 'string', nullable: true)]
+    public ?string $settingMeta;
 
     /**
      * @var array<array{language_id: int, setting_value: string}>|null
@@ -38,14 +40,15 @@ readonly class SettingUpdateRequestDTO extends BaseRequestDTO
     public function rules(): array
     {
         return [
-            'setting_key'              => 'permit_empty|string|max_length[100]',
-            'setting_value'            => 'permit_empty|string',
-            'setting_type'             => 'permit_empty|in_list[string,int,bool,json,file_id]',
-            'setting_group'            => 'permit_empty|string|max_length[50]',
-            'is_translatable'          => 'permit_empty|boolean_like',
-            'sort_order'               => 'permit_empty|integer',
-            'description'              => 'permit_empty|string|max_length[255]',
-            'translations' => 'permit_empty',
+            'setting_key'     => 'permit_empty|string|max_length[100]',
+            'setting_value'   => 'permit_empty|string',
+            'setting_meta'    => 'permit_empty|string',
+            'setting_type'    => 'permit_empty|in_list[string,int,bool,json,file_id]',
+            'setting_group'   => 'permit_empty|string|max_length[50]',
+            'is_translatable' => 'permit_empty|boolean_like',
+            'sort_order'      => 'permit_empty|integer',
+            'description'     => 'permit_empty|string|max_length[255]',
+            'translations'    => 'permit_empty',
         ];
     }
 
@@ -107,6 +110,13 @@ readonly class SettingUpdateRequestDTO extends BaseRequestDTO
             $mappedFields['description'] = $this->description;
         } else {
             $this->description = null;
+        }
+
+        if (array_key_exists('setting_meta', $data)) {
+            $this->settingMeta = $data['setting_meta'] !== null ? (string) $data['setting_meta'] : null;
+            $mappedFields['setting_meta'] = $this->settingMeta;
+        } else {
+            $this->settingMeta = null;
         }
 
         if (array_key_exists('translations', $data)) {

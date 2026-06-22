@@ -12,6 +12,7 @@ class SettingEntity extends Entity
         'id'              => 'integer',
         'setting_key'     => 'string',
         'setting_value'   => 'string',
+        'setting_meta'    => 'json-array',
         'setting_type'    => 'string',
         'setting_group'   => 'string',
         'is_translatable' => 'boolean',

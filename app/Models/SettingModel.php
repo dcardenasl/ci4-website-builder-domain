@@ -23,6 +23,7 @@ class SettingModel extends BaseAuditableModel
     protected $allowedFields = [
         'setting_key',
         'setting_value',
+        'setting_meta',
         'setting_type',
         'setting_group',
         'is_translatable',

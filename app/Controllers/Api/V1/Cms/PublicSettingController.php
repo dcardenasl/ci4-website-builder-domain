@@ -37,12 +37,20 @@ class PublicSettingController extends ApiController
 
                 foreach ($settings as $setting) {
                     if ($setting instanceof \App\Entities\SettingEntity) {
-                        // If translatable, get translation; otherwise use setting_value
                         if ($setting->is_translatable) {
                             $translation = $translationResolver->resolve('setting', (int) $setting->id, $lang);
                             $value = $translation['setting_value'] ?? $setting->setting_value;
                         } else {
                             $value = $setting->setting_value;
+                        }
+
+                        if ($setting->setting_type === 'file_id') {
+                            $meta = is_array($setting->setting_meta) ? $setting->setting_meta : [];
+                            $value = [
+                                'file_id'   => (int) ($setting->setting_value ?? 0),
+                                'url'       => $meta['url'] ?? null,
+                                'mime_type' => $meta['mime_type'] ?? null,
+                            ];
                         }
 
                         $result[$setting->setting_key] = $value;

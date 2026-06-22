@@ -24,6 +24,8 @@ readonly class SettingCreateRequestDTO extends BaseRequestDTO
     public int $sortOrder;
     #[OA\Property(description: 'description', type: 'string', nullable: true)]
     public ?string $description;
+    #[OA\Property(description: 'setting_meta', type: 'string', nullable: true)]
+    public ?string $settingMeta;
 
     /**
      * @var array<array{language_id: int, setting_value: string}>
@@ -34,14 +36,15 @@ readonly class SettingCreateRequestDTO extends BaseRequestDTO
     public function rules(): array
     {
         return [
-            'setting_key'              => 'required|string|max_length[100]|is_unique[cms_settings.setting_key]',
-            'setting_value'            => 'permit_empty|string',
-            'setting_type'             => 'required|in_list[string,int,bool,json,file_id]',
-            'setting_group'            => 'permit_empty|string|max_length[50]',
-            'is_translatable'          => 'permit_empty|boolean_like',
-            'sort_order'               => 'permit_empty|integer',
-            'description'              => 'permit_empty|string|max_length[255]',
-            'translations' => 'permit_empty',
+            'setting_key'     => 'required|string|max_length[100]|is_unique[cms_settings.setting_key]',
+            'setting_value'   => 'permit_empty|string',
+            'setting_meta'    => 'permit_empty|string',
+            'setting_type'    => 'required|in_list[string,int,bool,json,file_id]',
+            'setting_group'   => 'permit_empty|string|max_length[50]',
+            'is_translatable' => 'permit_empty|boolean_like',
+            'sort_order'      => 'permit_empty|integer',
+            'description'     => 'permit_empty|string|max_length[255]',
+            'translations'    => 'permit_empty',
         ];
     }
 
@@ -49,6 +52,7 @@ readonly class SettingCreateRequestDTO extends BaseRequestDTO
     {
         $this->settingKey = (string) ($data['setting_key'] ?? '');
         $this->settingValue = isset($data['setting_value']) ? (string) $data['setting_value'] : null;
+        $this->settingMeta = isset($data['setting_meta']) ? (string) $data['setting_meta'] : null;
         $this->settingType = (string) ($data['setting_type'] ?? 'string');
         $this->settingGroup = (string) ($data['setting_group'] ?? 'general');
         $this->isTranslatable = filter_var($data['is_translatable'] ?? false, FILTER_VALIDATE_BOOLEAN);
@@ -62,6 +66,7 @@ readonly class SettingCreateRequestDTO extends BaseRequestDTO
         return [
             'setting_key'     => $this->settingKey,
             'setting_value'   => $this->settingValue,
+            'setting_meta'    => $this->settingMeta,
             'setting_type'    => $this->settingType,
             'setting_group'   => $this->settingGroup,
             'is_translatable' => $this->isTranslatable,
