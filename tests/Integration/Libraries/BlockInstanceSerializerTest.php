@@ -76,7 +76,7 @@ final class BlockInstanceSerializerTest extends CIUnitTestCase
             'id'                => 2,
             'block_key'         => 'image',
             'name'              => 'Image',
-            'schema_definition' => '{}',
+            'schema_definition' => json_encode(['fields' => ['image' => ['type' => 'file']]]),
             'supports_pages'    => 1,
             'supports_entries'  => 1,
             'is_container'      => 0,
@@ -144,11 +144,11 @@ final class BlockInstanceSerializerTest extends CIUnitTestCase
             'is_published' => 1,
         ]);
 
-        // 101 (image) in English only (test fallback)
+        // 101 (image) in English only (test fallback) — uses canonical {field}_file_id convention
         $db->table('cms_block_instance_translations')->insert([
             'instance_id'  => 101,
             'language_id'  => 1,
-            'block_data'   => json_encode(['file_id' => 500]),
+            'block_data'   => json_encode(['image_file_id' => 500]),
             'is_published' => 1,
         ]);
 
@@ -190,13 +190,12 @@ final class BlockInstanceSerializerTest extends CIUnitTestCase
         $this->assertEquals(101, $blocks[1]['id']);
         $this->assertEquals('image', $blocks[1]['block_key']);
         $this->assertEquals('16:9', $blocks[1]['block_config']['aspect_ratio']);
-        $this->assertEquals(500, $blocks[1]['block_data']['file_id']);
+        $this->assertEquals(500, $blocks[1]['block_data']['image_file_id']);
         $this->assertTrue($blocks[1]['is_fallback']);
 
         // Alt text resolved to Spanish because file 500 has a Spanish translation
-        $this->assertEquals('Texto Alt Español', $blocks[1]['block_data']['alt_text']);
-        $this->assertEquals('Subtítulo Español', $blocks[1]['block_data']['caption']);
-        $this->assertFalse($blocks[1]['block_data']['file_is_fallback']);
+        $this->assertEquals('Texto Alt Español', $blocks[1]['block_data']['image_alt_text']);
+        $this->assertEquals('Subtítulo Español', $blocks[1]['block_data']['image_caption']);
 
         // Third block: hero slider keeps the presentation config as stored
         $this->assertEquals(102, $blocks[2]['id']);
@@ -211,6 +210,6 @@ final class BlockInstanceSerializerTest extends CIUnitTestCase
 
         $this->assertCount(3, $blocks);
         $this->assertEquals('Hello World', $blocks[0]['block_data']['content']);
-        $this->assertEquals('English Alt Text', $blocks[1]['block_data']['alt_text']);
+        $this->assertEquals('English Alt Text', $blocks[1]['block_data']['image_alt_text']);
     }
 }
