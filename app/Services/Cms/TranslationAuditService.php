@@ -29,6 +29,8 @@ class TranslationAuditService implements TranslationAuditServiceInterface
 
     /**
      * {@inheritdoc}
+     *
+     * @return array<int, array<string, mixed>>
      */
     public function getOverallCompleteness(): array
     {
@@ -39,11 +41,12 @@ class TranslationAuditService implements TranslationAuditServiceInterface
 
         $report = [];
         foreach ($activeLanguages as $lang) {
+            /** @var \App\Models\LanguageModel $lang */
             $langId = (int) $lang->id;
 
             // Audit pages
-            $totalPages = $this->pageModel->countAllResults();
-            $translatedPages = $this->pageTranslationModel->builder()
+            $totalPages = (int) $this->pageModel->countAllResults();
+            $translatedPages = (int) $this->pageTranslationModel->builder()
                 ->join('cms_pages p', 'p.id = cms_page_translations.page_id')
                 ->where('p.deleted_at IS NULL')
                 ->where('cms_page_translations.language_id', $langId)
@@ -52,11 +55,11 @@ class TranslationAuditService implements TranslationAuditServiceInterface
                 ->countAllResults();
 
             // Audit menu items
-            $totalMenuItems = $this->menuItemModel
+            $totalMenuItems = (int) $this->menuItemModel
                 ->join('cms_menus m', 'm.id = cms_menu_items.menu_id')
                 ->where('m.deleted_at IS NULL')
                 ->countAllResults();
-            $translatedMenuItems = $this->menuItemTranslationModel->builder()
+            $translatedMenuItems = (int) $this->menuItemTranslationModel->builder()
                 ->join('cms_menu_items mi', 'mi.id = cms_menu_item_translations.menu_item_id')
                 ->join('cms_menus m', 'm.id = mi.menu_id')
                 ->where('m.deleted_at IS NULL')
@@ -65,8 +68,8 @@ class TranslationAuditService implements TranslationAuditServiceInterface
                 ->countAllResults();
 
             // Audit translatable settings
-            $totalSettings = $this->settingModel->where('is_translatable', 1)->countAllResults();
-            $translatedSettings = $this->settingTranslationModel
+            $totalSettings = (int) $this->settingModel->where('is_translatable', 1)->countAllResults();
+            $translatedSettings = (int) $this->settingTranslationModel
                 ->where('language_id', $langId)
                 ->where('setting_value !=', '')
                 ->countAllResults();
@@ -104,6 +107,7 @@ class TranslationAuditService implements TranslationAuditServiceInterface
         // 1. Audit Pages
         $pages = $this->pageModel->findAll();
         foreach ($pages as $page) {
+            /** @var \App\Models\PageModel $page */
             $pageId = (int) $page->id;
             $translations = $this->pageTranslationModel->where('page_id', $pageId)->findAll();
             $translationsByLang = [];
@@ -112,6 +116,7 @@ class TranslationAuditService implements TranslationAuditServiceInterface
             }
 
             foreach ($activeLanguages as $lang) {
+                /** @var \App\Models\LanguageModel $lang */
                 $langId = (int) $lang->id;
 
                 if (isset($filters['language_id']) && (int) $filters['language_id'] !== $langId) {
@@ -129,6 +134,7 @@ class TranslationAuditService implements TranslationAuditServiceInterface
                         'detail' => 'Translation is missing completely'
                     ];
                 } else {
+                    /** @var \App\Models\PageTranslationModel $trans */
                     $trans = $translationsByLang[$langId];
                     $missing = [];
                     if (empty($trans->title)) {
@@ -160,6 +166,7 @@ class TranslationAuditService implements TranslationAuditServiceInterface
             ->select('cms_menu_items.*')
             ->findAll();
         foreach ($menuItems as $item) {
+            /** @var \App\Models\MenuItemModel $item */
             $itemId = (int) $item->id;
             $translations = $this->menuItemTranslationModel->where('menu_item_id', $itemId)->findAll();
             $translationsByLang = [];
@@ -168,6 +175,7 @@ class TranslationAuditService implements TranslationAuditServiceInterface
             }
 
             foreach ($activeLanguages as $lang) {
+                /** @var \App\Models\LanguageModel $lang */
                 $langId = (int) $lang->id;
 
                 if (isset($filters['language_id']) && (int) $filters['language_id'] !== $langId) {
@@ -206,6 +214,7 @@ class TranslationAuditService implements TranslationAuditServiceInterface
         // 3. Audit Settings
         $settings = $this->settingModel->where('is_translatable', 1)->findAll();
         foreach ($settings as $setting) {
+            /** @var \App\Models\SettingModel $setting */
             $settingId = (int) $setting->id;
             $translations = $this->settingTranslationModel->where('setting_id', $settingId)->findAll();
             $translationsByLang = [];
@@ -214,6 +223,7 @@ class TranslationAuditService implements TranslationAuditServiceInterface
             }
 
             foreach ($activeLanguages as $lang) {
+                /** @var \App\Models\LanguageModel $lang */
                 $langId = (int) $lang->id;
 
                 if (isset($filters['language_id']) && (int) $filters['language_id'] !== $langId) {

@@ -45,6 +45,7 @@ class TranslationAuditController extends ApiController
                 $langId = $this->request->getGet('language_id');
                 $filters = [];
                 if ($langId !== null) {
+                    /** @var int $langId */
                     $filters['language_id'] = (int) $langId;
                 }
 

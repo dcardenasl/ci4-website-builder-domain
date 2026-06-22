@@ -22,3 +22,6 @@ parameters:
 		-
 			message: '#Cannot access property \$code on array#'
 			path: app/Services/Cms/TranslationAuditService.php
+		-
+			message: '#Access to an undefined property App\\Models\\.*TranslationModel::\$#'
+			path: app/Services/Cms/TranslationAuditService.php
