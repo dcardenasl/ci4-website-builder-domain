@@ -103,6 +103,15 @@ class PublicPageController extends ApiController
                 $data = array_merge($page->toArray(), $translation);
                 $data['blocks'] = $blocks;
 
+                // Resolve localized slugs for all supported active languages
+                $localizedSlugs = [];
+                $languageModel = model(\App\Models\LanguageModel::class);
+                $languages = $languageModel->where('is_active', 1)->findAll();
+                foreach ($languages as $l) {
+                    $localizedSlugs[$l->code] = $slugRouter->resolveSlug($l->code, 'page', $pageId);
+                }
+                $data['localized_slugs'] = $localizedSlugs;
+
                 return $this->response->setJSON([
                     'status' => 'success',
                     'data'   => $data,

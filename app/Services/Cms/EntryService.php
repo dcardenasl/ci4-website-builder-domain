@@ -519,6 +519,27 @@ class EntryService extends BaseCrudService implements EntryServiceInterface
         $data['tags']       = $tagsMap[$entryId] ?? [];
         $data['blocks']     = $blocks;
 
+        // Get all translations of this entry to construct localized slugs
+        /** @var list<\App\Entities\EntryTranslationEntity> $allTranslations */
+        $allTranslations = $translationModel->where('entry_id', $entryId)->findAll();
+        /** @var \App\Models\LanguageModel $langModel */
+        $langModel = model(\App\Models\LanguageModel::class);
+        /** @var list<\App\Entities\LanguageEntity> $activeLanguages */
+        $activeLanguages = $langModel->where('is_active', 1)->findAll();
+        $langCodeMap = [];
+        foreach ($activeLanguages as $al) {
+            $langCodeMap[$al->id] = $al->code;
+        }
+
+        $localizedSlugs = [];
+        foreach ($allTranslations as $at) {
+            $code = $langCodeMap[$at->language_id] ?? null;
+            if ($code !== null) {
+                $localizedSlugs[$code] = $at->slug;
+            }
+        }
+        $data['localized_slugs'] = $localizedSlugs;
+
         return PayloadResponseDTO::fromArray($data);
     }
 
