@@ -132,6 +132,25 @@ final class TranslationAuditServiceTest extends CIUnitTestCase
         $this->assertEquals('missing', $report[0]['status']);
     }
 
+    public function testMissingSettingTranslationRowsAreIgnoredWhenBaseValueExists(): void
+    {
+        $this->db->table('cms_settings')->insert([
+            'setting_key' => 'site_name',
+            'setting_value' => 'Mi Sitio',
+            'setting_type' => 'string',
+            'setting_group' => 'identity',
+            'is_translatable' => 1,
+            'is_public' => 1,
+            'is_active' => 1,
+            'sort_order' => 10,
+        ]);
+
+        $service = Services::translationAuditService(false);
+        $report = $service->getMissingTranslationsReport();
+
+        $this->assertSame([], $report);
+    }
+
     public function testAuditResource(): void
     {
         $this->db->table('cms_pages')->insert([

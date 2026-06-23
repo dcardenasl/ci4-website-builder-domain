@@ -181,6 +181,56 @@ final class PublicMenuControllerTest extends CIUnitTestCase
         $this->assertSame('/noticias/articulo-principal', $body['data']['items'][1]['custom_url']);
     }
 
+    public function testGetPublicMenuHomePagePointsToLocalizedRoot(): void
+    {
+        $this->db->table('cms_pages')->insert([
+            'page_type'    => 'home',
+            'status'       => 'published',
+            'deleted_at'   => null,
+            'sort_order'   => 1,
+            'is_in_sitemap' => 1,
+        ]);
+        $pageId = $this->db->insertID();
+
+        $this->db->table('cms_page_translations')->insert([
+            'page_id'          => $pageId,
+            'language_id'      => $this->langEsId,
+            'slug'             => 'home',
+            'title'            => 'Inicio',
+            'excerpt'          => null,
+            'meta_title'       => null,
+            'meta_description' => null,
+            'og_image_file_id' => null,
+            'og_type'          => null,
+            'canonical_url'    => null,
+            'robots'           => null,
+            'schema_data'      => null,
+        ]);
+
+        $this->db->table('cms_menu_items')->insert([
+            'menu_id' => $this->menuId,
+            'link_type' => 'page',
+            'page_id' => $pageId,
+            'link_target' => '_self',
+            'sort_order' => 1,
+            'is_active' => 1,
+        ]);
+        $menuItemId = $this->db->insertID();
+
+        $this->db->table('cms_menu_item_translations')->insert([
+            'menu_item_id' => $menuItemId,
+            'language_id' => $this->langEsId,
+            'label' => 'Inicio',
+        ]);
+
+        $result = $this->withHeaders(['Accept-Language' => 'es'])->get('/api/v1/public/menus/main-nav');
+
+        $result->assertStatus(200);
+        $body = json_decode($result->getJSON(), true);
+
+        $this->assertSame('/', $body['data']['items'][0]['custom_url']);
+    }
+
     public function testGetPublicMenuNotFound(): void
     {
         $result = $this->get('/api/v1/public/menus/no-existe');

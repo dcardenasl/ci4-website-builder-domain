@@ -38,4 +38,21 @@ final class BlockTemplateCatalogTest extends CIUnitTestCase
         $this->assertStringStartsWith('data:image/svg+xml;charset=UTF-8,', (string) ($sample['slide_2_image_url'] ?? ''));
         $this->assertStringStartsWith('data:image/svg+xml;charset=UTF-8,', (string) ($sample['slide_3_image_url'] ?? ''));
     }
+
+    public function testPageHeaderBreadcrumbUrlCanBeRelative(): void
+    {
+        $template = null;
+        foreach (BlockTemplateCatalog::all() as $row) {
+            if (($row['key'] ?? '') === 'page_header') {
+                $template = $row;
+                break;
+            }
+        }
+
+        $this->assertIsArray($template);
+
+        $schema = $template['default_schema']['fields'] ?? [];
+        $this->assertSame('string', $schema['breadcrumb_url']['type'] ?? null);
+        $this->assertSame('/', $template['preview_sample']['breadcrumb_url'] ?? null);
+    }
 }

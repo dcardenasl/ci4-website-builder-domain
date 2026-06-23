@@ -22,6 +22,7 @@ final class PublicCollectionControllerTest extends CIUnitTestCase
     protected $namespace   = 'App';
 
     private int $langEsId;
+    private int $langEnId;
     private int $collectionId;
 
     protected function setUp(): void
@@ -43,6 +44,14 @@ final class PublicCollectionControllerTest extends CIUnitTestCase
         ]);
         $this->langEsId = $this->db->insertID();
 
+        $this->db->table('cms_languages')->insert([
+            'code'       => 'en',
+            'name'       => 'English',
+            'is_default' => 0,
+            'is_active'  => 1,
+        ]);
+        $this->langEnId = $this->db->insertID();
+
         // Seed collection
         $this->db->table('cms_collections')->insert([
             'collection_key'      => 'blog',
@@ -61,6 +70,14 @@ final class PublicCollectionControllerTest extends CIUnitTestCase
             'name'          => 'Mi Blog',
             'description'   => 'El blog principal de noticias.',
         ]);
+
+        $this->db->table('cms_collection_translations')->insert([
+            'collection_id' => $this->collectionId,
+            'language_id'   => $this->langEnId,
+            'slug'          => 'news',
+            'name'          => 'My Blog',
+            'description'   => 'The main news blog.',
+        ]);
     }
 
     public function testGetPublicCollectionsSuccess(): void
@@ -76,6 +93,8 @@ final class PublicCollectionControllerTest extends CIUnitTestCase
         $this->assertSame('blog', $body['data'][0]['slug']);
         $this->assertSame('Mi Blog', $body['data'][0]['name']);
         $this->assertSame('El blog principal de noticias.', $body['data'][0]['description']);
+        $this->assertSame('blog', $body['data'][0]['localized_slugs']['es']);
+        $this->assertSame('news', $body['data'][0]['localized_slugs']['en']);
         $this->assertArrayNotHasKey('url_prefix', $body['data'][0]);
     }
 }
