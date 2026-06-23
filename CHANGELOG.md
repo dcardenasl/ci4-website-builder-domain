@@ -8,6 +8,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- **Collection slug support** — add `slug` field to `CollectionTranslationEntity` with migration, enabling SEO-friendly collection URLs alongside IDs
+- **Form submissions API** — new public endpoint `POST /api/v1/public/submissions` and admin CRUD (`FormSubmissionController`) for managing form submissions with status tracking (new, read, replied, spam, archived)
 - **Settings meta field** — new `setting_meta` JSON column for storing auxiliary metadata (file URLs, MIME types) with migration and DTO support
 - **Translation audit module** — new `TranslationAuditController` with audit endpoints for multi-language translation coverage, completeness tracking, and language statistics across pages, menu items, and settings
 - **Localized slugs in entry and page responses** — API responses now include `localized_slugs` map for all active languages, enabling multi-language URL construction on the frontend without additional API calls
