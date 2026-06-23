@@ -122,7 +122,7 @@ class UserAgents extends BaseConfig
      * @var array<string, string>
      */
     public array $mobiles = [
-        // legacy array, old values commented out
+        // Historical array; old values remain commented out
         'mobileexplorer' => 'Mobile Explorer',
         // 'openwave'             => 'Open Wave',
         // 'opera mini'           => 'Opera Mini',
