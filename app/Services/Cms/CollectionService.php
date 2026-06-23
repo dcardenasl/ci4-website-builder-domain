@@ -58,6 +58,11 @@ class CollectionService extends BaseCrudService implements CollectionServiceInte
 
         $this->tempTranslations = $data['translations'] ?? null;
         unset($data['translations']);
+
+        if ($this->tempTranslations !== null) {
+            $this->assertTranslationSlugsAreAvailable($this->tempTranslations);
+        }
+
         return $data;
     }
 
@@ -100,6 +105,10 @@ class CollectionService extends BaseCrudService implements CollectionServiceInte
             unset($data['translations']);
         } else {
             $this->tempTranslations = null;
+        }
+
+        if ($this->tempTranslations !== null) {
+            $this->assertTranslationSlugsAreAvailable($this->tempTranslations, $id);
         }
 
         return $data;
@@ -149,6 +158,7 @@ class CollectionService extends BaseCrudService implements CollectionServiceInte
             if ($translation instanceof \App\Entities\CollectionTranslationEntity) {
                 $translationsGrouped[$translation->collection_id][] = [
                     'language_id'              => (int) $translation->language_id,
+                    'slug'                     => $translation->slug,
                     'name'                     => $translation->name,
                     'description'              => $translation->description,
                     'listing_title'            => $translation->listing_title,
@@ -180,6 +190,7 @@ class CollectionService extends BaseCrudService implements CollectionServiceInte
             $translationModel->insert([
                 'collection_id'            => $collectionId,
                 'language_id'              => (int) $translation['language_id'],
+                'slug'                     => isset($translation['slug']) ? trim((string) $translation['slug'], " \t\n\r\0\x0B/") : null,
                 'name'                     => $translation['name'],
                 'description'              => $translation['description'] ?? null,
                 'listing_title'            => $translation['listing_title'] ?? null,
@@ -187,6 +198,35 @@ class CollectionService extends BaseCrudService implements CollectionServiceInte
                 'default_meta_title'       => $translation['default_meta_title'] ?? null,
                 'default_meta_description' => $translation['default_meta_description'] ?? null,
             ]);
+        }
+    }
+
+    /**
+     * @param array<mixed> $translations
+     */
+    private function assertTranslationSlugsAreAvailable(array $translations, ?int $currentCollectionId = null): void
+    {
+        /** @var \App\Models\CollectionTranslationModel $translationModel */
+        $translationModel = model(\App\Models\CollectionTranslationModel::class);
+
+        foreach ($translations as $translation) {
+            if (! is_array($translation)) {
+                continue;
+            }
+
+            $slug = trim((string) ($translation['slug'] ?? ''), " \t\n\r\0\x0B/");
+            $languageId = (int) ($translation['language_id'] ?? 0);
+
+            if ($slug === '' || $languageId <= 0) {
+                continue;
+            }
+
+            if (! $translationModel->isSlugAvailable($slug, $languageId, $currentCollectionId)) {
+                throw new ValidationException(
+                    lang('Collections.slug_must_be_unique'),
+                    ['translations' => lang('Collections.slug_already_taken', [$slug])]
+                );
+            }
         }
     }
 }

@@ -12,6 +12,7 @@ class CollectionTranslationEntity extends Entity
         'id'                       => 'integer',
         'collection_id'            => 'integer',
         'language_id'              => 'integer',
+        'slug'                     => 'string',
         'name'                     => 'string',
         'description'              => 'string',
         'listing_title'            => 'string',

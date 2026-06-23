@@ -53,6 +53,7 @@ class NewsCollectionSeeder extends Seeder
         // ── 2. Collection translations ─────────────────────────────────────────
         $collectionTranslations = [
             'es' => [
+                'slug'                     => 'noticias',
                 'name'                     => 'Noticias',
                 'description'              => 'Sección de noticias y actualidad.',
                 'listing_title'            => 'Últimas Noticias',
@@ -61,6 +62,7 @@ class NewsCollectionSeeder extends Seeder
                 'default_meta_description' => 'Lee las últimas noticias y actualizaciones.',
             ],
             'en' => [
+                'slug'                     => 'news',
                 'name'                     => 'News',
                 'description'              => 'News and current events section.',
                 'listing_title'            => 'Latest News',

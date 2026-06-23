@@ -11,6 +11,8 @@ return [
     'key_already_taken' => 'La clave de la colección "{0}" ya está en uso.',
     'prefix_must_be_unique' => 'El prefijo URL debe ser único.',
     'prefix_already_taken' => 'El prefijo URL "{0}" ya está en uso.',
+    'slug_must_be_unique' => 'El slug de la colección debe ser único para cada idioma.',
+    'slug_already_taken' => 'El slug de la colección "{0}" ya está en uso para ese idioma.',
     'cannot_delete_has_entries' => 'Esta colección no se puede eliminar porque tiene entradas.',
     'delete_entries_first' => 'Elimina o mueve las {0} entradas existentes antes de eliminar esta colección.',
     'fields'         => [

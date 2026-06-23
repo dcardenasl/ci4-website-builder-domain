@@ -11,6 +11,8 @@ return [
     'key_already_taken' => 'The collection key "{0}" is already taken.',
     'prefix_must_be_unique' => 'URL prefix must be unique.',
     'prefix_already_taken' => 'The URL prefix "{0}" is already taken.',
+    'slug_must_be_unique' => 'Collection slug must be unique for each language.',
+    'slug_already_taken' => 'The collection slug "{0}" is already taken for that language.',
     'cannot_delete_has_entries' => 'This collection cannot be deleted because it has entries.',
     'delete_entries_first' => 'Delete or move the {0} existing entries before deleting this collection.',
     'fields'         => [

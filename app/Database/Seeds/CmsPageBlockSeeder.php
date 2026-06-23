@@ -105,7 +105,7 @@ class CmsPageBlockSeeder extends Seeder
                     'en' => [
                         'section_title'  => 'News',
                         'view_all_label' => 'View all news',
-                        'view_all_url'   => '/noticias',
+                        'view_all_url'   => '/news',
                     ],
                 ],
             ],

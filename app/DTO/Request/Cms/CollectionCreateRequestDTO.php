@@ -31,7 +31,7 @@ readonly class CollectionCreateRequestDTO extends BaseRequestDTO
     public int $sort_order;
 
     /**
-     * @var array<array{language_id: int, name: string, description?: string, listing_title?: string, listing_intro?: string, default_meta_title?: string, default_meta_description?: string}>
+     * @var array<array{language_id: int, slug?: string, name: string, description?: string, listing_title?: string, listing_intro?: string, default_meta_title?: string, default_meta_description?: string}>
      */
     #[OA\Property(description: 'translations', type: 'array', items: new OA\Items(type: 'object'))]
     public array $translations;
@@ -53,6 +53,7 @@ readonly class CollectionCreateRequestDTO extends BaseRequestDTO
             'sort_order' => 'required|integer',
             'translations' => 'permit_empty',
             'translations.*.language_id' => 'required_with[translations]|is_natural_no_zero',
+            'translations.*.slug' => 'required_with[translations]|string|min_length[1]|max_length[150]',
             'translations.*.name' => 'required_with[translations]|string|max_length[150]',
             'translations.*.description' => 'permit_empty|string',
             'translations.*.listing_title' => 'permit_empty|string|max_length[255]',

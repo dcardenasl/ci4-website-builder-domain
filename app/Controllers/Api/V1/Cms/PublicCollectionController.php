@@ -35,8 +35,11 @@ class PublicCollectionController extends ApiController
                 foreach ($collections as $collection) {
                     if ($collection instanceof \App\Entities\CollectionEntity) {
                         $resolved = $translationResolver->resolve('collection', (int) $collection->id, $lang);
+                        $resolvedUrlPrefix = trim((string) ($resolved['slug'] ?? ''), '/');
 
                         $resolvedCollections[] = array_merge($collection->toArray(), [
+                            'slug'                     => $resolved['slug'] ?? null,
+                            'url_prefix'               => $resolvedUrlPrefix !== '' ? '/' . $resolvedUrlPrefix : '',
                             'name'                     => $resolved['name'] ?? '',
                             'description'              => $resolved['description'] ?? null,
                             'listing_title'            => $resolved['listing_title'] ?? null,

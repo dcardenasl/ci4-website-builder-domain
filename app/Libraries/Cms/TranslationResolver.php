@@ -49,7 +49,7 @@ class TranslationResolver
         'collection' => [
             'table'  => 'cms_collection_translations',
             'fk'     => 'collection_id',
-            'fields' => ['name', 'description', 'listing_title', 'listing_intro', 'default_meta_title', 'default_meta_description'],
+            'fields' => ['slug', 'name', 'description', 'listing_title', 'listing_intro', 'default_meta_title', 'default_meta_description'],
         ],
         'entry' => [
             'table'  => 'cms_entry_translations',

@@ -294,7 +294,7 @@ class BlockTemplateCatalog
                 'preview_sample' => [
                     'section_title'  => 'Noticias',
                     'view_all_label' => 'Ver todas las noticias',
-                    'view_all_url'   => '/noticias',
+                    'view_all_url'   => '/news',
                 ],
                 'config_sample' => [
                     'collection_key' => 'noticias',

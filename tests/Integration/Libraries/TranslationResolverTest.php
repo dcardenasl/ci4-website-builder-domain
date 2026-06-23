@@ -36,6 +36,8 @@ final class TranslationResolverTest extends CIUnitTestCase
 
         // Clean tables
         $db->query('SET FOREIGN_KEY_CHECKS = 0');
+        $db->table('cms_collection_translations')->truncate();
+        $db->table('cms_collections')->truncate();
         $db->table('cms_setting_translations')->truncate();
         $db->table('cms_settings')->truncate();
         $db->table('cms_languages')->truncate();
@@ -82,7 +84,21 @@ final class TranslationResolverTest extends CIUnitTestCase
             'is_translatable' => 1,
         ]);
 
-        // 3. Insert Setting Translations
+        // 3. Insert Collection
+        $db->table('cms_collections')->insert([
+            'id'                       => 1,
+            'collection_key'           => 'noticias',
+            'url_prefix'               => '/noticias',
+            'is_active'                => 1,
+            'requires_approval'        => 0,
+            'enables_categories'       => 1,
+            'enables_tags'             => 1,
+            'default_sitemap_priority' => '0.70',
+            'default_changefreq'       => 'weekly',
+            'sort_order'               => 10,
+        ]);
+
+        // 4. Insert Setting Translations
         // English translation
         $db->table('cms_setting_translations')->insert([
             'setting_id'    => 1,
@@ -95,6 +111,25 @@ final class TranslationResolverTest extends CIUnitTestCase
             'setting_id'    => 1,
             'language_id'   => 2,
             'setting_value' => 'Nombre de mi Sitio en Español',
+        ]);
+
+        // 5. Insert Collection Translations
+        $db->table('cms_collection_translations')->insert([
+            'collection_id' => 1,
+            'language_id'   => 1,
+            'slug'          => 'news',
+            'name'          => 'News',
+            'description'   => 'News and current events section.',
+            'listing_title' => 'Latest News',
+        ]);
+
+        $db->table('cms_collection_translations')->insert([
+            'collection_id' => 1,
+            'language_id'   => 2,
+            'slug'          => 'noticias',
+            'name'          => 'Noticias',
+            'description'   => 'Sección de noticias y actualidad.',
+            'listing_title' => 'Últimas Noticias',
         ]);
     }
 
@@ -126,5 +161,14 @@ final class TranslationResolverTest extends CIUnitTestCase
     {
         $this->expectException(\InvalidArgumentException::class);
         $this->resolver->resolve('unsupported_type', 1, 'es');
+    }
+
+    public function testResolveCollectionIncludesSlugForLanguage(): void
+    {
+        $result = $this->resolver->resolve('collection', 1, 'en');
+
+        $this->assertSame('news', $result['slug']);
+        $this->assertSame('News', $result['name']);
+        $this->assertFalse($result['is_fallback']);
     }
 }
