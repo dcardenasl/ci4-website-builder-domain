@@ -295,7 +295,7 @@ class CmsBlockTypeSeeder extends Seeder
                         'heading'          => ['type' => 'string', 'label' => 'Título',              'required' => true],
                         'subheading'       => ['type' => 'string', 'label' => 'Subtítulo',           'required' => false],
                         'breadcrumb_label' => ['type' => 'string', 'label' => 'Etiqueta breadcrumb', 'required' => false],
-                        'breadcrumb_url'   => ['type' => 'url',    'label' => 'URL breadcrumb',      'required' => false],
+                        'breadcrumb_url'   => ['type' => 'string', 'label' => 'URL breadcrumb',      'required' => false],
                     ],
                     'config_fields' => [
                         'bg_color'  => ['type' => 'string', 'label' => 'Color de fondo (Tailwind)', 'required' => false, 'default' => 'bg-gray-100'],

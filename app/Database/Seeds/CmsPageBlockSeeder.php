@@ -7,201 +7,260 @@ namespace App\Database\Seeds;
 use CodeIgniter\Database\Seeder;
 
 /**
- * Seeds block instances for Inicio and Contacto pages.
- * Idempotent: skips instances that already exist by block_id+owner_id.
+ * Seeds block instances for the homepage and contact page.
+ * Idempotent: upserts block instances by owner + block type + sort order.
  */
 class CmsPageBlockSeeder extends Seeder
 {
     public function run(): void
     {
-        // ── Resolve IDs ──────────────────────────────────────────────────────
+        $this->call(CmsLanguageSeeder::class);
+        $this->call(CmsBlockTypeSeeder::class);
+        $this->call(SitePagesSeeder::class);
+        $this->call(NewsCollectionSeeder::class);
 
         $blockIds = $this->blockIds([
-            'hero_slider', 'events_grid', 'news_grid',
-            'page_header', 'contact_form', 'location_info', 'social_links',
+            'hero_slider',
+            'news_grid',
+            'cta',
+            'page_header',
+            'contact_form',
+            'location_info',
+            'social_links',
         ]);
 
         $langIds = $this->langIds(['es', 'en']);
+        $homePageId = $this->pageIdByType('home');
+        $contactPageId = $this->pageIdByType('contact');
 
-        // ── Inicio (page_id = 3) ──────────────────────────────────────────────
+        if ($homePageId === null || $contactPageId === null || ! isset($langIds['es'], $langIds['en'])) {
+            echo "CmsPageBlockSeeder: missing prerequisite pages, blocks or languages.\n";
+            return;
+        }
 
-        $inicioBloques = [
+        $homeBlocks = [
             [
-                'block_key'  => 'hero_slider',
+                'block_key' => 'hero_slider',
                 'sort_order' => 1,
-                'config'     => [
+                'config'    => [
                     'autoplay'          => true,
                     'interval'          => 5000,
-                    'overlay_opacity'   => '0',
+                    'overlay_opacity'   => '20',
                     'caption_position'  => 'below',
                     'controls_position' => 'below',
+                    'css_class'         => '',
                 ],
-                'data'       => [
+                'data'      => [
                     'es' => [
-                        'slide_1_image_url' => $this->placeholderSlide('Temporada 2026', '#e5e7eb', '#111827'),
-                        'slide_1_heading'   => 'Temporada 2026',
-                        'slide_1_subtitle'  => 'Programación destacada y actividades especiales.',
-                        'slide_1_cta_label' => 'Ver programación',
-                        'slide_1_cta_url'   => '/featured',
-                        'slide_2_image_url' => $this->placeholderSlide('Exposiciones', '#dbeafe', '#0f172a'),
-                        'slide_2_heading'   => 'Exposiciones',
-                        'slide_2_subtitle'  => 'Recorridos, talleres y experiencias.',
-                        'slide_2_cta_label' => 'Explorar',
-                        'slide_2_cta_url'   => '/collection',
-                        'slide_3_image_url' => $this->placeholderSlide('Entradas', '#f3f4f6', '#111827'),
-                        'slide_3_heading'   => 'Entradas',
-                        'slide_3_subtitle'  => 'Reserva tu visita en pocos pasos.',
-                        'slide_3_cta_label' => 'Conocer más',
-                        'slide_3_cta_url'   => '/news',
+                        'slide_1_image_url' => $this->placeholderSlide('Mi Sitio', '#e5e7eb', '#111827'),
+                        'slide_1_heading'   => 'Mi Sitio',
+                        'slide_1_subtitle'  => 'Contenido multilingüe para tu sitio.',
+                        'slide_1_cta_label' => 'Conocer más',
+                        'slide_1_cta_url'   => '/contacto',
+                        'slide_2_image_url' => $this->placeholderSlide('Noticias', '#dbeafe', '#0f172a'),
+                        'slide_2_heading'   => 'Noticias',
+                        'slide_2_subtitle'  => 'Actualizaciones y novedades del sitio.',
+                        'slide_2_cta_label' => 'Ver noticias',
+                        'slide_2_cta_url'   => '/noticias',
+                        'slide_3_image_url' => $this->placeholderSlide('Contacto', '#f3f4f6', '#111827'),
+                        'slide_3_heading'   => 'Contacto',
+                        'slide_3_subtitle'  => 'Escríbenos y te responderemos pronto.',
+                        'slide_3_cta_label' => 'Ir al formulario',
+                        'slide_3_cta_url'   => '/contacto',
                     ],
                     'en' => [
-                        'slide_1_image_url' => $this->placeholderSlide('Season 2026', '#e5e7eb', '#111827'),
-                        'slide_1_heading'   => 'Season 2026',
-                        'slide_1_subtitle'  => 'Featured programming and special events.',
-                        'slide_1_cta_label' => 'View schedule',
-                        'slide_1_cta_url'   => '/featured',
-                        'slide_2_image_url' => $this->placeholderSlide('Exhibitions', '#dbeafe', '#0f172a'),
-                        'slide_2_heading'   => 'Exhibitions',
-                        'slide_2_subtitle'  => 'Tours, workshops and experiences.',
-                        'slide_2_cta_label' => 'Explore',
-                        'slide_2_cta_url'   => '/collection',
-                        'slide_3_image_url' => $this->placeholderSlide('Tickets', '#f3f4f6', '#111827'),
-                        'slide_3_heading'   => 'Tickets',
-                        'slide_3_subtitle'  => 'Book your visit in a few steps.',
-                        'slide_3_cta_label' => 'Learn more',
-                        'slide_3_cta_url'   => '/news',
+                        'slide_1_image_url' => $this->placeholderSlide('My Site', '#e5e7eb', '#111827'),
+                        'slide_1_heading'   => 'My Site',
+                        'slide_1_subtitle'  => 'Multilingual content for your website.',
+                        'slide_1_cta_label' => 'Learn more',
+                        'slide_1_cta_url'   => '/contact',
+                        'slide_2_image_url' => $this->placeholderSlide('News', '#dbeafe', '#0f172a'),
+                        'slide_2_heading'   => 'News',
+                        'slide_2_subtitle'  => 'Updates and highlights from the site.',
+                        'slide_2_cta_label' => 'View news',
+                        'slide_2_cta_url'   => '/news',
+                        'slide_3_image_url' => $this->placeholderSlide('Contact', '#f3f4f6', '#111827'),
+                        'slide_3_heading'   => 'Contact',
+                        'slide_3_subtitle'  => 'Write to us and we will reply soon.',
+                        'slide_3_cta_label' => 'Open form',
+                        'slide_3_cta_url'   => '/contact',
                     ],
                 ],
             ],
             [
-                'block_key'  => 'events_grid',
+                'block_key' => 'news_grid',
                 'sort_order' => 2,
-                'config'     => ['collection_key' => 'cartelera', 'items_limit' => 6],
-                'data'       => [
+                'config'    => [
+                    'collection_key' => 'noticias',
+                    'items_limit'    => 3,
+                    'css_class'      => '',
+                ],
+                'data'      => [
                     'es' => [
-                        'section_title'    => 'Nuestra Cartelera',
-                        'section_subtitle' => 'Descubre los espectáculos de esta temporada',
-                        'view_all_label'   => 'Ver toda la cartelera',
-                        'view_all_url'     => '/cartelera',
+                        'section_title'    => 'Noticias',
+                        'section_subtitle' => 'Mantente al día con las últimas publicaciones.',
+                        'view_all_label'   => 'Ver todas las noticias',
+                        'view_all_url'     => '/noticias',
+                        'empty_message'    => 'Aún no hay noticias publicadas.',
                     ],
                     'en' => [
-                        'section_title'    => 'Our Lineup',
-                        'section_subtitle' => 'Explore this season\'s performances',
-                        'view_all_label'   => 'View full lineup',
-                        'view_all_url'     => '/cartelera',
+                        'section_title'    => 'News',
+                        'section_subtitle' => 'Stay up to date with the latest posts.',
+                        'view_all_label'   => 'View all news',
+                        'view_all_url'     => '/news',
+                        'empty_message'    => 'No news posts are available yet.',
                     ],
                 ],
             ],
             [
-                'block_key'  => 'news_grid',
+                'block_key' => 'cta',
                 'sort_order' => 3,
-                'config'     => ['collection_key' => 'noticias', 'items_limit' => 3],
-                'data'       => [
+                'config'    => [
+                    'variant'   => 'blue',
+                    'css_class' => '',
+                ],
+                'data'      => [
                     'es' => [
-                        'section_title'  => 'Noticias',
-                        'view_all_label' => 'Ver todas las noticias',
-                        'view_all_url'   => '/noticias',
+                        'heading' => '¿Quieres hablar con nosotros?',
+                        'text'    => 'Usa el formulario de contacto para escribirnos. Te responderemos a la brevedad.',
+                        'label'   => 'Ir a contacto',
+                        'url'     => '/contacto',
                     ],
                     'en' => [
-                        'section_title'  => 'News',
-                        'view_all_label' => 'View all news',
-                        'view_all_url'   => '/news',
+                        'heading' => 'Want to talk to us?',
+                        'text'    => 'Use the contact form to reach out. We will reply as soon as possible.',
+                        'label'   => 'Go to contact',
+                        'url'     => '/contact',
                     ],
                 ],
             ],
         ];
 
-        $this->seedBlocks(3, 'page', $inicioBloques, $blockIds, $langIds);
-
-        // ── Contacto (crear página si no existe, luego bloques) ───────────────
-
-        $contactoId = $this->ensureContactoPage($langIds);
-
-        $contactoBloques = [
+        $contactBlocks = [
             [
-                'block_key'  => 'page_header',
+                'block_key' => 'page_header',
                 'sort_order' => 1,
-                'config'     => ['bg_color' => 'bg-gray-100'],
-                'data'       => [
+                'config'    => [
+                    'bg_color'  => 'bg-gray-100',
+                    'css_class' => '',
+                ],
+                'data'      => [
                     'es' => [
-                        'heading'          => 'Contact Us',
-                        'subheading'       => 'We\'d love to hear from you',
-                        'breadcrumb_label' => 'Home',
+                        'heading'          => 'Contacto',
+                        'subheading'       => 'Nos encantaría saber de ti.',
+                        'breadcrumb_label' => 'Inicio',
                         'breadcrumb_url'   => '/',
                     ],
                     'en' => [
-                        'heading'          => 'Contact Us',
-                        'subheading'       => 'We\'d love to hear from you',
+                        'heading'          => 'Contact',
+                        'subheading'       => 'We would love to hear from you.',
                         'breadcrumb_label' => 'Home',
                         'breadcrumb_url'   => '/',
                     ],
                 ],
             ],
             [
-                'block_key'  => 'contact_form',
+                'block_key' => 'contact_form',
                 'sort_order' => 2,
-                'config'     => ['show_company' => true, 'phone_prefix' => ''],
-                'data'       => [
+                'config'    => [
+                    'email_to'        => '',
+                    'show_company'    => true,
+                    'show_info_boxes' => true,
+                    'phone_prefix'    => '+56',
+                    'css_class'       => '',
+                ],
+                'data'      => [
                     'es' => [
-                        'heading'         => 'Send Us a Message',
-                        'submit_label'    => 'Submit',
-                        'success_message' => 'Thank you! Your message was sent successfully.',
+                        'heading'         => 'Escríbenos',
+                        'description'     => 'Completa el formulario y te responderemos pronto.',
+                        'label_company'   => 'Empresa',
+                        'label_name'      => 'Nombre',
+                        'label_email'     => 'Correo electrónico',
+                        'label_phone'     => 'Teléfono',
+                        'label_message'   => 'Mensaje',
+                        'info_email_label' => 'Correo',
+                        'info_email_desc'  => 'Usa este formulario y te contactaremos por correo.',
+                        'info_phone_label' => 'Teléfono',
+                        'info_phone_desc'  => 'Atención de lunes a viernes.',
+                        'submit_label'    => 'Enviar mensaje',
+                        'success_message' => 'Gracias. Tu mensaje fue enviado correctamente.',
                     ],
                     'en' => [
-                        'heading'         => 'Send Us a Message',
-                        'submit_label'    => 'Submit',
-                        'success_message' => 'Thank you! Your message was sent successfully.',
+                        'heading'         => 'Write to us',
+                        'description'     => 'Fill out the form and we will reply soon.',
+                        'label_company'   => 'Company',
+                        'label_name'      => 'Name',
+                        'label_email'     => 'Email',
+                        'label_phone'     => 'Phone',
+                        'label_message'   => 'Message',
+                        'info_email_label' => 'Email',
+                        'info_email_desc'  => 'Use this form and we will contact you by email.',
+                        'info_phone_label' => 'Phone',
+                        'info_phone_desc'  => 'Support available Monday through Friday.',
+                        'submit_label'    => 'Send message',
+                        'success_message' => 'Thank you. Your message was sent successfully.',
                     ],
                 ],
             ],
             [
-                'block_key'  => 'location_info',
+                'block_key' => 'location_info',
                 'sort_order' => 3,
-                'config'     => [
+                'config'    => [
                     'map_embed_url' => '',
+                    'css_class'     => '',
                 ],
-                'data'       => [
+                'data'      => [
                     'es' => [
-                        'address_label' => 'Address',
-                        'address'       => '123 Main Street, Your City, Country',
-                        'phone_label'   => 'Phone',
-                        'phone'         => '+1 (555) 000-0000',
-                        'hours_label'   => 'Office Hours',
-                        'hours'         => "Monday to Friday: 9:00 - 18:00\nSaturday: 10:00 - 14:00",
+                        'section_title' => 'Dónde estamos',
+                        'address_label'  => 'Dirección',
+                        'address'        => 'Calle Falsa 123, Santiago, Chile',
+                        'phone_label'    => 'Teléfono',
+                        'phone'          => '+56 2 2345 6789',
+                        'hours_label'    => 'Horario',
+                        'hours'          => "Lunes a viernes: 09:00 - 18:00\nSábado: 10:00 - 14:00",
                     ],
                     'en' => [
-                        'address_label' => 'Address',
-                        'address'       => '123 Main Street, Your City, Country',
-                        'phone_label'   => 'Phone',
-                        'phone'         => '+1 (555) 000-0000',
-                        'hours_label'   => 'Office Hours',
-                        'hours'         => "Monday to Friday: 9:00 - 18:00\nSaturday: 10:00 - 14:00",
+                        'section_title' => 'Where we are',
+                        'address_label'  => 'Address',
+                        'address'        => '123 Main Street, Santiago, Chile',
+                        'phone_label'    => 'Phone',
+                        'phone'          => '+56 2 2345 6789',
+                        'hours_label'    => 'Hours',
+                        'hours'          => "Monday to Friday: 09:00 - 18:00\nSaturday: 10:00 - 14:00",
                     ],
                 ],
             ],
             [
-                'block_key'  => 'social_links',
+                'block_key' => 'social_links',
                 'sort_order' => 4,
-                'config'     => [
+                'config'    => [
                     'facebook_url'     => '',
                     'facebook_handle'  => '',
                     'instagram_url'    => '',
                     'instagram_handle' => '',
+                    'twitter_url'      => '',
+                    'twitter_handle'   => '',
+                    'youtube_url'      => '',
+                    'youtube_handle'   => '',
+                    'css_class'        => '',
                 ],
-                'data'       => [
-                    'es' => ['heading' => 'Follow Us'],
-                    'en' => ['heading' => 'Follow Us'],
+                'data'      => [
+                    'es' => [
+                        'heading' => 'Síguenos',
+                    ],
+                    'en' => [
+                        'heading' => 'Follow us',
+                    ],
                 ],
             ],
         ];
 
-        $this->seedBlocks($contactoId, 'page', $contactoBloques, $blockIds, $langIds);
+        $this->seedBlocks($homePageId, 'page', $homeBlocks, $blockIds, $langIds);
+        $this->seedBlocks($contactPageId, 'page', $contactBlocks, $blockIds, $langIds);
     }
 
-    // ── Helpers ───────────────────────────────────────────────────────────────
-
     /**
-     * @param  string[] $keys
+     * @param string[] $keys
      * @return array<string, int>
      */
     private function blockIds(array $keys): array
@@ -215,11 +274,12 @@ class CmsPageBlockSeeder extends Seeder
         foreach ($rows as $row) {
             $map[$row['block_key']] = (int) $row['id'];
         }
+
         return $map;
     }
 
     /**
-     * @param  string[] $codes
+     * @param string[] $codes
      * @return array<string, int>
      */
     private function langIds(array $codes): array
@@ -233,129 +293,110 @@ class CmsPageBlockSeeder extends Seeder
         foreach ($rows as $row) {
             $map[$row['code']] = (int) $row['id'];
         }
+
         return $map;
     }
 
-    /**
-     * Create or retrieve the Contacto page and return its id.
-     *
-     * @param array<string, int> $langIds
-     */
-    private function ensureContactoPage(array $langIds): int
+    private function pageIdByType(string $pageType): ?int
     {
-        $existing = $this->db->table('cms_page_translations')
-            ->where('slug', 'contacto')
+        $row = $this->db->table('cms_pages')
+            ->where('page_type', $pageType)
             ->get()
-            ->getRow();
+            ->getRowArray();
 
-        if ($existing !== null) {
-            return (int) $existing->page_id;
-        }
-
-        $this->db->table('cms_pages')->insert([
-            'page_type'         => 'generic',
-            'status'            => 'published',
-            'sort_order'        => 20,
-            'sitemap_priority'  => '0.6',
-            'sitemap_changefreq' => 'monthly',
-            'is_in_sitemap'     => 1,
-            'created_at'        => date('Y-m-d H:i:s'),
-            'updated_at'        => date('Y-m-d H:i:s'),
-        ]);
-
-        $pageId = (int) $this->db->insertID();
-
-        $translations = [
-            'es' => [
-                'slug'             => 'contact',
-                'title'            => 'Contact',
-                'meta_title'       => 'Contact Us',
-                'meta_description' => 'Get in touch with us. Contact form, address and phone.',
-            ],
-            'en' => [
-                'slug'             => 'contact',
-                'title'            => 'Contact',
-                'meta_title'       => 'Contact Us',
-                'meta_description' => 'Get in touch with us. Contact form, address and phone.',
-            ],
-        ];
-
-        foreach ($translations as $code => $t) {
-            if (! isset($langIds[$code])) {
-                continue;
-            }
-            $this->db->table('cms_page_translations')->insert([
-                'page_id'          => $pageId,
-                'language_id'      => $langIds[$code],
-                'slug'             => $t['slug'],
-                'title'            => $t['title'],
-                'meta_title'       => $t['meta_title'],
-                'meta_description' => $t['meta_description'],
-                'created_at'       => date('Y-m-d H:i:s'),
-                'updated_at'       => date('Y-m-d H:i:s'),
-            ]);
-        }
-
-        return $pageId;
+        return $row !== null ? (int) $row['id'] : null;
     }
 
     /**
-     * Insert block instances + translations for a page, skipping existing ones.
-     *
-     * @param array<array<string, mixed>> $blocks
-     * @param array<string, int>          $blockIds
-     * @param array<string, int>          $langIds
+     * @param array<int, array<string, mixed>> $blocks
+     * @param array<string, int>               $blockIds
+     * @param array<string, int>               $langIds
      */
     private function seedBlocks(int $ownerId, string $ownerType, array $blocks, array $blockIds, array $langIds): void
     {
         foreach ($blocks as $block) {
-            $key     = $block['block_key'];
-            $blockId = $blockIds[$key] ?? null;
+            $blockKey = (string) $block['block_key'];
+            $blockId = $blockIds[$blockKey] ?? null;
             if ($blockId === null) {
                 continue;
             }
 
-            // Skip if this block_id is already assigned to this owner
             $existing = $this->db->table('cms_block_instances')
                 ->where('block_id', $blockId)
                 ->where('owner_type', $ownerType)
                 ->where('owner_id', $ownerId)
+                ->where('sort_order', (int) $block['sort_order'])
                 ->get()
-                ->getRow();
+                ->getRowArray();
 
-            if ($existing !== null) {
-                continue;
+            $payload = [
+                'block_id'         => $blockId,
+                'owner_type'       => $ownerType,
+                'owner_id'         => $ownerId,
+                'parent_instance_id' => null,
+                'sort_order'       => (int) $block['sort_order'],
+                'column_index'     => null,
+                'is_active'        => 1,
+                'block_config'     => json_encode($block['config'] ?? [], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES),
+            ];
+
+            if ($existing === null) {
+                $this->db->table('cms_block_instances')->insert(array_merge($payload, [
+                    'created_at' => date('Y-m-d H:i:s'),
+                    'updated_at' => date('Y-m-d H:i:s'),
+                ]));
+                $instanceId = (int) $this->db->insertID();
+            } else {
+                $instanceId = (int) $existing['id'];
+                $this->db->table('cms_block_instances')
+                    ->where('id', $instanceId)
+                    ->update(array_merge($payload, [
+                        'updated_at' => date('Y-m-d H:i:s'),
+                    ]));
             }
-
-            $this->db->table('cms_block_instances')->insert([
-                'block_id'    => $blockId,
-                'owner_type'  => $ownerType,
-                'owner_id'    => $ownerId,
-                'sort_order'  => $block['sort_order'],
-                'is_active'   => 1,
-                'block_config' => json_encode($block['config'] ?? []),
-                'created_at'  => date('Y-m-d H:i:s'),
-                'updated_at'  => date('Y-m-d H:i:s'),
-            ]);
-
-            $instanceId = (int) $this->db->insertID();
 
             foreach (($block['data'] ?? []) as $langCode => $data) {
                 $langId = $langIds[$langCode] ?? null;
-                if ($langId === null) {
+                if ($langId === null || ! is_array($data)) {
                     continue;
                 }
 
-                $this->db->table('cms_block_instance_translations')->insert([
-                    'instance_id'  => $instanceId,
-                    'language_id'  => $langId,
-                    'block_data'   => json_encode($data),
-                    'is_published' => 1,
-                    'created_at'   => date('Y-m-d H:i:s'),
-                    'updated_at'   => date('Y-m-d H:i:s'),
-                ]);
+                $this->upsertBlockTranslation($instanceId, $langId, $data);
             }
         }
+    }
+
+    /**
+     * @param array<string, mixed> $blockData
+     */
+    private function upsertBlockTranslation(int $instanceId, int $languageId, array $blockData): void
+    {
+        $existing = $this->db->table('cms_block_instance_translations')
+            ->where('instance_id', $instanceId)
+            ->where('language_id', $languageId)
+            ->get()
+            ->getRowArray();
+
+        $payload = [
+            'instance_id'  => $instanceId,
+            'language_id'  => $languageId,
+            'block_data'   => json_encode($blockData, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES),
+            'is_published'  => 1,
+        ];
+
+        if ($existing === null) {
+            $this->db->table('cms_block_instance_translations')->insert(array_merge($payload, [
+                'created_at' => date('Y-m-d H:i:s'),
+                'updated_at' => date('Y-m-d H:i:s'),
+            ]));
+            return;
+        }
+
+        $this->db->table('cms_block_instance_translations')
+            ->where('id', (int) $existing['id'])
+            ->update(array_merge($payload, [
+                'updated_at' => date('Y-m-d H:i:s'),
+            ]));
     }
 
     private function placeholderSlide(string $label, string $background, string $foreground): string

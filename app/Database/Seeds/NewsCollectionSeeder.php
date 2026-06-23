@@ -57,7 +57,7 @@ class NewsCollectionSeeder extends Seeder
                 'description'              => 'Sección de noticias y actualidad.',
                 'listing_title'            => 'Últimas Noticias',
                 'listing_intro'            => 'Mantente al día con todo lo que sucede.',
-                'default_meta_title'       => 'Noticias | ' . getenv('app.name') ?: 'Noticias',
+                'default_meta_title'       => 'Noticias | Mi Sitio',
                 'default_meta_description' => 'Lee las últimas noticias y actualizaciones.',
             ],
             'en' => [
@@ -66,7 +66,7 @@ class NewsCollectionSeeder extends Seeder
                 'description'              => 'News and current events section.',
                 'listing_title'            => 'Latest News',
                 'listing_intro'            => 'Stay up to date with everything happening.',
-                'default_meta_title'       => 'News | ' . getenv('app.name') ?: 'News',
+                'default_meta_title'       => 'News | My Site',
                 'default_meta_description' => 'Read the latest news and updates.',
             ],
         ];

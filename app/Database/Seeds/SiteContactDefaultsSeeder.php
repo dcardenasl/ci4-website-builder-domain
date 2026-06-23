@@ -6,13 +6,13 @@ namespace App\Database\Seeds;
 
 use CodeIgniter\Database\Seeder;
 
-class SiteIdentitySeeder extends Seeder
+class SiteContactDefaultsSeeder extends Seeder
 {
     public function run(): void
     {
         $langIds = $this->langIds(['es', 'en']);
         if (! isset($langIds['es'], $langIds['en'])) {
-            echo "SiteIdentitySeeder: missing languages. Run CmsLanguageSeeder first.\n";
+            echo "SiteContactDefaultsSeeder: missing languages. Run CmsLanguageSeeder first.\n";
             return;
         }
 
@@ -20,97 +20,53 @@ class SiteIdentitySeeder extends Seeder
             // `setting_value` always stores the canonical base language value.
             // Non-base languages live only in `cms_setting_translations`.
             [
-                'setting_key'     => 'site_name',
-                'setting_value'   => 'Mi Sitio',
+                'setting_key'     => 'contact_admin_email',
+                'setting_value'   => 'contacto@example.com',
                 'setting_type'    => 'string',
-                'setting_group'   => 'identity',
-                'is_translatable' => 1,
+                'setting_group'   => 'contact',
+                'is_translatable' => 0,
                 'is_public'       => 1,
                 'is_active'       => 1,
                 'sort_order'      => 10,
-                'description'     => 'Nombre del sitio / marca',
-                'translations'    => [
-                    'en' => 'My Site',
-                ],
+                'description'     => 'Correo que recibe los mensajes del formulario',
             ],
             [
-                'setting_key'     => 'site_title',
-                'setting_value'   => 'Mi Sitio',
+                'setting_key'     => 'contact_from_email',
+                'setting_value'   => 'no-reply@example.com',
                 'setting_type'    => 'string',
-                'setting_group'   => 'identity',
-                'is_translatable' => 1,
-                'is_public'       => 1,
-                'is_active'       => 1,
-                'sort_order'      => 15,
-                'description'     => 'Título principal del sitio',
-                'translations'    => [
-                    'en' => 'My Site',
-                ],
-            ],
-            [
-                'setting_key'     => 'site_tagline',
-                'setting_value'   => 'Contenido multilingüe para tu sitio',
-                'setting_type'    => 'string',
-                'setting_group'   => 'identity',
-                'is_translatable' => 1,
+                'setting_group'   => 'contact',
+                'is_translatable' => 0,
                 'is_public'       => 1,
                 'is_active'       => 1,
                 'sort_order'      => 20,
-                'description'     => 'Tagline o lema del sitio',
-                'translations'    => [
-                    'en' => 'Multilingual content for your website',
-                ],
+                'description'     => 'Correo remitente usado en las notificaciones',
             ],
             [
-                'setting_key'     => 'site_description',
-                'setting_value'   => 'Sitio base con páginas, noticias y contacto.',
+                'setting_key'     => 'contact_site_name',
+                'setting_value'   => 'Mi Sitio',
                 'setting_type'    => 'string',
-                'setting_group'   => 'identity',
+                'setting_group'   => 'contact',
                 'is_translatable' => 1,
-                'is_public'       => 1,
-                'is_active'       => 1,
-                'sort_order'      => 25,
-                'description'     => 'Descripción corta del sitio',
-                'translations'    => [
-                    'en' => 'Starter site with pages, news, and contact.',
-                ],
-            ],
-            [
-                'setting_key'     => 'site_logo',
-                'setting_value'   => '',
-                'setting_meta'    => null,
-                'setting_type'    => 'file_id',
-                'setting_group'   => 'identity',
-                'is_translatable' => 0,
                 'is_public'       => 1,
                 'is_active'       => 1,
                 'sort_order'      => 30,
-                'description'     => 'Logo principal del sitio (file_id)',
+                'description'     => 'Nombre que aparece en los emails de contacto',
+                'translations'    => [
+                    'en' => 'My Site',
+                ],
             ],
             [
-                'setting_key'     => 'favicon',
-                'setting_value'   => '',
-                'setting_meta'    => null,
-                'setting_type'    => 'file_id',
-                'setting_group'   => 'identity',
-                'is_translatable' => 0,
-                'is_public'       => 1,
-                'is_active'       => 1,
-                'sort_order'      => 40,
-                'description'     => 'Favicon del sitio (file_id)',
-            ],
-            [
-                'setting_key'     => 'site_copyright',
-                'setting_value'   => '© ' . date('Y') . ' Mi Sitio. Todos los derechos reservados.',
+                'setting_key'     => 'contact_autoreply_message',
+                'setting_value'   => 'Gracias por escribirnos. Te responderemos a la brevedad.',
                 'setting_type'    => 'string',
-                'setting_group'   => 'identity',
+                'setting_group'   => 'contact',
                 'is_translatable' => 1,
                 'is_public'       => 1,
                 'is_active'       => 1,
-                'sort_order'      => 50,
-                'description'     => 'Texto de copyright del pie de página',
+                'sort_order'      => 40,
+                'description'     => 'Mensaje automático de respuesta',
                 'translations'    => [
-                    'en' => '© ' . date('Y') . ' My Site. All rights reserved.',
+                    'en' => 'Thank you for contacting us. We will reply as soon as possible.',
                 ],
             ],
         ];
@@ -196,14 +152,12 @@ class SiteIdentitySeeder extends Seeder
             ->get()
             ->getRowArray();
 
-        $payload = [
-            'setting_id'    => $settingId,
-            'language_id'   => $languageId,
-            'setting_value' => $value,
-        ];
-
         if ($existing === null) {
-            $this->db->table('cms_setting_translations')->insert($payload);
+            $this->db->table('cms_setting_translations')->insert([
+                'setting_id'    => $settingId,
+                'language_id'   => $languageId,
+                'setting_value' => $value,
+            ]);
             return;
         }
 
