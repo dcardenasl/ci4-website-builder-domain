@@ -263,4 +263,13 @@ trait CmsDomainServices
 
         return new \App\Services\Cms\TranslationAuditService();
     }
+
+    public static function cacheInvalidationClient(bool $getShared = true): \App\Libraries\Cms\CacheInvalidationClient
+    {
+        if ($getShared) {
+            return static::getSharedInstance('cacheInvalidationClient');
+        }
+
+        return new \App\Libraries\Cms\CacheInvalidationClient();
+    }
 }

@@ -20,14 +20,18 @@ class CollectionService extends BaseCrudService implements CollectionServiceInte
     /** @var array<mixed>|null */
     private ?array $tempTranslations = null;
 
+    private \App\Libraries\Cms\CacheInvalidationClient $cacheInvalidator;
+
     /**
      * @param RepositoryInterface<CollectionEntity> $collectionRepository
      */
     public function __construct(
         RepositoryInterface $collectionRepository,
-        ResponseMapperInterface $responseMapper
+        ResponseMapperInterface $responseMapper,
+        ?\App\Libraries\Cms\CacheInvalidationClient $cacheInvalidator = null
     ) {
         parent::__construct($collectionRepository, $responseMapper);
+        $this->cacheInvalidator = $cacheInvalidator ?? service('cacheInvalidationClient');
     }
 
     protected function beforeStore(array $data, ?SecurityContext $context): array
@@ -63,6 +67,7 @@ class CollectionService extends BaseCrudService implements CollectionServiceInte
         if ($this->tempTranslations !== null) {
             $this->saveTranslations((int) $entity->id, $this->tempTranslations);
         }
+        $this->cacheInvalidator->invalidate(['collections', 'entries']);
         $this->tempTranslations = null;
     }
 
@@ -106,6 +111,7 @@ class CollectionService extends BaseCrudService implements CollectionServiceInte
         if ($this->tempTranslations !== null) {
             $this->saveTranslations((int) $entity->id, $this->tempTranslations);
         }
+        $this->cacheInvalidator->invalidate(['collections', 'entries']);
         $this->tempTranslations = null;
     }
 

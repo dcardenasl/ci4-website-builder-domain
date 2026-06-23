@@ -19,14 +19,18 @@ class TagService extends BaseCrudService implements TagServiceInterface
     /** @var array<array{language_id: int, slug: string, name: string}>|null */
     private ?array $tempTranslations = null;
 
+    private \App\Libraries\Cms\CacheInvalidationClient $cacheInvalidator;
+
     /**
      * @param RepositoryInterface<TagEntity> $tagRepository
      */
     public function __construct(
         RepositoryInterface $tagRepository,
-        ResponseMapperInterface $responseMapper
+        ResponseMapperInterface $responseMapper,
+        ?\App\Libraries\Cms\CacheInvalidationClient $cacheInvalidator = null
     ) {
         parent::__construct($tagRepository, $responseMapper);
+        $this->cacheInvalidator = $cacheInvalidator ?? service('cacheInvalidationClient');
     }
 
     protected function beforeStore(array $data, ?SecurityContext $context): array
@@ -43,6 +47,7 @@ class TagService extends BaseCrudService implements TagServiceInterface
         if ($this->tempTranslations !== null) {
             $this->saveTranslations((int) $entity->id, $this->tempTranslations);
         }
+        $this->cacheInvalidator->invalidate(['taxonomies', 'entries']);
         $this->tempTranslations = null;
     }
 
@@ -64,6 +69,7 @@ class TagService extends BaseCrudService implements TagServiceInterface
         if ($this->tempTranslations !== null) {
             $this->saveTranslations((int) $entity->id, $this->tempTranslations);
         }
+        $this->cacheInvalidator->invalidate(['taxonomies', 'entries']);
         $this->tempTranslations = null;
     }
 

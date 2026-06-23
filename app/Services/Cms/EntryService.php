@@ -30,16 +30,20 @@ class EntryService extends BaseCrudService implements EntryServiceInterface
 
     private \App\Libraries\Cms\SlugRedirectRecorder $slugRedirectRecorder;
 
+    private \App\Libraries\Cms\CacheInvalidationClient $cacheInvalidator;
+
     /**
      * @param RepositoryInterface<EntryEntity> $entryRepository
      */
     public function __construct(
         RepositoryInterface $entryRepository,
         ResponseMapperInterface $responseMapper,
-        ?\App\Libraries\Cms\SlugRedirectRecorder $slugRedirectRecorder = null
+        ?\App\Libraries\Cms\SlugRedirectRecorder $slugRedirectRecorder = null,
+        ?\App\Libraries\Cms\CacheInvalidationClient $cacheInvalidator = null
     ) {
         parent::__construct($entryRepository, $responseMapper);
         $this->slugRedirectRecorder = $slugRedirectRecorder ?? service('slugRedirectRecorder');
+        $this->cacheInvalidator     = $cacheInvalidator ?? service('cacheInvalidationClient');
     }
 
     protected function beforeStore(array $data, ?SecurityContext $context): array
@@ -70,6 +74,7 @@ class EntryService extends BaseCrudService implements EntryServiceInterface
             $this->saveTranslations((int) $entity->id, $this->tempTranslations);
         }
         $this->createVersionSnapshot((int) $entity->id, 'Initial creation');
+        $this->cacheInvalidator->invalidate(['entries']);
         $this->tempTranslations = null;
     }
 
@@ -108,6 +113,7 @@ class EntryService extends BaseCrudService implements EntryServiceInterface
             $this->saveTranslations((int) $entity->id, $this->tempTranslations);
         }
         $this->createVersionSnapshot((int) $entity->id, 'Update entry');
+        $this->cacheInvalidator->invalidate(['entries']);
         $this->tempTranslations = null;
     }
 

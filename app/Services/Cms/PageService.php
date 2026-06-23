@@ -22,16 +22,20 @@ class PageService extends BaseCrudService implements PageServiceInterface
 
     private \App\Libraries\Cms\SlugRedirectRecorder $slugRedirectRecorder;
 
+    private \App\Libraries\Cms\CacheInvalidationClient $cacheInvalidator;
+
     /**
      * @param RepositoryInterface<PageEntity> $pageRepository
      */
     public function __construct(
         RepositoryInterface $pageRepository,
         ResponseMapperInterface $responseMapper,
-        ?\App\Libraries\Cms\SlugRedirectRecorder $slugRedirectRecorder = null
+        ?\App\Libraries\Cms\SlugRedirectRecorder $slugRedirectRecorder = null,
+        ?\App\Libraries\Cms\CacheInvalidationClient $cacheInvalidator = null
     ) {
         parent::__construct($pageRepository, $responseMapper);
         $this->slugRedirectRecorder = $slugRedirectRecorder ?? service('slugRedirectRecorder');
+        $this->cacheInvalidator     = $cacheInvalidator ?? service('cacheInvalidationClient');
     }
 
     protected function beforeStore(array $data, ?SecurityContext $context): array
@@ -61,6 +65,7 @@ class PageService extends BaseCrudService implements PageServiceInterface
             $this->saveTranslations((int) $entity->id, $this->tempTranslations);
         }
         $this->createVersionSnapshot((int) $entity->id, 'Initial creation');
+        $this->cacheInvalidator->invalidate(['pages']);
         $this->tempTranslations = null;
     }
 
@@ -90,6 +95,7 @@ class PageService extends BaseCrudService implements PageServiceInterface
             $this->saveTranslations((int) $entity->id, $this->tempTranslations);
         }
         $this->createVersionSnapshot((int) $entity->id, 'Update page');
+        $this->cacheInvalidator->invalidate(['pages']);
         $this->tempTranslations = null;
     }
 

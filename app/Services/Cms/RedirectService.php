@@ -6,6 +6,7 @@ namespace App\Services\Cms;
 
 use App\Entities\RedirectEntity;
 use App\Interfaces\Cms\RedirectServiceInterface;
+use dcardenasl\Ci4ApiCore\Dto\SecurityContext;
 use dcardenasl\Ci4ApiCore\Mappers\ResponseMapperInterface;
 use dcardenasl\Ci4ApiCore\Repositories\RepositoryInterface;
 use dcardenasl\Ci4ApiCore\Services\BaseCrudService;
@@ -15,24 +16,29 @@ use dcardenasl\Ci4ApiCore\Services\BaseCrudService;
  */
 class RedirectService extends BaseCrudService implements RedirectServiceInterface
 {
+    private \App\Libraries\Cms\CacheInvalidationClient $cacheInvalidator;
+
     /**
      * @param RepositoryInterface<RedirectEntity> $redirectRepository
      */
     public function __construct(
         RepositoryInterface $redirectRepository,
-        ResponseMapperInterface $responseMapper
+        ResponseMapperInterface $responseMapper,
+        ?\App\Libraries\Cms\CacheInvalidationClient $cacheInvalidator = null
     ) {
         parent::__construct($redirectRepository, $responseMapper);
+        $this->cacheInvalidator = $cacheInvalidator ?? service('cacheInvalidationClient');
     }
 
-    /**
-     * Domain Hooks
-     *
-     * Implement beforeStore, afterStore, beforeUpdate, etc.,
-     * to add specific business logic while keeping the service layer clean.
-     */
+    protected function afterStore(object $entity, ?SecurityContext $context): void
+    {
+        parent::afterStore($entity, $context);
+        $this->cacheInvalidator->invalidate(['redirects']);
+    }
 
-    // Custom methods declared in RedirectServiceInterface must be implemented here.
-    // Until fully implemented, throw to avoid silent incorrect behavior:
-    //   throw new \BadMethodCallException(__METHOD__ . ' not implemented');
+    protected function afterUpdate(object $entity, ?SecurityContext $context): void
+    {
+        parent::afterUpdate($entity, $context);
+        $this->cacheInvalidator->invalidate(['redirects']);
+    }
 }

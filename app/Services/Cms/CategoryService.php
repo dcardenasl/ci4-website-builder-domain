@@ -21,16 +21,20 @@ class CategoryService extends BaseCrudService implements CategoryServiceInterfac
 
     protected \App\Libraries\Cms\TranslationResolver $translationResolver;
 
+    private \App\Libraries\Cms\CacheInvalidationClient $cacheInvalidator;
+
     /**
      * @param RepositoryInterface<CategoryEntity> $categoryRepository
      */
     public function __construct(
         RepositoryInterface $categoryRepository,
         ResponseMapperInterface $responseMapper,
-        \App\Libraries\Cms\TranslationResolver $translationResolver
+        \App\Libraries\Cms\TranslationResolver $translationResolver,
+        ?\App\Libraries\Cms\CacheInvalidationClient $cacheInvalidator = null
     ) {
         parent::__construct($categoryRepository, $responseMapper);
         $this->translationResolver = $translationResolver;
+        $this->cacheInvalidator    = $cacheInvalidator ?? service('cacheInvalidationClient');
     }
 
     protected function beforeStore(array $data, ?SecurityContext $context): array
@@ -47,6 +51,7 @@ class CategoryService extends BaseCrudService implements CategoryServiceInterfac
         if ($this->tempTranslations !== null) {
             $this->saveTranslations((int) $entity->id, $this->tempTranslations);
         }
+        $this->cacheInvalidator->invalidate(['taxonomies', 'entries']);
         $this->tempTranslations = null;
     }
 
@@ -68,6 +73,7 @@ class CategoryService extends BaseCrudService implements CategoryServiceInterfac
         if ($this->tempTranslations !== null) {
             $this->saveTranslations((int) $entity->id, $this->tempTranslations);
         }
+        $this->cacheInvalidator->invalidate(['taxonomies', 'entries']);
         $this->tempTranslations = null;
     }
 

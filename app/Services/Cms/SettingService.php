@@ -20,14 +20,18 @@ class SettingService extends BaseCrudService implements SettingServiceInterface
     /** @var array<array{language_id: int, setting_value: string}>|null */
     private ?array $tempTranslations = null;
 
+    private \App\Libraries\Cms\CacheInvalidationClient $cacheInvalidator;
+
     /**
      * @param RepositoryInterface<SettingEntity> $settingRepository
      */
     public function __construct(
         RepositoryInterface $settingRepository,
-        ResponseMapperInterface $responseMapper
+        ResponseMapperInterface $responseMapper,
+        ?\App\Libraries\Cms\CacheInvalidationClient $cacheInvalidator = null
     ) {
         parent::__construct($settingRepository, $responseMapper);
+        $this->cacheInvalidator = $cacheInvalidator ?? service('cacheInvalidationClient');
     }
 
     protected function beforeStore(array $data, ?SecurityContext $context): array
@@ -54,6 +58,7 @@ class SettingService extends BaseCrudService implements SettingServiceInterface
         if ($this->tempTranslations !== null && $entity->is_translatable) {
             $this->saveTranslations((int) $entity->id, $this->tempTranslations);
         }
+        $this->cacheInvalidator->invalidate(['settings']);
         $this->tempTranslations = null;
     }
 
@@ -85,6 +90,7 @@ class SettingService extends BaseCrudService implements SettingServiceInterface
         if ($this->tempTranslations !== null && $entity->is_translatable) {
             $this->saveTranslations((int) $entity->id, $this->tempTranslations);
         }
+        $this->cacheInvalidator->invalidate(['settings']);
         $this->tempTranslations = null;
     }
 

@@ -20,14 +20,18 @@ class MenuItemService extends BaseCrudService implements MenuItemServiceInterfac
     /** @var array<mixed>|null */
     private ?array $tempTranslations = null;
 
+    private \App\Libraries\Cms\CacheInvalidationClient $cacheInvalidator;
+
     /**
      * @param RepositoryInterface<MenuItemEntity> $menuItemRepository
      */
     public function __construct(
         RepositoryInterface $menuItemRepository,
-        ResponseMapperInterface $responseMapper
+        ResponseMapperInterface $responseMapper,
+        ?\App\Libraries\Cms\CacheInvalidationClient $cacheInvalidator = null
     ) {
         parent::__construct($menuItemRepository, $responseMapper);
+        $this->cacheInvalidator = $cacheInvalidator ?? service('cacheInvalidationClient');
     }
 
     protected function beforeStore(array $data, ?SecurityContext $context): array
@@ -55,6 +59,7 @@ class MenuItemService extends BaseCrudService implements MenuItemServiceInterfac
         if ($this->tempTranslations !== null) {
             $this->saveTranslations((int) $entity->id, $this->tempTranslations);
         }
+        $this->cacheInvalidator->invalidate(['menus']);
         $this->tempTranslations = null;
     }
 
@@ -102,6 +107,7 @@ class MenuItemService extends BaseCrudService implements MenuItemServiceInterfac
         if ($this->tempTranslations !== null) {
             $this->saveTranslations((int) $entity->id, $this->tempTranslations);
         }
+        $this->cacheInvalidator->invalidate(['menus']);
         $this->tempTranslations = null;
     }
 
