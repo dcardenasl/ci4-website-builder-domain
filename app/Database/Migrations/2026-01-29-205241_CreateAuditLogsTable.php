@@ -68,6 +68,8 @@ class CreateAuditLogsTable extends Migration
 
     public function down(): void
     {
-        $this->forge->dropTable('audit_logs');
+        // Intentionally left as a no-op.
+        // Audit logs are treated as a forward-only schema addition in this
+        // repository to keep migration setup stable across test runs.
     }
 }
