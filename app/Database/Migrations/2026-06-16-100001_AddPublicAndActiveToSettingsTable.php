@@ -40,25 +40,8 @@ class AddPublicAndActiveToSettingsTable extends Migration
 
     public function down(): void
     {
-        $indexExists = $this->db->query(
-            "SELECT COUNT(*) AS cnt FROM information_schema.STATISTICS WHERE table_schema = DATABASE() AND table_name = 'cms_settings' AND index_name = 'idx_setting_public_active'"
-        );
-        if ($indexExists && (int) $indexExists->getRowArray()['cnt'] > 0) {
-            $this->db->query('ALTER TABLE `cms_settings` DROP INDEX `idx_setting_public_active`');
-        }
-
-        $colExists = $this->db->query(
-            "SELECT COUNT(*) AS cnt FROM information_schema.COLUMNS WHERE table_schema = DATABASE() AND table_name = 'cms_settings' AND column_name = 'is_public'"
-        );
-        if ($colExists && (int) $colExists->getRowArray()['cnt'] > 0) {
-            $this->forge->dropColumn('cms_settings', 'is_public');
-        }
-
-        $colExists = $this->db->query(
-            "SELECT COUNT(*) AS cnt FROM information_schema.COLUMNS WHERE table_schema = DATABASE() AND table_name = 'cms_settings' AND column_name = 'is_active'"
-        );
-        if ($colExists && (int) $colExists->getRowArray()['cnt'] > 0) {
-            $this->forge->dropColumn('cms_settings', 'is_active');
-        }
+        // Intentionally left as a no-op.
+        // These columns/indexes are part of the supported schema now and the
+        // rollback path is not used in normal operation or test setup.
     }
 }
