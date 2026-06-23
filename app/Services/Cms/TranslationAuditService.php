@@ -39,6 +39,9 @@ class TranslationAuditService implements TranslationAuditServiceInterface
             return [];
         }
 
+        $totalSettings = (int) $this->settingModel->where('is_translatable', 1)->countAllResults();
+        $completedSettings = (int) $this->settingModel->where('is_translatable', 1)->where('setting_value !=', '')->countAllResults();
+
         $report = [];
         foreach ($activeLanguages as $lang) {
             /** @var \App\Models\LanguageModel $lang */
@@ -67,15 +70,8 @@ class TranslationAuditService implements TranslationAuditServiceInterface
                 ->where('cms_menu_item_translations.label !=', '')
                 ->countAllResults();
 
-            // Audit translatable settings
-            $totalSettings = (int) $this->settingModel->where('is_translatable', 1)->countAllResults();
-            $translatedSettings = (int) $this->settingTranslationModel
-                ->where('language_id', $langId)
-                ->where('setting_value !=', '')
-                ->countAllResults();
-
             $totalElements = $totalPages + $totalMenuItems + $totalSettings;
-            $completedElements = $translatedPages + $translatedMenuItems + $translatedSettings;
+            $completedElements = $translatedPages + $translatedMenuItems + $completedSettings;
             $percentage = $totalElements > 0 ? round(($completedElements / $totalElements) * 100) : 100;
 
             $report[] = [
@@ -213,46 +209,46 @@ class TranslationAuditService implements TranslationAuditServiceInterface
 
         // 3. Audit Settings
         $settings = $this->settingModel->where('is_translatable', 1)->findAll();
+        $baseLanguage = $this->languageModel->where('is_default', 1)->where('is_active', 1)->first();
+        $baseLanguageId = $baseLanguage ? (int) $baseLanguage->id : null;
         foreach ($settings as $setting) {
             /** @var \App\Models\SettingModel $setting */
             $settingId = (int) $setting->id;
-            $translations = $this->settingTranslationModel->where('setting_id', $settingId)->findAll();
-            $translationsByLang = [];
-            foreach ($translations as $t) {
-                $translationsByLang[(int) $t->language_id] = $t;
+            if (empty($setting->setting_value)) {
+                if (isset($filters['language_id']) && $baseLanguageId !== null && (int) $filters['language_id'] !== $baseLanguageId) {
+                    continue;
+                }
+
+                $issues[] = [
+                    'resource' => 'setting',
+                    'resource_id' => $settingId,
+                    'reference_name' => 'Setting: ' . $setting->setting_key,
+                    'language_id' => $baseLanguageId,
+                    'language_code' => $baseLanguage ? (string) ($baseLanguage->code ?? '') : '',
+                    'status' => 'incomplete',
+                    'detail' => 'Missing fields: setting_value',
+                ];
             }
 
-            foreach ($activeLanguages as $lang) {
-                /** @var \App\Models\LanguageModel $lang */
-                $langId = (int) $lang->id;
-
+            $translations = $this->settingTranslationModel->where('setting_id', $settingId)->findAll();
+            foreach ($translations as $trans) {
+                /** @var \App\Models\SettingTranslationModel $trans */
+                $langId = (int) $trans->language_id;
                 if (isset($filters['language_id']) && (int) $filters['language_id'] !== $langId) {
                     continue;
                 }
 
-                if (!isset($translationsByLang[$langId])) {
+                if (empty($trans->setting_value)) {
+                    $language = $this->languageModel->find($langId);
                     $issues[] = [
                         'resource' => 'setting',
                         'resource_id' => $settingId,
                         'reference_name' => 'Setting: ' . $setting->setting_key,
                         'language_id' => $langId,
-                        'language_code' => $lang->code,
-                        'status' => 'missing',
-                        'detail' => 'Translation is missing completely'
+                        'language_code' => is_object($language) ? (string) ($language->code ?? '') : '',
+                        'status' => 'incomplete',
+                        'detail' => 'Missing fields: setting_value'
                     ];
-                } else {
-                    $trans = $translationsByLang[$langId];
-                    if (empty($trans->setting_value)) {
-                        $issues[] = [
-                            'resource' => 'setting',
-                            'resource_id' => $settingId,
-                            'reference_name' => 'Setting: ' . $setting->setting_key,
-                            'language_id' => $langId,
-                            'language_code' => $lang->code,
-                            'status' => 'incomplete',
-                            'detail' => 'Missing fields: setting_value'
-                        ];
-                    }
                 }
             }
         }
@@ -304,13 +300,23 @@ class TranslationAuditService implements TranslationAuditServiceInterface
                     break;
 
                 case 'setting':
+                    $setting = $this->settingModel->find($resourceId);
+                    if ($setting && ! empty($setting->setting_value)) {
+                        $status = 'complete';
+                    } elseif ($setting) {
+                        $status = 'incomplete';
+                        $detail = 'Missing fields: setting_value';
+                    }
+
                     $trans = $this->settingTranslationModel
                         ->where('setting_id', $resourceId)
                         ->where('language_id', $langId)
                         ->first();
-                    if ($trans) {
-                        $status = empty($trans->setting_value) ? 'incomplete' : 'complete';
-                        $detail = empty($trans->setting_value) ? 'Missing fields: setting_value' : '';
+                    if ($trans && empty($trans->setting_value)) {
+                        $status = 'incomplete';
+                        $detail = 'Missing fields: setting_value';
+                    } elseif ($trans && ! empty($trans->setting_value) && $status !== 'incomplete') {
+                        $status = 'complete';
                     }
                     break;
             }

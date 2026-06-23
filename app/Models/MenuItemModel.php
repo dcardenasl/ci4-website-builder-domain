@@ -26,7 +26,7 @@ class MenuItemModel extends BaseAuditableModel
     protected array $searchableFields = [];
 
     /** @var array<int, string> */
-    protected array $filterableFields = ['id'];
+    protected array $filterableFields = ['id', 'menu_id', 'parent_id'];
 
     /** @var array<int, string> */
     protected array $sortableFields = ['id', 'created_at'];

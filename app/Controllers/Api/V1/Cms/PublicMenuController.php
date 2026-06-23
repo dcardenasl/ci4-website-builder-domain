@@ -61,7 +61,7 @@ class PublicMenuController extends ApiController
                                 if ($item->page_id !== null) {
                                     $pageSlug = $slugRouter->resolveSlug($lang, 'page', (int) $item->page_id);
                                     if ($pageSlug !== null) {
-                                        $customUrl = '/' . ltrim($pageSlug, '/');
+                                        $customUrl = $this->resolvePageUrl($pageSlug);
                                     }
                                 }
                                 break;
@@ -150,5 +150,14 @@ class PublicMenuController extends ApiController
         }
 
         return $branch;
+    }
+
+    private function resolvePageUrl(string $pageSlug): string
+    {
+        if (trim($pageSlug, '/') === 'home') {
+            return '/';
+        }
+
+        return '/' . ltrim($pageSlug, '/');
     }
 }

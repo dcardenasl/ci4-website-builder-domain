@@ -134,11 +134,20 @@ class SettingService extends BaseCrudService implements SettingServiceInterface
         $translationModel->where('setting_id', $settingId)->delete();
 
         foreach ($translations as $translation) {
-            $translationModel->insert([
+            $langId = (int) $translation['language_id'];
+            $result = $translationModel->insert([
                 'setting_id'    => $settingId,
-                'language_id'   => (int) $translation['language_id'],
+                'language_id'   => $langId,
                 'setting_value' => $translation['setting_value'],
             ]);
+
+            if ($result === false) {
+                $errors = $translationModel->errors();
+                throw new ValidationException(
+                    lang('Api.validationFailed'),
+                    $errors ?: ['translations' => lang('Api.invalidTranslation')]
+                );
+            }
         }
     }
 }

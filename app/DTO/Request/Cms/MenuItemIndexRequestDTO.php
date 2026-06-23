@@ -14,6 +14,7 @@ readonly class MenuItemIndexRequestDTO extends BaseRequestDTO
     public int $per_page;
     public ?string $search;
     public string $sort;
+    public ?int $menu_id;
 
     /**
      * @return array<string, string>
@@ -25,6 +26,7 @@ readonly class MenuItemIndexRequestDTO extends BaseRequestDTO
             'per_page'  => 'permit_empty|is_natural_no_zero|less_than[101]',
             'search'    => 'permit_empty|string|max_length[100]',
             'sort'      => 'permit_empty|max_length[100]',
+            'menu_id'   => 'permit_empty|integer',
         ];
     }
 
@@ -37,6 +39,8 @@ readonly class MenuItemIndexRequestDTO extends BaseRequestDTO
         $this->per_page = isset($data['per_page']) ? (int) $data['per_page'] : 20;
         $this->search = $data['search'] ?? null;
         $this->sort = (string) ($data['sort'] ?? '');
+        $menuId = $data['menu_id'] ?? ($data['filter']['menu_id'] ?? null);
+        $this->menu_id = $menuId !== null && $menuId !== '' ? (int) $menuId : null;
     }
 
     /**
@@ -44,11 +48,19 @@ readonly class MenuItemIndexRequestDTO extends BaseRequestDTO
      */
     public function toArray(): array
     {
-        return [
+        $payload = [
             'page' => $this->page,
             'per_page' => $this->per_page,
             'search' => $this->search,
             'sort' => $this->sort,
         ];
+
+        if ($this->menu_id !== null) {
+            $payload['filter'] = [
+                'menu_id' => $this->menu_id,
+            ];
+        }
+
+        return $payload;
     }
 }
