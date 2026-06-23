@@ -14,7 +14,7 @@ use CodeIgniter\Database\Seeder;
  * was established. Running this seeder is idempotent — it only updates rows where
  * `image_file_id` is not yet set.
  *
- * Run BEFORE deploying BlockInstanceSerializer changes that remove the legacy paths.
+ * Run BEFORE deploying BlockInstanceSerializer changes that remove the old image block paths.
  */
 class BackfillImageBlockConventionSeeder extends Seeder
 {

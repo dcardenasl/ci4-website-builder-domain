@@ -136,7 +136,7 @@ class CmsBlockTypeSeeder extends Seeder
             ],
 
             // ── image ────────────────────────────────────────────────────────────
-            // Mantiene el esquema legacy (file_id + url separados) por compatibilidad.
+            // Mantiene el esquema actual (file_id + url separados) por compatibilidad.
             [
                 'block_key'         => 'image',
                 'name'              => 'Imagen',
