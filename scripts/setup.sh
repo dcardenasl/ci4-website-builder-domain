@@ -339,6 +339,20 @@ ci4_seed_rbac() {
   fi
 }
 
+# Seed the starter site content for the domain app.
+# Idempotent — safe to re-run. Installs languages, site settings, pages,
+# menus, blocks and contact defaults in Spanish-first order.
+ci4_seed_site_bootstrap() {
+  print_header "Site bootstrap (languages, settings, pages, menus, blocks)"
+  local seed_timeout="${CI4_SEED_TIMEOUT:-60}"
+  if run_with_timeout "$seed_timeout" php spark db:seed SiteBootstrapSeeder; then
+    print_ok "Site bootstrap completed"
+  else
+    print_error "Site bootstrap failed (or timed out after ${seed_timeout}s). Run 'php spark db:seed SiteBootstrapSeeder' manually."
+    exit 1
+  fi
+}
+
 # Generate the OpenAPI / Swagger schema. Non-fatal: a slow generator should
 # not block the rest of init.sh, but it must not hang forever either.
 ci4_generate_swagger() {

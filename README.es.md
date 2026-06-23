@@ -40,7 +40,7 @@ El reparto:
 ./init.sh
 # Pregunta: URL del hub, X-App-Key, código de app, credenciales de BD,
 # JWT de superadmin opcional.
-# Ejecuta: composer install → migrate → domain:sync-permissions.
+# Ejecuta: composer install → migrate → db:seed SiteBootstrapSeeder → domain:sync-permissions.
 
 php spark serve --port 8090
 ```
@@ -90,6 +90,7 @@ php spark serve --port 8090
 
 # Base de datos
 php spark migrate                    # Solo migraciones locales — nunca toca la BD del hub
+php spark db:seed SiteBootstrapSeeder # Contenido base en español: idiomas, configuración, páginas, menús, bloques
 php spark tests:prepare-db           # Sincroniza la BD de tests antes de feature tests
 
 # Sincronización de permisos con el hub (idempotente — se puede reintentar)

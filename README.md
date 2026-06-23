@@ -39,7 +39,7 @@ The split:
 ```bash
 ./init.sh
 # Prompts for: hub URL, X-App-Key, app code, DB credentials, optional superadmin JWT.
-# Runs: composer install → migrate → domain:sync-permissions.
+# Runs: composer install → migrate → db:seed SiteBootstrapSeeder → domain:sync-permissions.
 
 php spark serve --port 8090
 ```
@@ -89,6 +89,7 @@ php spark serve --port 8090
 
 # Database
 php spark migrate                    # Local migrations only — never touches the hub DB
+php spark db:seed SiteBootstrapSeeder # Spanish-first starter content: languages, settings, pages, menus, blocks
 php spark tests:prepare-db           # Sync the test DB before feature tests
 
 # Hub permission sync (idempotent — safe to rerun)

@@ -38,9 +38,7 @@ class PrepareTestDatabase extends BaseCommand
                 return EXIT_ERROR;
             }
         }
-        if (! $isSqlite) {
-            $this->resetMigrationHistory($db);
-        }
+        $this->resetMigrationHistory($db);
         $this->migrateAppSchema($db);
         $ready = $this->ensureExpectedTablesPresent($db);
 
@@ -131,20 +129,7 @@ class PrepareTestDatabase extends BaseCommand
             return;
         }
 
-        $db->table('migrations')
-            ->where('group', 'tests')
-            ->delete();
-    }
-
-    private function ensureMigrationsTable(BaseConnection $db): void
-    {
-        $config = new Migrations();
-        $config->enabled = true;
-
-        /** @var MigrationRunner $runner */
-        $runner = service('migrations', $config, $db, false);
-        $runner->setSilent(false);
-        $runner->ensureTable();
+        $db->table('migrations')->truncate();
     }
 
     private function ensureExpectedTablesPresent(BaseConnection $db): bool

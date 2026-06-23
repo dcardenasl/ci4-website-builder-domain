@@ -63,6 +63,7 @@ composer cs-fix           # auto-fix style
 
 # Database
 php spark migrate         # idempotency_keys, audit_logs, request_logs, metrics, jobs
+php spark db:seed SiteBootstrapSeeder # Spanish-first site bootstrap: languages, settings, pages, menus, blocks
 
 # Hub permission sync (idempotent — safe to rerun). Needs a superadmin JWT.
 php spark domain:sync-permissions --admin-token=<jwt>     # or set hub.adminToken in .env

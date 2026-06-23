@@ -28,4 +28,5 @@ return [
     'responseDtoNotDefined' => 'Clase Response DTO no definida para {0}.',
     'responseDtoMustImplement' => 'La clase {0} debe implementar DataTransferObjectInterface.',
     'fieldRequired' => 'El campo {0} es obligatorio.',
+    'invalidTranslation' => 'ID de idioma inválido o entrada de traducción duplicada.',
 ];
