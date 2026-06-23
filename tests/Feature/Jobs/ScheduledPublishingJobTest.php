@@ -54,7 +54,6 @@ final class ScheduledPublishingJobTest extends CIUnitTestCase
         // Seed collection (required for entries)
         $this->db->table('cms_collections')->insert([
             'collection_key' => 'blog',
-            'url_prefix'     => 'blog',
             'is_active'      => 1,
             'sort_order'     => 1,
         ]);

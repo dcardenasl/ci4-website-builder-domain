@@ -39,4 +39,11 @@ final class CollectionControllerTest extends CIUnitTestCase
 
         $result->assertStatus(401);
     }
+
+    public function testCheckSlugRequiresAuth(): void
+    {
+        $result = $this->get('/api/v1/cms/collections/check-slug?slug=news&language_id=1');
+
+        $result->assertStatus(401);
+    }
 }

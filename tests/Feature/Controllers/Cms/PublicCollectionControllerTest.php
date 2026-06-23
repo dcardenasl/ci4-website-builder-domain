@@ -46,7 +46,6 @@ final class PublicCollectionControllerTest extends CIUnitTestCase
         // Seed collection
         $this->db->table('cms_collections')->insert([
             'collection_key'      => 'blog',
-            'url_prefix'          => 'blog',
             'is_active'           => 1,
             'requires_approval'   => 0,
             'enables_categories'  => 1,
@@ -58,6 +57,7 @@ final class PublicCollectionControllerTest extends CIUnitTestCase
         $this->db->table('cms_collection_translations')->insert([
             'collection_id' => $this->collectionId,
             'language_id'   => $this->langEsId,
+            'slug'          => 'blog',
             'name'          => 'Mi Blog',
             'description'   => 'El blog principal de noticias.',
         ]);
@@ -73,7 +73,9 @@ final class PublicCollectionControllerTest extends CIUnitTestCase
         $this->assertSame('success', $body['status']);
         $this->assertCount(1, $body['data']);
         $this->assertSame('blog', $body['data'][0]['collection_key']);
+        $this->assertSame('blog', $body['data'][0]['slug']);
         $this->assertSame('Mi Blog', $body['data'][0]['name']);
         $this->assertSame('El blog principal de noticias.', $body['data'][0]['description']);
+        $this->assertArrayNotHasKey('url_prefix', $body['data'][0]);
     }
 }

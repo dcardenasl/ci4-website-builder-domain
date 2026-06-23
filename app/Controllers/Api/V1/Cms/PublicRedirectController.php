@@ -126,20 +126,15 @@ class PublicRedirectController extends ApiController
 
                             $prefix = '';
                             if ($entryRow) {
-                                $collectionResult = $db->table('cms_collections')->where('id', (int)$entryRow['collection_id'])->get();
-                                $collectionRow = null;
-                                if ($collectionResult instanceof ResultInterface) {
-                                    $collectionRow = $collectionResult->getRowArray();
-                                }
-                                if ($collectionRow) {
-                                    $prefix = trim($collectionRow['url_prefix'], '/') . '/';
-                                }
+                                $translationResolver = Services::translationResolver();
+                                $resolvedCollection = $translationResolver->resolve('collection', (int) $entryRow['collection_id'], $langCode);
+                                $prefix = trim((string) ($resolvedCollection['slug'] ?? ''), '/');
                             }
 
                             return $this->response->setJSON([
                                 'status' => 'success',
                                 'data'   => [
-                                    'new_url' => '/' . $langCode . '/entries/' . $prefix . $entryTrans['slug'],
+                                    'new_url' => '/' . $langCode . '/entries/' . ($prefix !== '' ? $prefix . '/' : '') . $entryTrans['slug'],
                                     'redirect_type' => 301,
                                 ],
                             ])->setStatusCode(200);

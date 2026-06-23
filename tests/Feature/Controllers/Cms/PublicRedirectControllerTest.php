@@ -37,6 +37,7 @@ final class PublicRedirectControllerTest extends CIUnitTestCase
         $db->table('cms_redirects')->truncate();
         $db->table('cms_page_translations')->truncate();
         $db->table('cms_pages')->truncate();
+        $db->table('cms_collection_translations')->truncate();
         $db->table('cms_entry_translations')->truncate();
         $db->table('cms_entries')->truncate();
         $db->table('cms_collections')->truncate();
@@ -69,10 +70,16 @@ final class PublicRedirectControllerTest extends CIUnitTestCase
         // 3. Seed collections & entries
         $db->table('cms_collections')->insert([
             'collection_key' => 'blog',
-            'url_prefix'     => 'blog',
             'is_active'      => 1,
         ]);
         $this->collectionId = $db->insertID();
+
+        $db->table('cms_collection_translations')->insert([
+            'collection_id' => $this->collectionId,
+            'language_id'   => $this->langEsId,
+            'slug'          => 'noticias',
+            'name'          => 'Noticias',
+        ]);
 
         $db->table('cms_entries')->insert([
             'collection_id'   => $this->collectionId,
@@ -136,16 +143,16 @@ final class PublicRedirectControllerTest extends CIUnitTestCase
             'entity_id'     => $this->entryId,
             'language_id'   => $this->langEsId,
             'old_slug'      => 'viejo-post',
-            'old_full_path' => 'blog/viejo-post',
+            'old_full_path' => 'noticias/viejo-post',
             'created_at'    => date('Y-m-d H:i:s'),
         ]);
 
-        $result = $this->get('/api/v1/public/redirects/blog/viejo-post');
+        $result = $this->get('/api/v1/public/redirects/noticias/viejo-post');
         $result->assertStatus(200);
 
         $body = json_decode($result->getJSON(), true);
         $this->assertSame('success', $body['status']);
-        $this->assertSame('/es/entries/blog/nuevo-post', $body['data']['new_url']);
+        $this->assertSame('/es/entries/noticias/nuevo-post', $body['data']['new_url']);
         $this->assertSame(301, $body['data']['redirect_type']);
     }
 

@@ -1,9 +1,9 @@
 # TASKS — ci4-website-builder-domain
 
-> Fuente de verdad para trabajo en este repo.
-> Historial de completadas: ver `TASKS_ARCHIVE.md`.
-> Para el plan de implementación detallado, ver la sesión en: [implementation_plan.md](file:///Users/davidcardenas/.gemini/antigravity/brain/4d3ad335-9c0d-44b8-80d4-ddc18cfd113f/implementation_plan.md)
-> Última actualización: 2026-06-22 (CMS-005 verificado y CMS-006 en curso)
+> Fuente de verdad **local** para trabajo en este repo.
+> Para tareas globales del proyecto, ver: [../TASKS.md](../TASKS.md)
+> Plan detallado de Form Submissions: [../../docs/form_submissions_plan.md](../../docs/form_submissions_plan.md)
+> Última actualización: 2026-06-23 (CMS-012 completado, CMS-013-016 en TASKS.md raíz)
 
 ---
 
@@ -16,7 +16,10 @@
 
 Las tareas están ordenadas por fases de dependencias para asegurar la integridad de la base de datos (30 tablas de `erd_cms_v4.html`) y las APIs.
 
-### Fase 2: Base Content & Navigation APIs
+---
+
+> **Nota:** Las tareas CMS-012 a CMS-016 (Form Submissions) ahora se rastrean en [`../TASKS.md`](../TASKS.md) en la raíz del proyecto.
+> Este archivo es solo para tareas locales del domain (DOM-xxx, bug fixes, optimizaciones arquitectónicas).
 
 ---
 

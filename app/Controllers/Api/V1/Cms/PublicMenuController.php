@@ -68,13 +68,10 @@ class PublicMenuController extends ApiController
 
                             case 'collection_listing':
                                 if ($item->collection_id !== null) {
-                                    $collectionModel = model(\App\Models\CollectionModel::class);
-                                    $collection = $collectionModel->find($item->collection_id);
-                                    if ($collection) {
-                                        $prefix = is_object($collection) ? $collection->url_prefix : ($collection['url_prefix'] ?? null);
-                                        if ($prefix) {
-                                            $customUrl = '/' . ltrim((string) $prefix, '/');
-                                        }
+                                    $resolvedCollection = $translationResolver->resolve('collection', (int) $item->collection_id, $lang);
+                                    $prefix = trim((string) ($resolvedCollection['slug'] ?? ''), '/');
+                                    if ($prefix !== '') {
+                                        $customUrl = '/' . $prefix;
                                     }
                                 }
                                 break;
@@ -85,10 +82,9 @@ class PublicMenuController extends ApiController
                                     $entry = $entryModel->find($item->entry_id);
                                     if ($entry) {
                                         $collectionId = is_object($entry) ? $entry->collection_id : ($entry['collection_id'] ?? null);
-                                        $collectionModel = model(\App\Models\CollectionModel::class);
-                                        $collection = $collectionModel->find($collectionId);
-                                        if ($collection) {
-                                            $prefix = is_object($collection) ? $collection->url_prefix : ($collection['url_prefix'] ?? '');
+                                        if ($collectionId !== null) {
+                                            $resolvedCollection = $translationResolver->resolve('collection', (int) $collectionId, $lang);
+                                            $prefix = trim((string) ($resolvedCollection['slug'] ?? ''), '/');
                                             $entryTransModel = model(\App\Models\EntryTranslationModel::class);
                                             $db = \Config\Database::connect();
                                             $langResult = $db->table('cms_languages')->where('code', $lang)->get();
@@ -98,7 +94,7 @@ class PublicMenuController extends ApiController
                                                 $trans = $entryTransModel->where('entry_id', $item->entry_id)->where('language_id', $langId)->first();
                                                 $slug = $trans ? (is_object($trans) ? $trans->slug : ($trans['slug'] ?? '')) : '';
                                                 if ($slug) {
-                                                    $customUrl = '/' . ltrim((string) $prefix, '/') . '/' . $slug;
+                                                    $customUrl = $prefix !== '' ? '/' . $prefix . '/' . $slug : '/' . $slug;
                                                 }
                                             }
                                         }

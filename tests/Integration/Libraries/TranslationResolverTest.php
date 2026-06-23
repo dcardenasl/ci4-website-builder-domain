@@ -88,7 +88,6 @@ final class TranslationResolverTest extends CIUnitTestCase
         $db->table('cms_collections')->insert([
             'id'                       => 1,
             'collection_key'           => 'noticias',
-            'url_prefix'               => '/noticias',
             'is_active'                => 1,
             'requires_approval'        => 0,
             'enables_categories'       => 1,

@@ -107,6 +107,80 @@ final class PublicMenuControllerTest extends CIUnitTestCase
         $this->assertSame('https://google.com', $childResolved['custom_url']);
     }
 
+    public function testGetPublicMenuUsesTranslatedCollectionSlug(): void
+    {
+        $this->db->disableForeignKeyChecks();
+        $this->db->table('cms_collection_translations')->truncate();
+        $this->db->table('cms_collections')->truncate();
+        $this->db->table('cms_entry_translations')->truncate();
+        $this->db->table('cms_entries')->truncate();
+        $this->db->enableForeignKeyChecks();
+
+        $this->db->table('cms_collections')->insert([
+            'collection_key' => 'news',
+            'is_active'      => 1,
+        ]);
+        $collectionId = $this->db->insertID();
+
+        $this->db->table('cms_collection_translations')->insert([
+            'collection_id' => $collectionId,
+            'language_id'   => $this->langEsId,
+            'slug'          => 'noticias',
+            'name'          => 'Noticias',
+        ]);
+
+        $this->db->table('cms_entries')->insert([
+            'collection_id'  => $collectionId,
+            'workflow_status' => 'published',
+        ]);
+        $entryId = $this->db->insertID();
+
+        $this->db->table('cms_entry_translations')->insert([
+            'entry_id'     => $entryId,
+            'language_id'  => $this->langEsId,
+            'slug'         => 'articulo-principal',
+            'title'        => 'Artículo principal',
+        ]);
+
+        $this->db->table('cms_menu_items')->insert([
+            'menu_id' => $this->menuId,
+            'link_type' => 'collection_listing',
+            'collection_id' => $collectionId,
+            'link_target' => '_self',
+            'sort_order' => 1,
+            'is_active' => 1,
+        ]);
+        $collectionMenuItemId = $this->db->insertID();
+        $this->db->table('cms_menu_item_translations')->insert([
+            'menu_item_id' => $collectionMenuItemId,
+            'language_id' => $this->langEsId,
+            'label' => 'Noticias',
+        ]);
+
+        $this->db->table('cms_menu_items')->insert([
+            'menu_id' => $this->menuId,
+            'link_type' => 'entry',
+            'entry_id' => $entryId,
+            'link_target' => '_self',
+            'sort_order' => 2,
+            'is_active' => 1,
+        ]);
+        $entryMenuItemId = $this->db->insertID();
+        $this->db->table('cms_menu_item_translations')->insert([
+            'menu_item_id' => $entryMenuItemId,
+            'language_id' => $this->langEsId,
+            'label' => 'Artículo principal',
+        ]);
+
+        $result = $this->withHeaders(['Accept-Language' => 'es'])->get('/api/v1/public/menus/main-nav');
+
+        $result->assertStatus(200);
+        $body = json_decode($result->getJSON(), true);
+
+        $this->assertSame('/noticias', $body['data']['items'][0]['custom_url']);
+        $this->assertSame('/noticias/articulo-principal', $body['data']['items'][1]['custom_url']);
+    }
+
     public function testGetPublicMenuNotFound(): void
     {
         $result = $this->get('/api/v1/public/menus/no-existe');
