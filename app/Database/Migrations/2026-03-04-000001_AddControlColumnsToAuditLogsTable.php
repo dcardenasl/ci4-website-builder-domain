@@ -47,11 +47,8 @@ class AddControlColumnsToAuditLogsTable extends Migration
 
     public function down(): void
     {
-        $this->forge->dropKey('audit_logs', 'idx_audit_action_created_at');
-        $this->forge->dropKey('audit_logs', 'idx_audit_severity_created_at');
-        $this->forge->dropKey('audit_logs', 'idx_audit_result_created_at');
-        $this->forge->dropKey('audit_logs', 'idx_audit_request_id');
-
-        $this->forge->dropColumn('audit_logs', ['result', 'severity', 'request_id', 'metadata']);
+        // Intentionally left as a no-op.
+        // This migration is only used to move the schema forward; rollback is
+        // not part of the supported setup flow.
     }
 }
