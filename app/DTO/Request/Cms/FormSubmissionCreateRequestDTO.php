@@ -23,7 +23,7 @@ readonly class FormSubmissionCreateRequestDTO extends BaseRequestDTO
     {
         return [
             'form_key'  => 'required|string|max_length[50]',
-            'form_data' => 'required|array_like',
+            'form_data' => 'required',
         ];
     }
 

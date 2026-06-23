@@ -27,6 +27,7 @@ $routes->group('cms', ['namespace' => '\App\Controllers\Api\V1\Cms'], function (
         $routes->post('block-types', 'BlockTypeController::create', ['filter' => 'permission:cms.blocks.write']);
         // Collections CRUD
         $routes->get('collections', 'CollectionController::index', ['filter' => 'permission:cms.collections.read']);
+        $routes->get('collections/check-slug', 'CollectionController::checkSlug', ['filter' => 'permission:cms.collections.read']);
         $routes->post('collections', 'CollectionController::create', ['filter' => 'permission:cms.collections.write']);
         // Entries CRUD
         $routes->get('entries', 'EntryController::index', ['filter' => 'permission:cms.entries.read']);
@@ -114,7 +115,7 @@ $routes->group('cms', ['namespace' => '\App\Controllers\Api\V1\Cms'], function (
 });
 
 // Public form submission endpoint (no auth, rate-limited)
-$routes->post('api/v1/public/submissions', '\App\Controllers\Api\V1\Cms\PublicFormSubmissionController::store', ['filter' => 'throttle']);
+$routes->post('public/submissions', '\App\Controllers\Api\V1\Cms\PublicFormSubmissionController::store', ['filter' => 'throttle']);
 // Public endpoints
 $routes->get('public/settings', '\App\Controllers\Api\V1\Cms\PublicSettingController::index', ['filter' => 'throttle']);
 $routes->get('public/(:segment)/pages', '\App\Controllers\Api\V1\Cms\PublicPageController::index/$1', ['filter' => 'throttle']);

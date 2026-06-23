@@ -8,6 +8,7 @@ use App\DTO\Request\Cms\CollectionCreateRequestDTO;
 use App\DTO\Request\Cms\CollectionIndexRequestDTO;
 use App\DTO\Request\Cms\CollectionUpdateRequestDTO;
 use App\Interfaces\Cms\CollectionServiceInterface;
+use App\Models\CollectionTranslationModel;
 use CodeIgniter\HTTP\ResponseInterface;
 use Config\Services;
 use dcardenasl\Ci4ApiCore\Dto\SecurityContext;
@@ -87,6 +88,29 @@ class CollectionController extends ApiController
                     throw new \dcardenasl\Ci4ApiCore\Exceptions\AuthorizationException(lang('Api.forbidden'));
                 }
                 return $this->collectionService->destroy($id, $context);
+            }
+        );
+    }
+
+    public function checkSlug(): ResponseInterface
+    {
+        return $this->handleRequest(
+            function (array $dto, SecurityContext $context): mixed {
+                if (!$context->hasPermission('cms.collections.read')) {
+                    throw new \dcardenasl\Ci4ApiCore\Exceptions\AuthorizationException(lang('Api.forbidden'));
+                }
+
+                $slug = (string) ($dto['slug'] ?? '');
+                $languageId = (int) ($dto['language_id'] ?? 0);
+                $currentId = isset($dto['current_id']) && $dto['current_id'] !== '' ? (int) $dto['current_id'] : null;
+
+                if ($slug === '' || $languageId === 0) {
+                    return ['available' => false];
+                }
+
+                $available = (new CollectionTranslationModel())->isSlugAvailable($slug, $languageId, $currentId);
+
+                return ['available' => $available];
             }
         );
     }

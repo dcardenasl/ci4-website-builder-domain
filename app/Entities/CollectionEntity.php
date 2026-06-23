@@ -16,7 +16,6 @@ class CollectionEntity extends Entity
     protected $casts = [
         'id' => 'integer',
         'collection_key' => 'string',
-        'url_prefix' => 'string',
         'is_active' => 'bool',
         'requires_approval' => 'bool',
         'enables_categories' => 'bool',

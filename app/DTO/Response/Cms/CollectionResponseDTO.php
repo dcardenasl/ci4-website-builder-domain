@@ -10,7 +10,7 @@ use OpenApi\Attributes as OA;
 #[OA\Schema(
     schema: 'CollectionResponse',
     title: 'Collection Response',
-    required: ["id","collection_key","url_prefix","is_active","requires_approval","enables_categories","enables_tags","sort_order"]
+    required: ["id","collection_key","is_active","requires_approval","enables_categories","enables_tags","sort_order"]
 )]
 final readonly class CollectionResponseDTO implements DataTransferObjectInterface
 {
@@ -19,8 +19,6 @@ final readonly class CollectionResponseDTO implements DataTransferObjectInterfac
         public int $id,
         #[OA\Property(description: 'collection_key', type: 'string')]
         public string $collection_key,
-        #[OA\Property(description: 'url_prefix', type: 'string')]
-        public string $url_prefix,
         #[OA\Property(description: 'is_active', type: 'boolean')]
         public bool $is_active,
         #[OA\Property(description: 'requires_approval', type: 'boolean')]
@@ -52,7 +50,6 @@ final readonly class CollectionResponseDTO implements DataTransferObjectInterfac
         return new static(
             id: (int) ($data['id'] ?? 0),
             collection_key: (string) ($data['collection_key'] ?? ''),
-            url_prefix: (string) ($data['url_prefix'] ?? ''),
             is_active: (bool) ($data['is_active'] ?? false),
             requires_approval: (bool) ($data['requires_approval'] ?? false),
             enables_categories: (bool) ($data['enables_categories'] ?? false),
@@ -74,7 +71,6 @@ final readonly class CollectionResponseDTO implements DataTransferObjectInterfac
         return [
             'id' => $this->id,
             'collection_key' => $this->collection_key,
-            'url_prefix' => $this->url_prefix,
             'is_active' => $this->is_active,
             'requires_approval' => $this->requires_approval,
             'enables_categories' => $this->enables_categories,

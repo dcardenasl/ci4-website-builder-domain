@@ -73,5 +73,9 @@ class DomainPermissions
         ['code' => 'cms.redirects.read', 'resource' => 'redirects', 'action' => 'read', 'description' => 'Read CMS redirects'],
         ['code' => 'cms.redirects.write', 'resource' => 'redirects', 'action' => 'write', 'description' => 'Create/Edit CMS redirects'],
         ['code' => 'cms.redirects.admin', 'resource' => 'redirects', 'action' => 'admin', 'description' => 'Full administration of CMS redirects'],
+
+        // Form Submissions
+        ['code' => 'cms.submissions.read', 'resource' => 'submissions', 'action' => 'read', 'description' => 'Read CMS form submissions'],
+        ['code' => 'cms.submissions.write', 'resource' => 'submissions', 'action' => 'write', 'description' => 'Manage CMS form submissions (update status)'],
     ];
 }

@@ -49,7 +49,7 @@ readonly class BlockInstanceCreateRequestDTO extends BaseRequestDTO
             'block_config' => 'permit_empty',
             'translations' => 'permit_empty',
             'translations.*.language_id' => 'required_with[translations]|is_natural_no_zero|is_not_unique[cms_languages.id]',
-            'translations.*.block_data' => 'required_with[translations]|permit_empty',
+            'translations.*.block_data' => 'permit_empty|array',
             'translations.*.is_published' => 'required_with[translations]|boolean_like',
         ];
     }
@@ -66,7 +66,12 @@ readonly class BlockInstanceCreateRequestDTO extends BaseRequestDTO
         $this->sort_order = (int) ($data['sort_order'] ?? 0);
         $this->column_index = isset($data['column_index']) ? (int) $data['column_index'] : null;
         $this->is_active = (bool) ($data['is_active'] ?? false);
-        $this->block_config = isset($data['block_config']) ? (array) $data['block_config'] : null;
+        $blockConfig = $data['block_config'] ?? null;
+        if (is_string($blockConfig) && trim($blockConfig) !== '') {
+            $decoded = json_decode($blockConfig, true);
+            $blockConfig = json_last_error() === JSON_ERROR_NONE ? $decoded : null;
+        }
+        $this->block_config = is_array($blockConfig) ? $blockConfig : null;
         $this->translations = $data['translations'] ?? [];
     }
 

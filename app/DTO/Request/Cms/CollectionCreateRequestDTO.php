@@ -13,8 +13,6 @@ readonly class CollectionCreateRequestDTO extends BaseRequestDTO
 {
     #[OA\Property(description: 'collection_key', type: 'string')]
     public string $collection_key;
-    #[OA\Property(description: 'url_prefix', type: 'string')]
-    public string $url_prefix;
     #[OA\Property(description: 'is_active', type: 'boolean')]
     public bool $is_active;
     #[OA\Property(description: 'requires_approval', type: 'boolean')]
@@ -43,7 +41,6 @@ readonly class CollectionCreateRequestDTO extends BaseRequestDTO
     {
         return [
             'collection_key' => 'required|string|max_length[50]|is_unique[cms_collections.collection_key]',
-            'url_prefix' => 'required|string|max_length[150]|is_unique[cms_collections.url_prefix]',
             'is_active' => 'permit_empty|boolean_like',
             'requires_approval' => 'permit_empty|boolean_like',
             'enables_categories' => 'permit_empty|boolean_like',
@@ -69,7 +66,6 @@ readonly class CollectionCreateRequestDTO extends BaseRequestDTO
     protected function map(array $data): void
     {
         $this->collection_key = (string) ($data['collection_key'] ?? '');
-        $this->url_prefix = (string) ($data['url_prefix'] ?? '');
         $this->is_active = (bool) ($data['is_active'] ?? false);
         $this->requires_approval = (bool) ($data['requires_approval'] ?? false);
         $this->enables_categories = (bool) ($data['enables_categories'] ?? false);
@@ -87,7 +83,6 @@ readonly class CollectionCreateRequestDTO extends BaseRequestDTO
     {
         return [
             'collection_key' => $this->collection_key,
-            'url_prefix' => $this->url_prefix,
             'is_active' => $this->is_active,
             'requires_approval' => $this->requires_approval,
             'enables_categories' => $this->enables_categories,

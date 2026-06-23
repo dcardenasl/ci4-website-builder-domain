@@ -13,8 +13,6 @@ readonly class CollectionUpdateRequestDTO extends BaseRequestDTO
 {
     #[OA\Property(description: 'collection_key', type: 'string', nullable: true)]
     public ?string $collection_key;
-    #[OA\Property(description: 'url_prefix', type: 'string', nullable: true)]
-    public ?string $url_prefix;
     #[OA\Property(description: 'is_active', type: 'boolean', nullable: true)]
     public ?bool $is_active;
     #[OA\Property(description: 'requires_approval', type: 'boolean', nullable: true)]
@@ -43,7 +41,6 @@ readonly class CollectionUpdateRequestDTO extends BaseRequestDTO
     {
         return [
             'collection_key' => 'permit_empty|string|max_length[50]',
-            'url_prefix' => 'permit_empty|string|max_length[150]',
             'is_active' => 'permit_empty|boolean_like',
             'requires_approval' => 'permit_empty|boolean_like',
             'enables_categories' => 'permit_empty|boolean_like',
@@ -69,7 +66,6 @@ readonly class CollectionUpdateRequestDTO extends BaseRequestDTO
     protected function map(array $data): void
     {
         $this->collection_key = $data['collection_key'] ?? null;
-        $this->url_prefix = $data['url_prefix'] ?? null;
         $this->is_active = isset($data['is_active']) ? (bool) $data['is_active'] : null;
         $this->requires_approval = isset($data['requires_approval']) ? (bool) $data['requires_approval'] : null;
         $this->enables_categories = isset($data['enables_categories']) ? (bool) $data['enables_categories'] : null;
@@ -87,7 +83,6 @@ readonly class CollectionUpdateRequestDTO extends BaseRequestDTO
     {
         return array_filter([
             'collection_key' => $this->collection_key,
-            'url_prefix' => $this->url_prefix,
             'is_active' => $this->is_active,
             'requires_approval' => $this->requires_approval,
             'enables_categories' => $this->enables_categories,
