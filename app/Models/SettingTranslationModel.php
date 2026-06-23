@@ -5,9 +5,9 @@ declare(strict_types=1);
 namespace App\Models;
 
 use App\Entities\SettingTranslationEntity;
-use dcardenasl\Ci4ApiCore\Models\BaseAuditableModel;
+use CodeIgniter\Model;
 
-class SettingTranslationModel extends BaseAuditableModel
+class SettingTranslationModel extends Model
 {
     protected $table = 'cms_setting_translations';
     protected $primaryKey = 'id';
