@@ -272,4 +272,15 @@ trait CmsDomainServices
 
         return new \App\Libraries\Cms\CacheInvalidationClient();
     }
+
+    public static function formSubmissionService(bool $getShared = true): \App\Services\Cms\FormSubmissionService
+    {
+        if ($getShared) {
+            return static::getSharedInstance('formSubmissionService');
+        }
+
+        return new \App\Services\Cms\FormSubmissionService(
+            model(\App\Models\FormSubmissionModel::class)
+        );
+    }
 }

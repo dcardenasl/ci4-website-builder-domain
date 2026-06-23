@@ -104,8 +104,17 @@ $routes->group('cms', ['namespace' => '\App\Controllers\Api\V1\Cms'], function (
         // Entry Pivot relations
         $routes->post('entries/(:num)/categories', 'EntryController::setCategories/$1', ['filter' => 'permission:cms.entries.write']);
         $routes->post('entries/(:num)/tags', 'EntryController::setTags/$1', ['filter' => 'permission:cms.entries.write']);
+
+        // Form Submissions (admin)
+        $routes->get('submissions', 'FormSubmissionController::index', ['filter' => 'permission:cms.submissions.read']);
+        $routes->get('submissions/counts', 'FormSubmissionController::counts', ['filter' => 'permission:cms.submissions.read']);
+        $routes->get('submissions/(:num)', 'FormSubmissionController::show/$1', ['filter' => 'permission:cms.submissions.read']);
+        $routes->patch('submissions/(:num)/status', 'FormSubmissionController::updateStatus/$1', ['filter' => 'permission:cms.submissions.write']);
     });
 });
+
+// Public form submission endpoint (no auth, rate-limited)
+$routes->post('api/v1/public/submissions', '\App\Controllers\Api\V1\Cms\PublicFormSubmissionController::store', ['filter' => 'throttle']);
 // Public endpoints
 $routes->get('public/settings', '\App\Controllers\Api\V1\Cms\PublicSettingController::index', ['filter' => 'throttle']);
 $routes->get('public/(:segment)/pages', '\App\Controllers\Api\V1\Cms\PublicPageController::index/$1', ['filter' => 'throttle']);
