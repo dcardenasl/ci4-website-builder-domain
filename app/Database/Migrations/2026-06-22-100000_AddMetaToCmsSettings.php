@@ -28,11 +28,7 @@ class AddMetaToCmsSettings extends Migration
 
     public function down(): void
     {
-        $colExists = $this->db->query(
-            "SELECT COUNT(*) AS cnt FROM information_schema.COLUMNS WHERE table_schema = DATABASE() AND table_name = 'cms_settings' AND column_name = 'setting_meta'"
-        );
-        if ($colExists && (int) $colExists->getRowArray()['cnt'] > 0) {
-            $this->forge->dropColumn('cms_settings', 'setting_meta');
-        }
+        // Intentionally left as a no-op.
+        // This migration is now one-way to keep schema setup idempotent.
     }
 }
