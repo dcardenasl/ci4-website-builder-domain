@@ -10,6 +10,10 @@ class CreateRequestLogsTable extends Migration
 {
     public function up(): void
     {
+        if ($this->db->tableExists('request_logs')) {
+            return;
+        }
+
         $this->forge->addField([
             'id' => [
                 'type' => 'BIGINT',
@@ -61,6 +65,6 @@ class CreateRequestLogsTable extends Migration
 
     public function down(): void
     {
-        $this->forge->dropTable('request_logs');
+        // Intentionally left as a no-op.
     }
 }

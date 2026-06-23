@@ -10,6 +10,10 @@ class CreateAuditLogsTable extends Migration
 {
     public function up(): void
     {
+        if ($this->db->tableExists('audit_logs')) {
+            return;
+        }
+
         $this->forge->addField([
             'id' => [
                 'type' => 'BIGINT',

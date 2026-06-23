@@ -10,6 +10,10 @@ class CreateJobsTable extends Migration
 {
     public function up(): void
     {
+        if ($this->db->tableExists('jobs')) {
+            return;
+        }
+
         $this->forge->addField([
             'id' => [
                 'type' => 'BIGINT',
@@ -51,6 +55,6 @@ class CreateJobsTable extends Migration
 
     public function down(): void
     {
-        $this->forge->dropTable('jobs');
+        // Intentionally left as a no-op.
     }
 }

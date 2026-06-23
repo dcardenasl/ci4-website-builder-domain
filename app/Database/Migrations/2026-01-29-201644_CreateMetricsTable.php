@@ -10,6 +10,10 @@ class CreateMetricsTable extends Migration
 {
     public function up(): void
     {
+        if ($this->db->tableExists('metrics')) {
+            return;
+        }
+
         $this->forge->addField([
             'id' => [
                 'type' => 'BIGINT',
@@ -43,6 +47,6 @@ class CreateMetricsTable extends Migration
 
     public function down(): void
     {
-        $this->forge->dropTable('metrics');
+        // Intentionally left as a no-op.
     }
 }

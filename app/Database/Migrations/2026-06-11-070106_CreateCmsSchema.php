@@ -138,7 +138,6 @@ class CreateCmsSchema extends Migration
         $db->query("CREATE TABLE `cms_collections` (
             `id` INT UNSIGNED NOT NULL AUTO_INCREMENT,
             `collection_key` VARCHAR(50) NOT NULL,
-            `url_prefix` VARCHAR(150) NOT NULL,
             `is_active` TINYINT(1) NOT NULL DEFAULT 1,
             `requires_approval` TINYINT(1) NOT NULL DEFAULT 0,
             `enables_categories` TINYINT(1) NOT NULL DEFAULT 1,
@@ -149,8 +148,7 @@ class CreateCmsSchema extends Migration
             `created_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
             `updated_at` DATETIME DEFAULT NULL ON UPDATE CURRENT_TIMESTAMP,
             PRIMARY KEY (`id`),
-            UNIQUE KEY `uk_collection_key` (`collection_key`),
-            UNIQUE KEY `uk_collection_prefix` (`url_prefix`)
+            UNIQUE KEY `uk_collection_key` (`collection_key`)
         ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci");
 
         // 8. cms_collection_translations
@@ -158,6 +156,7 @@ class CreateCmsSchema extends Migration
             `id` INT UNSIGNED NOT NULL AUTO_INCREMENT,
             `collection_id` INT UNSIGNED NOT NULL,
             `language_id` INT UNSIGNED NOT NULL,
+            `slug` VARCHAR(150) NOT NULL,
             `name` VARCHAR(150) NOT NULL,
             `description` TEXT,
             `listing_title` VARCHAR(255) DEFAULT NULL,
@@ -166,6 +165,7 @@ class CreateCmsSchema extends Migration
             `default_meta_description` VARCHAR(500) DEFAULT NULL,
             PRIMARY KEY (`id`),
             UNIQUE KEY `uk_collection_lang` (`collection_id`, `language_id`),
+            UNIQUE KEY `uk_collection_slug_lang` (`language_id`, `slug`),
             KEY `idx_colltrans_lang` (`language_id`),
             CONSTRAINT `fk_colltrans_collection` FOREIGN KEY (`collection_id`) REFERENCES `cms_collections` (`id`) ON DELETE CASCADE,
             CONSTRAINT `fk_colltrans_lang` FOREIGN KEY (`language_id`) REFERENCES `cms_languages` (`id`) ON DELETE CASCADE

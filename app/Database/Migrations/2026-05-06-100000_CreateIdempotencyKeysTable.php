@@ -23,6 +23,10 @@ class CreateIdempotencyKeysTable extends Migration
 {
     public function up(): void
     {
+        if ($this->db->tableExists('idempotency_keys')) {
+            return;
+        }
+
         $this->forge->addField([
             'idempotency_key' => [
                 'type'       => 'VARCHAR',
@@ -78,6 +82,6 @@ class CreateIdempotencyKeysTable extends Migration
 
     public function down(): void
     {
-        $this->forge->dropTable('idempotency_keys', true);
+        // Intentionally left as a no-op.
     }
 }

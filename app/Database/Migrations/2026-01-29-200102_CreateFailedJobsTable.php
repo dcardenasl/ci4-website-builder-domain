@@ -10,6 +10,10 @@ class CreateFailedJobsTable extends Migration
 {
     public function up(): void
     {
+        if ($this->db->tableExists('failed_jobs')) {
+            return;
+        }
+
         $this->forge->addField([
             'id' => [
                 'type' => 'BIGINT',
@@ -43,6 +47,6 @@ class CreateFailedJobsTable extends Migration
 
     public function down(): void
     {
-        $this->forge->dropTable('failed_jobs', true);
+        // Intentionally left as a no-op.
     }
 }

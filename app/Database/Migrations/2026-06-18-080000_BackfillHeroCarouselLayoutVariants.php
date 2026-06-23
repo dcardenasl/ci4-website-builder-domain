@@ -26,7 +26,7 @@ class BackfillHeroCarouselLayoutVariants extends Migration
 
     public function down(): void
     {
-        $this->updateHeroSchema($this->legacyHeroSchema());
+        $this->updateHeroSchema($this->previousHeroSchema());
         $this->db->query(
             "UPDATE cms_block_instances i
              JOIN cms_content_blocks b ON b.id = i.block_id
@@ -103,7 +103,7 @@ class BackfillHeroCarouselLayoutVariants extends Migration
     /**
      * @return array<string, mixed>
      */
-    private function legacyHeroSchema(): array
+    private function previousHeroSchema(): array
     {
         return [
             'fields' => [
