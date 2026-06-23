@@ -211,12 +211,20 @@ class EntryService extends BaseCrudService implements EntryServiceInterface
         if (!empty($currentSlugs)) {
             $entryModel      = model(\App\Models\EntryModel::class);
             $entry           = $entryModel->find($entryId);
-            $collectionModel = model(\App\Models\CollectionModel::class);
-            $prefix          = '';
+            $translationResolver = service('translationResolver');
+            $languageCodeMap = [];
             if ($entry instanceof \App\Entities\EntryEntity) {
-                $collection = $collectionModel->find((int) $entry->collection_id);
-                if ($collection instanceof \App\Entities\CollectionEntity) {
-                    $prefix = trim($collection->url_prefix, '/') . '/';
+                $currentLangResult = \Config\Database::connect()->table('cms_languages')
+                    ->where('is_active', 1)
+                    ->get();
+                $languageRows = $currentLangResult instanceof \CodeIgniter\Database\ResultInterface
+                    ? $currentLangResult->getResultArray()
+                    : [];
+                $languageCodeMap = [];
+                foreach ($languageRows as $languageRow) {
+                    if (isset($languageRow['id'], $languageRow['code'])) {
+                        $languageCodeMap[(int) $languageRow['id']] = (string) $languageRow['code'];
+                    }
                 }
             }
 
@@ -224,7 +232,14 @@ class EntryService extends BaseCrudService implements EntryServiceInterface
                 $langId  = (int) $translation['language_id'];
                 $newSlug = (string) $translation['slug'];
                 if (isset($currentSlugs[$langId]) && $currentSlugs[$langId] !== $newSlug) {
-                    $oldFullPath = $prefix . $currentSlugs[$langId];
+                    $langCode = $languageCodeMap[$langId] ?? null;
+                    $resolvedPrefix = '';
+                    if ($langCode !== null && $entry instanceof \App\Entities\EntryEntity) {
+                        $resolvedCollection = $translationResolver->resolve('collection', (int) $entry->collection_id, $langCode);
+                        $resolvedPrefix = trim((string) ($resolvedCollection['slug'] ?? ''), '/');
+                    }
+
+                    $oldFullPath = ($resolvedPrefix !== '' ? $resolvedPrefix . '/' : '') . $currentSlugs[$langId];
                     $this->slugRedirectRecorder->record('entry', $entryId, $langId, $currentSlugs[$langId], $newSlug, $oldFullPath);
                 }
             }

@@ -47,15 +47,6 @@ class CollectionService extends BaseCrudService implements CollectionServiceInte
             );
         }
 
-        // Prefix uniqueness check
-        $existingPrefix = $this->repository->findBy('url_prefix', $data['url_prefix']);
-        if ($existingPrefix) {
-            throw new ValidationException(
-                lang('Collections.prefix_must_be_unique'),
-                ['url_prefix' => lang('Collections.prefix_already_taken', [$data['url_prefix']])]
-            );
-        }
-
         $this->tempTranslations = $data['translations'] ?? null;
         unset($data['translations']);
 
@@ -86,16 +77,6 @@ class CollectionService extends BaseCrudService implements CollectionServiceInte
                 throw new ValidationException(
                     lang('Collections.key_must_be_unique'),
                     ['collection_key' => lang('Collections.key_already_taken', [$data['collection_key']])]
-                );
-            }
-        }
-
-        if (array_key_exists('url_prefix', $data)) {
-            $existing = $this->repository->findBy('url_prefix', $data['url_prefix']);
-            if ($existing && (int) $existing->id !== $id) {
-                throw new ValidationException(
-                    lang('Collections.prefix_must_be_unique'),
-                    ['url_prefix' => lang('Collections.prefix_already_taken', [$data['url_prefix']])]
                 );
             }
         }

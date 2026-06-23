@@ -37,7 +37,6 @@ class NewsCollectionSeeder extends Seeder
         // ── 1. Collection ──────────────────────────────────────────────────────
         $this->db->table('cms_collections')->insert([
             'collection_key'           => 'noticias',
-            'url_prefix'               => '/noticias',
             'is_active'                => 1,
             'requires_approval'        => 0,
             'enables_categories'       => 1,

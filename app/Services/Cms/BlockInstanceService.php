@@ -33,6 +33,7 @@ class BlockInstanceService extends BaseCrudService implements BlockInstanceServi
     protected function beforeStore(array $data, ?SecurityContext $context): array
     {
         $data = parent::beforeStore($data, $context);
+        $data = $this->normalizeBlockConfig($data);
         if (array_key_exists('translations', $data)) {
             $this->tempTranslations = $data['translations'];
             unset($data['translations']);
@@ -54,6 +55,7 @@ class BlockInstanceService extends BaseCrudService implements BlockInstanceServi
     protected function beforeUpdate(int $id, array $data, ?SecurityContext $context): array
     {
         $data = parent::beforeUpdate($id, $data, $context);
+        $data = $this->normalizeBlockConfig($data);
         if (array_key_exists('translations', $data)) {
             $this->tempTranslations = $data['translations'];
             unset($data['translations']);
@@ -113,8 +115,10 @@ class BlockInstanceService extends BaseCrudService implements BlockInstanceServi
         $translationModel->where('instance_id', $instanceId)->delete();
 
         foreach ($translations as $translation) {
-            $blockData = $translation['block_data'] ?? null;
-            if (is_array($blockData)) {
+            $blockData = $translation['block_data'] ?? [];
+            if (! is_array($blockData)) {
+                $blockData = [];
+            } else {
                 $blockData = $this->sanitizeBlockData($blockData);
             }
 
@@ -125,6 +129,33 @@ class BlockInstanceService extends BaseCrudService implements BlockInstanceServi
                 'is_published' => (bool) ($translation['is_published'] ?? true),
             ]);
         }
+    }
+
+    /**
+     * @param array<string, mixed> $data
+     * @return array<string, mixed>
+     */
+    private function normalizeBlockConfig(array $data): array
+    {
+        if (! array_key_exists('block_config', $data)) {
+            return $data;
+        }
+
+        $blockConfig = $data['block_config'];
+        if (is_string($blockConfig) && trim($blockConfig) !== '') {
+            $decoded = json_decode($blockConfig, true);
+            if (json_last_error() === JSON_ERROR_NONE) {
+                $blockConfig = $decoded;
+            }
+        }
+
+        if (is_array($blockConfig)) {
+            $data['block_config'] = json_encode($blockConfig);
+        } elseif ($blockConfig === null || $blockConfig === '') {
+            $data['block_config'] = null;
+        }
+
+        return $data;
     }
 
     /**
