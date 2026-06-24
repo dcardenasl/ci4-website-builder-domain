@@ -8,6 +8,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- **Analytics API** — new `POST /api/v1/cms/analytics/track` public endpoint for recording page views, `GET /api/v1/cms/analytics/overview` for analytics overview with period filtering, `PageViewModel` model with multi-field tracking (URL, title, referrer, user agent, device type), and `AnalyticsService` for structured analytics queries
 - **Collection slug support** — add `slug` field to `CollectionTranslationEntity` with migration, enabling SEO-friendly collection URLs alongside IDs
 - **Form submissions API** — new public endpoint `POST /api/v1/public/submissions` and admin CRUD (`FormSubmissionController`) for managing form submissions with status tracking (new, read, replied, spam, archived)
 - **Settings meta field** — new `setting_meta` JSON column for storing auxiliary metadata (file URLs, MIME types) with migration and DTO support
