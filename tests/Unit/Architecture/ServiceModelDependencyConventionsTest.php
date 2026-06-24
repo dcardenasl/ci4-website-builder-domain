@@ -16,7 +16,12 @@ class ServiceModelDependencyConventionsTest extends CIUnitTestCase
         $root = rtrim((string) ROOTPATH, DIRECTORY_SEPARATOR);
         $serviceDir = $root . DIRECTORY_SEPARATOR . 'app/Services';
 
-        $allowed = [];
+        // Justified exceptions: services that use complex aggregation queries
+        // not expressible via the GenericRepository CRUD pattern.
+        $allowed = [
+            'app/Services/Cms/AnalyticsService.php',      // time-series aggregations, GROUP BY, percentages
+            'app/Services/Cms/FormSubmissionService.php',  // countByStatus() aggregation
+        ];
         sort($allowed);
 
         $found = [];

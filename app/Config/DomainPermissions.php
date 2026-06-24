@@ -77,5 +77,8 @@ class DomainPermissions
         // Form Submissions
         ['code' => 'cms.submissions.read', 'resource' => 'submissions', 'action' => 'read', 'description' => 'Read CMS form submissions'],
         ['code' => 'cms.submissions.write', 'resource' => 'submissions', 'action' => 'write', 'description' => 'Manage CMS form submissions (update status)'],
+
+        // Analytics
+        ['code' => 'cms.analytics.read', 'resource' => 'analytics', 'action' => 'read', 'description' => 'View website analytics and visit statistics'],
     ];
 }

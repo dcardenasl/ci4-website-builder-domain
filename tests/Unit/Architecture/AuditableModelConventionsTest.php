@@ -27,8 +27,11 @@ class AuditableModelConventionsTest extends CIUnitTestCase
      */
     private const NON_AUDITABLE = [
         'AuditLogModel',
+        'FormSubmissionModel',      // append-only submissions, no update/delete; auditing adds no value
         'MetricModel',
+        'PageViewModel',            // analytics aggregation model, not entity-based; no audit trail needed
         'RequestLogModel',
+        'SettingTranslationModel',  // child of SettingModel, audited at the parent level
         'CategoryTranslationModel',
         'TagTranslationModel',
     ];

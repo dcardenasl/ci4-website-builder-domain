@@ -283,4 +283,15 @@ trait CmsDomainServices
             model(\App\Models\FormSubmissionModel::class)
         );
     }
+
+    public static function analyticsService(bool $getShared = true): \App\Services\Cms\AnalyticsService
+    {
+        if ($getShared) {
+            return static::getSharedInstance('analyticsService');
+        }
+
+        return new \App\Services\Cms\AnalyticsService(
+            new \App\Models\PageViewModel()
+        );
+    }
 }

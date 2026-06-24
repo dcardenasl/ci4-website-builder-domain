@@ -111,11 +111,20 @@ $routes->group('cms', ['namespace' => '\App\Controllers\Api\V1\Cms'], function (
         $routes->get('submissions/counts', 'FormSubmissionController::counts', ['filter' => 'permission:cms.submissions.read']);
         $routes->get('submissions/(:num)', 'FormSubmissionController::show/$1', ['filter' => 'permission:cms.submissions.read']);
         $routes->patch('submissions/(:num)/status', 'FormSubmissionController::updateStatus/$1', ['filter' => 'permission:cms.submissions.write']);
+
+        // Analytics (admin — website visit statistics)
+        $routes->get('analytics/overview', 'AnalyticsController::overview', ['filter' => 'permission:cms.analytics.read']);
+        $routes->get('analytics/pages', 'AnalyticsController::pages', ['filter' => 'permission:cms.analytics.read']);
+        $routes->get('analytics/referrers', 'AnalyticsController::referrers', ['filter' => 'permission:cms.analytics.read']);
+        $routes->get('analytics/devices', 'AnalyticsController::devices', ['filter' => 'permission:cms.analytics.read']);
+        $routes->get('analytics/timeseries', 'AnalyticsController::timeseries', ['filter' => 'permission:cms.analytics.read']);
     });
 });
 
 // Public form submission endpoint (no auth, rate-limited)
 $routes->post('public/submissions', '\App\Controllers\Api\V1\Cms\PublicFormSubmissionController::store', ['filter' => 'throttle']);
+// Public page-view tracking endpoint (no auth, rate-limited)
+$routes->post('public/track', '\App\Controllers\Api\V1\Cms\PublicTrackingController::track', ['filter' => 'throttle']);
 // Public endpoints
 $routes->get('public/settings', '\App\Controllers\Api\V1\Cms\PublicSettingController::index', ['filter' => 'throttle']);
 $routes->get('public/(:segment)/pages', '\App\Controllers\Api\V1\Cms\PublicPageController::index/$1', ['filter' => 'throttle']);
