@@ -17,6 +17,12 @@ class RequestLogModelTest extends CIUnitTestCase
     protected $refresh     = true;
     protected $namespace   = 'App';
 
+    protected function setUp(): void
+    {
+        parent::setUp();
+        (new RequestLogModel())->truncate();
+    }
+
     public function testGetStatsReturnsSloAndBreakdownMetrics(): void
     {
         $model = new RequestLogModel();

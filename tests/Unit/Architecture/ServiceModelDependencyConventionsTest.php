@@ -21,6 +21,7 @@ class ServiceModelDependencyConventionsTest extends CIUnitTestCase
         $allowed = [
             'app/Services/Cms/AnalyticsService.php',      // time-series aggregations, GROUP BY, percentages
             'app/Services/Cms/FormSubmissionService.php',  // countByStatus() aggregation
+            'app/Services/Cms/FormService.php',            // complex nested Form/Field/Translation CRUD operations
         ];
         sort($allowed);
 

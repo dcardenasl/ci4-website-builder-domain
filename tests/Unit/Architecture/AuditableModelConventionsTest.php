@@ -34,6 +34,8 @@ class AuditableModelConventionsTest extends CIUnitTestCase
         'SettingTranslationModel',  // child of SettingModel, audited at the parent level
         'CategoryTranslationModel',
         'TagTranslationModel',
+        'FormTranslationModel',     // child of FormModel, audited at the parent level
+        'FormFieldTranslationModel', // child of FormFieldModel, audited at the parent level
     ];
 
     public function testAuditableModelsExtendSharedBaseAuditableModel(): void
