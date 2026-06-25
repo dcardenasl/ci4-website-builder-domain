@@ -112,6 +112,18 @@ $routes->group('cms', ['namespace' => '\App\Controllers\Api\V1\Cms'], function (
         $routes->get('submissions/(:num)', 'FormSubmissionController::show/$1', ['filter' => 'permission:cms.submissions.read']);
         $routes->patch('submissions/(:num)/status', 'FormSubmissionController::updateStatus/$1', ['filter' => 'permission:cms.submissions.write']);
 
+        // Forms (admin — dynamic form builder)
+        $routes->get('forms', 'FormController::index', ['filter' => 'permission:cms.forms.read']);
+        $routes->post('forms', 'FormController::store', ['filter' => 'permission:cms.forms.write']);
+        $routes->get('forms/(:num)', 'FormController::show/$1', ['filter' => 'permission:cms.forms.read']);
+        $routes->put('forms/(:num)', 'FormController::update/$1', ['filter' => 'permission:cms.forms.write']);
+        $routes->delete('forms/(:num)', 'FormController::destroy/$1', ['filter' => 'permission:cms.forms.admin']);
+        $routes->get('forms/(:num)/fields', 'FormController::fields/$1', ['filter' => 'permission:cms.forms.read']);
+        $routes->post('forms/(:num)/fields', 'FormController::storeField/$1', ['filter' => 'permission:cms.forms.write']);
+        $routes->put('forms/(:num)/fields/(:num)', 'FormController::updateField/$1/$2', ['filter' => 'permission:cms.forms.write']);
+        $routes->delete('forms/(:num)/fields/(:num)', 'FormController::destroyField/$1/$2', ['filter' => 'permission:cms.forms.write']);
+        $routes->patch('forms/(:num)/fields/reorder', 'FormController::reorderFields/$1', ['filter' => 'permission:cms.forms.write']);
+
         // Analytics (admin — website visit statistics)
         $routes->get('analytics/overview', 'AnalyticsController::overview', ['filter' => 'permission:cms.analytics.read']);
         $routes->get('analytics/pages', 'AnalyticsController::pages', ['filter' => 'permission:cms.analytics.read']);
@@ -121,17 +133,17 @@ $routes->group('cms', ['namespace' => '\App\Controllers\Api\V1\Cms'], function (
     });
 });
 
-// Public form submission endpoint (no auth, rate-limited)
-$routes->post('public/submissions', '\App\Controllers\Api\V1\Cms\PublicFormSubmissionController::store', ['filter' => 'throttle']);
-// Public page-view tracking endpoint (no auth, rate-limited)
-$routes->post('public/track', '\App\Controllers\Api\V1\Cms\PublicTrackingController::track', ['filter' => 'throttle']);
-// Public endpoints
-$routes->get('public/settings', '\App\Controllers\Api\V1\Cms\PublicSettingController::index', ['filter' => 'throttle']);
-$routes->get('public/(:segment)/pages', '\App\Controllers\Api\V1\Cms\PublicPageController::index/$1', ['filter' => 'throttle']);
-$routes->get('public/(:segment)/pages/(.+)', '\App\Controllers\Api\V1\Cms\PublicPageController::show/$1/$2', ['filter' => 'throttle']);
-$routes->get('public/menus/(:segment)', '\App\Controllers\Api\V1\Cms\PublicMenuController::show/$1', ['filter' => 'throttle']);
-$routes->get('public/(:segment)/collections', '\App\Controllers\Api\V1\Cms\PublicCollectionController::index/$1', ['filter' => 'throttle']);
-$routes->get('public/(:segment)/categories/(:segment)', '\App\Controllers\Api\V1\Cms\PublicCategoryController::index/$1/$2', ['filter' => 'throttle']);
-$routes->get('public/(:segment)/entries/(:segment)', '\App\Controllers\Api\V1\Cms\PublicEntryController::index/$1/$2', ['filter' => 'throttle']);
-$routes->get('public/(:segment)/entries/(:segment)/(.+)', '\App\Controllers\Api\V1\Cms\PublicEntryController::show/$1/$2/$3', ['filter' => 'throttle']);
-$routes->get('public/redirects/(.*)', '\App\Controllers\Api\V1\Cms\PublicRedirectController::resolve/$1', ['filter' => 'throttle']);
+// Public endpoints — all require X-App-Key (webappkey) + throttle
+$routes->post('public/submissions', '\App\Controllers\Api\V1\Cms\PublicFormSubmissionController::store', ['filter' => ['webappkey', 'throttle']]);
+$routes->post('public/track', '\App\Controllers\Api\V1\Cms\PublicTrackingController::track', ['filter' => ['webappkey', 'throttle']]);
+$routes->get('public/settings', '\App\Controllers\Api\V1\Cms\PublicSettingController::index', ['filter' => ['webappkey', 'throttle']]);
+$routes->get('public/(:segment)/pages', '\App\Controllers\Api\V1\Cms\PublicPageController::index/$1', ['filter' => ['webappkey', 'throttle']]);
+$routes->get('public/(:segment)/pages/(.+)', '\App\Controllers\Api\V1\Cms\PublicPageController::show/$1/$2', ['filter' => ['webappkey', 'throttle']]);
+$routes->get('public/menus/(:segment)', '\App\Controllers\Api\V1\Cms\PublicMenuController::show/$1', ['filter' => ['webappkey', 'throttle']]);
+$routes->get('public/(:segment)/collections', '\App\Controllers\Api\V1\Cms\PublicCollectionController::index/$1', ['filter' => ['webappkey', 'throttle']]);
+$routes->get('public/(:segment)/categories/(:segment)', '\App\Controllers\Api\V1\Cms\PublicCategoryController::index/$1/$2', ['filter' => ['webappkey', 'throttle']]);
+$routes->get('public/(:segment)/entries/(:segment)', '\App\Controllers\Api\V1\Cms\PublicEntryController::index/$1/$2', ['filter' => ['webappkey', 'throttle']]);
+$routes->get('public/(:segment)/entries/(:segment)/(.+)', '\App\Controllers\Api\V1\Cms\PublicEntryController::show/$1/$2/$3', ['filter' => ['webappkey', 'throttle']]);
+$routes->get('public/redirects/(.*)', '\App\Controllers\Api\V1\Cms\PublicRedirectController::resolve/$1', ['filter' => ['webappkey', 'throttle']]);
+// Public form definition (for web rendering dynamic forms)
+$routes->get('public/(:segment)/forms/(:segment)', '\App\Controllers\Api\V1\Cms\PublicFormController::definition/$1/$2', ['filter' => ['webappkey', 'throttle']]);

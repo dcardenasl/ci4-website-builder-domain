@@ -54,6 +54,7 @@ class Filters extends BaseFilters
         'idempotency'        => \dcardenasl\Ci4ApiCore\Http\Filters\IdempotencyFilter::class,
         'correlationid'      => \dcardenasl\Ci4ApiCore\Http\Filters\CorrelationIdFilter::class,
         'maintenance'        => \dcardenasl\Ci4ApiCore\Http\Filters\MaintenanceFilter::class,
+        'webappkey'          => \App\Filters\WebAppKeyRequiredFilter::class,
     ];
 
     /**
