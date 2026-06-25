@@ -14,6 +14,10 @@ use OpenApi\Attributes as OA;
 )]
 final readonly class CollectionResponseDTO implements DataTransferObjectInterface
 {
+    /**
+     * @param array<string, mixed>|null $block_template
+     * @param array<int, array<string, mixed>> $translations
+     */
     public function __construct(
         #[OA\Property(description: 'Unique identifier', example: 1)]
         public int $id,
@@ -33,6 +37,8 @@ final readonly class CollectionResponseDTO implements DataTransferObjectInterfac
         public ?string $default_changefreq,
         #[OA\Property(description: 'sort_order', type: 'integer')]
         public int $sort_order,
+        #[OA\Property(description: 'Block template defining fixed structure inherited by entries', type: 'object', nullable: true)]
+        public ?array $block_template = null,
         #[OA\Property(property: 'created_at', description: 'Creation timestamp', example: '2026-02-26 12:00:00', nullable: true)]
         public ?string $createdAt = null,
         #[OA\Property(property: 'updated_at', description: 'Last update timestamp', example: '2026-02-26 12:00:00', nullable: true)]
@@ -47,6 +53,12 @@ final readonly class CollectionResponseDTO implements DataTransferObjectInterfac
      */
     public static function fromArray(array $data): static
     {
+        $blockTemplate = $data['block_template'] ?? null;
+        if (is_string($blockTemplate)) {
+            $decoded = json_decode($blockTemplate, true);
+            $blockTemplate = is_array($decoded) ? $decoded : null;
+        }
+
         return new static(
             id: (int) ($data['id'] ?? 0),
             collection_key: (string) ($data['collection_key'] ?? ''),
@@ -57,6 +69,7 @@ final readonly class CollectionResponseDTO implements DataTransferObjectInterfac
             default_sitemap_priority: isset($data['default_sitemap_priority']) ? (float) $data['default_sitemap_priority'] : null,
             default_changefreq: $data['default_changefreq'] ?? null,
             sort_order: (int) ($data['sort_order'] ?? 0),
+            block_template: is_array($blockTemplate) ? $blockTemplate : null,
             createdAt: DateValue::toString($data['created_at'] ?? null),
             updatedAt: DateValue::toString($data['updated_at'] ?? null),
             translations: $data['translations'] ?? []
@@ -78,6 +91,7 @@ final readonly class CollectionResponseDTO implements DataTransferObjectInterfac
             'default_sitemap_priority' => $this->default_sitemap_priority,
             'default_changefreq' => $this->default_changefreq,
             'sort_order' => $this->sort_order,
+            'block_template' => $this->block_template,
             'created_at' => $this->createdAt,
             'updated_at' => $this->updatedAt,
             'translations' => $this->translations,

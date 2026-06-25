@@ -4,7 +4,9 @@ declare(strict_types=1);
 
 namespace App\DTO\Request\Cms;
 
+use App\Exceptions\BlockTemplateValidationException;
 use App\Libraries\Cms\CmsEnums;
+use App\Validators\BlockTemplateValidator;
 use dcardenasl\Ci4ApiCore\Dto\BaseRequestDTO;
 use OpenApi\Attributes as OA;
 
@@ -27,6 +29,12 @@ readonly class CollectionCreateRequestDTO extends BaseRequestDTO
     public ?string $default_changefreq;
     #[OA\Property(description: 'sort_order', type: 'integer')]
     public int $sort_order;
+
+    /**
+     * @var array<string, mixed>|null
+     */
+    #[OA\Property(description: 'block_template', type: 'object', nullable: true)]
+    public ?array $block_template;
 
     /**
      * @var array<array{language_id: int, slug?: string, name: string, description?: string, listing_title?: string, listing_intro?: string, default_meta_title?: string, default_meta_description?: string}>
@@ -73,6 +81,7 @@ readonly class CollectionCreateRequestDTO extends BaseRequestDTO
         $this->default_sitemap_priority = isset($data['default_sitemap_priority']) ? (float) $data['default_sitemap_priority'] : null;
         $this->default_changefreq = $data['default_changefreq'] ?? null;
         $this->sort_order = (int) ($data['sort_order'] ?? 0);
+        $this->block_template = $this->parseBlockTemplate($data['block_template'] ?? null);
         $this->translations = $data['translations'] ?? [];
     }
 
@@ -81,7 +90,7 @@ readonly class CollectionCreateRequestDTO extends BaseRequestDTO
      */
     public function toArray(): array
     {
-        return [
+        $result = [
             'collection_key' => $this->collection_key,
             'is_active' => $this->is_active,
             'requires_approval' => $this->requires_approval,
@@ -92,5 +101,41 @@ readonly class CollectionCreateRequestDTO extends BaseRequestDTO
             'sort_order' => $this->sort_order,
             'translations' => $this->translations,
         ];
+
+        if ($this->block_template !== null) {
+            $result['block_template'] = json_encode($this->block_template);
+        }
+
+        return $result;
+    }
+
+    /**
+     * Parses block_template from request data (string or array) and validates it.
+     *
+     * @param mixed $raw
+     * @return array<string, mixed>|null
+     * @throws BlockTemplateValidationException
+     */
+    private function parseBlockTemplate(mixed $raw): ?array
+    {
+        if ($raw === null || $raw === '') {
+            return null;
+        }
+
+        if (is_string($raw)) {
+            $decoded = json_decode($raw, true);
+            if (json_last_error() !== JSON_ERROR_NONE) {
+                throw new BlockTemplateValidationException('block_template must be valid JSON: ' . json_last_error_msg());
+            }
+            $raw = $decoded;
+        }
+
+        if (!is_array($raw)) {
+            throw new BlockTemplateValidationException('block_template must be an object');
+        }
+
+        (new BlockTemplateValidator())->validate($raw);
+
+        return $raw;
     }
 }
