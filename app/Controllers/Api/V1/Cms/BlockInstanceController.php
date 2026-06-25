@@ -86,8 +86,63 @@ class BlockInstanceController extends ApiController
                 if (!$context->hasPermission('cms.pages.write')) {
                     throw new \dcardenasl\Ci4ApiCore\Exceptions\AuthorizationException(lang('Api.forbidden'));
                 }
+
+                $this->assertBlockNotLocked($id);
+
                 return $this->blockInstanceService->destroy($id, $context);
             }
         );
+    }
+
+    /**
+     * Throws AuthorizationException when the block instance is locked by its
+     * collection's block_template. Only applies to entry-owned instances.
+     *
+     * @throws \dcardenasl\Ci4ApiCore\Exceptions\AuthorizationException
+     * @throws \dcardenasl\Ci4ApiCore\Exceptions\NotFoundException
+     */
+    private function assertBlockNotLocked(int $instanceId): void
+    {
+        /** @var \App\Models\BlockInstanceModel $instanceModel */
+        $instanceModel = model(\App\Models\BlockInstanceModel::class);
+        $instance = $instanceModel->find($instanceId);
+
+        if (!$instance instanceof \App\Entities\BlockInstanceEntity) {
+            throw new \dcardenasl\Ci4ApiCore\Exceptions\NotFoundException(lang('Api.resourceNotFound'));
+        }
+
+        if ($instance->owner_type !== 'entry') {
+            return;
+        }
+
+        /** @var \App\Models\EntryModel $entryModel */
+        $entryModel = model(\App\Models\EntryModel::class);
+        $entry = $entryModel->find((int) $instance->owner_id);
+
+        if (!$entry instanceof \App\Entities\EntryEntity) {
+            return;
+        }
+
+        /** @var \App\Models\CollectionModel $collectionModel */
+        $collectionModel = model(\App\Models\CollectionModel::class);
+        $collection = $collectionModel->find((int) $entry->collection_id);
+
+        if (!$collection instanceof \App\Entities\CollectionEntity) {
+            return;
+        }
+
+        /** @var \App\Models\BlockTypeModel $blockTypeModel */
+        $blockTypeModel = model(\App\Models\BlockTypeModel::class);
+        $blockType = $blockTypeModel->find((int) $instance->block_id);
+
+        if (!$blockType instanceof \App\Entities\BlockTypeEntity) {
+            return;
+        }
+
+        if ($collection->isBlockLocked((string) $blockType->block_key)) {
+            throw new \dcardenasl\Ci4ApiCore\Exceptions\AuthorizationException(
+                lang('BlockInstances.locked_by_template')
+            );
+        }
     }
 }
