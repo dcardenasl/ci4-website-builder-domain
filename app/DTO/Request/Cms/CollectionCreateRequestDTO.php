@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace App\DTO\Request\Cms;
 
-use App\Exceptions\BlockTemplateValidationException;
+use App\Libraries\Cms\BlockTemplateNormalizer;
 use App\Libraries\Cms\CmsEnums;
 use App\Validators\BlockTemplateValidator;
 use dcardenasl\Ci4ApiCore\Dto\BaseRequestDTO;
@@ -103,39 +103,25 @@ readonly class CollectionCreateRequestDTO extends BaseRequestDTO
         ];
 
         if ($this->block_template !== null) {
-            $result['block_template'] = json_encode($this->block_template);
+            $result['block_template'] = json_encode($this->block_template, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
         }
 
         return $result;
     }
 
     /**
-     * Parses block_template from request data (string or array) and validates it.
-     *
      * @param mixed $raw
      * @return array<string, mixed>|null
-     * @throws BlockTemplateValidationException
      */
     private function parseBlockTemplate(mixed $raw): ?array
     {
-        if ($raw === null || $raw === '') {
+        $normalized = BlockTemplateNormalizer::normalize($raw);
+        if ($normalized === null) {
             return null;
         }
 
-        if (is_string($raw)) {
-            $decoded = json_decode($raw, true);
-            if (json_last_error() !== JSON_ERROR_NONE) {
-                throw new BlockTemplateValidationException('block_template must be valid JSON: ' . json_last_error_msg());
-            }
-            $raw = $decoded;
-        }
+        (new BlockTemplateValidator())->validate($normalized);
 
-        if (!is_array($raw)) {
-            throw new BlockTemplateValidationException('block_template must be an object');
-        }
-
-        (new BlockTemplateValidator())->validate($raw);
-
-        return $raw;
+        return $normalized;
     }
 }

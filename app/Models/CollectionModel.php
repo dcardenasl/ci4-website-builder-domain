@@ -32,7 +32,7 @@ class CollectionModel extends BaseAuditableModel
     protected array $sortableFields = ['id', 'created_at', 'is_active'];
 
     protected $validationRules = [
-        'collection_key' => 'required|string|max_length[50]|is_unique[cms_collections.collection_key]',
+        'collection_key' => 'required|string|max_length[50]',
         'is_active' => 'permit_empty|boolean_like',
         'requires_approval' => 'permit_empty|boolean_like',
         'enables_categories' => 'permit_empty|boolean_like',

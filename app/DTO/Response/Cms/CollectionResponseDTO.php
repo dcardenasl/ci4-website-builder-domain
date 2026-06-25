@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\DTO\Response\Cms;
 
+use App\Libraries\Cms\BlockTemplateNormalizer;
 use dcardenasl\Ci4ApiCore\Dto\DataTransferObjectInterface;
 use OpenApi\Attributes as OA;
 
@@ -54,9 +55,13 @@ final readonly class CollectionResponseDTO implements DataTransferObjectInterfac
     public static function fromArray(array $data): static
     {
         $blockTemplate = $data['block_template'] ?? null;
-        if (is_string($blockTemplate)) {
-            $decoded = json_decode($blockTemplate, true);
-            $blockTemplate = is_array($decoded) ? $decoded : null;
+        try {
+            $blockTemplate = BlockTemplateNormalizer::normalize($blockTemplate);
+        } catch (\Throwable) {
+            if (is_string($blockTemplate)) {
+                $decoded = json_decode($blockTemplate, true);
+                $blockTemplate = is_array($decoded) ? $decoded : null;
+            }
         }
 
         return new static(
