@@ -23,8 +23,42 @@ class CollectionEntity extends Entity
         'default_sitemap_priority' => 'decimal',
         'default_changefreq' => 'string',
         'sort_order' => 'int',
+        'block_template' => 'json',
         'translations' => 'array',
     ];
 
     protected $dates = ['created_at', 'updated_at'];
+
+    /**
+     * Returns the blocks array from the template, or null if no template is set.
+     *
+     * @return array<int, array<string, mixed>>|null
+     */
+    public function getBlocksArray(): ?array
+    {
+        if (!is_array($this->block_template) || !isset($this->block_template['blocks'])) {
+            return null;
+        }
+        return $this->block_template['blocks'];
+    }
+
+    /**
+     * Returns true when the given block_key is marked locked in the template.
+     */
+    public function isBlockLocked(string $blockKey): bool
+    {
+        $blocks = $this->getBlocksArray();
+        if ($blocks === null) {
+            return false;
+        }
+        foreach ($blocks as $block) {
+            if (isset($block['block_key'], $block['locked'])
+                && $block['block_key'] === $blockKey
+                && $block['locked'] === true
+            ) {
+                return true;
+            }
+        }
+        return false;
+    }
 }
