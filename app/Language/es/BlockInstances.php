@@ -3,10 +3,11 @@
 declare(strict_types=1);
 
 return [
-    'create_success' => 'BlockInstance creado(a) exitosamente.',
-    'update_success' => 'BlockInstance actualizado(a) exitosamente.',
-    'delete_success' => 'BlockInstance eliminado(a) exitosamente.',
-    'not_found'      => 'BlockInstance no encontrado(a).',
+    'create_success'      => 'BlockInstance creado(a) exitosamente.',
+    'update_success'      => 'BlockInstance actualizado(a) exitosamente.',
+    'delete_success'      => 'BlockInstance eliminado(a) exitosamente.',
+    'not_found'           => 'BlockInstance no encontrado(a).',
+    'locked_by_template'  => 'Este bloque está bloqueado por la plantilla de la colección y no puede eliminarse.',
     'fields'         => [
         'block_id' => 'Block',
         'block_id_placeholder' => 'Selecciona Block',

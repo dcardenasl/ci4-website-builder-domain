@@ -16,6 +16,8 @@ return [
     'some_categories_not_found' => 'Some provided category IDs do not exist.',
     'invalid_tags'              => 'One or more tag IDs are invalid.',
     'some_tags_not_found'       => 'Some provided tag IDs do not exist.',
+    'block_translation_insert_failed' => 'Failed to insert block instance translation for language {0}.',
+    'block_template_init_tx_failed'   => 'Transaction failed during block template initialization.',
     'fields'         => [
         'collection_id' => 'Collection',
         'collection_id_placeholder' => 'Select Collection',

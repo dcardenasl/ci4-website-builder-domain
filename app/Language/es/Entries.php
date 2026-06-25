@@ -16,6 +16,8 @@ return [
     'some_categories_not_found' => 'Algunos IDs de categoría proporcionados no existen.',
     'invalid_tags'              => 'Uno o más IDs de etiqueta son inválidos.',
     'some_tags_not_found'       => 'Algunos IDs de etiqueta proporcionados no existen.',
+    'block_translation_insert_failed' => 'Error al insertar la traducción de la instancia de bloque para el idioma {0}.',
+    'block_template_init_tx_failed'   => 'La transacción falló durante la inicialización de la plantilla de bloques.',
     'fields'         => [
         'collection_id' => 'Collection',
         'collection_id_placeholder' => 'Selecciona Collection',

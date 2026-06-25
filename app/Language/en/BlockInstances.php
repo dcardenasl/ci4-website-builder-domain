@@ -3,10 +3,11 @@
 declare(strict_types=1);
 
 return [
-    'create_success' => 'BlockInstance created successfully.',
-    'update_success' => 'BlockInstance updated successfully.',
-    'delete_success' => 'BlockInstance deleted successfully.',
-    'not_found'      => 'BlockInstance not found.',
+    'create_success'      => 'BlockInstance created successfully.',
+    'update_success'      => 'BlockInstance updated successfully.',
+    'delete_success'      => 'BlockInstance deleted successfully.',
+    'not_found'           => 'BlockInstance not found.',
+    'locked_by_template'  => 'This block is locked by the collection template and cannot be deleted.',
     'fields'         => [
         'block_id' => 'Block',
         'block_id_placeholder' => 'Select Block',

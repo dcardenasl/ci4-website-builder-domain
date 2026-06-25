@@ -73,9 +73,109 @@ class EntryService extends BaseCrudService implements EntryServiceInterface
         if ($this->tempTranslations !== null) {
             $this->saveTranslations((int) $entity->id, $this->tempTranslations);
         }
+        $this->initializeBlocksFromTemplate($entity);
         $this->createVersionSnapshot((int) $entity->id, 'Initial creation');
         $this->cacheInvalidator->invalidate(['entries']);
         $this->tempTranslations = null;
+    }
+
+    /**
+     * Transactionally creates BlockInstances (and their empty translations) for
+     * every block defined in the parent collection's block_template.
+     * Runs inside its own transaction; rolls back and re-throws on failure.
+     *
+     * @throws \Exception
+     */
+    private function initializeBlocksFromTemplate(object $entry): void
+    {
+        $collectionId = isset($entry->collection_id) ? (int) $entry->collection_id : null;
+        if ($collectionId === null) {
+            return;
+        }
+
+        /** @var \App\Models\CollectionModel $collectionModel */
+        $collectionModel = model(\App\Models\CollectionModel::class);
+        $collection = $collectionModel->find($collectionId);
+
+        if (!$collection instanceof \App\Entities\CollectionEntity) {
+            return;
+        }
+
+        $blocks = $collection->getBlocksArray();
+        if ($blocks === null || $blocks === []) {
+            return;
+        }
+
+        $db = \Config\Database::connect();
+        $db->transStart();
+
+        try {
+            /** @var \App\Models\BlockTypeModel $blockTypeModel */
+            $blockTypeModel = model(\App\Models\BlockTypeModel::class);
+
+            /** @var \App\Models\BlockInstanceModel $blockInstanceModel */
+            $blockInstanceModel = model(\App\Models\BlockInstanceModel::class);
+
+            /** @var \App\Models\BlockInstanceTranslationModel $translationModel */
+            $translationModel = model(\App\Models\BlockInstanceTranslationModel::class);
+
+            /** @var \App\Models\LanguageModel $languageModel */
+            $languageModel = model(\App\Models\LanguageModel::class);
+
+            /** @var list<\App\Entities\LanguageEntity> $activeLanguages */
+            $activeLanguages = $languageModel->where('is_active', 1)->findAll();
+
+            foreach ($blocks as $blockDef) {
+                $blockKey = (string) ($blockDef['block_key'] ?? '');
+                $blockType = $blockTypeModel->where('block_key', $blockKey)->first();
+
+                if (!$blockType instanceof \App\Entities\BlockTypeEntity) {
+                    throw new \RuntimeException("Block type '{$blockKey}' not found during template initialization");
+                }
+
+                $blockConfigDefaults = $blockDef['block_config_defaults'] ?? [];
+                $configJson = json_encode(is_array($blockConfigDefaults) ? $blockConfigDefaults : []);
+
+                $instanceId = $blockInstanceModel->insert([
+                    'block_id'   => (int) $blockType->id,
+                    'owner_type' => 'entry',
+                    'owner_id'   => (int) $entry->id,
+                    'sort_order' => (int) ($blockDef['sort_order'] ?? 1),
+                    'is_active'  => 1,
+                    'block_config' => $configJson !== false ? $configJson : '{}',
+                ]);
+
+                if (!$instanceId) {
+                    throw new \RuntimeException("Failed to insert block instance for '{$blockKey}'");
+                }
+
+                foreach ($activeLanguages as $language) {
+                    if (!$language instanceof \App\Entities\LanguageEntity) {
+                        continue;
+                    }
+                    $inserted = $translationModel->insert([
+                        'instance_id' => (int) $instanceId,
+                        'language_id' => (int) $language->id,
+                        'block_data'  => '{}',
+                        'is_published' => 0,
+                    ]);
+
+                    if (!$inserted) {
+                        throw new \RuntimeException(lang('Entries.block_translation_insert_failed', [$language->id]));
+                    }
+                }
+            }
+
+            $db->transComplete();
+
+            if (!$db->transStatus()) {
+                throw new \RuntimeException(lang('Entries.block_template_init_tx_failed'));
+            }
+        } catch (\Exception $e) {
+            $db->transRollback();
+            log_message('error', "[EntryService] Block template init failed for entry {$entry->id}: {$e->getMessage()}");
+            throw $e;
+        }
     }
 
     protected function beforeUpdate(int $id, array $data, ?SecurityContext $context): array
