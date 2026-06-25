@@ -23,7 +23,7 @@ readonly class MenuItemIndexRequestDTO extends BaseRequestDTO
     {
         return [
             'page'      => 'permit_empty|is_natural_no_zero',
-            'per_page'  => 'permit_empty|is_natural_no_zero|less_than[101]',
+            'per_page'  => 'permit_empty|is_natural_no_zero|less_than[1001]',
             'search'    => 'permit_empty|string|max_length[100]',
             'sort'      => 'permit_empty|max_length[100]',
             'menu_id'   => 'permit_empty|integer',
