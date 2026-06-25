@@ -334,32 +334,20 @@ class BlockTemplateCatalog
             [
                 'key'         => 'contact_form',
                 'name'        => 'Formulario de Contacto',
-                'description' => 'Formulario de contacto con campos para empresa (opcional), nombre, email, teléfono y mensaje.',
+                'description' => 'Formulario de contacto dinámico configurado desde el sistema de formularios.',
                 'category'    => 'interactive',
                 'icon'        => 'mail',
                 'default_schema' => [
-                    'fields' => [
-                        'heading'         => ['type' => 'string', 'label' => 'Título del formulario', 'required' => false],
-                        'submit_label'    => ['type' => 'string', 'label' => 'Texto del botón',       'required' => false],
-                        'success_message' => ['type' => 'string', 'label' => 'Mensaje de éxito',      'required' => false],
-                    ],
+                    'fields' => [],
                     'config_fields' => [
-                        'email_to'      => ['type' => 'string',  'label' => 'Email de destino',        'required' => false, 'default' => ''],
-                        'show_company'  => ['type' => 'boolean', 'label' => 'Mostrar campo Empresa',   'required' => false, 'default' => true],
-                        'phone_prefix'  => ['type' => 'string',  'label' => 'Prefijo telefónico',      'required' => false, 'default' => ''],
-                        'css_class'     => ['type' => 'string',  'label' => 'Clase CSS',              'required' => false, 'default' => ''],
+                        'form_key'  => ['type' => 'string', 'label' => 'Formulario', 'required' => true, 'default' => 'contact'],
+                        'css_class' => ['type' => 'string', 'label' => 'Clase CSS', 'required' => false, 'default' => ''],
                     ],
                 ],
-                'preview_sample' => [
-                    'heading'         => 'Send Us a Message',
-                    'submit_label'    => 'Submit',
-                    'success_message' => 'Thank you! Your message was sent successfully.',
-                ],
+                'preview_sample' => [],
                 'config_sample' => [
-                    'email_to'     => '',
-                    'show_company' => true,
-                    'phone_prefix' => '',
-                    'css_class'    => '',
+                    'form_key'  => 'contact',
+                    'css_class' => '',
                 ],
             ],
             [

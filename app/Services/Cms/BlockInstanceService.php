@@ -50,6 +50,7 @@ class BlockInstanceService extends BaseCrudService implements BlockInstanceServi
             $this->saveTranslations((int) $entity->id, $this->tempTranslations);
         }
         $this->tempTranslations = null;
+        service('cacheInvalidationClient')->invalidate(['pages']);
     }
 
     protected function beforeUpdate(int $id, array $data, ?SecurityContext $context): array
@@ -72,6 +73,7 @@ class BlockInstanceService extends BaseCrudService implements BlockInstanceServi
             $this->saveTranslations((int) $entity->id, $this->tempTranslations);
         }
         $this->tempTranslations = null;
+        service('cacheInvalidationClient')->invalidate(['pages']);
     }
 
     protected function enrichEntities(array $entities): array

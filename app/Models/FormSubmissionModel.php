@@ -17,6 +17,7 @@ class FormSubmissionModel extends Model
     protected $useSoftDeletes = false;
 
     protected $allowedFields = [
+        'form_id',
         'form_key',
         'page_id',
         'language_id',
