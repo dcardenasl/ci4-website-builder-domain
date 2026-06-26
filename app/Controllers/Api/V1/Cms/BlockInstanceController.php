@@ -28,6 +28,20 @@ class BlockInstanceController extends ApiController
         'store' => 201,
     ];
 
+    public function indexForPage(int $pageId): ResponseInterface
+    {
+        $this->blockInstanceService->setOwnerContext('page', $pageId);
+
+        return $this->index();
+    }
+
+    public function indexForEntry(int $entryId): ResponseInterface
+    {
+        $this->blockInstanceService->setOwnerContext('entry', $entryId);
+
+        return $this->index();
+    }
+
     public function index(): ResponseInterface
     {
         return $this->handleRequest(

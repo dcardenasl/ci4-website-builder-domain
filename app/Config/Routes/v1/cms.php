@@ -5,6 +5,9 @@ declare (strict_types=1);
 $routes->group('cms', ['namespace' => '\App\Controllers\Api\V1\Cms'], function ($routes): void {
     // Auth & Admin Protected Group
     $routes->group('', ['filter' => ['domainauth', 'throttle']], function ($routes): void {
+        // Wizard Config (must be before any (:segment) routes)
+        $routes->get('wizard/config', 'WizardConfigController::config', ['filter' => 'permission:cms.entries.read']);
+
         // Menus CRUD
         $routes->get('menus', 'MenuController::index', ['filter' => 'permission:cms.menus.read']);
         $routes->post('menus', 'MenuController::create', ['filter' => 'permission:cms.menus.write']);
@@ -74,7 +77,7 @@ $routes->group('cms', ['namespace' => '\App\Controllers\Api\V1\Cms'], function (
         $routes->put('block-types/(:num)', 'BlockTypeController::update/$1', ['filter' => 'permission:cms.blocks.write']);
         $routes->delete('block-types/(:num)', 'BlockTypeController::delete/$1', ['filter' => 'permission:cms.blocks.write']);
         // Block Instances CRUD nested under pages
-        $routes->get('pages/(:num)/blocks', 'BlockInstanceController::index', ['filter' => 'permission:cms.pages.read']);
+        $routes->get('pages/(:num)/blocks', 'BlockInstanceController::indexForPage/$1', ['filter' => 'permission:cms.pages.read']);
         $routes->get('pages/(:num)/blocks/(:num)', 'BlockInstanceController::show/$2', ['filter' => 'permission:cms.pages.read']);
         $routes->post('pages/(:num)/blocks', 'BlockInstanceController::create', ['filter' => 'permission:cms.pages.write']);
         $routes->put('pages/(:num)/blocks/(:num)', 'BlockInstanceController::update/$2', ['filter' => 'permission:cms.pages.write']);
@@ -86,7 +89,7 @@ $routes->group('cms', ['namespace' => '\App\Controllers\Api\V1\Cms'], function (
         $routes->put('entries/(:num)', 'EntryController::update/$1', ['filter' => 'permission:cms.entries.write']);
         $routes->delete('entries/(:num)', 'EntryController::delete/$1', ['filter' => 'permission:cms.entries.admin']);
         // Block Instances CRUD nested under entries
-        $routes->get('entries/(:num)/blocks', 'BlockInstanceController::index', ['filter' => 'permission:cms.pages.read']);
+        $routes->get('entries/(:num)/blocks', 'BlockInstanceController::indexForEntry/$1', ['filter' => 'permission:cms.pages.read']);
         $routes->get('entries/(:num)/blocks/(:num)', 'BlockInstanceController::show/$2', ['filter' => 'permission:cms.pages.read']);
         $routes->post('entries/(:num)/blocks', 'BlockInstanceController::create', ['filter' => 'permission:cms.pages.write']);
         $routes->put('entries/(:num)/blocks/(:num)', 'BlockInstanceController::update/$2', ['filter' => 'permission:cms.pages.write']);
