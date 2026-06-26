@@ -8,7 +8,9 @@ use dcardenasl\Ci4ApiCore\Services\CrudServiceContract;
 
 interface BlockInstanceServiceInterface extends CrudServiceContract
 {
-    // Declare resource-specific service methods here.
-    // Implement them in BlockInstanceService; until ready, throw:
-    //   throw new \BadMethodCallException(__METHOD__ . ' not implemented');
+    /**
+     * Scope subsequent index() calls to a specific owner (page or entry).
+     * Must be called before index(); the context is consumed on first use.
+     */
+    public function setOwnerContext(string $ownerType, int $ownerId): void;
 }

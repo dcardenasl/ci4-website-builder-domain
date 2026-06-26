@@ -20,7 +20,7 @@ class EntryModel extends BaseAuditableModel
     protected $useSoftDeletes = true;
     protected $useTimestamps = true;
 
-    protected $allowedFields = ['collection_id', 'author_id', 'workflow_status', 'published_at', 'scheduled_at', 'is_featured', 'view_count', 'sort_order', 'sitemap_priority', 'sitemap_changefreq', 'is_in_sitemap'];
+    protected $allowedFields = ['collection_id', 'author_id', 'workflow_status', 'published_at', 'scheduled_at', 'is_featured', 'view_count', 'sort_order', 'sitemap_priority', 'sitemap_changefreq', 'is_in_sitemap', 'wizard_extra'];
 
     /** @var array<int, string> */
     protected array $searchableFields = [];
@@ -43,5 +43,6 @@ class EntryModel extends BaseAuditableModel
         'sitemap_priority' => 'permit_empty|decimal',
         'sitemap_changefreq' => 'permit_empty|in_list[always,hourly,daily,weekly,monthly,yearly,never]',
         'is_in_sitemap' => 'permit_empty|boolean_like',
+        'wizard_extra'  => 'permit_empty',
     ];
 }

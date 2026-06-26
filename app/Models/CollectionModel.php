@@ -20,7 +20,7 @@ class CollectionModel extends BaseAuditableModel
     protected $useSoftDeletes = false;
     protected $useTimestamps = true;
 
-    protected $allowedFields = ['collection_key', 'is_active', 'requires_approval', 'enables_categories', 'enables_tags', 'default_sitemap_priority', 'default_changefreq', 'sort_order', 'block_template'];
+    protected $allowedFields = ['collection_key', 'is_active', 'requires_approval', 'enables_categories', 'enables_tags', 'default_sitemap_priority', 'default_changefreq', 'sort_order', 'block_template', 'wizard_config'];
 
     /** @var array<int, string> */
     protected array $searchableFields = [];
@@ -41,5 +41,6 @@ class CollectionModel extends BaseAuditableModel
         'default_changefreq' => 'permit_empty|in_list[always,hourly,daily,weekly,monthly,yearly,never]',
         'sort_order' => 'required|integer',
         'block_template' => 'permit_empty',
+        'wizard_config'  => 'permit_empty|valid_json',
     ];
 }
