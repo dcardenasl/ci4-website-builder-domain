@@ -9,6 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 - **Forms API (CMS-012)** — complete form management system with `FormController` (CRUD), `PublicFormController` (public submission handling), form fields, multilingual translations, submission tracking with autoreply and notification jobs, and web app key authentication filter
+- **Entry block CRUD endpoints** — `BlockInstanceController` now supports both page and entry blocks with dynamic permission routing; `ownerTypeFromRequest()` and `requiresPermission()` methods automatically resolve correct permission codes (`cms.entries.*` vs `cms.pages.*`) based on URI segments
 - **Analytics API** — new `POST /api/v1/cms/analytics/track` public endpoint for recording page views, `GET /api/v1/cms/analytics/overview` for analytics overview with period filtering, `PageViewModel` model with multi-field tracking (URL, title, referrer, user agent, device type), and `AnalyticsService` for structured analytics queries
 - **Collection slug support** — add `slug` field to `CollectionTranslationEntity` with migration, enabling SEO-friendly collection URLs alongside IDs
 - **Form submissions API** — new public endpoint `POST /api/v1/public/submissions` and admin CRUD (`FormSubmissionController`) for managing form submissions with status tracking (new, read, replied, spam, archived)
