@@ -31,10 +31,27 @@ final class TranslationAuditServiceTest extends CIUnitTestCase
         $this->db->disableForeignKeyChecks();
         $this->db->table('cms_page_translations')->truncate();
         $this->db->table('cms_pages')->truncate();
+        $this->db->table('cms_menu_translations')->truncate();
+        $this->db->table('cms_menus')->truncate();
         $this->db->table('cms_menu_item_translations')->truncate();
         $this->db->table('cms_menu_items')->truncate();
         $this->db->table('cms_setting_translations')->truncate();
         $this->db->table('cms_settings')->truncate();
+        $this->db->table('cms_block_instance_translations')->truncate();
+        $this->db->table('cms_block_instances')->truncate();
+        $this->db->table('cms_content_blocks')->truncate();
+        $this->db->table('cms_form_field_translations')->truncate();
+        $this->db->table('cms_form_fields')->truncate();
+        $this->db->table('cms_form_translations')->truncate();
+        $this->db->table('cms_forms')->truncate();
+        $this->db->table('cms_entry_translations')->truncate();
+        $this->db->table('cms_entries')->truncate();
+        $this->db->table('cms_collection_translations')->truncate();
+        $this->db->table('cms_collections')->truncate();
+        $this->db->table('cms_category_translations')->truncate();
+        $this->db->table('cms_categories')->truncate();
+        $this->db->table('cms_tag_translations')->truncate();
+        $this->db->table('cms_tags')->truncate();
         $this->db->table('cms_languages')->truncate();
         $this->db->enableForeignKeyChecks();
 
@@ -132,7 +149,7 @@ final class TranslationAuditServiceTest extends CIUnitTestCase
         $this->assertEquals('missing', $report[0]['status']);
     }
 
-    public function testMissingSettingTranslationRowsAreIgnoredWhenBaseValueExists(): void
+    public function testMissingSettingTranslationRowsAreReportedOnlyForNonDefaultLanguages(): void
     {
         $this->db->table('cms_settings')->insert([
             'setting_key' => 'site_name',
@@ -144,11 +161,20 @@ final class TranslationAuditServiceTest extends CIUnitTestCase
             'is_active' => 1,
             'sort_order' => 10,
         ]);
+        $settingId = $this->db->insertID();
 
         $service = Services::translationAuditService(false);
         $report = $service->getMissingTranslationsReport();
 
-        $this->assertSame([], $report);
+        $this->assertCount(1, $report);
+        $this->assertSame('setting', $report[0]['resource']);
+        $this->assertSame($settingId, $report[0]['resource_id']);
+        $this->assertSame($this->langEnId, $report[0]['language_id']);
+        $this->assertSame('missing', $report[0]['status']);
+
+        $audit = $service->auditResource('setting', $settingId);
+        $this->assertSame('complete', $audit['es']['status']);
+        $this->assertSame('missing', $audit['en']['status']);
     }
 
     public function testAuditResource(): void
@@ -173,5 +199,361 @@ final class TranslationAuditServiceTest extends CIUnitTestCase
 
         $this->assertEquals('incomplete', $audit['es']['status']);
         $this->assertEquals('missing', $audit['en']['status']);
+    }
+
+    public function testGetMissingTranslationsReportCoversCmsContent(): void
+    {
+        $this->db->table('cms_pages')->insert([
+            'page_type' => 'generic',
+            'status' => 'published',
+            'sort_order' => 1,
+        ]);
+        $pageId = $this->db->insertID();
+        $this->db->table('cms_page_translations')->insert([
+            'page_id' => $pageId,
+            'language_id' => $this->langEsId,
+            'slug' => 'inicio',
+            'title' => 'Inicio',
+        ]);
+
+        $this->db->table('cms_menus')->insert([
+            'menu_key' => 'main',
+            'location' => 'header',
+            'is_active' => 1,
+        ]);
+        $menuId = $this->db->insertID();
+        $this->db->table('cms_menu_translations')->insert([
+            'menu_id' => $menuId,
+            'language_id' => $this->langEsId,
+            'name' => 'Principal',
+        ]);
+
+        $this->db->table('cms_collections')->insert([
+            'collection_key' => 'news',
+            'is_active' => 1,
+            'requires_approval' => 0,
+            'enables_categories' => 1,
+            'enables_tags' => 1,
+            'default_sitemap_priority' => 0.5,
+            'default_changefreq' => 'weekly',
+            'sort_order' => 1,
+        ]);
+        $collectionId = $this->db->insertID();
+        $this->db->table('cms_collection_translations')->insert([
+            'collection_id' => $collectionId,
+            'language_id' => $this->langEsId,
+            'slug' => 'noticias',
+            'name' => 'Noticias',
+        ]);
+
+        $this->db->table('cms_categories')->insert([
+            'collection_id' => $collectionId,
+            'sort_order' => 1,
+            'is_active' => 1,
+        ]);
+        $categoryId = $this->db->insertID();
+        $this->db->table('cms_category_translations')->insert([
+            'category_id' => $categoryId,
+            'language_id' => $this->langEsId,
+            'slug' => 'destacadas',
+            'name' => 'Destacadas',
+        ]);
+
+        $this->db->table('cms_tags')->insert([
+            'is_active' => 1,
+        ]);
+        $tagId = $this->db->insertID();
+        $this->db->table('cms_tag_translations')->insert([
+            'tag_id' => $tagId,
+            'language_id' => $this->langEsId,
+            'slug' => 'destacado',
+            'name' => 'Destacado',
+        ]);
+
+        $this->db->table('cms_entries')->insert([
+            'collection_id' => $collectionId,
+            'workflow_status' => 'published',
+            'view_count' => 0,
+            'sort_order' => 1,
+            'is_featured' => 0,
+            'is_in_sitemap' => 1,
+        ]);
+        $entryId = $this->db->insertID();
+        $this->db->table('cms_entry_translations')->insert([
+            'entry_id' => $entryId,
+            'language_id' => $this->langEsId,
+            'slug' => 'nota',
+            'title' => 'Nota',
+        ]);
+
+        $this->db->table('cms_forms')->insert([
+            'form_key' => 'contact',
+            'is_active' => 1,
+            'has_captcha' => 0,
+            'notify_email' => null,
+            'autoreply_enabled' => 0,
+            'autoreply_email_field' => null,
+        ]);
+        $formId = $this->db->insertID();
+        $this->db->table('cms_form_translations')->insert([
+            'form_id' => $formId,
+            'language_id' => $this->langEsId,
+            'name' => 'Contacto',
+            'submit_label' => 'Enviar',
+        ]);
+
+        $this->db->table('cms_form_fields')->insert([
+            'form_id' => $formId,
+            'field_key' => 'message',
+            'field_type' => 'textarea',
+            'display_order' => 1,
+            'is_required' => 1,
+            'is_active' => 1,
+        ]);
+        $fieldId = $this->db->insertID();
+        $this->db->table('cms_form_field_translations')->insert([
+            'form_field_id' => $fieldId,
+            'language_id' => $this->langEsId,
+            'label' => 'Mensaje',
+        ]);
+
+        $this->db->table('cms_content_blocks')->insert([
+            'block_key' => 'cta',
+            'name' => 'CTA',
+            'description' => null,
+            'category' => 'marketing',
+            'icon' => null,
+            'schema_definition' => json_encode([
+                'fields' => [
+                    'heading' => ['type' => 'string'],
+                    'text' => ['type' => 'text'],
+                    'cta_label' => ['type' => 'string'],
+                    'cta_url' => ['type' => 'url'],
+                    'css_class' => ['type' => 'string'],
+                    'is_visible' => ['type' => 'boolean'],
+                ],
+            ]),
+            'supports_pages' => 1,
+            'supports_entries' => 1,
+            'is_container' => 0,
+            'is_active' => 1,
+            'sort_order' => 1,
+        ]);
+        $blockTypeId = $this->db->insertID();
+
+        $this->db->table('cms_block_instances')->insert([
+            'block_id' => $blockTypeId,
+            'owner_type' => 'page',
+            'owner_id' => $pageId,
+            'parent_instance_id' => null,
+            'sort_order' => 1,
+            'column_index' => null,
+            'is_active' => 1,
+            'block_config' => null,
+        ]);
+        $blockInstanceId = $this->db->insertID();
+        $this->db->table('cms_block_instance_translations')->insert([
+            'instance_id' => $blockInstanceId,
+            'language_id' => $this->langEsId,
+            'block_data' => json_encode([
+                'heading' => 'Únete',
+                'text' => 'Texto del bloque',
+                'cta_label' => 'Comprar',
+                'cta_url' => '/comprar',
+                'css_class' => 'hero-cta',
+                'is_visible' => true,
+            ]),
+            'is_published' => 1,
+        ]);
+
+        $this->db->table('cms_block_instance_translations')->insert([
+            'instance_id' => $blockInstanceId,
+            'language_id' => $this->langEnId,
+            'block_data' => json_encode([
+                'heading' => 'Join us',
+                'text' => 'Block text',
+                'cta_label' => '',
+                'cta_url' => '/buy',
+                'css_class' => 'hero-cta',
+                'is_visible' => true,
+            ]),
+            'is_published' => 1,
+        ]);
+
+        $service = Services::translationAuditService(false);
+        $report = $service->getMissingTranslationsReport();
+        $resources = array_values(array_map(static fn (array $row) => $row['resource'], $report));
+
+        $this->assertContains('page', $resources);
+        $this->assertContains('menu', $resources);
+        $this->assertContains('collection', $resources);
+        $this->assertContains('category', $resources);
+        $this->assertContains('tag', $resources);
+        $this->assertContains('entry', $resources);
+        $this->assertContains('form', $resources);
+        $this->assertContains('form_field', $resources);
+        $this->assertContains('block_instance', $resources);
+
+        $pageAudit = $service->auditResource('page', $pageId);
+        $this->assertSame('complete', $pageAudit['es']['status']);
+        $this->assertSame('missing', $pageAudit['en']['status']);
+
+        $menuAudit = $service->auditResource('menu', $menuId);
+        $this->assertSame('complete', $menuAudit['es']['status']);
+        $this->assertSame('missing', $menuAudit['en']['status']);
+
+        $audit = $service->auditResource('block_instance', $blockInstanceId);
+        $this->assertSame('complete', $audit['es']['status']);
+        $this->assertSame('mismatch', $audit['en']['status']);
+    }
+
+    public function testOptionalFieldsMismatchesAreDetectedOnPageTranslations(): void
+    {
+        $this->db->table('cms_pages')->insert([
+            'page_type' => 'generic',
+            'status' => 'published',
+            'sort_order' => 1,
+        ]);
+        $pageId = $this->db->insertID();
+
+        $this->db->table('cms_page_translations')->insert([
+            'page_id' => $pageId,
+            'language_id' => $this->langEsId,
+            'slug' => 'inicio',
+            'title' => 'Inicio',
+            'excerpt' => 'Resumen en español',
+        ]);
+
+        $this->db->table('cms_page_translations')->insert([
+            'page_id' => $pageId,
+            'language_id' => $this->langEnId,
+            'slug' => 'home',
+            'title' => 'Home',
+            'excerpt' => '',
+        ]);
+
+        $service = Services::translationAuditService(false);
+        $audit = $service->auditResource('page', $pageId);
+
+        $this->assertSame('complete', $audit['es']['status']);
+        $this->assertSame('mismatch', $audit['en']['status']);
+        $this->assertStringContainsString('excerpt', $audit['en']['detail']);
+    }
+
+    public function testMissingMenuTranslationRowsAreReported(): void
+    {
+        $this->db->table('cms_menus')->insert([
+            'menu_key' => 'main',
+            'location' => 'header',
+            'is_active' => 1,
+        ]);
+        $menuId = $this->db->insertID();
+
+        $this->db->table('cms_menu_translations')->insert([
+            'menu_id' => $menuId,
+            'language_id' => $this->langEsId,
+            'name' => 'Principal',
+        ]);
+
+        $service = Services::translationAuditService(false);
+        $audit = $service->auditResource('menu', $menuId);
+
+        $this->assertSame('complete', $audit['es']['status']);
+        $this->assertSame('missing', $audit['en']['status']);
+    }
+
+    public function testOptionalBlockFieldsMismatchIsDetected(): void
+    {
+        $this->db->table('cms_content_blocks')->insert([
+            'block_key' => 'cta',
+            'name' => 'CTA',
+            'description' => null,
+            'category' => 'marketing',
+            'icon' => null,
+            'schema_definition' => json_encode([
+                'fields' => [
+                    'heading' => ['type' => 'string', 'required' => true],
+                    'text' => ['type' => 'text', 'required' => false],
+                    'cta_label' => ['type' => 'string', 'required' => false],
+                ],
+            ]),
+            'supports_pages' => 1,
+            'supports_entries' => 1,
+            'is_container' => 0,
+            'is_active' => 1,
+            'sort_order' => 1,
+        ]);
+        $blockTypeId = $this->db->insertID();
+
+        $this->db->table('cms_block_instances')->insert([
+            'block_id' => $blockTypeId,
+            'owner_type' => 'page',
+            'owner_id' => 1,
+            'parent_instance_id' => null,
+            'sort_order' => 1,
+            'column_index' => null,
+            'is_active' => 1,
+            'block_config' => null,
+        ]);
+        $blockInstanceId = $this->db->insertID();
+
+        $this->db->table('cms_block_instance_translations')->insert([
+            'instance_id' => $blockInstanceId,
+            'language_id' => $this->langEsId,
+            'block_data' => json_encode([
+                'heading' => 'Únete',
+                'text' => 'Texto',
+                'cta_label' => 'Comprar',
+            ]),
+            'is_published' => 1,
+        ]);
+
+        $this->db->table('cms_block_instance_translations')->insert([
+            'instance_id' => $blockInstanceId,
+            'language_id' => $this->langEnId,
+            'block_data' => json_encode([
+                'heading' => 'Join us',
+                'text' => '',
+                'cta_label' => '',
+            ]),
+            'is_published' => 1,
+        ]);
+
+        $service = Services::translationAuditService(false);
+        $audit = $service->auditResource('block_instance', $blockInstanceId);
+
+        $this->assertSame('complete', $audit['es']['status']);
+        $this->assertSame('mismatch', $audit['en']['status']);
+    }
+
+    public function testOverallCompletenessIncludesExpandedCmsResources(): void
+    {
+        $this->db->table('cms_collections')->insert([
+            'collection_key' => 'news',
+            'is_active' => 1,
+            'requires_approval' => 0,
+            'enables_categories' => 1,
+            'enables_tags' => 1,
+            'default_sitemap_priority' => 0.5,
+            'default_changefreq' => 'weekly',
+            'sort_order' => 1,
+        ]);
+        $collectionId = $this->db->insertID();
+        $this->db->table('cms_collection_translations')->insert([
+            'collection_id' => $collectionId,
+            'language_id' => $this->langEsId,
+            'slug' => 'noticias',
+            'name' => 'Noticias',
+        ]);
+
+        $service = Services::translationAuditService(false);
+        $stats = $service->getOverallCompleteness();
+
+        $enStat = array_values(array_filter($stats, fn ($s) => $s['code'] === 'en'))[0];
+        $esStat = array_values(array_filter($stats, fn ($s) => $s['code'] === 'es'))[0];
+
+        $this->assertGreaterThanOrEqual(1, $enStat['total_elements']);
+        $this->assertLessThan($enStat['total_elements'], $enStat['completed_elements']);
+        $this->assertGreaterThanOrEqual(1, $esStat['total_elements']);
     }
 }

@@ -12,65 +12,6 @@ class TranslationResolver
     /** @var BaseConnection<mixed, mixed> */
     private BaseConnection $db;
 
-    private const RESOURCE_MAP = [
-        'setting' => [
-            'table'  => 'cms_setting_translations',
-            'fk'     => 'setting_id',
-            'fields' => ['setting_value'],
-        ],
-        'page' => [
-            'table'  => 'cms_page_translations',
-            'fk'     => 'page_id',
-            'fields' => [
-                'slug', 'title', 'excerpt', 'meta_title', 'meta_description',
-                'og_image_file_id', 'og_type', 'canonical_url', 'robots', 'schema_data'
-            ],
-        ],
-        'menu' => [
-            'table'  => 'cms_menu_translations',
-            'fk'     => 'menu_id',
-            'fields' => ['name'],
-        ],
-        'menu_item' => [
-            'table'  => 'cms_menu_item_translations',
-            'fk'     => 'menu_item_id',
-            'fields' => ['label', 'custom_url'],
-        ],
-        'category' => [
-            'table'  => 'cms_category_translations',
-            'fk'     => 'category_id',
-            'fields' => ['name', 'slug', 'description'],
-        ],
-        'tag' => [
-            'table'  => 'cms_tag_translations',
-            'fk'     => 'tag_id',
-            'fields' => ['name', 'slug'],
-        ],
-        'collection' => [
-            'table'  => 'cms_collection_translations',
-            'fk'     => 'collection_id',
-            'fields' => ['slug', 'name', 'description', 'listing_title', 'listing_intro', 'default_meta_title', 'default_meta_description'],
-        ],
-        'entry' => [
-            'table'  => 'cms_entry_translations',
-            'fk'     => 'entry_id',
-            'fields' => [
-                'slug', 'title', 'excerpt', 'featured_file_id', 'meta_title', 'meta_description',
-                'og_image_file_id', 'og_type', 'canonical_url', 'robots', 'schema_data'
-            ],
-        ],
-        'block_instance' => [
-            'table'  => 'cms_block_instance_translations',
-            'fk'     => 'instance_id',
-            'fields' => ['block_data'],
-        ],
-        'file' => [
-            'table'  => 'cms_file_translations',
-            'fk'     => 'file_id',
-            'fields' => ['alt_text', 'caption', 'title', 'credit', 'description'],
-        ],
-    ];
-
     /**
      * @param BaseConnection<mixed, mixed>|null $db
      */
@@ -89,11 +30,10 @@ class TranslationResolver
      */
     public function resolve(string $resourceType, int $id, string $langCode): array
     {
-        if (!isset(self::RESOURCE_MAP[$resourceType])) {
+        $config = TranslationResourceCatalog::definition($resourceType);
+        if ($config === null) {
             throw new \InvalidArgumentException("Unsupported resource type: {$resourceType}");
         }
-
-        $config = self::RESOURCE_MAP[$resourceType];
 
         // 1. Resolve target language
         $targetLang = $this->getLanguageByCode($langCode);
@@ -102,7 +42,7 @@ class TranslationResolver
         if ($targetLang && (int) $targetLang['is_active'] === 1) {
             $translation = $this->getTranslation((string) $config['table'], (string) $config['fk'], $id, (int) $targetLang['id']);
             if ($translation) {
-                return array_merge($this->sanitizeFields($translation, $config['fields']), ['is_fallback' => false]);
+                return array_merge($this->sanitizeFields($translation, array_keys($config['fields'])), ['is_fallback' => false]);
             }
         }
 
@@ -111,7 +51,7 @@ class TranslationResolver
         if ($defaultLang) {
             $translation = $this->getTranslation((string) $config['table'], (string) $config['fk'], $id, (int) $defaultLang['id']);
             if ($translation) {
-                return array_merge($this->sanitizeFields($translation, $config['fields']), ['is_fallback' => true]);
+                return array_merge($this->sanitizeFields($translation, array_keys($config['fields'])), ['is_fallback' => true]);
             }
         }
 
@@ -119,13 +59,13 @@ class TranslationResolver
         if ($targetLang && isset($targetLang['fallback_language_id'])) {
             $translation = $this->getTranslation((string) $config['table'], (string) $config['fk'], $id, (int) $targetLang['fallback_language_id']);
             if ($translation) {
-                return array_merge($this->sanitizeFields($translation, $config['fields']), ['is_fallback' => true]);
+                return array_merge($this->sanitizeFields($translation, array_keys($config['fields'])), ['is_fallback' => true]);
             }
         }
 
         // 4. Return default empty structure
         $emptyPayload = [];
-        foreach ($config['fields'] as $field) {
+        foreach (array_keys($config['fields']) as $field) {
             $emptyPayload[$field] = null;
         }
 

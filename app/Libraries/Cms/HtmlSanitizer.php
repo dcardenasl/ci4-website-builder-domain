@@ -41,17 +41,16 @@ class HtmlSanitizer
         $config->set('Cache.SerializerPath', $cacheDir);
 
         // Allowed elements (rich text subset — no script/style/form/input)
+        // Keep this list aligned with the editor toolbar and HTMLPurifier support.
         $config->set('HTML.Allowed', implode(',', [
             'p', 'br',
-            'b', 'strong', 'i', 'em', 'u', 's', 'mark', 'small',
+            'b', 'strong', 'i', 'em', 'u', 's', 'small',
             'ul', 'ol', 'li',
             'blockquote', 'pre', 'code',
             'h2', 'h3', 'h4',
             'a[href|title|target|rel]',
-            'img[src|alt|width|height|loading]',
-            'figure', 'figcaption',
-            'table', 'thead', 'tbody', 'tfoot', 'tr', 'th[scope|colspan|rowspan]', 'td[colspan|rowspan]',
-            'hr', 'sup', 'sub',
+            'img[src|alt|width|height]',
+            'hr',
         ]));
 
         // Only http, https and mailto protocols in href/src
