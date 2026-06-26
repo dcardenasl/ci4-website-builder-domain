@@ -212,7 +212,7 @@ class WizardConfigController extends ApiController
                 $btModel = model(BlockTypeModel::class);
                 /** @var array<int, array<string, mixed>> $blockTypes */
                 $blockTypes = $btModel
-                    ->select('block_key, schema_definition')
+                    ->select('id, block_key, name, description, icon, schema_definition, supports_pages, supports_entries, is_container, is_active, sort_order')
                     ->where('is_active', 1)
                     ->asArray()
                     ->findAll();
@@ -227,8 +227,17 @@ class WizardConfigController extends ApiController
                     $raw    = $bt['schema_definition'] ?? null;
                     $schema = is_string($raw) ? json_decode($raw, true) : (is_array($raw) ? $raw : []);
                     $blockTypesMap[$bkey] = [
+                        'id'            => (int) ($bt['id'] ?? 0),
+                        'name'          => (string) ($bt['name'] ?? $bkey),
+                        'description'   => $bt['description'] ?? null,
+                        'icon'          => $bt['icon'] ?? null,
                         'fields'        => (array) (is_array($schema) ? ($schema['fields'] ?? []) : []),
                         'config_fields' => (array) (is_array($schema) ? ($schema['config_fields'] ?? []) : []),
+                        'supports_pages'   => (bool) ($bt['supports_pages'] ?? false),
+                        'supports_entries' => (bool) ($bt['supports_entries'] ?? false),
+                        'is_container'     => (bool) ($bt['is_container'] ?? false),
+                        'is_active'        => (bool) ($bt['is_active'] ?? false),
+                        'sort_order'       => (int) ($bt['sort_order'] ?? 0),
                     ];
                 }
 

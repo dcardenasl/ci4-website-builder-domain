@@ -59,7 +59,7 @@ class BlockInstanceService extends BaseCrudService implements BlockInstanceServi
             $this->saveTranslations((int) $entity->id, $this->tempTranslations);
         }
         $this->tempTranslations = null;
-        service('cacheInvalidationClient')->invalidate(['pages']);
+        service('cacheInvalidationClient')->invalidate($this->cacheScopesForEntity($entity));
     }
 
     protected function beforeUpdate(int $id, array $data, ?SecurityContext $context): array
@@ -82,7 +82,13 @@ class BlockInstanceService extends BaseCrudService implements BlockInstanceServi
             $this->saveTranslations((int) $entity->id, $this->tempTranslations);
         }
         $this->tempTranslations = null;
-        service('cacheInvalidationClient')->invalidate(['pages']);
+        service('cacheInvalidationClient')->invalidate($this->cacheScopesForEntity($entity));
+    }
+
+    protected function afterDelete(object $entity, ?SecurityContext $context): void
+    {
+        parent::afterDelete($entity, $context);
+        service('cacheInvalidationClient')->invalidate($this->cacheScopesForEntity($entity));
     }
 
     protected function enrichEntities(array $entities): array
@@ -193,6 +199,16 @@ class BlockInstanceService extends BaseCrudService implements BlockInstanceServi
         }
 
         return $data;
+    }
+
+    /**
+     * @return list<string>
+     */
+    private function cacheScopesForEntity(object $entity): array
+    {
+        $ownerType = (string) ($entity->owner_type ?? 'page');
+
+        return $ownerType === 'entry' ? ['entries'] : ['pages'];
     }
 
     /**

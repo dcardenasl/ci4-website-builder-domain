@@ -6,6 +6,7 @@ namespace Tests\Unit\Services\Cms;
 
 use App\DTO\Request\Cms\BlockInstanceUpdateRequestDTO;
 use App\Interfaces\Cms\BlockInstanceServiceInterface;
+use App\Libraries\Cms\CacheInvalidationClient;
 use App\Services\Cms\BlockInstanceService;
 use CodeIgniter\Test\CIUnitTestCase;
 use Config\Services;
@@ -21,6 +22,12 @@ use dcardenasl\Ci4ApiCore\Repositories\RepositoryInterface;
  */
 final class BlockInstanceServiceTest extends CIUnitTestCase
 {
+    protected function tearDown(): void
+    {
+        Services::reset();
+        parent::tearDown();
+    }
+
     public function testServiceImplementsItsInterface(): void
     {
         $service = Services::blockInstanceService(false);
@@ -66,6 +73,50 @@ final class BlockInstanceServiceTest extends CIUnitTestCase
         $result = $service->update(10, $dto, null);
 
         $this->assertSame(['id' => 10], $result->toArray());
+    }
+
+    public function testUpdateInvalidatesEntryScopesForEntryOwnedBlocks(): void
+    {
+        $repository = $this->createMock(RepositoryInterface::class);
+        $repository->expects($this->once())
+            ->method('setEntityContext')
+            ->with(10, $this->isInstanceOf(\stdClass::class));
+        $repository->expects($this->exactly(2))
+            ->method('find')
+            ->with(10)
+            ->willReturnOnConsecutiveCalls(
+                (object) ['id' => 10],
+                (object) ['id' => 10, 'owner_type' => 'entry', 'block_config' => ['theme' => 'dark']]
+            );
+        $repository->expects($this->once())
+            ->method('update')
+            ->with(10, $this->callback(static function (array $data): bool {
+                return ($data['block_config'] ?? null) === '{"theme":"dark"}';
+            }))
+            ->willReturn(true);
+
+        $responseMapper = $this->createMock(ResponseMapperInterface::class);
+        $responseMapper->method('map')
+            ->willReturn(new class () implements DataTransferObjectInterface {
+                public function toArray(): array
+                {
+                    return ['id' => 10];
+                }
+            });
+
+        $cacheMock = $this->createMock(CacheInvalidationClient::class);
+        $cacheMock->expects($this->once())
+            ->method('invalidate')
+            ->with(['entries']);
+        Services::injectMock('cacheInvalidationClient', $cacheMock);
+
+        $service = new BlockInstanceService($repository, $responseMapper);
+
+        $dto = $this->hydrateDto(BlockInstanceUpdateRequestDTO::class, [
+            'block_config' => ['theme' => 'dark'],
+        ]);
+
+        $service->update(10, $dto, null);
     }
 
     /**
