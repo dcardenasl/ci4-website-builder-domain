@@ -37,6 +37,12 @@ readonly class CollectionCreateRequestDTO extends BaseRequestDTO
     public ?array $block_template;
 
     /**
+     * @var array<string, mixed>|null
+     */
+    #[OA\Property(description: 'wizard_config', type: 'object', nullable: true)]
+    public ?array $wizard_config;
+
+    /**
      * @var array<array{language_id: int, slug?: string, name: string, description?: string, listing_title?: string, listing_intro?: string, default_meta_title?: string, default_meta_description?: string}>
      */
     #[OA\Property(description: 'translations', type: 'array', items: new OA\Items(type: 'object'))]
@@ -82,6 +88,12 @@ readonly class CollectionCreateRequestDTO extends BaseRequestDTO
         $this->default_changefreq = $data['default_changefreq'] ?? null;
         $this->sort_order = (int) ($data['sort_order'] ?? 0);
         $this->block_template = $this->parseBlockTemplate($data['block_template'] ?? null);
+        $wizardConfig = $data['wizard_config'] ?? null;
+        if (is_string($wizardConfig)) {
+            $decoded = json_decode($wizardConfig, true);
+            $wizardConfig = is_array($decoded) ? $decoded : null;
+        }
+        $this->wizard_config = is_array($wizardConfig) ? $wizardConfig : null;
         $this->translations = $data['translations'] ?? [];
     }
 
@@ -104,6 +116,10 @@ readonly class CollectionCreateRequestDTO extends BaseRequestDTO
 
         if ($this->block_template !== null) {
             $result['block_template'] = json_encode($this->block_template, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
+        }
+
+        if ($this->wizard_config !== null) {
+            $result['wizard_config'] = json_encode($this->wizard_config, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
         }
 
         return $result;

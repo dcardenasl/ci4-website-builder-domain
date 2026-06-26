@@ -37,6 +37,12 @@ readonly class CollectionUpdateRequestDTO extends BaseRequestDTO
     public ?array $block_template;
 
     /**
+     * @var array<string, mixed>|null
+     */
+    #[OA\Property(description: 'wizard_config', type: 'object', nullable: true)]
+    public ?array $wizard_config;
+
+    /**
      * @var array<array{language_id: int, slug?: string, name: string, description?: string, listing_title?: string, listing_intro?: string, default_meta_title?: string, default_meta_description?: string}>|null
      */
     #[OA\Property(description: 'translations', type: 'array', items: new OA\Items(type: 'object'))]
@@ -84,6 +90,16 @@ readonly class CollectionUpdateRequestDTO extends BaseRequestDTO
         $this->block_template = array_key_exists('block_template', $data)
             ? $this->parseBlockTemplate($data['block_template'])
             : null;
+        if (array_key_exists('wizard_config', $data)) {
+            $raw = $data['wizard_config'];
+            if (is_string($raw)) {
+                $decoded = json_decode($raw, true);
+                $raw = is_array($decoded) ? $decoded : null;
+            }
+            $this->wizard_config = is_array($raw) ? $raw : null;
+        } else {
+            $this->wizard_config = null;
+        }
         $this->translations = $data['translations'] ?? null;
     }
 
@@ -106,6 +122,10 @@ readonly class CollectionUpdateRequestDTO extends BaseRequestDTO
 
         if ($this->block_template !== null) {
             $data['block_template'] = json_encode($this->block_template, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
+        }
+
+        if ($this->wizard_config !== null) {
+            $data['wizard_config'] = json_encode($this->wizard_config, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
         }
 
         return $data;

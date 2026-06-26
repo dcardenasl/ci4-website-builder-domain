@@ -41,6 +41,12 @@ readonly class EntryCreateRequestDTO extends BaseRequestDTO
     public array $translations;
 
     /**
+     * @var array<string, mixed>|null
+     */
+    #[OA\Property(description: 'Extra fields captured by wizard (non-standard entry data)', type: 'object', nullable: true)]
+    public ?array $wizard_extra;
+
+    /**
      * @return array<string, string>
      */
     public function rules(): array
@@ -58,6 +64,7 @@ readonly class EntryCreateRequestDTO extends BaseRequestDTO
             'sitemap_changefreq' => 'permit_empty|' . CmsEnums::inListRule(CmsEnums::SITEMAP_CHANGEFREQ),
             'is_in_sitemap' => 'permit_empty|boolean_like',
             'translations' => 'permit_empty',
+            'wizard_extra' => 'permit_empty',
             'translations.*.language_id' => 'required_with[translations]|is_natural_no_zero',
             'translations.*.slug' => 'required_with[translations]|string|max_length[150]',
             'translations.*.title' => 'required_with[translations]|string|max_length[255]',
@@ -90,6 +97,8 @@ readonly class EntryCreateRequestDTO extends BaseRequestDTO
         $this->sitemap_changefreq = $data['sitemap_changefreq'] ?? null;
         $this->is_in_sitemap = (bool) ($data['is_in_sitemap'] ?? false);
         $this->translations = $data['translations'] ?? [];
+        $wizardExtra = $data['wizard_extra'] ?? null;
+        $this->wizard_extra = is_array($wizardExtra) ? $wizardExtra : null;
     }
 
     /**
@@ -110,6 +119,9 @@ readonly class EntryCreateRequestDTO extends BaseRequestDTO
             'sitemap_changefreq' => $this->sitemap_changefreq,
             'is_in_sitemap' => $this->is_in_sitemap,
             'translations' => $this->translations,
+            'wizard_extra' => $this->wizard_extra !== null
+                ? json_encode($this->wizard_extra, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES)
+                : null,
         ];
     }
 }

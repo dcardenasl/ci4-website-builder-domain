@@ -17,6 +17,7 @@ final readonly class CollectionResponseDTO implements DataTransferObjectInterfac
 {
     /**
      * @param array<string, mixed>|null $block_template
+     * @param array<string, mixed>|null $wizard_config
      * @param array<int, array<string, mixed>> $translations
      */
     public function __construct(
@@ -40,6 +41,8 @@ final readonly class CollectionResponseDTO implements DataTransferObjectInterfac
         public int $sort_order,
         #[OA\Property(description: 'Block template defining fixed structure inherited by entries', type: 'object', nullable: true)]
         public ?array $block_template = null,
+        #[OA\Property(description: 'Wizard step configuration for non-technical content creation', type: 'object', nullable: true)]
+        public ?array $wizard_config = null,
         #[OA\Property(property: 'created_at', description: 'Creation timestamp', example: '2026-02-26 12:00:00', nullable: true)]
         public ?string $createdAt = null,
         #[OA\Property(property: 'updated_at', description: 'Last update timestamp', example: '2026-02-26 12:00:00', nullable: true)]
@@ -64,6 +67,12 @@ final readonly class CollectionResponseDTO implements DataTransferObjectInterfac
             }
         }
 
+        $wizardConfig = $data['wizard_config'] ?? null;
+        if (is_string($wizardConfig)) {
+            $decoded = json_decode($wizardConfig, true);
+            $wizardConfig = is_array($decoded) ? $decoded : null;
+        }
+
         return new static(
             id: (int) ($data['id'] ?? 0),
             collection_key: (string) ($data['collection_key'] ?? ''),
@@ -75,6 +84,7 @@ final readonly class CollectionResponseDTO implements DataTransferObjectInterfac
             default_changefreq: $data['default_changefreq'] ?? null,
             sort_order: (int) ($data['sort_order'] ?? 0),
             block_template: is_array($blockTemplate) ? $blockTemplate : null,
+            wizard_config: is_array($wizardConfig) ? $wizardConfig : null,
             createdAt: DateValue::toString($data['created_at'] ?? null),
             updatedAt: DateValue::toString($data['updated_at'] ?? null),
             translations: $data['translations'] ?? []
@@ -97,6 +107,7 @@ final readonly class CollectionResponseDTO implements DataTransferObjectInterfac
             'default_changefreq' => $this->default_changefreq,
             'sort_order' => $this->sort_order,
             'block_template' => $this->block_template,
+            'wizard_config'  => $this->wizard_config,
             'created_at' => $this->createdAt,
             'updated_at' => $this->updatedAt,
             'translations' => $this->translations,
