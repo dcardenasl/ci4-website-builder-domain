@@ -1,0 +1,6 @@
+# Ignore all writable files except structure markers
+*
+!.gitignore
+!.htaccess
+!*/
+!*/index.html
