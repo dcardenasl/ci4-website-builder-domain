@@ -20,6 +20,15 @@ class BlockInstanceService extends BaseCrudService implements BlockInstanceServi
     /** @var array<mixed>|null */
     private ?array $tempTranslations = null;
 
+    private ?string $filterOwnerType = null;
+    private ?int $filterOwnerId = null;
+
+    public function setOwnerContext(string $ownerType, int $ownerId): void
+    {
+        $this->filterOwnerType = $ownerType;
+        $this->filterOwnerId   = $ownerId;
+    }
+
     /**
      * @param RepositoryInterface<BlockInstanceEntity> $blockInstanceRepository
      */
@@ -82,6 +91,7 @@ class BlockInstanceService extends BaseCrudService implements BlockInstanceServi
             return $entities;
         }
 
+        // ── Translations ───────────────────────────────────────────────────────
         $instanceIds = array_map(fn ($entity) => (int) $entity->id, $entities);
 
         /** @var \App\Models\BlockInstanceTranslationModel $translationModel */
@@ -98,8 +108,33 @@ class BlockInstanceService extends BaseCrudService implements BlockInstanceServi
             ];
         }
 
+        // ── Block type meta (block_key) ─────────────────────────────────────────
+        // Merges block_key into block_config so consumers can identify the block
+        // type without a separate lookup, even when block_config was created before
+        // block_key was stored explicitly.
+        $uniqueBlockIds = array_unique(array_map(fn ($entity) => (int) $entity->block_id, $entities));
+
+        /** @var \App\Models\BlockTypeModel $blockTypeModel */
+        $blockTypeModel = model(\App\Models\BlockTypeModel::class);
+        /** @var list<\App\Entities\BlockTypeEntity> $blockTypeEntities */
+        $blockTypeEntities = $blockTypeModel->whereIn('id', $uniqueBlockIds)->findAll();
+
+        /** @var array<int, string> $blockKeyById  id → block_key */
+        $blockKeyById = [];
+        foreach ($blockTypeEntities as $bt) {
+            $blockKeyById[(int) $bt->id] = (string) $bt->block_key;
+        }
+
+        // ── Apply to entities ──────────────────────────────────────────────────
         foreach ($entities as $entity) {
             $entity->translations = $translationsGrouped[$entity->id] ?? [];
+
+            $bid = (int) $entity->block_id;
+            if (isset($blockKeyById[$bid])) {
+                $existing = is_array($entity->block_config) ? $entity->block_config : [];
+                // block_key from the block type is authoritative — always in position
+                $entity->block_config = array_merge(['block_key' => $blockKeyById[$bid]], $existing);
+            }
         }
 
         return $entities;
@@ -182,28 +217,13 @@ class BlockInstanceService extends BaseCrudService implements BlockInstanceServi
 
     protected function applyBaseCriteria(object $builder): void
     {
-        $uri = service('request')->getUri();
-        $segments = $uri->getSegments();
+        if ($this->filterOwnerType !== null && $this->filterOwnerId !== null) {
+            $builder->where('owner_type', $this->filterOwnerType)
+                    ->where('owner_id', $this->filterOwnerId);
 
-        $ownerType = null;
-        $ownerId = null;
-
-        foreach ($segments as $index => $segment) {
-            if ($segment === 'pages' && isset($segments[$index + 1]) && is_numeric($segments[$index + 1])) {
-                $ownerType = 'page';
-                $ownerId = (int) $segments[$index + 1];
-                break;
-            }
-            if ($segment === 'entries' && isset($segments[$index + 1]) && is_numeric($segments[$index + 1])) {
-                $ownerType = 'entry';
-                $ownerId = (int) $segments[$index + 1];
-                break;
-            }
-        }
-
-        if ($ownerType !== null && $ownerId !== null) {
-            $builder->where('owner_type', $ownerType)
-                    ->where('owner_id', $ownerId);
+            // Consume — reset so a shared service instance doesn't leak state.
+            $this->filterOwnerType = null;
+            $this->filterOwnerId   = null;
         }
     }
 }

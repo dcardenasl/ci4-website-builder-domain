@@ -70,27 +70,51 @@ class EntryService extends BaseCrudService implements EntryServiceInterface
     protected function afterStore(object $entity, ?SecurityContext $context): void
     {
         parent::afterStore($entity, $context);
+
         if ($this->tempTranslations !== null) {
             $this->saveTranslations((int) $entity->id, $this->tempTranslations);
         }
-        $this->initializeBlocksFromTemplate($entity);
+
+        // wizard_extra is a transient payload: pre-fill matching block fields, then clear it.
+        $wizardExtra = ($entity instanceof EntryEntity && is_array($entity->wizard_extra) && $entity->wizard_extra !== [])
+            ? $entity->wizard_extra
+            : null;
+
+        $consumedKeys = $this->initializeBlocksFromTemplate($entity, $wizardExtra);
+
+        if ($wizardExtra !== null) {
+            $residual = array_diff_key($wizardExtra, array_flip($consumedKeys));
+
+            /** @var \App\Models\EntryModel $entryModel */
+            $entryModel = model(\App\Models\EntryModel::class);
+            $entryModel->where('id', (int) $entity->id)->set(
+                'wizard_extra',
+                !empty($residual)
+                    ? json_encode($residual, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES)
+                    : null
+            )->update();
+        }
+
         $this->createVersionSnapshot((int) $entity->id, 'Initial creation');
         $this->cacheInvalidator->invalidate(['entries']);
         $this->tempTranslations = null;
     }
 
     /**
-     * Transactionally creates BlockInstances (and their empty translations) for
-     * every block defined in the parent collection's block_template.
-     * Runs inside its own transaction; rolls back and re-throws on failure.
+     * Transactionally creates BlockInstances (and their translations) for every
+     * block defined in the parent collection's block_template.
+     * When $wizardExtra is provided, pre-fills block_data fields that match
+     * schema field keys — images use the {key}_file_id / {key}_url convention.
      *
+     * @param array<string, mixed>|null $wizardExtra
+     * @return list<string> wizard_extra keys that were consumed (mapped to block_data)
      * @throws \Exception
      */
-    private function initializeBlocksFromTemplate(object $entry): void
+    private function initializeBlocksFromTemplate(object $entry, ?array $wizardExtra): array
     {
         $collectionId = isset($entry->collection_id) ? (int) $entry->collection_id : null;
         if ($collectionId === null) {
-            return;
+            return [];
         }
 
         /** @var \App\Models\CollectionModel $collectionModel */
@@ -98,16 +122,19 @@ class EntryService extends BaseCrudService implements EntryServiceInterface
         $collection = $collectionModel->find($collectionId);
 
         if (!$collection instanceof \App\Entities\CollectionEntity) {
-            return;
+            return [];
         }
 
         $blocks = $collection->getBlocksArray();
         if ($blocks === null || $blocks === []) {
-            return;
+            return [];
         }
 
         $db = \Config\Database::connect();
         $db->transStart();
+
+        /** @var list<string> $consumedKeys */
+        $consumedKeys = [];
 
         try {
             /** @var \App\Models\BlockTypeModel $blockTypeModel */
@@ -137,11 +164,11 @@ class EntryService extends BaseCrudService implements EntryServiceInterface
                 $configJson = json_encode(is_array($blockConfigDefaults) ? $blockConfigDefaults : []);
 
                 $instanceId = $blockInstanceModel->insert([
-                    'block_id'   => (int) $blockType->id,
-                    'owner_type' => 'entry',
-                    'owner_id'   => (int) $entry->id,
-                    'sort_order' => (int) ($blockDef['sort_order'] ?? 1),
-                    'is_active'  => 1,
+                    'block_id'     => (int) $blockType->id,
+                    'owner_type'   => 'entry',
+                    'owner_id'     => (int) $entry->id,
+                    'sort_order'   => (int) ($blockDef['sort_order'] ?? 1),
+                    'is_active'    => 1,
                     'block_config' => $configJson !== false ? $configJson : '{}',
                 ]);
 
@@ -149,14 +176,28 @@ class EntryService extends BaseCrudService implements EntryServiceInterface
                     throw new \RuntimeException("Failed to insert block instance for '{$blockKey}'");
                 }
 
+                // Derive initial block_data from wizard_extra if provided (once per block, shared across languages)
+                $rawSchema   = $blockType->schema_definition ?? null;
+                $schemaDef   = is_array($rawSchema) ? $rawSchema : [];
+                $schemaFields = is_array($schemaDef['fields'] ?? null) ? (array) $schemaDef['fields'] : [];
+
+                $extraction   = $wizardExtra !== null
+                    ? $this->extractBlockDataFromWizardExtra($schemaFields, $wizardExtra)
+                    : ['data' => [], 'consumed' => []];
+
+                $consumedKeys = array_merge($consumedKeys, $extraction['consumed']);
+                $blockDataJson = !empty($extraction['data'])
+                    ? (json_encode($extraction['data'], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES) ?: '{}')
+                    : '{}';
+
                 foreach ($activeLanguages as $language) {
                     if (!$language instanceof \App\Entities\LanguageEntity) {
                         continue;
                     }
                     $inserted = $translationModel->insert([
-                        'instance_id' => (int) $instanceId,
-                        'language_id' => (int) $language->id,
-                        'block_data'  => '{}',
+                        'instance_id'  => (int) $instanceId,
+                        'language_id'  => (int) $language->id,
+                        'block_data'   => $blockDataJson,
                         'is_published' => 0,
                     ]);
 
@@ -176,6 +217,49 @@ class EntryService extends BaseCrudService implements EntryServiceInterface
             log_message('error', "[EntryService] Block template init failed for entry {$entry->id}: {$e->getMessage()}");
             throw $e;
         }
+
+        return $consumedKeys;
+    }
+
+    /**
+     * Matches wizard_extra keys against a block type's schema fields and returns the
+     * block_data subset to pre-fill, plus the list of wizard_extra keys consumed.
+     *
+     * Image fields (schema type "file") are stored in block_data as {key}_file_id and
+     * {key}_url — the same convention the wizard uses when uploading images.
+     *
+     * @param array<string, mixed> $schemaFields  schema_definition['fields'] from BlockTypeEntity
+     * @param array<string, mixed> $wizardExtra
+     * @return array{data: array<string, mixed>, consumed: list<string>}
+     */
+    private function extractBlockDataFromWizardExtra(array $schemaFields, array $wizardExtra): array
+    {
+        if ($schemaFields === [] || $wizardExtra === []) {
+            return ['data' => [], 'consumed' => []];
+        }
+
+        $blockData = [];
+        $consumed  = [];
+
+        foreach ($schemaFields as $fieldKey => $fieldDef) {
+            $fieldType = is_array($fieldDef) ? (string) ($fieldDef['type'] ?? 'string') : 'string';
+
+            if ($fieldType === 'file') {
+                $fileIdKey = $fieldKey . '_file_id';
+                $urlKey    = $fieldKey . '_url';
+                if (isset($wizardExtra[$fileIdKey])) {
+                    $blockData[$fileIdKey] = $wizardExtra[$fileIdKey];
+                    $blockData[$urlKey]    = $wizardExtra[$urlKey] ?? null;
+                    $consumed[]            = $fileIdKey;
+                    $consumed[]            = $urlKey;
+                }
+            } elseif (array_key_exists($fieldKey, $wizardExtra)) {
+                $blockData[$fieldKey] = $wizardExtra[$fieldKey];
+                $consumed[]           = $fieldKey;
+            }
+        }
+
+        return ['data' => $blockData, 'consumed' => $consumed];
     }
 
     protected function beforeUpdate(int $id, array $data, ?SecurityContext $context): array
