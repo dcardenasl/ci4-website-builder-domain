@@ -24,6 +24,7 @@ class CollectionEntity extends Entity
         'default_changefreq' => 'string',
         'sort_order' => 'int',
         'block_template' => 'json',
+        'wizard_config'  => 'json',
         'translations' => 'array',
     ];
 

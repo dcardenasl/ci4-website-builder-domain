@@ -26,6 +26,7 @@ class EntryEntity extends Entity
         'sitemap_priority' => 'decimal',
         'sitemap_changefreq' => 'string',
         'is_in_sitemap' => 'bool',
+        'wizard_extra'  => 'json',
         'translations' => 'array',
     ];
 
