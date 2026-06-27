@@ -4,22 +4,225 @@ declare(strict_types=1);
 
 namespace Tests\Unit\Services\Cms;
 
+use App\Entities\MenuItemEntity;
 use App\Interfaces\Cms\MenuItemServiceInterface;
 use CodeIgniter\Test\CIUnitTestCase;
+use CodeIgniter\Test\DatabaseTestTrait;
 use Config\Services;
 
 /**
- * Smoke tests for MenuItemService. Extend with domain-specific assertions
- * as business rules accumulate in the service.
+ * Tests for MenuItemService::resolveLink() and link resolution logic.
  *
  * @internal
  */
 final class MenuItemServiceTest extends CIUnitTestCase
 {
+    use DatabaseTestTrait;
+
+    protected $migrate     = true;
+    protected $migrateOnce = true;
+    protected $refresh     = true;
+    protected $namespace   = 'App';
+
+    private \App\Services\Cms\MenuItemService $service;
+    private int $langEsId;
+    private int $pageId;
+    private int $entryId;
+    private int $collectionId;
+
+    protected function setUp(): void
+    {
+        parent::setUp();
+        $this->service = Services::menuItemService();
+
+        // Truncate relevant tables first
+        $this->db->disableForeignKeyChecks();
+        $this->db->table('cms_entry_translations')->truncate();
+        $this->db->table('cms_entries')->truncate();
+        $this->db->table('cms_collection_translations')->truncate();
+        $this->db->table('cms_collections')->truncate();
+        $this->db->table('cms_page_translations')->truncate();
+        $this->db->table('cms_pages')->truncate();
+        $this->db->table('cms_languages')->truncate();
+        $this->db->enableForeignKeyChecks();
+
+        // Setup languages
+        $this->db->table('cms_languages')->insert([
+            'code'       => 'es',
+            'name'       => 'Spanish',
+            'is_default' => 1,
+            'is_active'  => 1,
+        ]);
+        $this->langEsId = $this->db->insertID();
+
+        // Setup page
+        $this->db->table('cms_pages')->insert([
+            'page_type'   => 'generic',
+            'status'      => 'published',
+            'sort_order'  => 1,
+        ]);
+        $this->pageId = $this->db->insertID();
+
+        // Setup page translation
+        $this->db->table('cms_page_translations')->insert([
+            'page_id'    => $this->pageId,
+            'language_id' => $this->langEsId,
+            'title'      => 'Acerca de',
+            'slug'       => 'about',
+        ]);
+
+        // Setup collection
+        $this->db->table('cms_collections')->insert([
+            'collection_key'    => 'blog',
+            'is_active'         => 1,
+            'requires_approval' => 0,
+        ]);
+        $this->collectionId = $this->db->insertID();
+
+        // Setup collection translation
+        $this->db->table('cms_collection_translations')->insert([
+            'collection_id' => $this->collectionId,
+            'language_id'   => $this->langEsId,
+            'name'          => 'Blog',
+            'slug'          => 'blog',
+        ]);
+
+        // Setup entry
+        $this->db->table('cms_entries')->insert([
+            'collection_id'  => $this->collectionId,
+            'workflow_status' => 'published',
+        ]);
+        $this->entryId = $this->db->insertID();
+
+        // Setup entry translation
+        $this->db->table('cms_entry_translations')->insert([
+            'entry_id'    => $this->entryId,
+            'language_id' => $this->langEsId,
+            'slug'        => 'first-post',
+            'title'       => 'Primer Post',
+        ]);
+    }
+
     public function testServiceImplementsItsInterface(): void
     {
-        $service = Services::menuItemService(false);
+        $this->assertInstanceOf(MenuItemServiceInterface::class, $this->service);
+    }
 
-        $this->assertInstanceOf(MenuItemServiceInterface::class, $service);
+    public function testResolveLinkForPage(): void
+    {
+        $item = new MenuItemEntity([
+            'id'        => 1,
+            'link_type' => 'page',
+            'page_id'   => $this->pageId,
+        ]);
+
+        $url = $this->service->resolveLink($item, 'es');
+
+        $this->assertSame('/about', $url);
+    }
+
+    public function testResolveLinkForPageHome(): void
+    {
+        // Setup home page
+        $this->db->table('cms_pages')->insert([
+            'id'          => 999,
+            'page_type'   => 'home',
+            'status'      => 'published',
+            'sort_order'  => 0,
+        ]);
+        $homePageId = 999;
+
+        $this->db->table('cms_page_translations')->insert([
+            'page_id'     => $homePageId,
+            'language_id' => $this->langEsId,
+            'title'       => 'Home',
+            'slug'        => 'home',
+        ]);
+
+        $item = new MenuItemEntity([
+            'id'        => 2,
+            'link_type' => 'page',
+            'page_id'   => $homePageId,
+        ]);
+
+        $url = $this->service->resolveLink($item, 'es');
+
+        $this->assertSame('/', $url);
+    }
+
+    public function testResolveLinkForCollection(): void
+    {
+        $item = new MenuItemEntity([
+            'id'            => 3,
+            'link_type'     => 'collection_listing',
+            'collection_id' => $this->collectionId,
+        ]);
+
+        $url = $this->service->resolveLink($item, 'es');
+
+        $this->assertSame('/blog', $url);
+    }
+
+    public function testResolveLinkForEntry(): void
+    {
+        $item = new MenuItemEntity([
+            'id'       => 4,
+            'link_type' => 'entry',
+            'entry_id' => $this->entryId,
+        ]);
+
+        $url = $this->service->resolveLink($item, 'es');
+
+        $this->assertSame('/blog/first-post', $url);
+    }
+
+    public function testResolveLinkReturnsNullIfPageNotFound(): void
+    {
+        $item = new MenuItemEntity([
+            'id'        => 5,
+            'link_type' => 'page',
+            'page_id'   => 99999,
+        ]);
+
+        $url = $this->service->resolveLink($item, 'es');
+
+        $this->assertNull($url);
+    }
+
+    public function testResolveLinkReturnsNullIfEntryNotFound(): void
+    {
+        $item = new MenuItemEntity([
+            'id'        => 6,
+            'link_type' => 'entry',
+            'entry_id'  => 99999,
+        ]);
+
+        $url = $this->service->resolveLink($item, 'es');
+
+        $this->assertNull($url);
+    }
+
+    public function testResolveLinkReturnsNullForCustomUrl(): void
+    {
+        $item = new MenuItemEntity([
+            'id'        => 7,
+            'link_type' => 'custom_url',
+        ]);
+
+        $url = $this->service->resolveLink($item, 'es');
+
+        $this->assertNull($url);
+    }
+
+    public function testResolveLinkReturnsNullForNoLink(): void
+    {
+        $item = new MenuItemEntity([
+            'id'        => 8,
+            'link_type' => 'no_link',
+        ]);
+
+        $url = $this->service->resolveLink($item, 'es');
+
+        $this->assertNull($url);
     }
 }

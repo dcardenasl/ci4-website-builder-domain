@@ -70,10 +70,11 @@ final class PublicEntryControllerTest extends CIUnitTestCase
 
         $this->db->table('cms_entry_translations')->insert([
             'entry_id'     => $entryId,
-            'language_id' => $this->langEsId,
-            'slug'        => 'primer-post',
-            'title'       => 'Primer Post',
-            'excerpt'     => 'Esta es la primera entrada de blog.',
+            'language_id'        => $this->langEsId,
+            'slug'               => 'primer-post',
+            'title'              => 'Primer Post',
+            'excerpt'            => 'Esta es la primera entrada de blog.',
+            'featured_image_url' => 'http://localhost:8180/uploads/posts/primer-post.png',
         ]);
 
         $result = $this->get('/api/v1/public/es/entries/blog');
@@ -101,10 +102,11 @@ final class PublicEntryControllerTest extends CIUnitTestCase
 
         $this->db->table('cms_entry_translations')->insert([
             'entry_id'     => $entryId,
-            'language_id' => $this->langEsId,
-            'slug'        => 'primer-post',
-            'title'       => 'Primer Post',
-            'excerpt'     => 'Esta es la primera entrada de blog.',
+            'language_id'        => $this->langEsId,
+            'slug'               => 'primer-post',
+            'title'              => 'Primer Post',
+            'excerpt'            => 'Esta es la primera entrada de blog.',
+            'featured_image_url' => 'http://localhost:8180/uploads/posts/primer-post.png',
         ]);
 
         $result = $this->get('/api/v1/public/es/entries/blog/primer-post');
@@ -122,6 +124,73 @@ final class PublicEntryControllerTest extends CIUnitTestCase
     {
         $result = $this->get('/api/v1/public/es/entries/blog/no-existe');
         $result->assertStatus(404);
+    }
+
+    public function testListingIncludesFeaturedImageUrl(): void
+    {
+        // Create entry with a public featured image URL
+        $this->db->table('cms_entries')->insert([
+            'collection_id' => $this->collectionId,
+            'workflow_status' => 'published',
+            'is_featured' => 1,
+            'view_count' => 10,
+            'sort_order' => 1,
+            'is_in_sitemap' => 1,
+        ]);
+        $entryId = $this->db->insertID();
+
+        $this->db->table('cms_entry_translations')->insert([
+            'entry_id'           => $entryId,
+            'language_id'        => $this->langEsId,
+            'slug'               => 'post-con-imagen',
+            'title'              => 'Post con Imagen',
+            'excerpt'            => 'Post con imagen destacada',
+            'featured_file_id'   => 42,
+            'featured_image_url' => 'http://localhost:8180/uploads/posts/post-con-imagen.png',
+        ]);
+
+        $result = $this->get('/api/v1/public/es/entries/blog');
+
+        $result->assertStatus(200);
+
+        $body = json_decode($result->getJSON(), true);
+        $this->assertSame('success', $body['status']);
+        $this->assertCount(1, $body['data']);
+        $this->assertArrayHasKey('featured_image_url', $body['data'][0]);
+        $this->assertSame('http://localhost:8180/uploads/posts/post-con-imagen.png', $body['data'][0]['featured_image_url']);
+    }
+
+    public function testShowIncludesFeaturedImageUrl(): void
+    {
+        // Create entry with a public featured image URL
+        $this->db->table('cms_entries')->insert([
+            'collection_id' => $this->collectionId,
+            'workflow_status' => 'published',
+            'is_featured' => 1,
+            'view_count' => 10,
+            'sort_order' => 1,
+            'is_in_sitemap' => 1,
+        ]);
+        $entryId = $this->db->insertID();
+
+        $this->db->table('cms_entry_translations')->insert([
+            'entry_id'           => $entryId,
+            'language_id'        => $this->langEsId,
+            'slug'               => 'detalle-con-imagen',
+            'title'              => 'Detalle con Imagen',
+            'excerpt'            => 'Detalle con imagen destacada',
+            'featured_file_id'   => 99,
+            'featured_image_url' => 'http://localhost:8180/uploads/posts/detalle-con-imagen.png',
+        ]);
+
+        $result = $this->get('/api/v1/public/es/entries/blog/detalle-con-imagen');
+
+        $result->assertStatus(200);
+
+        $body = json_decode($result->getJSON(), true);
+        $this->assertSame('success', $body['status']);
+        $this->assertArrayHasKey('featured_image_url', $body['data']);
+        $this->assertSame('http://localhost:8180/uploads/posts/detalle-con-imagen.png', $body['data']['featured_image_url']);
     }
 
     public function testGetPublicEntriesFilteredByCategoryAndTag(): void
