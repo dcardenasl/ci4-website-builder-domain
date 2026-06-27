@@ -35,7 +35,7 @@ readonly class EntryUpdateRequestDTO extends BaseRequestDTO
     public ?bool $is_in_sitemap;
 
     /**
-     * @var array<array{language_id: int, slug: string, title: string, excerpt?: string, featured_file_id?: int, meta_title?: string, meta_description?: string, og_image_file_id?: int, og_type?: string, canonical_url?: string, robots?: string, schema_data?: array<mixed>}>|null
+     * @var array<array{language_id: int, slug: string, title: string, excerpt?: string, featured_file_id?: int, featured_image_url?: string, meta_title?: string, meta_description?: string, og_image_file_id?: int, og_type?: string, canonical_url?: string, robots?: string, schema_data?: array<mixed>}>|null
      */
     #[OA\Property(description: 'translations', type: 'array', items: new OA\Items(type: 'object'), nullable: true)]
     public ?array $translations;
@@ -63,6 +63,7 @@ readonly class EntryUpdateRequestDTO extends BaseRequestDTO
             'translations.*.title' => 'required_with[translations]|string|max_length[255]',
             'translations.*.excerpt' => 'permit_empty|string|max_length[500]',
             'translations.*.featured_file_id' => 'permit_empty|integer',
+            'translations.*.featured_image_url' => 'permit_empty|string|max_length[2048]',
             'translations.*.meta_title' => 'permit_empty|string|max_length[255]',
             'translations.*.meta_description' => 'permit_empty|string|max_length[500]',
             'translations.*.og_image_file_id' => 'permit_empty|integer',

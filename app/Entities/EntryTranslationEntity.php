@@ -16,6 +16,7 @@ class EntryTranslationEntity extends Entity
         'title'            => 'string',
         'excerpt'          => 'string',
         'featured_file_id' => 'integer',
+        'featured_image_url' => 'string',
         'meta_title'       => 'string',
         'meta_description' => 'string',
         'og_image_file_id' => 'integer',
