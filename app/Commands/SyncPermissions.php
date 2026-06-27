@@ -40,6 +40,10 @@ class SyncPermissions extends BaseCommand
     public function run(array $params): int
     {
         $mirrorToSelf = $this->shouldMirrorToSelf();
+
+        if ($mirrorToSelf) {
+            CLI::write('[DEPRECATED] --mirror-to-self is no longer needed. The hub resolves permissions across all applications via resolveAll(). This flag will be removed in the next release.', 'yellow');
+        }
         $roleArg      = $this->resolveOption('assign-to-role');
         $roleArg      = is_string($roleArg) && $roleArg !== '' ? $roleArg : null;
 
