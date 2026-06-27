@@ -6,6 +6,13 @@ namespace App\Libraries\Cms;
 
 class BlockInstanceSerializer
 {
+    private FileUrlResolver $fileUrlResolver;
+
+    public function __construct(?FileUrlResolver $fileUrlResolver = null)
+    {
+        $this->fileUrlResolver = $fileUrlResolver ?? service('fileUrlResolver');
+    }
+
     /**
      * Resolve and serialize all block instances for a given owner.
      *
@@ -47,14 +54,13 @@ class BlockInstanceSerializer
             $blockData       = is_string($rawData) ? (json_decode($rawData, true) ?? []) : (array) $rawData;
 
             $schemaFields = $this->parseSchemaFields((string) ($instance['schema_definition'] ?? ''));
-            foreach ($schemaFields as $fieldKey => $fieldDef) {
-                foreach ($this->collectFileIds($blockData, $fieldKey, $fieldDef) as $fid) {
-                    $allFileIds[] = $fid;
-                }
-            }
+            $allFileIds = array_merge($allFileIds, $this->fileUrlResolver->collectBlockFileIds($blockData, $schemaFields));
         }
 
         $allFileIds        = array_values(array_unique($allFileIds));
+        $fileUrlMap        = !empty($allFileIds)
+            ? $this->fileUrlResolver->resolveMany($allFileIds, 'public')
+            : [];
         $fileTranslationsMap = !empty($allFileIds)
             ? $this->batchResolveFileTranslations($allFileIds, $langCode, $db)
             : [];
@@ -95,7 +101,8 @@ class BlockInstanceSerializer
             $blockPayload['block_data'] = $this->mergeFileMetadata(
                 $blockPayload['block_data'],
                 $schemaFields,
-                $fileTranslationsMap
+                $fileTranslationsMap,
+                $fileUrlMap
             );
 
             $serializedMap[$instanceId] = $blockPayload;
@@ -172,52 +179,6 @@ class BlockInstanceSerializer
     }
 
     /**
-     * Collect all file IDs referenced by a single schema field and its current value.
-     *
-     * Convention for 'file' type fields:
-     *   Schema key:  "image"           (type: "file")
-     *   block_data:  {"image_file_id": 42, "image_url": "https://..."}
-     *
-     * @param  array<string, mixed>        $blockData
-     * @param  string                      $fieldKey
-     * @param  array<string, mixed>        $fieldDef
-     * @return list<int>
-     */
-    private function collectFileIds(array $blockData, string $fieldKey, array $fieldDef): array
-    {
-        $type    = $fieldDef['type'] ?? 'string';
-        $fileIds = [];
-
-        if ($type === 'file') {
-            $fileId = $blockData[$fieldKey . '_file_id'] ?? null;
-            if ($fileId !== null && is_numeric($fileId)) {
-                $fileIds[] = (int) $fileId;
-            }
-        } elseif ($type === 'repeater') {
-            $items      = $blockData[$fieldKey] ?? [];
-            $itemFields = $fieldDef['item_fields'] ?? [];
-            if (!is_array($items) || !is_array($itemFields)) {
-                return [];
-            }
-            foreach ($items as $item) {
-                if (!is_array($item)) {
-                    continue;
-                }
-                foreach ($itemFields as $subKey => $subDef) {
-                    if (($subDef['type'] ?? '') === 'file') {
-                        $fileId = $item[$subKey . '_file_id'] ?? null;
-                        if ($fileId !== null && is_numeric($fileId)) {
-                            $fileIds[] = (int) $fileId;
-                        }
-                    }
-                }
-            }
-        }
-
-        return $fileIds;
-    }
-
-    /**
      * Merge resolved file metadata into block_data for all file-type and repeater fields.
      *
      * For a 'file' field named "image":
@@ -229,21 +190,33 @@ class BlockInstanceSerializer
      * @param  array<string, mixed>        $blockData
      * @param  array<string, array<string, mixed>> $schemaFields
      * @param  array<int, array<string, mixed>>    $fileTransMap   keyed by file_id
+     * @param  array<int, string>                 $fileUrlMap      keyed by file_id
      * @return array<string, mixed>
      */
-    private function mergeFileMetadata(array $blockData, array $schemaFields, array $fileTransMap): array
+    private function mergeFileMetadata(array $blockData, array $schemaFields, array $fileTransMap, array $fileUrlMap): array
     {
         foreach ($schemaFields as $fieldKey => $fieldDef) {
             $type = $fieldDef['type'] ?? 'string';
 
             if ($type === 'file') {
                 $fileId = $blockData[$fieldKey . '_file_id'] ?? null;
-                if ($fileId !== null && is_numeric($fileId)) {
-                    $fileTrans = $fileTransMap[(int) $fileId] ?? [];
+                $resolvedFileId = $this->fileUrlResolver->resolveFileIdFromValue(
+                    $fileId,
+                    isset($blockData[$fieldKey . '_url']) ? (string) $blockData[$fieldKey . '_url'] : null
+                );
+
+                if ($resolvedFileId !== null) {
+                    $fileTrans = $fileTransMap[$resolvedFileId] ?? [];
                     $blockData[$fieldKey . '_alt_text'] = $fileTrans['alt_text'] ?? null;
                     $blockData[$fieldKey . '_caption']  = $fileTrans['caption'] ?? null;
                     $blockData[$fieldKey . '_title']    = $fileTrans['title'] ?? null;
                     $blockData[$fieldKey . '_credit']   = $fileTrans['credit'] ?? null;
+                    $blockData[$fieldKey . '_url']      = $fileUrlMap[$resolvedFileId] ?? $this->fileUrlResolver->resolve($resolvedFileId, 'public');
+                } else {
+                    $blockData[$fieldKey . '_url'] = $this->fileUrlResolver->resolveUrlValue(
+                        $fileId,
+                        isset($blockData[$fieldKey . '_url']) ? (string) $blockData[$fieldKey . '_url'] : null
+                    );
                 }
             } elseif ($type === 'repeater') {
                 $items      = $blockData[$fieldKey] ?? [];
@@ -260,13 +233,22 @@ class BlockInstanceSerializer
                     }
                     foreach ($itemFields as $subKey => $subDef) {
                         if (($subDef['type'] ?? '') === 'file') {
-                            $fileId = $item[$subKey . '_file_id'] ?? null;
-                            if ($fileId !== null && is_numeric($fileId)) {
-                                $fileTrans = $fileTransMap[(int) $fileId] ?? [];
+                            $resolvedFileId = $this->fileUrlResolver->resolveFileIdFromValue(
+                                $item[$subKey . '_file_id'] ?? null,
+                                isset($item[$subKey . '_url']) ? (string) $item[$subKey . '_url'] : null
+                            );
+                            if ($resolvedFileId !== null) {
+                                $fileTrans = $fileTransMap[$resolvedFileId] ?? [];
                                 $item[$subKey . '_alt_text'] = $fileTrans['alt_text'] ?? null;
                                 $item[$subKey . '_caption']  = $fileTrans['caption'] ?? null;
                                 $item[$subKey . '_title']    = $fileTrans['title'] ?? null;
                                 $item[$subKey . '_credit']   = $fileTrans['credit'] ?? null;
+                                $item[$subKey . '_url']      = $fileUrlMap[$resolvedFileId] ?? $this->fileUrlResolver->resolve($resolvedFileId, 'public');
+                            } else {
+                                $item[$subKey . '_url'] = $this->fileUrlResolver->resolveUrlValue(
+                                    $item[$subKey . '_file_id'] ?? null,
+                                    isset($item[$subKey . '_url']) ? (string) $item[$subKey . '_url'] : null
+                                );
                             }
                         }
                     }

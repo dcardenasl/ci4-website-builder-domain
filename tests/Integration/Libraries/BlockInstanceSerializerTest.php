@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Tests\Integration\Libraries;
 
 use App\Libraries\Cms\BlockInstanceSerializer;
+use App\Libraries\Cms\FileUrlResolver;
 use CodeIgniter\Test\CIUnitTestCase;
 use CodeIgniter\Test\DatabaseTestTrait;
 use Config\Database;
@@ -26,7 +27,72 @@ final class BlockInstanceSerializerTest extends CIUnitTestCase
     protected function setUp(): void
     {
         parent::setUp();
-        $this->serializer = new BlockInstanceSerializer();
+        $resolver = new class () extends FileUrlResolver {
+            public function __construct()
+            {
+            }
+
+            public function collectBlockFileIds(array $blockData, array $schemaFields): array
+            {
+                $fileIds = [];
+                foreach ($schemaFields as $fieldKey => $fieldDef) {
+                    $type = strtolower((string) ($fieldDef['type'] ?? 'string'));
+                    if ($type === 'file') {
+                        $fileId = $blockData[$fieldKey . '_file_id'] ?? null;
+                        if (is_numeric($fileId)) {
+                            $fileIds[] = (int) $fileId;
+                        }
+                        continue;
+                    }
+                    if ($type === 'repeater' && is_array($blockData[$fieldKey] ?? null)) {
+                        $itemFields = is_array($fieldDef['item_fields'] ?? null) ? (array) $fieldDef['item_fields'] : [];
+                        foreach ($blockData[$fieldKey] as $item) {
+                            if (is_array($item)) {
+                                $fileIds = array_merge($fileIds, $this->collectBlockFileIds($item, $itemFields));
+                            }
+                        }
+                    }
+                }
+
+                return array_values(array_unique($fileIds));
+            }
+
+            public function resolveMany(array $fileIds, string $context = 'public'): array
+            {
+                $map = [];
+                foreach ($fileIds as $fileId) {
+                    $map[(int) $fileId] = match ((int) $fileId) {
+                        500 => 'http://localhost:8180/uploads/posts/feature_lg.png',
+                        501 => 'http://localhost:8180/uploads/posts/gallery.png',
+                        default => 'http://localhost:8180/uploads/posts/' . (int) $fileId . '.png',
+                    };
+                }
+
+                return $map;
+            }
+
+            public function resolveUrlValue(int|string|null $fileId, ?string $currentUrl = null, string $context = 'public'): ?string
+            {
+                $fileId = is_numeric($fileId) ? (int) $fileId : null;
+                return match ($fileId) {
+                    500 => 'http://localhost:8180/uploads/posts/feature_lg.png',
+                    501 => 'http://localhost:8180/uploads/posts/gallery.png',
+                    default => $currentUrl,
+                };
+            }
+
+            public function resolveFileIdFromValue(int|string|null $fileId, ?string $url = null): ?int
+            {
+                return is_numeric($fileId) ? (int) $fileId : null;
+            }
+
+            public function resolve(int $fileId, string $context = 'public'): ?string
+            {
+                return $this->resolveUrlValue($fileId, null, $context);
+            }
+        };
+
+        $this->serializer = new BlockInstanceSerializer($resolver);
         $this->seedDatabase();
     }
 
@@ -85,6 +151,27 @@ final class BlockInstanceSerializerTest extends CIUnitTestCase
         ]);
         $db->table('cms_content_blocks')->insert([
             'id'                => 3,
+            'block_key'         => 'gallery',
+            'name'              => 'Gallery',
+            'schema_definition' => json_encode([
+                'fields' => [
+                    'items' => [
+                        'type' => 'repeater',
+                        'item_fields' => [
+                            'image' => ['type' => 'file', 'label' => 'Image'],
+                            'caption' => ['type' => 'string', 'label' => 'Caption'],
+                        ],
+                    ],
+                ],
+            ]),
+            'supports_pages'    => 1,
+            'supports_entries'  => 1,
+            'is_container'      => 0,
+            'is_active'         => 1,
+            'sort_order'        => 30,
+        ]);
+        $db->table('cms_content_blocks')->insert([
+            'id'                => 4,
             'block_key'         => 'hero_slider',
             'name'              => 'Hero Slider',
             'schema_definition' => '{}',
@@ -116,10 +203,19 @@ final class BlockInstanceSerializerTest extends CIUnitTestCase
         ]);
         $db->table('cms_block_instances')->insert([
             'id'           => 102,
-            'block_id'     => 3, // hero_slider
+            'block_id'     => 3, // gallery
             'owner_type'   => 'page',
             'owner_id'     => 10,
             'sort_order'   => 3,
+            'is_active'    => 1,
+            'block_config' => json_encode([]),
+        ]);
+        $db->table('cms_block_instances')->insert([
+            'id'           => 103,
+            'block_id'     => 4, // hero_slider
+            'owner_type'   => 'page',
+            'owner_id'     => 10,
+            'sort_order'   => 4,
             'is_active'    => 1,
             'block_config' => json_encode([
                 'caption_position'  => 'below',
@@ -148,7 +244,26 @@ final class BlockInstanceSerializerTest extends CIUnitTestCase
         $db->table('cms_block_instance_translations')->insert([
             'instance_id'  => 101,
             'language_id'  => 1,
-            'block_data'   => json_encode(['image_file_id' => 500]),
+            'block_data'   => json_encode([
+                'image_file_id' => 500,
+                'image_url' => 'http://localhost:8182/files/500/view',
+            ]),
+            'is_published' => 1,
+        ]);
+
+        // 102 (gallery) in English only, with nested file field + preview URL
+        $db->table('cms_block_instance_translations')->insert([
+            'instance_id'  => 102,
+            'language_id'  => 1,
+            'block_data'   => json_encode([
+                'items' => [
+                    [
+                        'image_file_id' => 501,
+                        'image_url' => 'http://localhost:8182/files/501/view',
+                        'caption' => 'Gallery item',
+                    ],
+                ],
+            ]),
             'is_published' => 1,
         ]);
 
@@ -161,6 +276,15 @@ final class BlockInstanceSerializerTest extends CIUnitTestCase
             'title'       => 'Title',
             'credit'      => 'Credit',
             'description' => 'Desc',
+        ]);
+        $db->table('cms_file_translations')->insert([
+            'file_id'     => 501,
+            'language_id' => 1,
+            'alt_text'    => 'Gallery Alt',
+            'caption'     => 'Gallery Caption',
+            'title'       => 'Gallery Title',
+            'credit'      => 'Gallery Credit',
+            'description' => 'Gallery Description',
         ]);
         $db->table('cms_file_translations')->insert([
             'file_id'     => 500,
@@ -177,7 +301,7 @@ final class BlockInstanceSerializerTest extends CIUnitTestCase
     {
         $blocks = $this->serializer->forContent('page', 10, 'es');
 
-        $this->assertCount(3, $blocks);
+        $this->assertCount(4, $blocks);
 
         // First block: rich_text in Spanish
         $this->assertEquals(100, $blocks[0]['id']);
@@ -191,24 +315,31 @@ final class BlockInstanceSerializerTest extends CIUnitTestCase
         $this->assertEquals('image', $blocks[1]['block_key']);
         $this->assertEquals('16:9', $blocks[1]['block_config']['aspect_ratio']);
         $this->assertEquals(500, $blocks[1]['block_data']['image_file_id']);
+        $this->assertSame('http://localhost:8180/uploads/posts/feature_lg.png', $blocks[1]['block_data']['image_url']);
         $this->assertTrue($blocks[1]['is_fallback']);
 
         // Alt text resolved to Spanish because file 500 has a Spanish translation
         $this->assertEquals('Texto Alt Español', $blocks[1]['block_data']['image_alt_text']);
         $this->assertEquals('Subtítulo Español', $blocks[1]['block_data']['image_caption']);
 
-        // Third block: hero slider keeps the presentation config as stored
+        // Third block: gallery repeater resolves nested file URLs too
         $this->assertEquals(102, $blocks[2]['id']);
-        $this->assertEquals('hero_slider', $blocks[2]['block_key']);
-        $this->assertSame('below', $blocks[2]['block_config']['caption_position']);
-        $this->assertSame('below', $blocks[2]['block_config']['controls_position']);
+        $this->assertEquals('gallery', $blocks[2]['block_key']);
+        $this->assertSame('http://localhost:8180/uploads/posts/gallery.png', $blocks[2]['block_data']['items'][0]['image_url']);
+        $this->assertEquals('Gallery Alt', $blocks[2]['block_data']['items'][0]['image_alt_text']);
+
+        // Fourth block: hero slider keeps the presentation config as stored
+        $this->assertEquals(103, $blocks[3]['id']);
+        $this->assertEquals('hero_slider', $blocks[3]['block_key']);
+        $this->assertSame('below', $blocks[3]['block_config']['caption_position']);
+        $this->assertSame('below', $blocks[3]['block_config']['controls_position']);
     }
 
     public function testForContentRetrievesDefaultWhenNoSpanishFileTranslation(): void
     {
         $blocks = $this->serializer->forContent('page', 10, 'en');
 
-        $this->assertCount(3, $blocks);
+        $this->assertCount(4, $blocks);
         $this->assertEquals('Hello World', $blocks[0]['block_data']['content']);
         $this->assertEquals('English Alt Text', $blocks[1]['block_data']['image_alt_text']);
     }

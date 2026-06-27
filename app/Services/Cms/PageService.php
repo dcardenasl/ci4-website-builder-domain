@@ -6,6 +6,8 @@ namespace App\Services\Cms;
 
 use App\Entities\PageEntity;
 use App\Interfaces\Cms\PageServiceInterface;
+use App\Libraries\Cms\FileReferenceSynchronizer;
+use App\Libraries\Cms\FileUrlResolver;
 use dcardenasl\Ci4ApiCore\Dto\SecurityContext;
 use dcardenasl\Ci4ApiCore\Exceptions\ValidationException;
 use dcardenasl\Ci4ApiCore\Mappers\ResponseMapperInterface;
@@ -24,6 +26,10 @@ class PageService extends BaseCrudService implements PageServiceInterface
 
     private \App\Libraries\Cms\CacheInvalidationClient $cacheInvalidator;
 
+    private FileUrlResolver $fileUrlResolver;
+
+    private FileReferenceSynchronizer $fileReferenceSynchronizer;
+
     /**
      * @param RepositoryInterface<PageEntity> $pageRepository
      */
@@ -31,11 +37,15 @@ class PageService extends BaseCrudService implements PageServiceInterface
         RepositoryInterface $pageRepository,
         ResponseMapperInterface $responseMapper,
         ?\App\Libraries\Cms\SlugRedirectRecorder $slugRedirectRecorder = null,
-        ?\App\Libraries\Cms\CacheInvalidationClient $cacheInvalidator = null
+        ?\App\Libraries\Cms\CacheInvalidationClient $cacheInvalidator = null,
+        ?FileUrlResolver $fileUrlResolver = null,
+        ?FileReferenceSynchronizer $fileReferenceSynchronizer = null
     ) {
         parent::__construct($pageRepository, $responseMapper);
         $this->slugRedirectRecorder = $slugRedirectRecorder ?? service('slugRedirectRecorder');
         $this->cacheInvalidator     = $cacheInvalidator ?? service('cacheInvalidationClient');
+        $this->fileUrlResolver      = $fileUrlResolver ?? service('fileUrlResolver');
+        $this->fileReferenceSynchronizer = $fileReferenceSynchronizer ?? service('fileReferenceSynchronizer');
     }
 
     protected function beforeStore(array $data, ?SecurityContext $context): array
@@ -64,6 +74,7 @@ class PageService extends BaseCrudService implements PageServiceInterface
         if ($this->tempTranslations !== null) {
             $this->saveTranslations((int) $entity->id, $this->tempTranslations);
         }
+        $this->fileReferenceSynchronizer->syncPage((int) $entity->id);
         $this->createVersionSnapshot((int) $entity->id, 'Initial creation');
         $this->cacheInvalidator->invalidate(['pages']);
         $this->tempTranslations = null;
@@ -114,6 +125,10 @@ class PageService extends BaseCrudService implements PageServiceInterface
         $translationsGrouped = [];
         foreach ($translations as $translation) {
             /** @var \App\Entities\PageTranslationEntity $translation */
+            $resolvedTranslation = $this->fileUrlResolver->normalizePageTranslation([
+                'og_image_file_id' => $translation->og_image_file_id !== null ? (int) $translation->og_image_file_id : null,
+            ]);
+
             $translationsGrouped[$translation->page_id][] = [
                 'language_id'      => (int) $translation->language_id,
                 'slug'             => $translation->slug,
@@ -122,6 +137,7 @@ class PageService extends BaseCrudService implements PageServiceInterface
                 'meta_title'       => $translation->meta_title,
                 'meta_description' => $translation->meta_description,
                 'og_image_file_id' => $translation->og_image_file_id,
+                'og_image_url'     => $resolvedTranslation['og_image_url'] ?? null,
                 'og_type'          => $translation->og_type,
                 'canonical_url'    => $translation->canonical_url,
                 'robots'           => $translation->robots,

@@ -10,6 +10,8 @@ use App\DTO\Request\Cms\PublicEntryIndexRequestDTO;
 use App\DTO\Request\Cms\PublicEntryShowRequestDTO;
 use App\Entities\EntryEntity;
 use App\Interfaces\Cms\EntryServiceInterface;
+use App\Libraries\Cms\FileReferenceSynchronizer;
+use App\Libraries\Cms\FileUrlResolver;
 use dcardenasl\Ci4ApiCore\Dto\Common\PayloadResponseDTO;
 use dcardenasl\Ci4ApiCore\Dto\DataTransferObjectInterface;
 use dcardenasl\Ci4ApiCore\Dto\PaginatedResponseDTO;
@@ -32,6 +34,10 @@ class EntryService extends BaseCrudService implements EntryServiceInterface
 
     private \App\Libraries\Cms\CacheInvalidationClient $cacheInvalidator;
 
+    private FileUrlResolver $fileUrlResolver;
+
+    private FileReferenceSynchronizer $fileReferenceSynchronizer;
+
     /**
      * @param RepositoryInterface<EntryEntity> $entryRepository
      */
@@ -39,11 +45,15 @@ class EntryService extends BaseCrudService implements EntryServiceInterface
         RepositoryInterface $entryRepository,
         ResponseMapperInterface $responseMapper,
         ?\App\Libraries\Cms\SlugRedirectRecorder $slugRedirectRecorder = null,
-        ?\App\Libraries\Cms\CacheInvalidationClient $cacheInvalidator = null
+        ?\App\Libraries\Cms\CacheInvalidationClient $cacheInvalidator = null,
+        ?FileUrlResolver $fileUrlResolver = null,
+        ?FileReferenceSynchronizer $fileReferenceSynchronizer = null
     ) {
         parent::__construct($entryRepository, $responseMapper);
         $this->slugRedirectRecorder = $slugRedirectRecorder ?? service('slugRedirectRecorder');
         $this->cacheInvalidator     = $cacheInvalidator ?? service('cacheInvalidationClient');
+        $this->fileUrlResolver      = $fileUrlResolver ?? service('fileUrlResolver');
+        $this->fileReferenceSynchronizer = $fileReferenceSynchronizer ?? service('fileReferenceSynchronizer');
     }
 
     protected function beforeStore(array $data, ?SecurityContext $context): array
@@ -95,6 +105,7 @@ class EntryService extends BaseCrudService implements EntryServiceInterface
             )->update();
         }
 
+        $this->fileReferenceSynchronizer->syncEntry((int) $entity->id);
         $this->createVersionSnapshot((int) $entity->id, 'Initial creation');
         $this->cacheInvalidator->invalidate(['entries']);
         $this->tempTranslations = null;
@@ -316,16 +327,23 @@ class EntryService extends BaseCrudService implements EntryServiceInterface
         $translationsGrouped = [];
         foreach ($translations as $translation) {
             /** @var \App\Entities\EntryTranslationEntity $translation */
+            $resolvedTranslation = $this->fileUrlResolver->normalizeEntryTranslation([
+                'featured_file_id' => $translation->featured_file_id !== null ? (int) $translation->featured_file_id : null,
+                'featured_image_url' => $translation->featured_image_url,
+                'og_image_file_id' => $translation->og_image_file_id !== null ? (int) $translation->og_image_file_id : null,
+            ]);
+
             $translationsGrouped[$translation->entry_id][] = [
                 'language_id'      => (int) $translation->language_id,
                 'slug'             => $translation->slug,
                 'title'            => $translation->title,
                 'excerpt'          => $translation->excerpt,
                 'featured_file_id' => $translation->featured_file_id !== null ? (int) $translation->featured_file_id : null,
-                'featured_image_url' => $translation->featured_image_url,
+                'featured_image_url' => $resolvedTranslation['featured_image_url'] ?? null,
                 'meta_title'       => $translation->meta_title,
                 'meta_description' => $translation->meta_description,
                 'og_image_file_id' => $translation->og_image_file_id !== null ? (int) $translation->og_image_file_id : null,
+                'og_image_url'     => $resolvedTranslation['og_image_url'] ?? null,
                 'og_type'          => $translation->og_type,
                 'canonical_url'    => $translation->canonical_url,
                 'robots'           => $translation->robots,
@@ -432,6 +450,12 @@ class EntryService extends BaseCrudService implements EntryServiceInterface
 
         $rows = [];
         foreach ($translations as $translation) {
+            $normalizedTranslation = $this->fileUrlResolver->normalizeEntryTranslation([
+                'featured_file_id' => $translation['featured_file_id'] ?? null,
+                'featured_image_url' => $translation['featured_image_url'] ?? null,
+                'og_image_file_id' => $translation['og_image_file_id'] ?? null,
+            ]);
+
             $rows[] = [
                 'entry_id'         => $entryId,
                 'language_id'      => (int) $translation['language_id'],
@@ -439,12 +463,11 @@ class EntryService extends BaseCrudService implements EntryServiceInterface
                 'title'            => $translation['title'],
                 'excerpt'          => $translation['excerpt'] ?? null,
                 'featured_file_id' => isset($translation['featured_file_id']) && $translation['featured_file_id'] !== '' ? (int) $translation['featured_file_id'] : null,
-                'featured_image_url' => isset($translation['featured_image_url']) && $translation['featured_image_url'] !== ''
-                    ? (string) $translation['featured_image_url']
-                    : null,
+                'featured_image_url' => $normalizedTranslation['featured_image_url'] ?? null,
                 'meta_title'       => $translation['meta_title'] ?? null,
                 'meta_description' => $translation['meta_description'] ?? null,
                 'og_image_file_id' => isset($translation['og_image_file_id']) && $translation['og_image_file_id'] !== '' ? (int) $translation['og_image_file_id'] : null,
+                'og_image_url'     => $normalizedTranslation['og_image_url'] ?? null,
                 'og_type'          => $translation['og_type'] ?? 'article',
                 'canonical_url'    => $translation['canonical_url'] ?? null,
                 'robots'           => $translation['robots'] ?? null,
@@ -977,8 +1000,16 @@ class EntryService extends BaseCrudService implements EntryServiceInterface
      */
     private function enrichWithFeaturedImageUrl(array $item): array
     {
-        if (empty($item['featured_image_url']) && isset($item['featured_file_id']) && $item['featured_file_id']) {
-            $item['featured_image_url'] = '/files/' . (int) $item['featured_file_id'] . '/view';
+        $item['featured_image_url'] = $this->fileUrlResolver->resolveUrlValue(
+            $item['featured_file_id'] ?? null,
+            isset($item['featured_image_url']) ? (string) $item['featured_image_url'] : null
+        );
+
+        if (! isset($item['og_image_url'])) {
+            $item['og_image_url'] = $this->fileUrlResolver->resolveUrlValue(
+                $item['og_image_file_id'] ?? null,
+                isset($item['og_image_url']) ? (string) $item['og_image_url'] : null
+            );
         }
 
         return $item;

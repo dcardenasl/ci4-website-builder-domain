@@ -6,6 +6,8 @@ namespace App\Services\Cms;
 
 use App\Entities\BlockInstanceEntity;
 use App\Interfaces\Cms\BlockInstanceServiceInterface;
+use App\Libraries\Cms\FileReferenceSynchronizer;
+use App\Libraries\Cms\FileUrlResolver;
 use App\Libraries\Cms\HtmlSanitizer;
 use dcardenasl\Ci4ApiCore\Dto\SecurityContext;
 use dcardenasl\Ci4ApiCore\Mappers\ResponseMapperInterface;
@@ -23,6 +25,10 @@ class BlockInstanceService extends BaseCrudService implements BlockInstanceServi
     private ?string $filterOwnerType = null;
     private ?int $filterOwnerId = null;
 
+    private FileUrlResolver $fileUrlResolver;
+
+    private FileReferenceSynchronizer $fileReferenceSynchronizer;
+
     public function setOwnerContext(string $ownerType, int $ownerId): void
     {
         $this->filterOwnerType = $ownerType;
@@ -34,9 +40,13 @@ class BlockInstanceService extends BaseCrudService implements BlockInstanceServi
      */
     public function __construct(
         RepositoryInterface $blockInstanceRepository,
-        ResponseMapperInterface $responseMapper
+        ResponseMapperInterface $responseMapper,
+        ?FileUrlResolver $fileUrlResolver = null,
+        ?FileReferenceSynchronizer $fileReferenceSynchronizer = null
     ) {
         parent::__construct($blockInstanceRepository, $responseMapper);
+        $this->fileUrlResolver = $fileUrlResolver ?? service('fileUrlResolver');
+        $this->fileReferenceSynchronizer = $fileReferenceSynchronizer ?? service('fileReferenceSynchronizer');
     }
 
     protected function beforeStore(array $data, ?SecurityContext $context): array
@@ -58,6 +68,7 @@ class BlockInstanceService extends BaseCrudService implements BlockInstanceServi
         if ($this->tempTranslations !== null) {
             $this->saveTranslations((int) $entity->id, $this->tempTranslations);
         }
+        $this->fileReferenceSynchronizer->syncBlockInstance((int) $entity->id);
         $this->tempTranslations = null;
         service('cacheInvalidationClient')->invalidate($this->cacheScopesForEntity($entity));
     }
@@ -81,6 +92,7 @@ class BlockInstanceService extends BaseCrudService implements BlockInstanceServi
         if ($this->tempTranslations !== null) {
             $this->saveTranslations((int) $entity->id, $this->tempTranslations);
         }
+        $this->fileReferenceSynchronizer->syncBlockInstance((int) $entity->id);
         $this->tempTranslations = null;
         service('cacheInvalidationClient')->invalidate($this->cacheScopesForEntity($entity));
     }
@@ -153,6 +165,7 @@ class BlockInstanceService extends BaseCrudService implements BlockInstanceServi
     {
         /** @var \App\Models\BlockInstanceTranslationModel $translationModel */
         $translationModel = model(\App\Models\BlockInstanceTranslationModel::class);
+        $blockSchemaFields = $this->blockSchemaFields($instanceId);
 
         // Delete existing translations for this instance
         $translationModel->where('instance_id', $instanceId)->delete();
@@ -163,6 +176,9 @@ class BlockInstanceService extends BaseCrudService implements BlockInstanceServi
                 $blockData = [];
             } else {
                 $blockData = $this->sanitizeBlockData($blockData);
+                if ($blockSchemaFields !== []) {
+                    $blockData = $this->fileUrlResolver->normalizeBlockData($blockData, $blockSchemaFields);
+                }
             }
 
             $translationModel->insert([
@@ -229,6 +245,36 @@ class BlockInstanceService extends BaseCrudService implements BlockInstanceServi
         }
 
         return $data;
+    }
+
+    /**
+     * @return array<string, array<string, mixed>>
+     */
+    private function blockSchemaFields(int $instanceId): array
+    {
+        $row = $this->repository->find($instanceId);
+        $blockId = isset($row->block_id) ? (int) $row->block_id : null;
+        if ($blockId === null || $blockId <= 0) {
+            return [];
+        }
+
+        $blockType = model(\App\Models\BlockTypeModel::class)->find($blockId);
+        if (! $blockType instanceof \App\Entities\BlockTypeEntity) {
+            return [];
+        }
+
+        $schemaDefinition = $blockType->schema_definition ?? null;
+        if (! is_string($schemaDefinition) || trim($schemaDefinition) === '') {
+            return [];
+        }
+
+        $decoded = json_decode($schemaDefinition, true);
+        if (! is_array($decoded)) {
+            return [];
+        }
+
+        $fields = $decoded['fields'] ?? [];
+        return is_array($fields) ? $fields : [];
     }
 
     protected function applyBaseCriteria(object $builder): void

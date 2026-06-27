@@ -61,6 +61,24 @@ trait CmsDomainServices
         return new \App\Libraries\Cms\TranslationResolver();
     }
 
+    public static function fileUrlResolver(bool $getShared = true): \App\Libraries\Cms\FileUrlResolver
+    {
+        if ($getShared) {
+            return static::getSharedInstance('fileUrlResolver');
+        }
+
+        return new \App\Libraries\Cms\FileUrlResolver();
+    }
+
+    public static function fileReferenceSynchronizer(bool $getShared = true): \App\Libraries\Cms\FileReferenceSynchronizer
+    {
+        if ($getShared) {
+            return static::getSharedInstance('fileReferenceSynchronizer');
+        }
+
+        return new \App\Libraries\Cms\FileReferenceSynchronizer(null, static::fileUrlResolver());
+    }
+
     public static function fileTranslationResponseMapper(bool $getShared = true): \dcardenasl\Ci4ApiCore\Mappers\ResponseMapperInterface
     {
         if ($getShared) {
@@ -90,7 +108,7 @@ trait CmsDomainServices
             return static::getSharedInstance('blockInstanceSerializer');
         }
 
-        return new \App\Libraries\Cms\BlockInstanceSerializer();
+        return new \App\Libraries\Cms\BlockInstanceSerializer(static::fileUrlResolver());
     }
     public static function pageResponseMapper(bool $getShared = true): \dcardenasl\Ci4ApiCore\Mappers\ResponseMapperInterface
     {
@@ -104,7 +122,14 @@ trait CmsDomainServices
         if ($getShared) {
             return static::getSharedInstance('pageService');
         }
-        return new \App\Services\Cms\PageService(new \dcardenasl\Ci4ApiCore\Repositories\GenericRepository(model(\App\Models\PageModel::class)), static::pageResponseMapper());
+        return new \App\Services\Cms\PageService(
+            new \dcardenasl\Ci4ApiCore\Repositories\GenericRepository(model(\App\Models\PageModel::class)),
+            static::pageResponseMapper(),
+            static::slugRedirectRecorder(),
+            static::cacheInvalidationClient(),
+            static::fileUrlResolver(),
+            static::fileReferenceSynchronizer()
+        );
     }
 
     public static function slugRouter(bool $getShared = true): \App\Libraries\Cms\SlugRouter
@@ -169,7 +194,12 @@ trait CmsDomainServices
         if ($getShared) {
             return static::getSharedInstance('blockInstanceService');
         }
-        return new \App\Services\Cms\BlockInstanceService(new \dcardenasl\Ci4ApiCore\Repositories\GenericRepository(model(\App\Models\BlockInstanceModel::class)), static::blockInstanceResponseMapper());
+        return new \App\Services\Cms\BlockInstanceService(
+            new \dcardenasl\Ci4ApiCore\Repositories\GenericRepository(model(\App\Models\BlockInstanceModel::class)),
+            static::blockInstanceResponseMapper(),
+            static::fileUrlResolver(),
+            static::fileReferenceSynchronizer()
+        );
     }
     public static function collectionResponseMapper(bool $getShared = true): \dcardenasl\Ci4ApiCore\Mappers\ResponseMapperInterface
     {
@@ -197,7 +227,14 @@ trait CmsDomainServices
         if ($getShared) {
             return static::getSharedInstance('entryService');
         }
-        return new \App\Services\Cms\EntryService(new \dcardenasl\Ci4ApiCore\Repositories\GenericRepository(model(\App\Models\EntryModel::class)), static::entryResponseMapper());
+        return new \App\Services\Cms\EntryService(
+            new \dcardenasl\Ci4ApiCore\Repositories\GenericRepository(model(\App\Models\EntryModel::class)),
+            static::entryResponseMapper(),
+            static::slugRedirectRecorder(),
+            static::cacheInvalidationClient(),
+            static::fileUrlResolver(),
+            static::fileReferenceSynchronizer()
+        );
     }
     public static function categoryResponseMapper(bool $getShared = true): \dcardenasl\Ci4ApiCore\Mappers\ResponseMapperInterface
     {

@@ -103,10 +103,16 @@ Welcome to the architecture documentation. This directory contains detailed, foc
     - Locale detection
 
 13. **[EXTENSION_GUIDE.md](EXTENSION_GUIDE.md)** (~20 min read)
-    - How to add new resources
-    - How to add new filters
-    - How to add new exceptions
-    - Best practices
+   - How to add new resources
+   - How to add new filters
+   - How to add new exceptions
+   - Best practices
+
+14. **[FILES.md](FILES.md)** (~15 min read)
+   - Canonical file identity
+   - File references and usages
+   - URL resolution rules
+   - Backfill and anti-patterns
 
 **Time investment:** ~1 hour 45 minutes
 **You'll know:** All advanced features and how to extend the system
@@ -130,6 +136,7 @@ Welcome to the architecture documentation. This directory contains detailed, foc
 | [PATTERNS.md](PATTERNS.md) | Design patterns | ~200 | Advanced |
 | [I18N.md](I18N.md) | Internationalization | ~150 | Advanced |
 | [EXTENSION_GUIDE.md](EXTENSION_GUIDE.md) | Extending the system | ~250 | Advanced |
+| [FILES.md](FILES.md) | Canonical file architecture | ~120 | Advanced |
 
 **Total:** ~2,700 lines
 **Benefit:** Focused, digestible documents
@@ -178,6 +185,9 @@ Welcome to the architecture documentation. This directory contains detailed, foc
 
 **...see all design patterns**
 → Read [PATTERNS.md](PATTERNS.md)
+
+**...work with CMS files**
+→ Read [FILES.md](FILES.md)
 
 ---
 
