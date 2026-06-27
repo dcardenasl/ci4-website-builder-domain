@@ -46,61 +46,20 @@ class PublicMenuController extends ApiController
                     ->findAll();
 
                 $translationResolver = Services::translationResolver();
+                $menuItemService = Services::menuItemService();
 
                 // Resolve translations for each menu item
                 $flatList = [];
-                $slugRouter = Services::slugRouter();
                 foreach ($items as $item) {
                     if ($item instanceof \App\Entities\MenuItemEntity) {
                         $resolved = $translationResolver->resolve('menu_item', (int) $item->id, $lang);
 
-                        $customUrl = $resolved['custom_url'] ?: null;
+                        // Use MenuItemService to resolve the link
+                        $customUrl = $menuItemService->resolveLink($item, $lang);
 
-                        switch ($item->link_type ?? '') {
-                            case 'page':
-                                if ($item->page_id !== null) {
-                                    $pageSlug = $slugRouter->resolveSlug($lang, 'page', (int) $item->page_id);
-                                    if ($pageSlug !== null) {
-                                        $customUrl = $this->resolvePageUrl($pageSlug);
-                                    }
-                                }
-                                break;
-
-                            case 'collection_listing':
-                                if ($item->collection_id !== null) {
-                                    $resolvedCollection = $translationResolver->resolve('collection', (int) $item->collection_id, $lang);
-                                    $prefix = trim((string) ($resolvedCollection['slug'] ?? ''), '/');
-                                    if ($prefix !== '') {
-                                        $customUrl = '/' . $prefix;
-                                    }
-                                }
-                                break;
-
-                            case 'entry':
-                                if ($item->entry_id !== null) {
-                                    $entryModel = model(\App\Models\EntryModel::class);
-                                    $entry = $entryModel->find($item->entry_id);
-                                    if ($entry) {
-                                        $collectionId = is_object($entry) ? $entry->collection_id : ($entry['collection_id'] ?? null);
-                                        if ($collectionId !== null) {
-                                            $resolvedCollection = $translationResolver->resolve('collection', (int) $collectionId, $lang);
-                                            $prefix = trim((string) ($resolvedCollection['slug'] ?? ''), '/');
-                                            $entryTransModel = model(\App\Models\EntryTranslationModel::class);
-                                            $db = \Config\Database::connect();
-                                            $langResult = $db->table('cms_languages')->where('code', $lang)->get();
-                                            $langRow = $langResult ? $langResult->getRowArray() : null;
-                                            $langId = $langRow ? (int) ($langRow['id'] ?? 0) : null;
-                                            if ($langId) {
-                                                $trans = $entryTransModel->where('entry_id', $item->entry_id)->where('language_id', $langId)->first();
-                                                $slug = $trans ? (is_object($trans) ? $trans->slug : ($trans['slug'] ?? '')) : '';
-                                                if ($slug) {
-                                                    $customUrl = $prefix !== '' ? '/' . $prefix . '/' . $slug : '/' . $slug;
-                                                }
-                                            }
-                                        }
-                                    }
-                                }
-                                break;
+                        // Fall back to custom_url translation if no link was resolved
+                        if ($customUrl === null && $item->link_type === 'custom_url') {
+                            $customUrl = $resolved['custom_url'] ?? null;
                         }
 
                         $itemData = array_merge($item->toArray(), [
@@ -150,14 +109,5 @@ class PublicMenuController extends ApiController
         }
 
         return $branch;
-    }
-
-    private function resolvePageUrl(string $pageSlug): string
-    {
-        if (trim($pageSlug, '/') === 'home') {
-            return '/';
-        }
-
-        return '/' . ltrim($pageSlug, '/');
     }
 }
