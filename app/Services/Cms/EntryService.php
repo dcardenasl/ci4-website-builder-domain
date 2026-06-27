@@ -322,6 +322,7 @@ class EntryService extends BaseCrudService implements EntryServiceInterface
                 'title'            => $translation->title,
                 'excerpt'          => $translation->excerpt,
                 'featured_file_id' => $translation->featured_file_id !== null ? (int) $translation->featured_file_id : null,
+                'featured_image_url' => $translation->featured_image_url,
                 'meta_title'       => $translation->meta_title,
                 'meta_description' => $translation->meta_description,
                 'og_image_file_id' => $translation->og_image_file_id !== null ? (int) $translation->og_image_file_id : null,
@@ -438,6 +439,9 @@ class EntryService extends BaseCrudService implements EntryServiceInterface
                 'title'            => $translation['title'],
                 'excerpt'          => $translation['excerpt'] ?? null,
                 'featured_file_id' => isset($translation['featured_file_id']) && $translation['featured_file_id'] !== '' ? (int) $translation['featured_file_id'] : null,
+                'featured_image_url' => isset($translation['featured_image_url']) && $translation['featured_image_url'] !== ''
+                    ? (string) $translation['featured_image_url']
+                    : null,
                 'meta_title'       => $translation['meta_title'] ?? null,
                 'meta_description' => $translation['meta_description'] ?? null,
                 'og_image_file_id' => isset($translation['og_image_file_id']) && $translation['og_image_file_id'] !== '' ? (int) $translation['og_image_file_id'] : null,
@@ -643,6 +647,8 @@ class EntryService extends BaseCrudService implements EntryServiceInterface
             $item    = array_merge($entry->toArray(), $entryTransMap[$entryId] ?? []);
             $item['categories'] = $categoriesMap[$entryId] ?? [];
             $item['tags']       = $tagsMap[$entryId] ?? [];
+            // Enrich with featured_image_url
+            $item = $this->enrichWithFeaturedImageUrl($item);
             $data[] = $item;
         }
 
@@ -723,6 +729,9 @@ class EntryService extends BaseCrudService implements EntryServiceInterface
         $data['categories'] = $categoriesMap[$entryId] ?? [];
         $data['tags']       = $tagsMap[$entryId] ?? [];
         $data['blocks']     = $blocks;
+
+        // Enrich with featured_image_url
+        $data = $this->enrichWithFeaturedImageUrl($data);
 
         // Get all translations of this entry to construct localized slugs
         /** @var list<\App\Entities\EntryTranslationEntity> $allTranslations */
@@ -821,6 +830,7 @@ class EntryService extends BaseCrudService implements EntryServiceInterface
                     'title'            => $row->title,
                     'excerpt'          => $row->excerpt,
                     'featured_file_id' => $row->featured_file_id,
+                    'featured_image_url' => $row->featured_image_url,
                     'meta_title'       => $row->meta_title,
                     'meta_description' => $row->meta_description,
                     'og_image_file_id' => $row->og_image_file_id,
@@ -957,6 +967,21 @@ class EntryService extends BaseCrudService implements EntryServiceInterface
         }
 
         return $map;
+    }
+
+    /**
+     * Enrich an entry array with featured_image_url if featured_file_id is present.
+     *
+     * @param array<string, mixed> $item
+     * @return array<string, mixed>
+     */
+    private function enrichWithFeaturedImageUrl(array $item): array
+    {
+        if (empty($item['featured_image_url']) && isset($item['featured_file_id']) && $item['featured_file_id']) {
+            $item['featured_image_url'] = '/files/' . (int) $item['featured_file_id'] . '/view';
+        }
+
+        return $item;
     }
 
     public function createVersionSnapshot(int $entryId, string $note = ''): void

@@ -216,6 +216,115 @@ class MenuItemService extends BaseCrudService implements MenuItemServiceInterfac
     }
 
     /**
+     * Resolve a MenuItem (type + IDs) to its public navigable URL.
+     *
+     * @param MenuItemEntity $item MenuItem to resolve
+     * @param string $lang Language code (e.g., 'es', 'en')
+     * @return string|null Relative URL (e.g., '/pages/slug', '/colecciones'), or null if unresolved
+     */
+    public function resolveLink(MenuItemEntity $item, string $lang): ?string
+    {
+        $translationResolver = service('translationResolver');
+        $slugRouter = service('slugRouter');
+
+        $customUrl = null;
+
+        switch ($item->link_type ?? '') {
+            case 'page':
+                if ($item->page_id !== null) {
+                    $pageSlug = $slugRouter->resolveSlug($lang, 'page', (int) $item->page_id);
+                    if ($pageSlug !== null) {
+                        $customUrl = $this->resolvePageUrl($pageSlug);
+                    }
+                }
+                break;
+
+            case 'collection_listing':
+                if ($item->collection_id !== null) {
+                    $resolvedCollection = $translationResolver->resolve('collection', (int) $item->collection_id, $lang);
+                    $prefix = trim((string) ($resolvedCollection['slug'] ?? ''), '/');
+                    if ($prefix !== '') {
+                        $customUrl = '/' . $prefix;
+                    }
+                }
+                break;
+
+            case 'entry':
+                if ($item->entry_id !== null) {
+                    $customUrl = $this->resolveEntryLink($item->entry_id, $lang, $translationResolver);
+                }
+                break;
+
+            case 'custom_url':
+            case 'no_link':
+                // These are handled by the caller if needed
+                break;
+        }
+
+        return $customUrl;
+    }
+
+    /**
+     * Helper to resolve a page URL from its slug.
+     *
+     * @param string $pageSlug
+     * @return string
+     */
+    private function resolvePageUrl(string $pageSlug): string
+    {
+        if (trim($pageSlug, '/') === 'home') {
+            return '/';
+        }
+
+        return '/' . ltrim($pageSlug, '/');
+    }
+
+    /**
+     * Helper to resolve an entry link.
+     *
+     * @param int $entryId
+     * @param string $lang
+     * @param \App\Libraries\Cms\TranslationResolver $translationResolver
+     * @return string|null
+     */
+    private function resolveEntryLink(int $entryId, string $lang, \App\Libraries\Cms\TranslationResolver $translationResolver): ?string
+    {
+        $entryModel = model(\App\Models\EntryModel::class);
+        $entry = $entryModel->find($entryId);
+        if (!$entry) {
+            return null;
+        }
+
+        $collectionId = is_object($entry) ? $entry->collection_id : ($entry['collection_id'] ?? null);
+        if ($collectionId === null) {
+            return null;
+        }
+
+        $resolvedCollection = $translationResolver->resolve('collection', (int) $collectionId, $lang);
+        $prefix = trim((string) ($resolvedCollection['slug'] ?? ''), '/');
+
+        // Get language ID for entry slug
+        $db = \Config\Database::connect();
+        $langResult = $db->table('cms_languages')->where('code', $lang)->get();
+        $langRow = $langResult ? $langResult->getRowArray() : null;
+        $langId = $langRow ? (int) ($langRow['id'] ?? 0) : null;
+
+        if (!$langId) {
+            return null;
+        }
+
+        $entryTransModel = model(\App\Models\EntryTranslationModel::class);
+        $trans = $entryTransModel->where('entry_id', $entryId)->where('language_id', $langId)->first();
+        $slug = $trans ? (is_object($trans) ? $trans->slug : ($trans['slug'] ?? '')) : '';
+
+        if (!$slug) {
+            return null;
+        }
+
+        return $prefix !== '' ? '/' . $prefix . '/' . $slug : '/' . $slug;
+    }
+
+    /**
      * @param array<string, mixed> $data
      */
     private function validateLinkConstraints(array $data): void
