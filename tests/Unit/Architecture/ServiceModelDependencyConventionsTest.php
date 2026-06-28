@@ -20,8 +20,9 @@ class ServiceModelDependencyConventionsTest extends CIUnitTestCase
         // not expressible via the GenericRepository CRUD pattern.
         $allowed = [
             'app/Services/Cms/AnalyticsService.php',      // time-series aggregations, GROUP BY, percentages
-            'app/Services/Cms/FormSubmissionService.php',  // countByStatus() aggregation
+            'app/Services/Cms/FileUsageService.php',       // cross-entity usage aggregation across multiple models
             'app/Services/Cms/FormService.php',            // complex nested Form/Field/Translation CRUD operations
+            'app/Services/Cms/FormSubmissionService.php',  // countByStatus() aggregation
         ];
         sort($allowed);
 

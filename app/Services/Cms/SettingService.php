@@ -17,7 +17,7 @@ use dcardenasl\Ci4ApiCore\Services\BaseCrudService;
  */
 class SettingService extends BaseCrudService implements SettingServiceInterface
 {
-    /** @var array<array{language_id: int, setting_value: string}>|null */
+    /** @var array<array{language_id: int, setting_value?: string, label?: string, placeholder?: string, help_text?: string}>|null */
     private ?array $tempTranslations = null;
 
     private \App\Libraries\Cms\CacheInvalidationClient $cacheInvalidator;
@@ -109,10 +109,22 @@ class SettingService extends BaseCrudService implements SettingServiceInterface
         $translationsGrouped = [];
         foreach ($translations as $translation) {
             /** @var \App\Entities\SettingTranslationEntity $translation */
-            $translationsGrouped[$translation->setting_id][] = [
-                'language_id'   => (int) $translation->language_id,
-                'setting_value' => $translation->setting_value,
-            ];
+            $entry = ['language_id' => (int) $translation->language_id];
+
+            if ($translation->setting_value !== null) {
+                $entry['setting_value'] = $translation->setting_value;
+            }
+            if ($translation->label !== null && $translation->label !== '') {
+                $entry['label'] = $translation->label;
+            }
+            if ($translation->placeholder !== null && $translation->placeholder !== '') {
+                $entry['placeholder'] = $translation->placeholder;
+            }
+            if ($translation->help_text !== null && $translation->help_text !== '') {
+                $entry['help_text'] = $translation->help_text;
+            }
+
+            $translationsGrouped[$translation->setting_id][] = $entry;
         }
 
         foreach ($entities as $entity) {
@@ -123,23 +135,27 @@ class SettingService extends BaseCrudService implements SettingServiceInterface
     }
 
     /**
-     * @param array<array{language_id: int, setting_value: string}> $translations
+     * @param array<array{language_id: int, setting_value?: string, label?: string, placeholder?: string, help_text?: string}> $translations
      */
     private function saveTranslations(int $settingId, array $translations): void
     {
         /** @var \App\Models\SettingTranslationModel $translationModel */
         $translationModel = model(\App\Models\SettingTranslationModel::class);
 
-        // Clear existing translations for this setting
         $translationModel->where('setting_id', $settingId)->delete();
 
         foreach ($translations as $translation) {
             $langId = (int) $translation['language_id'];
-            $result = $translationModel->insert([
+            $row    = [
                 'setting_id'    => $settingId,
                 'language_id'   => $langId,
-                'setting_value' => $translation['setting_value'],
-            ]);
+                'setting_value' => $translation['setting_value'] ?? null,
+                'label'         => $translation['label'] ?? null,
+                'placeholder'   => $translation['placeholder'] ?? null,
+                'help_text'     => $translation['help_text'] ?? null,
+            ];
+
+            $result = $translationModel->insert($row);
 
             if ($result === false) {
                 $errors = $translationModel->errors();

@@ -67,6 +67,10 @@ $routes->group('cms', ['namespace' => '\App\Controllers\Api\V1\Cms'], function (
         $routes->get('settings/(:num)', 'SettingController::show/$1', ['filter' => 'permission:cms.settings.read']);
         $routes->put('settings/(:num)', 'SettingController::update/$1', ['filter' => 'permission:cms.settings.write']);
         $routes->delete('settings/(:num)', 'SettingController::delete/$1', ['filter' => 'permission:cms.settings.write']);
+        // Setting Connections
+        $routes->get('settings/(:num)/connections', 'SettingConnectionController::index/$1', ['filter' => 'permission:cms.settings.read']);
+        $routes->post('settings/(:num)/connections', 'SettingConnectionController::create/$1', ['filter' => 'permission:cms.settings.write']);
+        $routes->delete('settings/(:num)/connections/(:num)', 'SettingConnectionController::delete/$1/$2', ['filter' => 'permission:cms.settings.write']);
         // File usages (federated query for Admin "Usado en" panel)
         $routes->get('files/(:num)/usages', 'FileUsageController::usages/$1', ['filter' => 'permission:cms.entries.read']);
         // File Translations CRUD
