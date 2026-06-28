@@ -67,7 +67,7 @@ trait CmsDomainServices
             return static::getSharedInstance('fileUrlResolver');
         }
 
-        return new \App\Libraries\Cms\FileUrlResolver();
+        return new \App\Libraries\Cms\FileUrlResolver(static::hubClient());
     }
 
     public static function fileReferenceSynchronizer(bool $getShared = true): \App\Libraries\Cms\FileReferenceSynchronizer

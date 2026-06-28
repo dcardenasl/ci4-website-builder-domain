@@ -29,7 +29,7 @@ class FileReferenceSynchronizer
     public function __construct(?BaseConnection $db = null, ?FileUrlResolver $urlResolver = null)
     {
         $this->db = $db ?? Database::connect();
-        $this->urlResolver = $urlResolver ?? new FileUrlResolver($this->db);
+        $this->urlResolver = $urlResolver ?? new FileUrlResolver();
     }
 
     public function syncEntry(int $entryId): void

@@ -4,27 +4,30 @@ declare(strict_types=1);
 
 namespace App\Libraries\Cms;
 
-use CodeIgniter\Database\BaseConnection;
-use Config\Database;
+use App\Libraries\Hub\HubClient;
 
 /**
  * Canonical file URL resolver.
  *
- * Resolves file IDs to public URLs and normalizes file-bearing payloads so the
- * CMS never has to trust admin preview URLs as persisted source of truth.
+ * Resolves Hub file IDs to public URLs by calling the Hub's internal
+ * batch-meta endpoint via HubClient. Results are cached by HubClient
+ * (default 300 s per file ID) so repeated resolution within a request
+ * and across requests is cheap.
+ *
+ * The Domain's `cms` database has NO `files` table — files are owned by
+ * the Hub. This class is the single point of contact for file URL resolution
+ * in the Domain, keeping the boundary explicit.
  */
 class FileUrlResolver
 {
-    /** @var BaseConnection<mixed, mixed> */
-    private BaseConnection $db;
+    private HubClient $hubClient;
 
-    /**
-     * @param BaseConnection<mixed, mixed>|null $db
-     */
-    public function __construct(?BaseConnection $db = null)
+    public function __construct(?HubClient $hubClient = null)
     {
-        $this->db = $db ?? Database::connect();
+        $this->hubClient = $hubClient ?? service('hubClient');
     }
+
+    // ─── Public API (interface unchanged) ────────────────────────────────────
 
     public function resolve(int $fileId, string $context = 'public'): ?string
     {
@@ -32,54 +35,34 @@ class FileUrlResolver
             return null;
         }
 
-        if (! $this->filesTableExists()) {
-            return null;
-        }
+        $map = $this->hubClient->resolvePublicFileMeta([$fileId]);
+        $row = $map[$fileId] ?? null;
 
-        $result = $this->db->table('files')
-            ->select('id, url, path, storage_driver, variants')
-            ->where('id', $fileId)
-            ->get();
-        $row = $result ? $result->getRowArray() : null;
-
-        if (! is_array($row) || $row === []) {
-            return null;
-        }
-
-        return $this->resolveFromRow($row, $context);
+        return $row !== null ? $this->resolveFromRow($row, $context) : null;
     }
 
     /**
-     * @param list<int> $fileIds
+     * @param  list<int>         $fileIds
      * @return array<int, string>
      */
     public function resolveMany(array $fileIds, string $context = 'public'): array
     {
-        if (! $this->filesTableExists()) {
+        $fileIds = array_values(array_unique(array_filter(
+            $fileIds,
+            static fn ($id): bool => is_int($id) && $id > 0
+        )));
+
+        if (empty($fileIds)) {
             return [];
         }
 
-        $fileIds = array_values(array_unique(array_filter($fileIds, static fn ($fileId): bool => is_numeric($fileId) && (int) $fileId > 0)));
-        if ($fileIds === []) {
-            return [];
-        }
+        $metaMap = $this->hubClient->resolvePublicFileMeta($fileIds);
+        $urls    = [];
 
-        $result = $this->db->table('files')
-            ->select('id, url, path, storage_driver, variants')
-            ->whereIn('id', $fileIds)
-            ->get();
-        $rows = $result ? $result->getResultArray() : [];
-
-        $urls = [];
-        foreach ($rows as $row) {
-            $fileId = (int) ($row['id'] ?? 0);
-            if ($fileId <= 0) {
-                continue;
-            }
-
+        foreach ($metaMap as $fileId => $row) {
             $resolved = $this->resolveFromRow($row, $context);
             if ($resolved !== null && $resolved !== '') {
-                $urls[$fileId] = $resolved;
+                $urls[(int) $fileId] = $resolved;
             }
         }
 
@@ -89,25 +72,20 @@ class FileUrlResolver
     /**
      * Canonicalize a file-bearing URL field.
      *
-     * If a file ID exists, it always wins. If the URL looks like an admin preview
-     * or matches a known file URL, it is rewritten to the backend-resolved URL.
-     * Otherwise the original value is preserved for non-CMS external assets.
+     * If a file ID exists, it always wins over a stored URL.
+     * Falls back to the stored URL when the Hub cannot resolve the ID.
      */
     public function resolveUrlValue(int|string|null $fileId, ?string $currentUrl = null, string $context = 'public'): ?string
     {
         $normalizedFileId = is_numeric($fileId) ? (int) $fileId : null;
+
         if ($normalizedFileId !== null && $normalizedFileId > 0) {
             $resolved = $this->resolve($normalizedFileId, $context);
             if ($resolved !== null && $resolved !== '') {
                 return $resolved;
             }
 
-            $currentUrl = $this->normalizeUrl($currentUrl);
-            if ($currentUrl !== null) {
-                return $currentUrl;
-            }
-
-            return '/files/' . $normalizedFileId . '/view';
+            return $this->normalizeUrl($currentUrl);
         }
 
         $currentUrl = $this->normalizeUrl($currentUrl);
@@ -120,16 +98,11 @@ class FileUrlResolver
             return $this->resolve($resolvedFileId, $context) ?? $currentUrl;
         }
 
-        $fileId = $this->resolveFileIdFromCanonicalUrl($currentUrl);
-        if ($fileId !== null) {
-            return $this->resolve($fileId, $context) ?? $currentUrl;
-        }
-
         return $currentUrl;
     }
 
     /**
-     * @param array<string, mixed> $translation
+     * @param  array<string, mixed> $translation
      * @return array<string, mixed>
      */
     public function normalizeEntryTranslation(array $translation, string $context = 'public'): array
@@ -150,7 +123,7 @@ class FileUrlResolver
     }
 
     /**
-     * @param array<string, mixed> $translation
+     * @param  array<string, mixed> $translation
      * @return array<string, mixed>
      */
     public function normalizePageTranslation(array $translation, string $context = 'public'): array
@@ -167,8 +140,8 @@ class FileUrlResolver
     /**
      * Normalize all file-bearing fields in a block payload according to its schema.
      *
-     * @param array<string, mixed> $blockData
-     * @param array<string, array<string, mixed>> $schemaFields
+     * @param  array<string, mixed>               $blockData
+     * @param  array<string, array<string, mixed>> $schemaFields
      * @return array<string, mixed>
      */
     public function normalizeBlockData(array $blockData, array $schemaFields, string $context = 'public'): array
@@ -177,8 +150,8 @@ class FileUrlResolver
             $type = strtolower((string) ($fieldDef['type'] ?? 'string'));
 
             if ($type === 'file') {
-                $fileIdKey = $fieldKey . '_file_id';
-                $urlKey    = $fieldKey . '_url';
+                $fileIdKey          = $fieldKey . '_file_id';
+                $urlKey             = $fieldKey . '_url';
                 $blockData[$urlKey] = $this->resolveUrlValue(
                     $blockData[$fileIdKey] ?? null,
                     isset($blockData[$urlKey]) ? (string) $blockData[$urlKey] : null,
@@ -220,11 +193,8 @@ class FileUrlResolver
     /**
      * Collect every file ID referenced by a block payload.
      *
-     * URLs are reverse-resolved when possible so legacy payloads still backfill
-     * references even if the file ID was not persisted.
-     *
-     * @param array<string, mixed> $blockData
-     * @param array<string, array<string, mixed>> $schemaFields
+     * @param  array<string, mixed>               $blockData
+     * @param  array<string, array<string, mixed>> $schemaFields
      * @return list<int>
      */
     public function collectBlockFileIds(array $blockData, array $schemaFields): array
@@ -267,7 +237,10 @@ class FileUrlResolver
             }
         }
 
-        return array_values(array_unique(array_filter($fileIds, static fn ($fileId): bool => is_int($fileId) && $fileId > 0)));
+        return array_values(array_unique(array_filter(
+            $fileIds,
+            static fn ($id): bool => is_int($id) && $id > 0
+        )));
     }
 
     public function resolveFileIdFromValue(int|string|null $fileId, ?string $url = null): ?int
@@ -281,7 +254,7 @@ class FileUrlResolver
             return null;
         }
 
-        return $this->resolveFileIdFromUrl($url) ?? $this->resolveFileIdFromCanonicalUrl($url);
+        return $this->resolveFileIdFromUrl($url);
     }
 
     public function resolveFileIdFromUrl(string $url): ?int
@@ -293,24 +266,7 @@ class FileUrlResolver
         return null;
     }
 
-    public function resolveFileIdFromCanonicalUrl(string $url): ?int
-    {
-        if (! $this->filesTableExists()) {
-            return null;
-        }
-
-        $result = $this->db->table('files')
-            ->select('id')
-            ->where('url', $url)
-            ->get();
-        $row = $result ? $result->getRowArray() : null;
-
-        if (! is_array($row) || ! isset($row['id'])) {
-            return null;
-        }
-
-        return (int) $row['id'];
-    }
+    // ─── Private helpers ──────────────────────────────────────────────────────
 
     /**
      * @param array<string, mixed> $row
@@ -319,7 +275,7 @@ class FileUrlResolver
     {
         $variants = $row['variants'] ?? null;
         if (is_string($variants) && $variants !== '') {
-            $decoded = json_decode($variants, true);
+            $decoded  = json_decode($variants, true);
             $variants = is_array($decoded) ? $decoded : null;
         }
 
@@ -336,28 +292,15 @@ class FileUrlResolver
             }
         }
 
-        $url = $this->normalizeUrl($row['url'] ?? null);
-        if ($url !== null) {
-            return $url;
-        }
-
-        $path = $this->normalizeUrl($row['path'] ?? null);
-        if ($path !== null) {
-            return base_url('uploads/' . ltrim($path, '/'));
-        }
-
-        return null;
+        return $this->normalizeUrl($row['url'] ?? null);
     }
 
-    /**
-     * @return list<string>
-     */
+    /** @return list<string> */
     private function preferredVariantKeys(string $context): array
     {
         return match ($context) {
             'admin', 'thumbnail', 'thumb' => ['thumb', 'sm', 'md', 'lg'],
-            'og', 'hero', 'banner', 'social' => ['lg', 'md', 'sm', 'thumb'],
-            default => ['lg', 'md', 'sm', 'thumb'],
+            default                       => ['lg', 'md', 'sm', 'thumb'],
         };
     }
 
@@ -368,15 +311,7 @@ class FileUrlResolver
         }
 
         $url = trim((string) $value);
-        return $url !== '' ? $url : null;
-    }
 
-    private function filesTableExists(): bool
-    {
-        try {
-            return $this->db->tableExists('files');
-        } catch (\Throwable) {
-            return false;
-        }
+        return $url !== '' ? $url : null;
     }
 }
