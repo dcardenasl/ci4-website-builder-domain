@@ -18,10 +18,18 @@ readonly class SettingUpdateRequestDTO extends BaseRequestDTO
     public ?string $settingValue;
     #[OA\Property(description: 'setting_type', type: 'string')]
     public ?string $settingType;
+    #[OA\Property(description: 'input_type', type: 'string', nullable: true)]
+    public ?string $inputType;
+    #[OA\Property(description: 'options_json for select type: [{value, label}]', type: 'string', nullable: true)]
+    public ?string $optionsJson;
     #[OA\Property(description: 'setting_group', type: 'string')]
     public ?string $settingGroup;
     #[OA\Property(description: 'is_translatable', type: 'boolean')]
     public ?bool $isTranslatable;
+    #[OA\Property(description: 'is_required', type: 'boolean', nullable: true)]
+    public ?bool $isRequired;
+    #[OA\Property(description: 'is_readonly', type: 'boolean', nullable: true)]
+    public ?bool $isReadonly;
     #[OA\Property(description: 'sort_order', type: 'integer')]
     public ?int $sortOrder;
     #[OA\Property(description: 'description', type: 'string', nullable: true)]
@@ -30,7 +38,7 @@ readonly class SettingUpdateRequestDTO extends BaseRequestDTO
     public ?string $settingMeta;
 
     /**
-     * @var array<array{language_id: int, setting_value: string}>|null
+     * @var array<array{language_id: int, setting_value?: string, label?: string, placeholder?: string, help_text?: string}>|null
      */
     #[OA\Property(description: 'translations', type: 'array', items: new OA\Items(type: 'object'), nullable: true)]
     public ?array $translations;
@@ -44,8 +52,12 @@ readonly class SettingUpdateRequestDTO extends BaseRequestDTO
             'setting_value'   => 'permit_empty|string',
             'setting_meta'    => 'permit_empty|string',
             'setting_type'    => 'permit_empty|in_list[string,int,bool,json,file_id]',
+            'input_type'      => 'permit_empty|in_list[text,textarea,richtext,url,email,phone,color,number,boolean,image,file,select,code,slug]',
+            'options_json'    => 'permit_empty|string',
             'setting_group'   => 'permit_empty|string|max_length[50]',
             'is_translatable' => 'permit_empty|boolean_like',
+            'is_required'     => 'permit_empty|boolean_like',
+            'is_readonly'     => 'permit_empty|boolean_like',
             'sort_order'      => 'permit_empty|integer',
             'description'     => 'permit_empty|string|max_length[255]',
             'translations'    => 'permit_empty',
@@ -84,6 +96,20 @@ readonly class SettingUpdateRequestDTO extends BaseRequestDTO
             $this->settingType = null;
         }
 
+        if (array_key_exists('input_type', $data)) {
+            $this->inputType = (string) $data['input_type'];
+            $mappedFields['input_type'] = $this->inputType;
+        } else {
+            $this->inputType = null;
+        }
+
+        if (array_key_exists('options_json', $data)) {
+            $this->optionsJson = $data['options_json'] !== null ? (string) $data['options_json'] : null;
+            $mappedFields['options_json'] = $this->optionsJson;
+        } else {
+            $this->optionsJson = null;
+        }
+
         if (array_key_exists('setting_group', $data)) {
             $this->settingGroup = (string) $data['setting_group'];
             $mappedFields['setting_group'] = $this->settingGroup;
@@ -96,6 +122,20 @@ readonly class SettingUpdateRequestDTO extends BaseRequestDTO
             $mappedFields['is_translatable'] = $this->isTranslatable;
         } else {
             $this->isTranslatable = null;
+        }
+
+        if (array_key_exists('is_required', $data)) {
+            $this->isRequired = filter_var($data['is_required'], FILTER_VALIDATE_BOOLEAN);
+            $mappedFields['is_required'] = $this->isRequired;
+        } else {
+            $this->isRequired = null;
+        }
+
+        if (array_key_exists('is_readonly', $data)) {
+            $this->isReadonly = filter_var($data['is_readonly'], FILTER_VALIDATE_BOOLEAN);
+            $mappedFields['is_readonly'] = $this->isReadonly;
+        } else {
+            $this->isReadonly = null;
         }
 
         if (array_key_exists('sort_order', $data)) {

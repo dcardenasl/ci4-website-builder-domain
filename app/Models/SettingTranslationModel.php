@@ -19,11 +19,17 @@ class SettingTranslationModel extends Model
         'setting_id',
         'language_id',
         'setting_value',
+        'label',
+        'placeholder',
+        'help_text',
     ];
 
     protected $validationRules = [
         'setting_id'    => 'required|is_natural_no_zero',
         'language_id'   => 'required|is_natural_no_zero',
         'setting_value' => 'permit_empty|string',
+        'label'         => 'permit_empty|string|max_length[255]',
+        'placeholder'   => 'permit_empty|string|max_length[255]',
+        'help_text'     => 'permit_empty|string',
     ];
 }

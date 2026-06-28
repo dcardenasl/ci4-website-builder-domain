@@ -13,5 +13,8 @@ class SettingTranslationEntity extends Entity
         'setting_id'    => 'integer',
         'language_id'   => 'integer',
         'setting_value' => 'string',
+        'label'         => 'string',
+        'placeholder'   => 'string',
+        'help_text'     => 'string',
     ];
 }
