@@ -8,6 +8,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- **File usage tracking with Hub integration** — new `FileUsageController` and `FileUsageService` to track Hub file references across Domain CMS (entries, pages, blocks, settings); refactored `FileUrlResolver` to use `HubClient` for centralized file URL resolution with caching; added batch-file metadata resolution via `HubClient::resolvePublicFileMeta()` for efficient URL lookups
 - **Forms API (CMS-012)** — complete form management system with `FormController` (CRUD), `PublicFormController` (public submission handling), form fields, multilingual translations, submission tracking with autoreply and notification jobs, and web app key authentication filter
 - **Entry block CRUD endpoints** — `BlockInstanceController` now supports both page and entry blocks with dynamic permission routing; `ownerTypeFromRequest()` and `requiresPermission()` methods automatically resolve correct permission codes (`cms.entries.*` vs `cms.pages.*`) based on URI segments
 - **Analytics API** — new `POST /api/v1/cms/analytics/track` public endpoint for recording page views, `GET /api/v1/cms/analytics/overview` for analytics overview with period filtering, `PageViewModel` model with multi-field tracking (URL, title, referrer, user agent, device type), and `AnalyticsService` for structured analytics queries
