@@ -273,6 +273,10 @@ class FileUrlResolver
      */
     private function resolveFromRow(array $row, string $context): ?string
     {
+        if ($context === 'original') {
+            return $this->normalizeUrl($row['url'] ?? null);
+        }
+
         $variants = $row['variants'] ?? null;
         if (is_string($variants) && $variants !== '') {
             $decoded  = json_decode($variants, true);
@@ -299,6 +303,7 @@ class FileUrlResolver
     private function preferredVariantKeys(string $context): array
     {
         return match ($context) {
+            'original'                    => [],
             'admin', 'thumbnail', 'thumb' => ['thumb', 'sm', 'md', 'lg'],
             default                       => ['lg', 'md', 'sm', 'thumb'],
         };

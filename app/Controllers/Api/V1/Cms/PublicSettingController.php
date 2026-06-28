@@ -46,9 +46,11 @@ class PublicSettingController extends ApiController
 
                         if ($setting->setting_type === 'file_id') {
                             $meta = is_array($setting->setting_meta) ? $setting->setting_meta : [];
+                            $resolver = Services::fileUrlResolver();
+                            $resolvedUrl = $resolver->resolve((int) ($setting->setting_value ?? 0), 'original');
                             $value = [
                                 'file_id'   => (int) ($setting->setting_value ?? 0),
-                                'url'       => $meta['url'] ?? null,
+                                'url'       => $resolvedUrl ?? ($meta['url'] ?? null),
                                 'mime_type' => $meta['mime_type'] ?? null,
                             ];
                         }
