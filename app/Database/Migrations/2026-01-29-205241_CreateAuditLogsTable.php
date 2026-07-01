@@ -65,7 +65,7 @@ class CreateAuditLogsTable extends Migration
         $this->forge->addKey('id', true);
         $this->forge->addKey(['user_id', 'entity_type', 'entity_id']);
         $this->forge->addKey('created_at');
-        // No FK to users — domain apps don't own a users table; the user_id
+        // No FK to users — website builder apps don't own a users table; the user_id
         // reflects the hub user surfaced via DomainAuthFilter.
         $this->forge->createTable('audit_logs');
     }

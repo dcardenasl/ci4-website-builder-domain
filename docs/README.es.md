@@ -1,10 +1,10 @@
 # Índice de documentación
 
-Documentación de **ci4-domain-starter** — plantilla de CodeIgniter 4 para apps de dominio que delegan auth e IAM a un hub central. Este índice solo lista archivos que existen en la plantilla.
+Documentación de **ci4-website-builder** — plantilla de CodeIgniter 4 para la app website builder que delega auth e IAM a un hub central. Este índice solo lista archivos que existen en la plantilla.
 
 > **¿Primera vez aquí?** Empieza por el [`README.es.md`](../README.es.md) raíz para el quickstart y el diagrama de arquitectura, luego [`CLAUDE.md`](../CLAUDE.md) para los acuerdos de trabajo. English version: [README.md](README.md).
 
-## 🔑 Integración con el hub (específico de apps de dominio)
+## 🔑 Integración con el hub (específico de la app website builder)
 
 La característica que define esta plantilla — cómo la app delega auth en el hub y registra sus permisos.
 

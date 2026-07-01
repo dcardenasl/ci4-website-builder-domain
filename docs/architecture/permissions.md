@@ -4,15 +4,15 @@ This document details the security structure and behavior in the `ci4-platform`-
 
 ## Cross-App Permission Flow
 
-The security architecture separates the **admin interface** (Admin/BFF) from the **domain service** (Domain App). This introduces a fundamental distinction in how permissions are registered:
+The security architecture separates the **admin interface** (Admin/BFF) from the **website builder service** (website builder app). This introduces a fundamental distinction in how permissions are registered:
 
 1. **`self` application (ID 1 — Hub/Admin UI)**:
    - Controls whether the logged-in user is authorized to view or navigate the various admin modules (e.g. rendering the "Email Templates" link in the sidebar).
    - UI guards use `has_permission('my.permission')`, which resolves against this application (ID 1).
 
-2. **Domain application (ID > 1 — e.g. `newsletter` / `catalog`)**:
+2. **Website builder application (ID > 1 — e.g. `newsletter` / `catalog`)**:
    - Protects the actual API that the BFF or Admin calls.
-   - The `DomainAuthFilter` intercepts the JWT and introspects it against the Hub, requesting the permissions specific to that domain application (e.g. `newsletter`).
+   - The `DomainAuthFilter` intercepts the JWT and introspects it against the Hub, requesting the permissions specific to that website builder application (e.g. `newsletter`).
 
 > [!IMPORTANT]
 > For a domain module to work end-to-end, its permissions (e.g. `newsletter.emailtemplates.read`) **must be registered under both applications** (ID 1 for the Admin UI and the domain's own ID for the API) and linked to the appropriate user roles.
