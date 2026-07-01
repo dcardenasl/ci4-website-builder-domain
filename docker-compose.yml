@@ -1,19 +1,19 @@
 version: '3.8'
 
 services:
-  # CodeIgniter 4 API Application
+  # CodeIgniter 4 Website Builder application
   app:
     build:
       context: .
       dockerfile: Dockerfile
-    container_name: ci4-api-app
+    container_name: ci4-website-builder-app
     restart: unless-stopped
     ports:
       - "8080:80"
     environment:
       - CI_ENVIRONMENT=${CI_ENVIRONMENT:-development}
       - database.default.hostname=db
-      - database.default.database=${MYSQL_DATABASE:-ci4_api}
+      - database.default.database=${MYSQL_DATABASE:-ci4_website_builder_domain}
       - database.default.username=${MYSQL_USER:-ci4_user}
       - database.default.password=${MYSQL_PASSWORD}
       - database.default.DBDriver=MySQLi
@@ -37,14 +37,14 @@ services:
       retries: 3
       start_period: 40s
 
-  # MySQL Database
+  # MySQL database for the website builder
   db:
     image: mysql:8.0
-    container_name: ci4-api-db
+    container_name: ci4-website-builder-db
     restart: unless-stopped
     environment:
       MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD}
-      MYSQL_DATABASE: ${MYSQL_DATABASE:-ci4_api}
+      MYSQL_DATABASE: ${MYSQL_DATABASE:-ci4_website_builder_domain}
       MYSQL_USER: ${MYSQL_USER:-ci4_user}
       MYSQL_PASSWORD: ${MYSQL_PASSWORD}
     ports:
@@ -65,7 +65,7 @@ services:
   # phpMyAdmin (optional, for database management)
   phpmyadmin:
     image: phpmyadmin:latest
-    container_name: ci4-api-phpmyadmin
+    container_name: ci4-website-builder-phpmyadmin
     restart: unless-stopped
     ports:
       - "8081:80"
@@ -86,8 +86,8 @@ services:
 networks:
   ci4-network:
     driver: bridge
-    name: ci4-api-network
+    name: ci4-website-builder-network
 
 volumes:
   mysql-data:
-    name: ci4-mysql-data
+    name: ci4-website-builder-mysql-data

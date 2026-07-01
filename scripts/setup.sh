@@ -339,7 +339,7 @@ ci4_seed_rbac() {
   fi
 }
 
-# Seed the starter site content for the domain app.
+# Seed the starter site content for the website builder app.
 # Idempotent — safe to re-run. Installs languages, site settings, pages,
 # menus, blocks and contact defaults in Spanish-first order.
 ci4_seed_site_bootstrap() {
