@@ -22,7 +22,7 @@ class CmsHeroSliderChildrenSeeder extends Seeder
 
         $langIds = $this->langIds(['es', 'en']);
         if (! isset($langIds['es'], $langIds['en'])) {
-            echo "CmsHeroSliderChildrenSeeder: missing languages.\n";
+            echo "CmsHeroSliderChildrenSeeder: missing languages. Seed CmsLanguageSeeder first.\n";
             return;
         }
 

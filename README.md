@@ -1,4 +1,4 @@
-# ci4-domain-starter
+# ci4-website-builder
 
 [![CI4](https://img.shields.io/badge/CodeIgniter-4.7-EF4223)](https://codeigniter.com/)
 [![PHP](https://img.shields.io/badge/PHP-8.2%2B-777BB4)](https://www.php.net/)
@@ -7,14 +7,14 @@
 
 > **Status:** v1.4.0 — Spanish version: [README.es.md](README.es.md)
 
-CodeIgniter 4 template for **domain apps**: services that own their own business logic and database, but **delegate authentication, users, and IAM to a central hub** (`ci4-api-starter`). One hub can stand in front of many domain apps without re-implementing auth in each.
+CodeIgniter 4 template for the **website builder** app: a service that owns its own content and delivery logic, but **delegates authentication, users, and IAM to a central hub** (`ci4-api-starter`). One hub can stand in front of many apps without re-implementing auth in each.
 
 ```mermaid
 flowchart LR
     Client["Browser / SPA"]
-    Domain["Domain App<br/>(this repo) :8090"]
+    Domain["Website Builder<br/>(this repo) :8090"]
     Hub["Hub<br/>(ci4-api-starter) :8080"]
-    DDB[("Domain DB<br/>business tables")]
+    DDB[("Website Builder DB<br/>business tables")]
     HDB[("Hub DB<br/>users · roles · perms")]
 
     Client -->|"Bearer JWT"| Domain
@@ -29,8 +29,8 @@ Solid arrows = traffic on every request. Dashed = upstream calls to the hub, bot
 The split:
 
 - The **hub** issues JWTs, owns the `users` / `roles` / `permissions` tables, and resolves effective permissions per `(user, application)`.
-- The **domain app** validates incoming JWTs by calling `POST /api/v1/auth/introspect` on the hub, then enforces permissions locally with the `permission:<code>` filter.
-- The domain app **never** stores users, never issues JWTs, never reads the hub's database directly.
+- The **website builder app** validates incoming JWTs by calling `POST /api/v1/auth/introspect` on the hub, then enforces permissions locally with the `permission:<code>` filter.
+- The website builder app **never** stores users, never issues JWTs, never reads the hub's database directly.
 
 ---
 
@@ -72,7 +72,7 @@ If any of these are missing, `domain:sync-permissions` will fail with a clear me
 
 ## What's NOT in the box
 
-This is a domain app, not the hub. The following are **out of scope** here and live in the hub instead:
+This is the website builder app, not the hub. The following are **out of scope** here and live in the hub instead:
 
 - `users` / `roles` / `permissions` tables and admin endpoints (`/api/v1/iam/*`)
 - Login, logout, password reset, email verification, Google OAuth

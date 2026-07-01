@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace Config;
 
 /**
- * Source of truth for the permissions exposed by this domain app.
+ * Source of truth for the permissions exposed by this website builder app.
  *
  * Add an entry here, then run:
  *

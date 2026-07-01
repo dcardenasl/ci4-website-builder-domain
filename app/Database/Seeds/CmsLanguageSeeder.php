@@ -7,7 +7,7 @@ namespace App\Database\Seeds;
 use CodeIgniter\Database\Seeder;
 
 /**
- * Seeds the default CMS languages (es + en).
+ * Seeds the starter site's default languages (es + en).
  * Idempotent: upserts by language code.
  */
 class CmsLanguageSeeder extends Seeder

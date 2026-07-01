@@ -15,6 +15,7 @@ class CmsPageBlockSeeder extends Seeder
     public function run(): void
     {
         $this->call(CmsLanguageSeeder::class);
+        $this->call(CmsFormSeeder::class);
         $this->call(CmsBlockTypeSeeder::class);
         $this->call(SitePagesSeeder::class);
         $this->call(NewsCollectionSeeder::class);

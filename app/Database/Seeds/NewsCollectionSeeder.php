@@ -7,14 +7,13 @@ namespace App\Database\Seeds;
 use CodeIgniter\Database\Seeder;
 
 /**
- * Seeds the "noticias" collection with categories, tags, and sample entries.
+ * Seeds the starter site's news collection with categories, tags, and sample entries.
  * Idempotent: skips if the collection already exists.
  */
 class NewsCollectionSeeder extends Seeder
 {
     public function run(): void
     {
-        // Guard: skip if already seeded
         $existing = $this->db->table('cms_collections')
             ->where('collection_key', 'noticias')
             ->get()
@@ -28,7 +27,7 @@ class NewsCollectionSeeder extends Seeder
         $langIds = $this->langIds(['es', 'en']);
 
         if (empty($langIds['es'])) {
-            echo "NewsCollectionSeeder: 'es' language not found in cms_languages. Run CmsLanguageSeeder first.\n";
+            echo "NewsCollectionSeeder: 'es' language not found in cms_languages. Seed CmsLanguageSeeder first.\n";
             return;
         }
 
@@ -298,7 +297,7 @@ class NewsCollectionSeeder extends Seeder
         $this->db->transComplete();
 
         if ($this->db->transStatus() === false) {
-            echo "NewsCollectionSeeder: Transaction failed!\n";
+            echo "NewsCollectionSeeder: transaction failed.\n";
         } else {
             echo "NewsCollectionSeeder: 'noticias' collection seeded successfully (collection_id={$collectionId}, entries={$entry1Id},{$entry2Id}).\n";
         }

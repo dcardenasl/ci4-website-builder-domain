@@ -113,7 +113,7 @@ Las tareas están ordenadas por fases de dependencias para asegurar la integrida
 
 ### DOM-106 — Paridad `boolean_like` con el scaffolder
 - **Qué**: `App\Validations\Rules\CustomRules` ahora implementa `boolean_like()` con el mismo contrato esperado por `ci4-api-scaffolding`: acepta bools, `0/1`, y strings `true/false/yes/no/on/off` de forma case-insensitive. Se añadieron los strings de validación en `app/Language/en/Validation.php` y `app/Language/es/Validation.php`.
-- **Por qué**: el scaffolder emite `boolean_like` para fields `bool`, pero `ci4-domain-starter` no exponía esa regla. Eso rompía CRUDs generados con booleanos y obligaba a parchear DTOs/modelos a mano.
+- **Por qué**: el scaffolder emite `boolean_like` para fields `bool`, pero `ci4-website-builder` no exponía esa regla. Eso rompía CRUDs generados con booleanos y obligaba a parchear DTOs/modelos a mano.
 - **Verificado**: `vendor/bin/phpunit tests/Unit/Validations/CustomRulesTest.php --configuration=phpunit.xml --no-coverage --testdox` ✅ (10 tests, 28 assertions).
 
 ### BFF-107 — Refactor `HubClient` sobre `AbstractServiceClient`

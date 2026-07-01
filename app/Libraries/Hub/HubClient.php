@@ -9,7 +9,7 @@ use dcardenasl\Ci4ApiCore\Http\Client\HubClient as CoreHubClient;
 /**
  * HTTP client subclass for the central hub (ci4-api-starter).
  *
- * Extends the core HubClient to add role management endpoints specific to domain apps.
+ * Extends the core HubClient to add role management endpoints specific to the website builder app.
  */
 class HubClient extends CoreHubClient
 {
@@ -123,7 +123,7 @@ class HubClient extends CoreHubClient
     /**
      * Queue an email via the Hub's internal email endpoint.
      *
-     * The Hub is the single email sender — Domain apps must never send emails directly.
+     * The Hub is the single email sender — website builder apps must never send emails directly.
      *
      * @return int Job ID (0 if queuing failed)
      */

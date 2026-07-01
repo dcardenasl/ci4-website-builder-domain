@@ -29,4 +29,16 @@ final class BlockTypeModelTest extends CIUnitTestCase
 
         $this->assertSame('cms_content_blocks', $model->getTable());
     }
+
+    public function testCmsContentBlocksHasFulltextSearchIndex(): void
+    {
+        $db = db_connect();
+
+        $rows = $db->query(
+            "SHOW INDEX FROM cms_content_blocks WHERE Key_name = 'ft_cms_content_blocks_search'"
+        )->getResultArray();
+
+        $this->assertNotEmpty($rows);
+        $this->assertSame('FULLTEXT', $rows[0]['Index_type'] ?? null);
+    }
 }

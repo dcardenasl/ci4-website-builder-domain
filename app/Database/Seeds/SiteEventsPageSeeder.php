@@ -22,7 +22,7 @@ class SiteEventsPageSeeder extends Seeder
 
         $langIds = $this->langIds(['es', 'en']);
         if (! isset($langIds['es'], $langIds['en'])) {
-            echo "SiteEventsPageSeeder: missing languages.\n";
+            echo "SiteEventsPageSeeder: missing languages. Seed CmsLanguageSeeder first.\n";
             return;
         }
 

@@ -7,7 +7,7 @@ namespace App\Filters;
 use dcardenasl\Ci4ApiCore\Http\Filters\AbstractThrottleFilter;
 
 /**
- * Rate-limiting filter for the domain app. Inherits fixed-window IP + user-id
+ * Rate-limiting filter for the website builder app. Inherits fixed-window IP + user-id
  * bucketing from {@see AbstractThrottleFilter}; limits come from Config\Api
  * (`rateLimitWindow`, `rateLimitRequests`, `rateLimitUserRequests`).
  */

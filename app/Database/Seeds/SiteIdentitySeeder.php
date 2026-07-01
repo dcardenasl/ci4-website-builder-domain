@@ -12,13 +12,13 @@ class SiteIdentitySeeder extends Seeder
     {
         $langIds = $this->langIds(['es', 'en']);
         if (! isset($langIds['es'], $langIds['en'])) {
-            echo "SiteIdentitySeeder: missing languages. Run CmsLanguageSeeder first.\n";
+            echo "SiteIdentitySeeder: missing languages. Seed CmsLanguageSeeder first.\n";
             return;
         }
 
         $settings = [
-            // `setting_value` always stores the canonical base language value.
-            // Non-base languages live only in `cms_setting_translations`.
+            // `setting_value` stores the canonical base-language value.
+            // Localized variants live in `cms_setting_translations`.
             [
                 'setting_key'     => 'site_name',
                 'setting_value'   => 'Mi Sitio',

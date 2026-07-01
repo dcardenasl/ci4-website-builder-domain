@@ -12,7 +12,7 @@ class SitePagesSeeder extends Seeder
     {
         $langIds = $this->langIds(['es', 'en']);
         if (! isset($langIds['es'], $langIds['en'])) {
-            echo "SitePagesSeeder: missing languages. Run CmsLanguageSeeder first.\n";
+            echo "SitePagesSeeder: missing languages. Seed CmsLanguageSeeder first.\n";
             return;
         }
 

@@ -1,6 +1,6 @@
 {
-    "name": "ci4/domain-starter",
-    "description": "CodeIgniter 4 Domain App Starter \u2014 delegates auth to a hub via /auth/introspect.",
+    "name": "ci4/website-builder",
+    "description": "CodeIgniter 4 Website Builder starter \u2014 delegates auth to a hub via /auth/introspect.",
     "type": "project",
     "license": "MIT",
     "require": {

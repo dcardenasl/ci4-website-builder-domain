@@ -12,13 +12,13 @@ class SiteContactDefaultsSeeder extends Seeder
     {
         $langIds = $this->langIds(['es', 'en']);
         if (! isset($langIds['es'], $langIds['en'])) {
-            echo "SiteContactDefaultsSeeder: missing languages. Run CmsLanguageSeeder first.\n";
+            echo "SiteContactDefaultsSeeder: missing languages. Seed CmsLanguageSeeder first.\n";
             return;
         }
 
         $settings = [
-            // `setting_value` always stores the canonical base language value.
-            // Non-base languages live only in `cms_setting_translations`.
+            // `setting_value` stores the canonical base-language value.
+            // Localized variants live in `cms_setting_translations`.
             [
                 'setting_key'     => 'contact_admin_email',
                 'setting_value'   => 'contacto@example.com',

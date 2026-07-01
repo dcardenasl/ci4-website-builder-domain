@@ -1,6 +1,6 @@
-# Release procedure — ci4-domain-starter
+# Release procedure — ci4-website-builder
 
-This document describes how to publish a new release of `ci4-domain-starter`. The repo is versioned **only by git tags** (`composer.json` does not carry a `version` field — it is `type: project`). A tag push on `main` triggers `.github/workflows/release.yml`, which extracts the matching `## [VERSION]` block from `CHANGELOG.md` and creates the corresponding GitHub Release.
+This document describes how to publish a new release of `ci4-website-builder`. The repo is versioned **only by git tags** (`composer.json` does not carry a `version` field — it is `type: project`). A tag push on `main` triggers `.github/workflows/release.yml`, which extracts the matching `## [VERSION]` block from `CHANGELOG.md` and creates the corresponding GitHub Release.
 
 ## Pre-flight checklist
 
@@ -65,7 +65,7 @@ The branching model is `dev → main → tag`. Tags are always cut from `main`.
    - Check out the tag.
    - Run an inline `awk` over `CHANGELOG.md` to extract the body between `## [X.Y.Z]` and the next `## [` heading.
    - Create the GitHub Release with that body as the release notes. If the release already exists (re-tag scenario), it edits the existing one instead of failing.
-5. **Verify the release page.** Open `https://github.com/dcardenasl/ci4-domain-starter/releases/tag/vX.Y.Z` and confirm the notes match the `[X.Y.Z]` block of `CHANGELOG.md`. If the workflow extracted an empty body, the most likely cause is a heading mismatch (stray trailing spaces or wrong version-string casing).
+5. **Verify the release page.** Open `https://github.com/dcardenasl/ci4-website-builder/releases/tag/vX.Y.Z` and confirm the notes match the `[X.Y.Z]` block of `CHANGELOG.md`. If the workflow extracted an empty body, the most likely cause is a heading mismatch (stray trailing spaces or wrong version-string casing).
 
 ## Post-release
 

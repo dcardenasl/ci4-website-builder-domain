@@ -28,7 +28,7 @@ class Scaffolding extends BaseScaffoldingConfig
             responseMapperImplementation: $defaults->responseMapperImplementation,
             servicesFactoryClass: $defaults->servicesFactoryClass,
             paths: $defaults->paths,
-            // Override: domain apps delegate auth to the hub via DomainAuthFilter.
+            // Override: the website builder app delegates auth to the hub via DomainAuthFilter.
             // Resource-level gates are emitted by the scaffolder.
             protectedRouteFilters: ['domainauth', 'throttle'],
             appNamespace: $defaults->appNamespace,

@@ -35,7 +35,7 @@ class SiteMenuSeeder extends Seeder
 
         $langIds = $this->langIds(['es', 'en']);
         if (! isset($langIds['es'], $langIds['en'])) {
-            echo "SiteMenuSeeder: missing languages. Run CmsLanguageSeeder first.\n";
+            echo "SiteMenuSeeder: missing languages. Seed CmsLanguageSeeder first.\n";
             return;
         }
 
@@ -47,7 +47,7 @@ class SiteMenuSeeder extends Seeder
         $newsCollectionId = $this->collectionIdByKey('noticias');
 
         if ($homePageId === null || $contactPageId === null || $newsCollectionId === null) {
-            echo "SiteMenuSeeder: missing required pages or collection. Run SitePagesSeeder and NewsCollectionSeeder first.\n";
+            echo "SiteMenuSeeder: missing required pages or collection. Seed SitePagesSeeder and NewsCollectionSeeder first.\n";
             return;
         }
 

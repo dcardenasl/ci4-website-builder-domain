@@ -7,22 +7,24 @@ namespace App\Database\Seeds;
 use CodeIgniter\Database\Seeder;
 
 /**
- * Seeds the initial contact form with bilingual translations and default fields.
+ * Seeds the default contact form used by the starter site.
  * Idempotent: safe to run multiple times.
  */
 class CmsFormSeeder extends Seeder
 {
+    private const CONTACT_FORM_KEY = 'contact';
+
     public function run(): void
     {
         $langIds = $this->langIds(['es', 'en']);
 
         if (! isset($langIds['es'])) {
-            echo "CmsFormSeeder: language 'es' not found. Run CmsLanguageSeeder first.\n";
+            echo "CmsFormSeeder: language 'es' not found. Seed CmsLanguageSeeder first.\n";
             return;
         }
 
         $formId = $this->upsertForm([
-            'form_key'              => 'contact',
+            'form_key'              => self::CONTACT_FORM_KEY,
             'is_active'             => 1,
             'has_captcha'           => 0,
             'notify_email'          => null,
@@ -77,19 +79,9 @@ class CmsFormSeeder extends Seeder
                 ],
             ],
             [
-                'field_key'    => 'phone',
-                'field_type'   => 'phone',
-                'display_order' => 30,
-                'is_required'  => 0,
-                'translations' => [
-                    'es' => ['label' => 'Teléfono', 'placeholder' => '+56 9 1234 5678', 'help_text' => 'Opcional', 'error_required' => null, 'error_invalid' => null],
-                    'en' => ['label' => 'Phone', 'placeholder' => '+1 555 0100', 'help_text' => 'Optional', 'error_required' => null, 'error_invalid' => null],
-                ],
-            ],
-            [
                 'field_key'    => 'message',
                 'field_type'   => 'textarea',
-                'display_order' => 40,
+                'display_order' => 30,
                 'is_required'  => 1,
                 'translations' => [
                     'es' => ['label' => 'Mensaje', 'placeholder' => 'Escribe tu mensaje aquí...', 'help_text' => null, 'error_required' => 'Por favor escribe tu mensaje.', 'error_invalid' => null],
@@ -110,7 +102,7 @@ class CmsFormSeeder extends Seeder
             }
         }
 
-        echo "CmsFormSeeder: contact form seeded (form_id={$formId}).\n";
+        echo "CmsFormSeeder: contact form seeded (form_id={$formId}, form_key=" . self::CONTACT_FORM_KEY . ").\n";
     }
 
     // ── Helpers ──────────────────────────────────────────────────────────────

@@ -1,4 +1,4 @@
-# TASKS_ARCHIVE — ci4-domain-starter
+# TASKS_ARCHIVE — ci4-website-builder
 
 > Historial de tareas completadas. Movido desde TASKS.md para mantener el tracker activo liviano.
 > Última actualización: 2026-05-07
@@ -33,4 +33,4 @@ Sin ID de tarea — trabajo derivado del runtime decoupling de ci4-api-core:
 
 ---
 
-*TASKS_ARCHIVE · ci4-domain-starter · 2026-05-07*
+*TASKS_ARCHIVE · ci4-website-builder · 2026-05-07*

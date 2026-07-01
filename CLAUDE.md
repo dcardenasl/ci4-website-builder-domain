@@ -18,7 +18,7 @@ For cross-repo context, read `../TASKS.md`.
 
 ## What this is
 
-`ci4-domain-starter` is a CodeIgniter 4 **domain app** template. It owns its own
+`ci4-website-builder` is a CodeIgniter 4 **website builder** template. It owns its own
 business logic and database tables, but **delegates auth and IAM to a central
 hub** — a separate `ci4-api-starter` instance that stores users, applications,
 roles and permissions.
@@ -26,21 +26,21 @@ roles and permissions.
 The split:
 
 ```
-Browser/SPA → Domain App (here)        → Database (this app's tables)
+Browser/SPA → Website Builder (here)    → Database (this app's tables)
                 ↓ JWT validation
               Hub (ci4-api-starter)    → Database (users, roles, perms)
                 ↑ Service token (M2M)
-              Domain App  ─────────────┘
+              Website Builder ──────────┘
 ```
 
 **Boundaries:**
 
-- Domain app **never issues JWTs**. The hub does.
-- Domain app **validates JWTs** by calling `POST /api/v1/auth/introspect` on the hub.
-- Domain app **registers its permissions** in the hub via `POST /api/v1/iam/self-permissions`
+- Website builder app **never issues JWTs**. The hub does.
+- Website builder app **validates JWTs** by calling `POST /api/v1/auth/introspect` on the hub.
+- Website builder app **registers its permissions** in the hub via `POST /api/v1/iam/self-permissions`
   using its own X-App-Key (`hub.apiKey`). No superadmin JWT required for the primary registration.
   `--admin-token` is only needed when `--mirror-to-self` or `--assign-to-role` is also set.
-- Domain app **does not store users**. There is no `users` table here.
+- Website builder app **does not store users**. There is no `users` table here.
 
 ## Essential commands
 
@@ -136,11 +136,11 @@ module needs distinct read/write codes.
 | Variable | Purpose |
 |---|---|
 | `hub.url` | Base URL of the hub (e.g. `http://localhost:8080`) |
-| `hub.apiKey` | X-App-Key bound to this domain app's `applications` row in the hub |
+| `hub.apiKey` | X-App-Key bound to this app's `applications` row in the hub |
 | `hub.appCode` | Application code as registered in the hub |
 | `hub.introspectCacheTtl` | (optional) TTL in seconds for cached introspect responses, default 60 |
 | `hub.adminToken` | (optional) Superadmin JWT. Only needed when running `domain:sync-permissions --mirror-to-self` or `--assign-to-role`. |
-| `database.default.*` | Domain app's own MySQL connection |
+| `database.default.*` | Website builder app's own MySQL connection |
 | `encryption.key` | CI4 encryption key (32 bytes after `hex2bin:` decode) |
 
 ## Setup prerequisite

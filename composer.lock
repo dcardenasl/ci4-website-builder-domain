@@ -148,7 +148,7 @@
                     "email": "code.dcl@gmail.com"
                 }
             ],
-            "description": "DTO-first API runtime foundation for CodeIgniter 4: base classes, HTTP layer, services, repositories, filters, audit chain, and queue. Powers ci4-api-starter and ci4-domain-starter. Pair with dcardenasl/ci4-api-scaffolding for CRUD generation.",
+            "description": "DTO-first API runtime foundation for CodeIgniter 4: base classes, HTTP layer, services, repositories, filters, audit chain, and queue. Powers ci4-api-starter and ci4-website-builder. Pair with dcardenasl/ci4-api-scaffolding for CRUD generation.",
             "homepage": "https://github.com/dcardenasl/ci4-api-core",
             "keywords": [
                 "Audit",

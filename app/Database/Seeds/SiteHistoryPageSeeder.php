@@ -25,7 +25,7 @@ class SiteHistoryPageSeeder extends Seeder
 
         $langIds = $this->langIds(['es', 'en']);
         if (! isset($langIds['es'], $langIds['en'])) {
-            echo "SiteHistoryPageSeeder: missing languages.\n";
+            echo "SiteHistoryPageSeeder: missing languages. Seed CmsLanguageSeeder first.\n";
             return;
         }
 

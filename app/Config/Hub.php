@@ -9,7 +9,7 @@ use CodeIgniter\Config\BaseConfig;
 /**
  * Hub configuration — coordinates with the central ci4-api-starter ("hub").
  *
- * The hub owns auth, IAM, users, files. Each domain app delegates JWT validation
+ * The hub owns auth, IAM, users, files. Each website builder app delegates JWT validation
  * to the hub via POST /api/v1/auth/introspect and obtains its own service token
  * via POST /api/v1/auth/service-token.
  */
@@ -28,7 +28,7 @@ class Hub extends BaseConfig
     public string $apiKey = '';
 
     /**
-     * Domain app code as registered in the hub (matches the application code).
+     * Website builder app code as registered in the hub (matches the application code).
      */
     public string $appCode = '';
 
@@ -76,7 +76,7 @@ class Hub extends BaseConfig
         if (! is_string($url) || trim($url) === '') {
             throw new \LogicException(
                 'Missing hub.url in .env. '
-                . 'This domain app delegates JWT validation to a central hub. '
+                . 'This website builder app delegates JWT validation to a central hub. '
                 . 'Set hub.url to the hub API base URL. '
                 . 'Example: hub.url=http://localhost:8080'
             );
@@ -88,7 +88,7 @@ class Hub extends BaseConfig
         if (! is_string($apiKey) || trim($apiKey) === '') {
             throw new \LogicException(
                 'Missing hub.apiKey in .env. '
-                . 'This is the X-App-Key that identifies this domain app to the hub. '
+                . 'This is the X-App-Key that identifies this app to the hub. '
                 . 'Create it via `php spark apps:bootstrap <code>` on the hub. '
                 . 'Example: hub.apiKey=apk_xxxx...'
             );

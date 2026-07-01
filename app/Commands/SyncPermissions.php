@@ -14,7 +14,7 @@ use Config\Services;
  * php spark domain:sync-permissions [--admin-token=<jwt>] [--assign-to-role=<ID|code>] [--mirror-to-self]
  *
  * Registers every permission listed in DomainPermissions::PERMISSIONS in the
- * hub's IAM using the domain's own X-App-Key (POST /api/v1/iam/self-permissions).
+ * hub's IAM using the website builder app's own X-App-Key (POST /api/v1/iam/self-permissions).
  * No superadmin JWT required for the primary registration.
  *
  * --admin-token is only required when:
@@ -25,7 +25,7 @@ class SyncPermissions extends BaseCommand
 {
     protected $group       = 'Domain';
     protected $name        = 'domain:sync-permissions';
-    protected $description = 'Register this domain app\'s permissions in the hub via its own API key (idempotent).';
+    protected $description = 'Register this app\'s permissions in the hub via its own API key (idempotent).';
     protected $usage       = 'domain:sync-permissions [--admin-token=<jwt>] [--assign-to-role=<ID|code>] [--mirror-to-self]';
 
     /** @var array<string, string> */
@@ -70,7 +70,7 @@ class SyncPermissions extends BaseCommand
         $permissions    = DomainPermissions::PERMISSIONS;
         $mirrorErrors   = 0;
 
-        // Primary registration: domain registers its own permissions via X-App-Key.
+        // Primary registration: website builder registers its own permissions via X-App-Key.
         // The hub assigns application_id from the key — no superadmin JWT needed.
         $this->writeLine(sprintf('Syncing %d permission(s) via self-permissions endpoint...', count($permissions)), 'cyan');
 

@@ -1,4 +1,4 @@
-# ci4-domain-starter
+# ci4-website-builder
 
 [![CI4](https://img.shields.io/badge/CodeIgniter-4.5-EF4223)](https://codeigniter.com/)
 [![PHP](https://img.shields.io/badge/PHP-8.2%2B-777BB4)](https://www.php.net/)
