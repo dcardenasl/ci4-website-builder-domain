@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Database\Seeds;
 
+use App\Libraries\Cms\CollectionPresetResolver;
 use CodeIgniter\Database\Seeder;
 
 /**
@@ -32,10 +33,12 @@ class NewsCollectionSeeder extends Seeder
         }
 
         $this->db->transStart();
+        $preset = CollectionPresetResolver::resolve('news');
 
         // ── 1. Collection ──────────────────────────────────────────────────────
         $this->db->table('cms_collections')->insert([
             'collection_key'           => 'noticias',
+            'collection_type'          => 'news',
             'is_active'                => 1,
             'requires_approval'        => 0,
             'enables_categories'       => 1,
@@ -43,6 +46,8 @@ class NewsCollectionSeeder extends Seeder
             'default_sitemap_priority' => '0.70',
             'default_changefreq'       => 'weekly',
             'sort_order'               => 10,
+            'block_template'           => json_encode($preset['block_template'], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES),
+            'wizard_config'            => json_encode($preset['wizard_config'], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES),
             'created_at'               => date('Y-m-d H:i:s'),
             'updated_at'               => date('Y-m-d H:i:s'),
         ]);

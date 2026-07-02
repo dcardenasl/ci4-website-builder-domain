@@ -20,6 +20,7 @@ class SiteBootstrapSeeder extends Seeder
         $this->call(CmsBlockTypeSeeder::class);
         $this->call(SitePagesSeeder::class);
         $this->call(NewsCollectionSeeder::class);
+        $this->call(WizardConfigSeeder::class);
         $this->call(CmsPageBlockSeeder::class);
         $this->call(CmsHeroSliderChildrenSeeder::class);
         $this->call(SiteAboutPageSeeder::class);
