@@ -14,6 +14,9 @@ return [
     'cannot_delete_has_entries' => 'Esta colección no se puede eliminar porque tiene entradas.',
     'delete_entries_first' => 'Elimina o mueve las {0} entradas existentes antes de eliminar esta colección.',
     'fields'         => [
+        'collection_type' => 'Tipo de colección',
+        'collection_type_placeholder' => 'Seleccione tipo de colección',
+        'collection_type_help' => 'Elige el preset editorial para esta colección.',
         'collection_key' => 'Collection Key',
         'collection_key_placeholder' => 'Ingresa Collection Key',
         'collection_key_help' => 'Ingresa Collection Key.',
@@ -39,4 +42,9 @@ return [
         'sort_order_placeholder' => 'Ingresa Sort Order',
         'sort_order_help' => 'Ingresa Sort Order.',
     ],
+    'collection_type_blog' => 'Blog',
+    'collection_type_news' => 'Noticias',
+    'collection_type_portfolio' => 'Portafolio',
+    'collection_type_services' => 'Servicios',
+    'collection_type_other' => 'Otro',
 ];

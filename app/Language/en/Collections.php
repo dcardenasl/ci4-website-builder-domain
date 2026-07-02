@@ -14,6 +14,9 @@ return [
     'cannot_delete_has_entries' => 'This collection cannot be deleted because it has entries.',
     'delete_entries_first' => 'Delete or move the {0} existing entries before deleting this collection.',
     'fields'         => [
+        'collection_type' => 'Collection Type',
+        'collection_type_placeholder' => 'Select Collection Type',
+        'collection_type_help' => 'Choose the editorial preset for this collection.',
         'collection_key' => 'Collection Key',
         'collection_key_placeholder' => 'Enter Collection Key',
         'collection_key_help' => 'Enter Collection Key.',
@@ -39,4 +42,9 @@ return [
         'sort_order_placeholder' => 'Enter Sort Order',
         'sort_order_help' => 'Enter Sort Order.',
     ],
+    'collection_type_blog' => 'Blog',
+    'collection_type_news' => 'News',
+    'collection_type_portfolio' => 'Portfolio',
+    'collection_type_services' => 'Services',
+    'collection_type_other' => 'Other',
 ];
