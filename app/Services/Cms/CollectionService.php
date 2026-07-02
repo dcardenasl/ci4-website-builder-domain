@@ -6,6 +6,7 @@ namespace App\Services\Cms;
 
 use App\Entities\CollectionEntity;
 use App\Interfaces\Cms\CollectionServiceInterface;
+use App\Libraries\Cms\CollectionPresetResolver;
 use dcardenasl\Ci4ApiCore\Dto\SecurityContext;
 use dcardenasl\Ci4ApiCore\Exceptions\ValidationException;
 use dcardenasl\Ci4ApiCore\Mappers\ResponseMapperInterface;
@@ -37,6 +38,23 @@ class CollectionService extends BaseCrudService implements CollectionServiceInte
     protected function beforeStore(array $data, ?SecurityContext $context): array
     {
         $data = parent::beforeStore($data, $context);
+
+        $collectionType = (string) ($data['collection_type'] ?? 'other');
+        $preset = CollectionPresetResolver::resolve($collectionType);
+        $usePreset = ! array_key_exists('use_preset', $data) || filter_var($data['use_preset'], FILTER_VALIDATE_BOOLEAN);
+
+        if ($usePreset) {
+            if (! array_key_exists('block_template', $data) || $data['block_template'] === null || $data['block_template'] === '') {
+                $data['block_template'] = json_encode($preset['block_template'], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
+            }
+            if (! array_key_exists('wizard_config', $data) || $data['wizard_config'] === null || $data['wizard_config'] === '') {
+                $data['wizard_config'] = json_encode($preset['wizard_config'], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
+            }
+        } else {
+            $data['block_template'] = null;
+            $data['wizard_config'] = null;
+        }
+        unset($data['use_preset']);
 
         // Key uniqueness check
         $existingKey = $this->repository->findBy('collection_key', $data['collection_key']);
@@ -70,6 +88,20 @@ class CollectionService extends BaseCrudService implements CollectionServiceInte
     protected function beforeUpdate(int $id, array $data, ?SecurityContext $context): array
     {
         $data = parent::beforeUpdate($id, $data, $context);
+        unset($data['use_preset']);
+
+        if (array_key_exists('collection_type', $data)) {
+            $collectionType = (string) ($data['collection_type'] ?? 'other');
+            $preset = CollectionPresetResolver::resolve($collectionType);
+
+            if (! array_key_exists('block_template', $data) || $data['block_template'] === null || $data['block_template'] === '') {
+                $data['block_template'] = json_encode($preset['block_template'], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
+            }
+
+            if (! array_key_exists('wizard_config', $data) || $data['wizard_config'] === null || $data['wizard_config'] === '') {
+                $data['wizard_config'] = json_encode($preset['wizard_config'], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
+            }
+        }
 
         if (array_key_exists('collection_key', $data)) {
             $existing = $this->repository->findBy('collection_key', $data['collection_key']);

@@ -8,6 +8,7 @@ use App\Entities\PageEntity;
 use App\Interfaces\Cms\PageServiceInterface;
 use App\Libraries\Cms\FileReferenceSynchronizer;
 use App\Libraries\Cms\FileUrlResolver;
+use App\Libraries\Cms\PagePresetInitializer;
 use dcardenasl\Ci4ApiCore\Dto\SecurityContext;
 use dcardenasl\Ci4ApiCore\Exceptions\ValidationException;
 use dcardenasl\Ci4ApiCore\Mappers\ResponseMapperInterface;
@@ -30,6 +31,8 @@ class PageService extends BaseCrudService implements PageServiceInterface
 
     private FileReferenceSynchronizer $fileReferenceSynchronizer;
 
+    private PagePresetInitializer $pagePresetInitializer;
+
     /**
      * @param RepositoryInterface<PageEntity> $pageRepository
      */
@@ -46,11 +49,28 @@ class PageService extends BaseCrudService implements PageServiceInterface
         $this->cacheInvalidator     = $cacheInvalidator ?? service('cacheInvalidationClient');
         $this->fileUrlResolver      = $fileUrlResolver ?? service('fileUrlResolver');
         $this->fileReferenceSynchronizer = $fileReferenceSynchronizer ?? service('fileReferenceSynchronizer');
+        $this->pagePresetInitializer = new PagePresetInitializer();
     }
 
     protected function beforeStore(array $data, ?SecurityContext $context): array
     {
         $data = parent::beforeStore($data, $context);
+
+        if (! array_key_exists('status', $data) || $data['status'] === null || $data['status'] === '') {
+            $data['status'] = 'draft';
+        }
+
+        if (! array_key_exists('sort_order', $data) || $data['sort_order'] === null || $data['sort_order'] === '') {
+            $data['sort_order'] = 0;
+        }
+
+        if (! array_key_exists('is_in_sitemap', $data) || $data['is_in_sitemap'] === null || $data['is_in_sitemap'] === '') {
+            $data['is_in_sitemap'] = '1';
+        }
+
+        if (! array_key_exists('sitemap_changefreq', $data) || $data['sitemap_changefreq'] === null || $data['sitemap_changefreq'] === '') {
+            $data['sitemap_changefreq'] = 'monthly';
+        }
 
         $parentId = isset($data['parent_id']) && $data['parent_id'] !== '' ? (int) $data['parent_id'] : null;
         if ($parentId !== null) {
@@ -74,6 +94,8 @@ class PageService extends BaseCrudService implements PageServiceInterface
         if ($this->tempTranslations !== null) {
             $this->saveTranslations((int) $entity->id, $this->tempTranslations);
         }
+        $pageType = (string) ($entity->page_type ?? 'generic');
+        $this->pagePresetInitializer->initialize((int) $entity->id, $pageType);
         $this->fileReferenceSynchronizer->syncPage((int) $entity->id);
         $this->createVersionSnapshot((int) $entity->id, 'Initial creation');
         $this->cacheInvalidator->invalidate(['pages']);

@@ -20,7 +20,7 @@ class CollectionModel extends BaseAuditableModel
     protected $useSoftDeletes = false;
     protected $useTimestamps = true;
 
-    protected $allowedFields = ['collection_key', 'is_active', 'requires_approval', 'enables_categories', 'enables_tags', 'default_sitemap_priority', 'default_changefreq', 'sort_order', 'block_template', 'wizard_config'];
+    protected $allowedFields = ['collection_key', 'collection_type', 'is_active', 'requires_approval', 'enables_categories', 'enables_tags', 'default_sitemap_priority', 'default_changefreq', 'sort_order', 'block_template', 'wizard_config'];
 
     /** @var array<int, string> */
     protected array $searchableFields = [];
@@ -33,6 +33,7 @@ class CollectionModel extends BaseAuditableModel
 
     protected $validationRules = [
         'collection_key' => 'required|string|max_length[50]',
+        'collection_type' => 'required|in_list[blog,news,portfolio,services,other]',
         'is_active' => 'permit_empty|boolean_like',
         'requires_approval' => 'permit_empty|boolean_like',
         'enables_categories' => 'permit_empty|boolean_like',

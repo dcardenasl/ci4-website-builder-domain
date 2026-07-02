@@ -13,6 +13,8 @@ use OpenApi\Attributes as OA;
 #[OA\Schema(schema: 'CollectionUpdateRequest')]
 readonly class CollectionUpdateRequestDTO extends BaseRequestDTO
 {
+    #[OA\Property(description: 'collection_type', type: 'string', nullable: true, enum: ['blog', 'news', 'portfolio', 'services', 'other'])]
+    public ?string $collection_type;
     #[OA\Property(description: 'collection_key', type: 'string', nullable: true)]
     public ?string $collection_key;
     #[OA\Property(description: 'is_active', type: 'boolean', nullable: true)]
@@ -54,6 +56,7 @@ readonly class CollectionUpdateRequestDTO extends BaseRequestDTO
     public function rules(): array
     {
         return [
+            'collection_type' => 'permit_empty|in_list[blog,news,portfolio,services,other]',
             'collection_key' => 'permit_empty|string|max_length[50]',
             'is_active' => 'permit_empty|boolean_like',
             'requires_approval' => 'permit_empty|boolean_like',
@@ -79,6 +82,7 @@ readonly class CollectionUpdateRequestDTO extends BaseRequestDTO
      */
     protected function map(array $data): void
     {
+        $this->collection_type = $data['collection_type'] ?? null;
         $this->collection_key = $data['collection_key'] ?? null;
         $this->is_active = isset($data['is_active']) ? (bool) $data['is_active'] : null;
         $this->requires_approval = isset($data['requires_approval']) ? (bool) $data['requires_approval'] : null;
@@ -109,6 +113,7 @@ readonly class CollectionUpdateRequestDTO extends BaseRequestDTO
     public function toArray(): array
     {
         $data = array_filter([
+            'collection_type' => $this->collection_type,
             'collection_key' => $this->collection_key,
             'is_active' => $this->is_active,
             'requires_approval' => $this->requires_approval,

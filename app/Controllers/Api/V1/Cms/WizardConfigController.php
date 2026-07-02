@@ -51,17 +51,7 @@ class WizardConfigController extends ApiController
                     'is_default' => (bool) ($l['is_default'] ?? false),
                 ], $languages);
 
-                // Default language id (first active language, or 1 as ultimate fallback)
-                $defaultLangId = 1;
-                foreach ($languagesData as $lang) {
-                    if ($lang['is_default']) {
-                        $defaultLangId = $lang['id'];
-                        break;
-                    }
-                }
-                if ($defaultLangId === 1 && !empty($languagesData)) {
-                    $defaultLangId = $languagesData[0]['id'];
-                }
+                $defaultLangId = $this->resolveDefaultLanguageId($languagesData);
 
                 // ── Collections ───────────────────────────────────────────────
                 /** @var CollectionModel $collectionModel */
@@ -243,7 +233,7 @@ class WizardConfigController extends ApiController
 
                 return [
                     'languages'      => $languagesData,
-                    'default_lang_id' => $defaultLangId,
+                    'default_language_id' => $defaultLangId,
                     'collections'    => $collectionsData,
                     'pages'          => $pagesData,
                     'menus'          => $menusData,
@@ -251,5 +241,25 @@ class WizardConfigController extends ApiController
                 ];
             }
         );
+    }
+
+    /**
+     * @param array<int, array<string, mixed>> $languages
+     */
+    private function resolveDefaultLanguageId(array $languages): int
+    {
+        foreach ($languages as $language) {
+            if (! empty($language['is_default']) && isset($language['id'])) {
+                return (int) $language['id'];
+            }
+        }
+
+        foreach ($languages as $language) {
+            if (isset($language['id'])) {
+                return (int) $language['id'];
+            }
+        }
+
+        return 1;
     }
 }

@@ -13,9 +13,9 @@ readonly class PageCreateRequestDTO extends BaseRequestDTO
 {
     #[OA\Property(description: 'parent_id', type: 'integer', nullable: true)]
     public ?int $parent_id;
-    #[OA\Property(description: 'page_type', type: 'string', enum: ['home', 'generic', 'contact', 'privacy', 'terms', '404', '500', 'maintenance'])]
+    #[OA\Property(description: 'page_type', type: 'string', enum: ['home', 'generic', 'contact', 'privacy', 'terms', '404', '500', 'maintenance', 'about', 'history', 'events'])]
     public string $page_type;
-    #[OA\Property(description: 'status', type: 'string', enum: ['draft', 'published', 'archived'])]
+    #[OA\Property(description: 'status', type: 'string', nullable: true, enum: ['draft', 'published', 'archived'])]
     public string $status;
     #[OA\Property(description: 'published_at', type: 'string', format: 'date-time', nullable: true)]
     public ?string $published_at;
@@ -44,10 +44,10 @@ readonly class PageCreateRequestDTO extends BaseRequestDTO
         return [
             'parent_id' => 'permit_empty|integer',
             'page_type' => 'required|' . CmsEnums::inListRule(CmsEnums::PAGE_TYPE),
-            'status' => 'required|' . CmsEnums::inListRule(CmsEnums::PAGE_STATUS),
+            'status' => 'permit_empty|' . CmsEnums::inListRule(CmsEnums::PAGE_STATUS),
             'published_at' => 'permit_empty|valid_date',
             'scheduled_at' => 'permit_empty|valid_date',
-            'sort_order' => 'required|integer',
+            'sort_order' => 'permit_empty|integer',
             'sitemap_priority' => 'permit_empty|decimal',
             'sitemap_changefreq' => 'permit_empty|' . CmsEnums::inListRule(CmsEnums::SITEMAP_CHANGEFREQ),
             'is_in_sitemap' => 'permit_empty|boolean_like',
@@ -73,7 +73,7 @@ readonly class PageCreateRequestDTO extends BaseRequestDTO
     {
         $this->parent_id = isset($data['parent_id']) && $data['parent_id'] !== '' ? (int) $data['parent_id'] : null;
         $this->page_type = (string) ($data['page_type'] ?? '');
-        $this->status = (string) ($data['status'] ?? '');
+        $this->status = (string) ($data['status'] ?? 'draft');
         $this->published_at = $data['published_at'] ?? null;
         $this->scheduled_at = $data['scheduled_at'] ?? null;
         $this->sort_order = (int) ($data['sort_order'] ?? 0);

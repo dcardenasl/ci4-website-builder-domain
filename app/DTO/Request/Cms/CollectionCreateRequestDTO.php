@@ -13,6 +13,8 @@ use OpenApi\Attributes as OA;
 #[OA\Schema(schema: 'CollectionCreateRequest')]
 readonly class CollectionCreateRequestDTO extends BaseRequestDTO
 {
+    #[OA\Property(description: 'collection_type', type: 'string', enum: ['blog', 'news', 'portfolio', 'services', 'other'])]
+    public string $collection_type;
     #[OA\Property(description: 'collection_key', type: 'string')]
     public string $collection_key;
     #[OA\Property(description: 'is_active', type: 'boolean')]
@@ -29,6 +31,8 @@ readonly class CollectionCreateRequestDTO extends BaseRequestDTO
     public ?string $default_changefreq;
     #[OA\Property(description: 'sort_order', type: 'integer')]
     public int $sort_order;
+    #[OA\Property(description: 'use_preset', type: 'boolean')]
+    public bool $use_preset;
 
     /**
      * @var array<string, mixed>|null
@@ -54,6 +58,7 @@ readonly class CollectionCreateRequestDTO extends BaseRequestDTO
     public function rules(): array
     {
         return [
+            'collection_type' => 'required|string|in_list[blog,news,portfolio,services,other]',
             'collection_key' => 'required|string|max_length[50]|is_unique[cms_collections.collection_key]',
             'is_active' => 'permit_empty|boolean_like',
             'requires_approval' => 'permit_empty|boolean_like',
@@ -62,6 +67,7 @@ readonly class CollectionCreateRequestDTO extends BaseRequestDTO
             'default_sitemap_priority' => 'permit_empty|decimal',
             'default_changefreq' => 'permit_empty|' . CmsEnums::inListRule(CmsEnums::SITEMAP_CHANGEFREQ),
             'sort_order' => 'required|integer',
+            'use_preset' => 'permit_empty|boolean_like',
             'translations' => 'permit_empty',
             'translations.*.language_id' => 'required_with[translations]|is_natural_no_zero',
             'translations.*.slug' => 'required_with[translations]|string|min_length[1]|max_length[150]',
@@ -79,6 +85,7 @@ readonly class CollectionCreateRequestDTO extends BaseRequestDTO
      */
     protected function map(array $data): void
     {
+        $this->collection_type = (string) ($data['collection_type'] ?? 'other');
         $this->collection_key = (string) ($data['collection_key'] ?? '');
         $this->is_active = (bool) ($data['is_active'] ?? false);
         $this->requires_approval = (bool) ($data['requires_approval'] ?? false);
@@ -87,6 +94,9 @@ readonly class CollectionCreateRequestDTO extends BaseRequestDTO
         $this->default_sitemap_priority = isset($data['default_sitemap_priority']) ? (float) $data['default_sitemap_priority'] : null;
         $this->default_changefreq = $data['default_changefreq'] ?? null;
         $this->sort_order = (int) ($data['sort_order'] ?? 0);
+        $this->use_preset = array_key_exists('use_preset', $data)
+            ? filter_var($data['use_preset'], FILTER_VALIDATE_BOOLEAN)
+            : true;
         $this->block_template = $this->parseBlockTemplate($data['block_template'] ?? null);
         $wizardConfig = $data['wizard_config'] ?? null;
         if (is_string($wizardConfig)) {
@@ -103,6 +113,7 @@ readonly class CollectionCreateRequestDTO extends BaseRequestDTO
     public function toArray(): array
     {
         $result = [
+            'collection_type' => $this->collection_type,
             'collection_key' => $this->collection_key,
             'is_active' => $this->is_active,
             'requires_approval' => $this->requires_approval,
@@ -111,6 +122,7 @@ readonly class CollectionCreateRequestDTO extends BaseRequestDTO
             'default_sitemap_priority' => $this->default_sitemap_priority,
             'default_changefreq' => $this->default_changefreq,
             'sort_order' => $this->sort_order,
+            'use_preset' => $this->use_preset,
             'translations' => $this->translations,
         ];
 
