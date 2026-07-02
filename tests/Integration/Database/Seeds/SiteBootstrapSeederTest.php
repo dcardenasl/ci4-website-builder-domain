@@ -37,6 +37,14 @@ final class SiteBootstrapSeederTest extends CIUnitTestCase
         $this->db->table('cms_menu_item_translations')->truncate();
         $this->db->table('cms_menu_items')->truncate();
         $this->db->table('cms_menus')->truncate();
+        $this->db->table('cms_entry_categories')->truncate();
+        $this->db->table('cms_entry_tags')->truncate();
+        $this->db->table('cms_entry_translations')->truncate();
+        $this->db->table('cms_entries')->truncate();
+        $this->db->table('cms_category_translations')->truncate();
+        $this->db->table('cms_categories')->truncate();
+        $this->db->table('cms_tag_translations')->truncate();
+        $this->db->table('cms_tags')->truncate();
         $this->db->table('cms_page_translations')->truncate();
         $this->db->table('cms_pages')->truncate();
         $this->db->table('cms_collection_translations')->truncate();
@@ -105,5 +113,81 @@ final class SiteBootstrapSeederTest extends CIUnitTestCase
             ->getResultArray();
 
         $this->assertNotEmpty($contactTranslation);
+
+        $newsCollection = $this->db->table('cms_collections')
+            ->where('collection_key', 'noticias')
+            ->get()
+            ->getRowArray();
+        $this->assertNotNull($newsCollection);
+        $this->assertSame('news', $newsCollection['collection_type']);
+        $this->assertNotEmpty($newsCollection['block_template']);
+        $this->assertNotEmpty($newsCollection['wizard_config']);
+
+        $aboutPage = $this->db->table('cms_pages')
+            ->where('page_type', 'about')
+            ->get()
+            ->getRowArray();
+        $this->assertNotNull($aboutPage);
+
+        $aboutBlocks = $this->db->table('cms_block_instances')
+            ->where('owner_type', 'page')
+            ->where('owner_id', (int) $aboutPage['id'])
+            ->orderBy('sort_order', 'ASC')
+            ->get()
+            ->getResultArray();
+        $this->assertNotEmpty($aboutBlocks);
+        $this->assertSame('page_header', $this->blockKeyForInstance((int) $aboutBlocks[0]['block_id']));
+
+        $historyPage = $this->db->table('cms_pages')
+            ->where('page_type', 'history')
+            ->get()
+            ->getRowArray();
+        $this->assertNotNull($historyPage);
+
+        $eventsPage = $this->db->table('cms_pages')
+            ->where('page_type', 'events')
+            ->get()
+            ->getRowArray();
+        $this->assertNotNull($eventsPage);
+
+        $eventsBlocks = $this->db->table('cms_block_instances')
+            ->where('owner_type', 'page')
+            ->where('owner_id', (int) $eventsPage['id'])
+            ->orderBy('sort_order', 'ASC')
+            ->get()
+            ->getResultArray();
+        $this->assertCount(3, $eventsBlocks);
+    }
+
+    public function testBootstrapSeederIsIdempotent(): void
+    {
+        $seeder = new SiteBootstrapSeeder(config('Database'));
+        $seeder->run();
+
+        $countsBefore = [
+            'pages' => $this->db->table('cms_pages')->countAllResults(),
+            'collections' => $this->db->table('cms_collections')->countAllResults(),
+            'blocks' => $this->db->table('cms_block_instances')->countAllResults(),
+        ];
+
+        $seeder->run();
+
+        $countsAfter = [
+            'pages' => $this->db->table('cms_pages')->countAllResults(),
+            'collections' => $this->db->table('cms_collections')->countAllResults(),
+            'blocks' => $this->db->table('cms_block_instances')->countAllResults(),
+        ];
+
+        $this->assertSame($countsBefore, $countsAfter);
+    }
+
+    private function blockKeyForInstance(int $blockId): string
+    {
+        $row = $this->db->table('cms_content_blocks')
+            ->where('id', $blockId)
+            ->get()
+            ->getRowArray();
+
+        return (string) ($row['block_key'] ?? '');
     }
 }
