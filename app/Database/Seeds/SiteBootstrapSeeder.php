@@ -25,7 +25,8 @@ class SiteBootstrapSeeder extends Seeder
         $this->call(CmsHeroSliderChildrenSeeder::class);
         $this->call(SiteAboutPageSeeder::class);
         $this->call(SiteHistoryPageSeeder::class);
-        $this->call(SiteEventsPageSeeder::class);
+        $this->call(PortfolioCollectionSeeder::class);
+        $this->call(SitePortfolioPageSeeder::class);
         $this->call(SiteMenuSeeder::class);
     }
 }

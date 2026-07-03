@@ -199,25 +199,12 @@ class BlockInstanceSerializer
             $type = $fieldDef['type'] ?? 'string';
 
             if ($type === 'file') {
-                $fileId = $blockData[$fieldKey . '_file_id'] ?? null;
-                $resolvedFileId = $this->fileUrlResolver->resolveFileIdFromValue(
-                    $fileId,
-                    isset($blockData[$fieldKey . '_url']) ? (string) $blockData[$fieldKey . '_url'] : null
+                $this->mergeSingleFileField(
+                    $blockData,
+                    $fieldKey,
+                    $fileTransMap,
+                    $fileUrlMap
                 );
-
-                if ($resolvedFileId !== null) {
-                    $fileTrans = $fileTransMap[$resolvedFileId] ?? [];
-                    $blockData[$fieldKey . '_alt_text'] = $fileTrans['alt_text'] ?? null;
-                    $blockData[$fieldKey . '_caption']  = $fileTrans['caption'] ?? null;
-                    $blockData[$fieldKey . '_title']    = $fileTrans['title'] ?? null;
-                    $blockData[$fieldKey . '_credit']   = $fileTrans['credit'] ?? null;
-                    $blockData[$fieldKey . '_url']      = $fileUrlMap[$resolvedFileId] ?? $this->fileUrlResolver->resolve($resolvedFileId, 'public');
-                } else {
-                    $blockData[$fieldKey . '_url'] = $this->fileUrlResolver->resolveUrlValue(
-                        $fileId,
-                        isset($blockData[$fieldKey . '_url']) ? (string) $blockData[$fieldKey . '_url'] : null
-                    );
-                }
             } elseif ($type === 'repeater') {
                 $items      = $blockData[$fieldKey] ?? [];
                 $itemFields = $fieldDef['item_fields'] ?? [];
@@ -233,23 +220,7 @@ class BlockInstanceSerializer
                     }
                     foreach ($itemFields as $subKey => $subDef) {
                         if (($subDef['type'] ?? '') === 'file') {
-                            $resolvedFileId = $this->fileUrlResolver->resolveFileIdFromValue(
-                                $item[$subKey . '_file_id'] ?? null,
-                                isset($item[$subKey . '_url']) ? (string) $item[$subKey . '_url'] : null
-                            );
-                            if ($resolvedFileId !== null) {
-                                $fileTrans = $fileTransMap[$resolvedFileId] ?? [];
-                                $item[$subKey . '_alt_text'] = $fileTrans['alt_text'] ?? null;
-                                $item[$subKey . '_caption']  = $fileTrans['caption'] ?? null;
-                                $item[$subKey . '_title']    = $fileTrans['title'] ?? null;
-                                $item[$subKey . '_credit']   = $fileTrans['credit'] ?? null;
-                                $item[$subKey . '_url']      = $fileUrlMap[$resolvedFileId] ?? $this->fileUrlResolver->resolve($resolvedFileId, 'public');
-                            } else {
-                                $item[$subKey . '_url'] = $this->fileUrlResolver->resolveUrlValue(
-                                    $item[$subKey . '_file_id'] ?? null,
-                                    isset($item[$subKey . '_url']) ? (string) $item[$subKey . '_url'] : null
-                                );
-                            }
+                            $this->mergeSingleFileField($item, $subKey, $fileTransMap, $fileUrlMap);
                         }
                     }
                     $enriched[] = $item;
@@ -259,6 +230,41 @@ class BlockInstanceSerializer
         }
 
         return $blockData;
+    }
+
+    /**
+     * Normalize a single file field in block_data.
+     *
+     * @param array<string, mixed> $blockData
+     * @param array<int, array<string, mixed>> $fileTransMap
+     * @param array<int, string> $fileUrlMap
+     */
+    private function mergeSingleFileField(array &$blockData, string $fieldKey, array $fileTransMap, array $fileUrlMap): void
+    {
+        $fileIdKey = $fieldKey . '_file_id';
+        $urlKey    = $fieldKey . '_url';
+        $fileId    = $blockData[$fileIdKey] ?? null;
+
+        $resolvedFileId = $this->fileUrlResolver->resolveFileIdFromValue(
+            $fileId,
+            isset($blockData[$urlKey]) ? (string) $blockData[$urlKey] : null
+        );
+
+        if ($resolvedFileId !== null) {
+            $fileTrans = $fileTransMap[$resolvedFileId] ?? [];
+            $blockData[$fieldKey . '_alt_text'] = $fileTrans['alt_text'] ?? null;
+            $blockData[$fieldKey . '_caption']  = $fileTrans['caption'] ?? null;
+            $blockData[$fieldKey . '_title']    = $fileTrans['title'] ?? null;
+            $blockData[$fieldKey . '_credit']   = $fileTrans['credit'] ?? null;
+            $blockData[$urlKey] = $fileUrlMap[$resolvedFileId] ?? $this->fileUrlResolver->resolve($resolvedFileId, 'public');
+
+            return;
+        }
+
+        $blockData[$urlKey] = $this->fileUrlResolver->resolveUrlValue(
+            $fileId,
+            isset($blockData[$urlKey]) ? (string) $blockData[$urlKey] : null
+        );
     }
 
     /**

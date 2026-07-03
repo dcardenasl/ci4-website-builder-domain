@@ -20,7 +20,7 @@ class RequestLogModelTest extends CIUnitTestCase
     protected function setUp(): void
     {
         parent::setUp();
-        (new RequestLogModel())->truncate();
+        \Config\Database::connect()->query("DELETE FROM `request_logs`");
     }
 
     public function testGetStatsReturnsSloAndBreakdownMetrics(): void

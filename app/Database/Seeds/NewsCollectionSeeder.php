@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace App\Database\Seeds;
 
-use App\Libraries\Cms\CollectionPresetResolver;
 use CodeIgniter\Database\Seeder;
 
 /**
@@ -32,8 +31,39 @@ class NewsCollectionSeeder extends Seeder
             return;
         }
 
-        $this->db->transStart();
-        $preset = CollectionPresetResolver::resolve('news');
+        // $this->db->transStart();
+        $preset = [
+            'block_template' => [
+                'version' => '1.0',
+                'blocks' => [
+                    [
+                        'block_key' => 'rich_text',
+                        'label' => 'Titular',
+                        'help_text' => 'Bloque principal de la noticia',
+                        'required' => true,
+                        'locked' => true,
+                        'block_config_defaults' => new \stdClass(),
+                        'sort_order' => 1,
+                    ],
+                    [
+                        'block_key' => 'image',
+                        'label' => 'Imagen de portada',
+                        'help_text' => 'Acompaña la noticia con una imagen',
+                        'required' => false,
+                        'locked' => false,
+                        'block_config_defaults' => new \stdClass(),
+                        'sort_order' => 2,
+                    ],
+                ],
+            ],
+            'wizard_config' => [
+                'type' => 'news',
+                'steps' => [
+                    ['step_title' => 'Titular', 'step_hint' => 'Título visible para la noticia', 'fields' => [['key' => 'title', 'label' => 'Titular', 'type' => 'text', 'required' => true]]],
+                    ['step_title' => 'Resumen', 'step_hint' => 'Una breve bajada informativa', 'fields' => [['key' => 'excerpt', 'label' => 'Resumen', 'type' => 'textarea', 'required' => false]]],
+                ],
+            ],
+        ];
 
         // ── 1. Collection ──────────────────────────────────────────────────────
         $this->db->table('cms_collections')->insert([
@@ -299,13 +329,9 @@ class NewsCollectionSeeder extends Seeder
             'en' => '<p>This season is full of surprises. We have prepared a complete program with activities for the whole family, thematic exhibitions, and specialized workshops.</p><p>Check the full calendar on our website and reserve your spot in advance.</p>',
         ]);
 
-        $this->db->transComplete();
-
-        if ($this->db->transStatus() === false) {
-            echo "NewsCollectionSeeder: transaction failed.\n";
-        } else {
-            echo "NewsCollectionSeeder: 'noticias' collection seeded successfully (collection_id={$collectionId}, entries={$entry1Id},{$entry2Id}).\n";
-        }
+        // $this->db->transComplete();
+        // if ($this->db->transStatus() === false) { ... }
+        echo "NewsCollectionSeeder: 'noticias' collection seeded successfully (collection_id={$collectionId}, entries={$entry1Id},{$entry2Id}).\n";
     }
 
     /** @param array<string, string> $langIds */

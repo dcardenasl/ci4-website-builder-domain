@@ -20,7 +20,6 @@ final class CollectionCreateRequestDTOValidationTest extends CIUnitTestCase
             'collection_type' => 'blog',
             'collection_key' => 'blog-qa-payload',
             'sort_order' => 0,
-            'use_preset' => 1,
             'translations' => [
                 [
                     'language_id' => 1,

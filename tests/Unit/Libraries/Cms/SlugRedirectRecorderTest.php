@@ -25,8 +25,8 @@ final class SlugRedirectRecorderTest extends CIUnitTestCase
     {
         $db = Database::connect();
         $db->disableForeignKeyChecks();
-        $db->table('cms_slug_redirects')->truncate();
-        $db->table('cms_languages')->truncate();
+        $db->query("DELETE FROM `cms_slug_redirects`");
+        $db->query("DELETE FROM `cms_languages`");
         $db->enableForeignKeyChecks();
 
         // Seed language
@@ -55,8 +55,8 @@ final class SlugRedirectRecorderTest extends CIUnitTestCase
     {
         $db = Database::connect();
         $db->disableForeignKeyChecks();
-        $db->table('cms_slug_redirects')->truncate();
-        $db->table('cms_languages')->truncate();
+        $db->query("DELETE FROM `cms_slug_redirects`");
+        $db->query("DELETE FROM `cms_languages`");
         $db->enableForeignKeyChecks();
 
         $db->table('cms_languages')->insert([

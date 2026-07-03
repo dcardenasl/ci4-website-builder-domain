@@ -33,9 +33,9 @@ final class BlockInstanceServiceTest extends CIUnitTestCase
         $db = Database::connect();
 
         $db->query('SET FOREIGN_KEY_CHECKS = 0');
-        $db->table('cms_block_instance_translations')->truncate();
-        $db->table('cms_block_instances')->truncate();
-        $db->table('cms_content_blocks')->truncate();
+        $db->query("DELETE FROM `cms_block_instance_translations`");
+        $db->query("DELETE FROM `cms_block_instances`");
+        $db->query("DELETE FROM `cms_content_blocks`");
         $db->query('SET FOREIGN_KEY_CHECKS = 1');
 
         $db->table('cms_content_blocks')->insert([

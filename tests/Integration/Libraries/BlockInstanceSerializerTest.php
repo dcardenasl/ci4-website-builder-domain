@@ -101,11 +101,11 @@ final class BlockInstanceSerializerTest extends CIUnitTestCase
         $db = Database::connect();
 
         $db->query('SET FOREIGN_KEY_CHECKS = 0');
-        $db->table('cms_file_translations')->truncate();
-        $db->table('cms_block_instance_translations')->truncate();
-        $db->table('cms_block_instances')->truncate();
-        $db->table('cms_content_blocks')->truncate();
-        $db->table('cms_languages')->truncate();
+        $db->query("DELETE FROM `cms_file_translations`");
+        $db->query("DELETE FROM `cms_block_instance_translations`");
+        $db->query("DELETE FROM `cms_block_instances`");
+        $db->query("DELETE FROM `cms_content_blocks`");
+        $db->query("DELETE FROM `cms_languages`");
         $db->query('SET FOREIGN_KEY_CHECKS = 1');
 
         // Languages
@@ -181,6 +181,25 @@ final class BlockInstanceSerializerTest extends CIUnitTestCase
             'is_active'         => 1,
             'sort_order'        => 5,
         ]);
+        $db->table('cms_content_blocks')->insert([
+            'id'                => 5,
+            'block_key'         => 'slide_banner',
+            'name'              => 'Slide Banner',
+            'schema_definition' => json_encode([
+                'fields' => [
+                    'image'     => ['type' => 'file', 'label' => 'Image'],
+                    'heading'   => ['type' => 'string', 'label' => 'Heading'],
+                    'subtitle'  => ['type' => 'string', 'label' => 'Subtitle'],
+                    'cta_label' => ['type' => 'string', 'label' => 'CTA'],
+                    'cta_url'   => ['type' => 'url', 'label' => 'URL'],
+                ],
+            ]),
+            'supports_pages'    => 1,
+            'supports_entries'  => 0,
+            'is_container'      => 0,
+            'is_active'         => 1,
+            'sort_order'        => 6,
+        ]);
 
         // Block instances for page 10
         $db->table('cms_block_instances')->insert([
@@ -223,6 +242,16 @@ final class BlockInstanceSerializerTest extends CIUnitTestCase
                 'overlay_opacity'   => '0',
             ]),
         ]);
+        $db->table('cms_block_instances')->insert([
+            'id'                 => 104,
+            'block_id'           => 5, // slide_banner
+            'owner_type'         => 'page',
+            'owner_id'           => 10,
+            'parent_instance_id' => 103,
+            'sort_order'         => 1,
+            'is_active'          => 1,
+            'block_config'       => json_encode([]),
+        ]);
 
         // Block instance translations
         // 100 (rich_text) in English
@@ -247,6 +276,20 @@ final class BlockInstanceSerializerTest extends CIUnitTestCase
             'block_data'   => json_encode([
                 'image_file_id' => 500,
                 'image_url' => 'http://localhost:8182/files/500/view',
+            ]),
+            'is_published' => 1,
+        ]);
+        // 104 (slide_banner) in English only - child block of hero slider
+        $db->table('cms_block_instance_translations')->insert([
+            'instance_id'  => 104,
+            'language_id'  => 1,
+            'block_data'   => json_encode([
+                'image_file_id' => 500,
+                'image_url' => '',
+                'heading' => 'Child Slide',
+                'subtitle' => 'Nested hero slide',
+                'cta_label' => 'Read more',
+                'cta_url' => '/child',
             ]),
             'is_published' => 1,
         ]);
@@ -333,6 +376,10 @@ final class BlockInstanceSerializerTest extends CIUnitTestCase
         $this->assertEquals('hero_slider', $blocks[3]['block_key']);
         $this->assertSame('below', $blocks[3]['block_config']['caption_position']);
         $this->assertSame('below', $blocks[3]['block_config']['controls_position']);
+        $this->assertCount(1, $blocks[3]['children']);
+        $this->assertEquals(104, $blocks[3]['children'][0]['id']);
+        $this->assertEquals('slide_banner', $blocks[3]['children'][0]['block_key']);
+        $this->assertSame('http://localhost:8180/uploads/posts/feature_lg.png', $blocks[3]['children'][0]['block_data']['image_url']);
     }
 
     public function testForContentRetrievesDefaultWhenNoSpanishFileTranslation(): void

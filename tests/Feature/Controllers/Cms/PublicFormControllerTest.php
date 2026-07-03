@@ -28,11 +28,11 @@ final class PublicFormControllerTest extends CIUnitTestCase
         parent::setUp();
 
         $this->db->disableForeignKeyChecks();
-        $this->db->table('cms_form_field_translations')->truncate();
-        $this->db->table('cms_form_fields')->truncate();
-        $this->db->table('cms_form_translations')->truncate();
-        $this->db->table('cms_forms')->truncate();
-        $this->db->table('cms_languages')->truncate();
+        $this->db->query("DELETE FROM `cms_form_field_translations`");
+        $this->db->query("DELETE FROM `cms_form_fields`");
+        $this->db->query("DELETE FROM `cms_form_translations`");
+        $this->db->query("DELETE FROM `cms_forms`");
+        $this->db->query("DELETE FROM `cms_languages`");
         $this->db->enableForeignKeyChecks();
 
         // Seed language

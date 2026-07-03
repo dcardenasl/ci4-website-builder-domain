@@ -28,9 +28,9 @@ final class PublicPageControllerTest extends CIUnitTestCase
         parent::setUp();
 
         $this->db->disableForeignKeyChecks();
-        $this->db->table('cms_page_translations')->truncate();
-        $this->db->table('cms_pages')->truncate();
-        $this->db->table('cms_languages')->truncate();
+        $this->db->query("DELETE FROM `cms_page_translations`");
+        $this->db->query("DELETE FROM `cms_pages`");
+        $this->db->query("DELETE FROM `cms_languages`");
         $this->db->enableForeignKeyChecks();
 
         // Seed language

@@ -31,9 +31,6 @@ readonly class CollectionCreateRequestDTO extends BaseRequestDTO
     public ?string $default_changefreq;
     #[OA\Property(description: 'sort_order', type: 'integer')]
     public int $sort_order;
-    #[OA\Property(description: 'use_preset', type: 'boolean')]
-    public bool $use_preset;
-
     /**
      * @var array<string, mixed>|null
      */
@@ -67,7 +64,6 @@ readonly class CollectionCreateRequestDTO extends BaseRequestDTO
             'default_sitemap_priority' => 'permit_empty|decimal',
             'default_changefreq' => 'permit_empty|' . CmsEnums::inListRule(CmsEnums::SITEMAP_CHANGEFREQ),
             'sort_order' => 'required|integer',
-            'use_preset' => 'permit_empty|boolean_like',
             'translations' => 'permit_empty',
             'translations.*.language_id' => 'required_with[translations]|is_natural_no_zero',
             'translations.*.slug' => 'required_with[translations]|string|min_length[1]|max_length[150]',
@@ -94,9 +90,6 @@ readonly class CollectionCreateRequestDTO extends BaseRequestDTO
         $this->default_sitemap_priority = isset($data['default_sitemap_priority']) ? (float) $data['default_sitemap_priority'] : null;
         $this->default_changefreq = $data['default_changefreq'] ?? null;
         $this->sort_order = (int) ($data['sort_order'] ?? 0);
-        $this->use_preset = array_key_exists('use_preset', $data)
-            ? filter_var($data['use_preset'], FILTER_VALIDATE_BOOLEAN)
-            : true;
         $this->block_template = $this->parseBlockTemplate($data['block_template'] ?? null);
         $wizardConfig = $data['wizard_config'] ?? null;
         if (is_string($wizardConfig)) {
@@ -122,7 +115,6 @@ readonly class CollectionCreateRequestDTO extends BaseRequestDTO
             'default_sitemap_priority' => $this->default_sitemap_priority,
             'default_changefreq' => $this->default_changefreq,
             'sort_order' => $this->sort_order,
-            'use_preset' => $this->use_preset,
             'translations' => $this->translations,
         ];
 

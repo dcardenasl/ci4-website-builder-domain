@@ -29,10 +29,10 @@ final class PublicEntryControllerTest extends CIUnitTestCase
         parent::setUp();
 
         $this->db->disableForeignKeyChecks();
-        $this->db->table('cms_entry_translations')->truncate();
-        $this->db->table('cms_entries')->truncate();
-        $this->db->table('cms_collections')->truncate();
-        $this->db->table('cms_languages')->truncate();
+        $this->db->query("DELETE FROM `cms_entry_translations`");
+        $this->db->query("DELETE FROM `cms_entries`");
+        $this->db->query("DELETE FROM `cms_collections`");
+        $this->db->query("DELETE FROM `cms_languages`");
         $this->db->enableForeignKeyChecks();
 
         // Seed language
@@ -197,12 +197,12 @@ final class PublicEntryControllerTest extends CIUnitTestCase
     {
         // Truncate taxonomy tables
         $this->db->disableForeignKeyChecks();
-        $this->db->table('cms_entry_categories')->truncate();
-        $this->db->table('cms_entry_tags')->truncate();
-        $this->db->table('cms_category_translations')->truncate();
-        $this->db->table('cms_categories')->truncate();
-        $this->db->table('cms_tag_translations')->truncate();
-        $this->db->table('cms_tags')->truncate();
+        $this->db->query("DELETE FROM `cms_entry_categories`");
+        $this->db->query("DELETE FROM `cms_entry_tags`");
+        $this->db->query("DELETE FROM `cms_category_translations`");
+        $this->db->query("DELETE FROM `cms_categories`");
+        $this->db->query("DELETE FROM `cms_tag_translations`");
+        $this->db->query("DELETE FROM `cms_tags`");
         $this->db->enableForeignKeyChecks();
 
         // 1. Setup category

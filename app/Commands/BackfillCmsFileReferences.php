@@ -20,12 +20,21 @@ class BackfillCmsFileReferences extends BaseCommand
         '--dry-run' => 'Report the changes without writing to the database.',
     ];
 
+    private ?FileUrlResolver $resolver = null;
+    private ?FileReferenceSynchronizer $synchronizer = null;
+
+    public function __construct(?FileUrlResolver $resolver = null, ?FileReferenceSynchronizer $synchronizer = null)
+    {
+        $this->resolver = $resolver;
+        $this->synchronizer = $synchronizer;
+    }
+
     public function run(array $params): void
     {
         $dryRun = in_array('--dry-run', $params, true);
         $db = Database::connect();
-        $resolver = new FileUrlResolver($db);
-        $synchronizer = new FileReferenceSynchronizer($db, $resolver);
+        $resolver = $this->resolver ?? new FileUrlResolver($db);
+        $synchronizer = $this->synchronizer ?? new FileReferenceSynchronizer($db, $resolver);
 
         $summary = [
             'entries' => 0,

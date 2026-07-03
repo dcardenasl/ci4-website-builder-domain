@@ -29,10 +29,10 @@ final class PublicMenuControllerTest extends CIUnitTestCase
         parent::setUp();
 
         $this->db->disableForeignKeyChecks();
-        $this->db->table('cms_menu_item_translations')->truncate();
-        $this->db->table('cms_menu_items')->truncate();
-        $this->db->table('cms_menus')->truncate();
-        $this->db->table('cms_languages')->truncate();
+        $this->db->query("DELETE FROM `cms_menu_item_translations`");
+        $this->db->query("DELETE FROM `cms_menu_items`");
+        $this->db->query("DELETE FROM `cms_menus`");
+        $this->db->query("DELETE FROM `cms_languages`");
         $this->db->enableForeignKeyChecks();
 
         // Seed language
@@ -110,10 +110,10 @@ final class PublicMenuControllerTest extends CIUnitTestCase
     public function testGetPublicMenuUsesTranslatedCollectionSlug(): void
     {
         $this->db->disableForeignKeyChecks();
-        $this->db->table('cms_collection_translations')->truncate();
-        $this->db->table('cms_collections')->truncate();
-        $this->db->table('cms_entry_translations')->truncate();
-        $this->db->table('cms_entries')->truncate();
+        $this->db->query("DELETE FROM `cms_collection_translations`");
+        $this->db->query("DELETE FROM `cms_collections`");
+        $this->db->query("DELETE FROM `cms_entry_translations`");
+        $this->db->query("DELETE FROM `cms_entries`");
         $this->db->enableForeignKeyChecks();
 
         $this->db->table('cms_collections')->insert([

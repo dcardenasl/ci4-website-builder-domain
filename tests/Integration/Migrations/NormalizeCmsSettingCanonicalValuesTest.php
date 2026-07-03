@@ -55,9 +55,9 @@ final class NormalizeCmsSettingCanonicalValuesTest extends CIUnitTestCase
         $db = Database::connect();
 
         $db->query('SET FOREIGN_KEY_CHECKS = 0');
-        $db->table('cms_setting_translations')->truncate();
-        $db->table('cms_settings')->truncate();
-        $db->table('cms_languages')->truncate();
+        $db->query("DELETE FROM `cms_setting_translations`");
+        $db->query("DELETE FROM `cms_settings`");
+        $db->query("DELETE FROM `cms_languages`");
         $db->query('SET FOREIGN_KEY_CHECKS = 1');
 
         $db->table('cms_languages')->insert([

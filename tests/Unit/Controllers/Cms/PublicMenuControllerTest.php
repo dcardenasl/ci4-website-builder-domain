@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace Tests\Unit\Controllers\Cms;
 
-use App\Controllers\Api\V1\Cms\PublicMenuController;
 use CodeIgniter\Test\CIUnitTestCase;
 
 /**
@@ -14,21 +13,21 @@ final class PublicMenuControllerTest extends CIUnitTestCase
 {
     public function testResolvePageUrlReturnsLocalizedRootForHome(): void
     {
-        $controller = new PublicMenuController();
-        $method = new \ReflectionMethod($controller, 'resolvePageUrl');
+        $service = \Config\Services::menuItemService();
+        $method = new \ReflectionMethod($service, 'resolvePageUrl');
         $method->setAccessible(true);
 
-        $this->assertSame('/', $method->invoke($controller, 'home'));
-        $this->assertSame('/', $method->invoke($controller, '/home/'));
+        $this->assertSame('/', $method->invoke($service, 'home'));
+        $this->assertSame('/', $method->invoke($service, '/home/'));
     }
 
     public function testResolvePageUrlPrefixesRegularSlugs(): void
     {
-        $controller = new PublicMenuController();
-        $method = new \ReflectionMethod($controller, 'resolvePageUrl');
+        $service = \Config\Services::menuItemService();
+        $method = new \ReflectionMethod($service, 'resolvePageUrl');
         $method->setAccessible(true);
 
-        $this->assertSame('/contacto', $method->invoke($controller, 'contacto'));
-        $this->assertSame('/noticias/archivo', $method->invoke($controller, 'noticias/archivo'));
+        $this->assertSame('/contacto', $method->invoke($service, 'contacto'));
+        $this->assertSame('/noticias/archivo', $method->invoke($service, 'noticias/archivo'));
     }
 }

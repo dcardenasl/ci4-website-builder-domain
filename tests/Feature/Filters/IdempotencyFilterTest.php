@@ -27,7 +27,7 @@ final class IdempotencyFilterTest extends ApiTestCase
         IdempotencyFilter::flushPending();
 
         // Ensure the cache table starts clean per test.
-        \Config\Database::connect()->table('idempotency_keys')->truncate();
+        \Config\Database::connect()->query("DELETE FROM `idempotency_keys`");
 
         // Define a tiny test route that applies the filter and echoes a
         // counter so we can prove the second call replays instead of

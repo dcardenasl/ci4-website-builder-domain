@@ -322,17 +322,17 @@ final class LanguageAuditRealDataTest extends ApiTestCase
         $this->db->disableForeignKeyChecks();
 
         // Truncate all tables in dependency order
-        $this->db->table('cms_page_translations')->truncate();
-        $this->db->table('cms_pages')->truncate();
-        $this->db->table('cms_menu_item_translations')->truncate();
-        $this->db->table('cms_menu_items')->truncate();
-        $this->db->table('cms_menu_translations')->truncate();
-        $this->db->table('cms_menus')->truncate();
-        $this->db->table('cms_entry_translations')->truncate();
-        $this->db->table('cms_entries')->truncate();
-        $this->db->table('cms_collection_translations')->truncate();
-        $this->db->table('cms_collections')->truncate();
-        $this->db->table('cms_languages')->truncate();
+        $this->db->query("DELETE FROM `cms_page_translations`");
+        $this->db->query("DELETE FROM `cms_pages`");
+        $this->db->query("DELETE FROM `cms_menu_item_translations`");
+        $this->db->query("DELETE FROM `cms_menu_items`");
+        $this->db->query("DELETE FROM `cms_menu_translations`");
+        $this->db->query("DELETE FROM `cms_menus`");
+        $this->db->query("DELETE FROM `cms_entry_translations`");
+        $this->db->query("DELETE FROM `cms_entries`");
+        $this->db->query("DELETE FROM `cms_collection_translations`");
+        $this->db->query("DELETE FROM `cms_collections`");
+        $this->db->query("DELETE FROM `cms_languages`");
 
         $this->db->enableForeignKeyChecks();
 

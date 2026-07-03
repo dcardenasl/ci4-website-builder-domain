@@ -30,7 +30,7 @@ class SiteMenuSeeder extends Seeder
         $this->call(SitePagesSeeder::class);
         $this->call(SiteAboutPageSeeder::class);
         $this->call(SiteHistoryPageSeeder::class);
-        $this->call(SiteEventsPageSeeder::class);
+        $this->call(SitePortfolioPageSeeder::class);
         $this->call(NewsCollectionSeeder::class);
 
         $langIds = $this->langIds(['es', 'en']);
@@ -42,7 +42,7 @@ class SiteMenuSeeder extends Seeder
         $homePageId       = $this->pageIdByType('home');
         $aboutPageId      = $this->pageIdByType('about');
         $historyPageId    = $this->pageIdByType('history');
-        $eventsPageId     = $this->pageIdByType('events');
+        $portfolioPageId  = $this->pageIdByType('portfolio');
         $contactPageId    = $this->pageIdByType('contact');
         $newsCollectionId = $this->collectionIdByKey('noticias');
 
@@ -91,14 +91,14 @@ class SiteMenuSeeder extends Seeder
             ], ['es' => 'Historia', 'en' => 'History'], $langIds);
         }
 
-        if ($eventsPageId !== null) {
+        if ($portfolioPageId !== null) {
             $this->upsertMenuItem($mainMenuId, 'page', [
-                'page_id'       => $eventsPageId,
+                'page_id'       => $portfolioPageId,
                 'entry_id'      => null,
                 'collection_id' => null,
                 'parent_id'     => null,
                 'sort_order'    => 3,
-            ], ['es' => 'Eventos', 'en' => 'Events'], $langIds);
+            ], ['es' => 'Portafolio', 'en' => 'Portfolio'], $langIds);
         }
 
         $this->upsertMenuItem($mainMenuId, 'collection_listing', [
@@ -151,14 +151,14 @@ class SiteMenuSeeder extends Seeder
             ], ['es' => 'Historia', 'en' => 'History'], $langIds);
         }
 
-        if ($eventsPageId !== null) {
+        if ($portfolioPageId !== null) {
             $this->upsertMenuItem($footerMenuId, 'page', [
-                'page_id'       => $eventsPageId,
+                'page_id'       => $portfolioPageId,
                 'entry_id'      => null,
                 'collection_id' => null,
                 'parent_id'     => null,
                 'sort_order'    => 4,
-            ], ['es' => 'Eventos', 'en' => 'Events'], $langIds);
+            ], ['es' => 'Portafolio', 'en' => 'Portfolio'], $langIds);
         }
 
         $this->upsertMenuItem($footerMenuId, 'collection_listing', [

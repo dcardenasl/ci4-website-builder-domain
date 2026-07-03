@@ -44,8 +44,8 @@ class QueueManagerTest extends CIUnitTestCase
 
         // Clear tables to avoid pollution
         $db = Database::connect();
-        $db->table('jobs')->truncate();
-        $db->table('failed_jobs')->truncate();
+        $db->query("DELETE FROM `jobs`");
+        $db->query("DELETE FROM `failed_jobs`");
 
         TestQueueSuccessJob::$handled = 0;
         TestQueueAlwaysFailJob::$failedCalls = 0;

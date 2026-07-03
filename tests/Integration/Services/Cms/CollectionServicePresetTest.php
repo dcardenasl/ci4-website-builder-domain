@@ -22,24 +22,44 @@ final class CollectionServicePresetTest extends CIUnitTestCase
     protected $refresh     = false;
     protected $namespace   = 'App';
 
+    protected function setUp(): void
+    {
+        parent::setUp();
+
+        $seeder = \Config\Database::seeder();
+        $seeder->call(\App\Database\Seeds\CmsLanguageSeeder::class);
+    }
+
     protected function tearDown(): void
     {
         Services::reset();
         parent::tearDown();
     }
 
-    public function testStoreBackfillsPresetFromCollectionType(): void
+    public function testStorePersistsExplicitPresetPayload(): void
     {
         $db = $this->db;
         $db->disableForeignKeyChecks();
-        $db->table('cms_collection_translations')->truncate();
-        $db->table('cms_collections')->truncate();
+        $db->query("DELETE FROM `cms_collection_translations`");
+        $db->query("DELETE FROM `cms_collections`");
         $db->enableForeignKeyChecks();
 
         $service = Services::collectionService(false);
         $service->store($this->dto([
             'collection_type' => 'portfolio',
             'collection_key' => 'portfolio',
+            'block_template' => json_encode([
+                'version' => '1.0',
+                'blocks' => [
+                    ['block_key' => 'image', 'label' => 'Proyecto', 'help_text' => 'Imagen o captura del trabajo', 'required' => true, 'locked' => false, 'block_config_defaults' => new \stdClass(), 'sort_order' => 1],
+                ],
+            ], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES),
+            'wizard_config' => json_encode([
+                'type' => 'portfolio',
+                'steps' => [
+                    ['step_title' => 'Nombre', 'step_hint' => 'Identifica el proyecto', 'fields' => [['key' => 'title', 'label' => 'Nombre', 'type' => 'text', 'required' => true]]],
+                ],
+            ], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES),
             'is_active' => '1',
             'requires_approval' => '0',
             'enables_categories' => '0',
@@ -66,19 +86,18 @@ final class CollectionServicePresetTest extends CIUnitTestCase
         $this->assertSame('portfolio', $wizard['type'] ?? null);
     }
 
-    public function testStoreCanSkipPresetWhenRequested(): void
+    public function testStoreWithoutPresetMetadataLeavesColumnsNull(): void
     {
         $db = $this->db;
         $db->disableForeignKeyChecks();
-        $db->table('cms_collection_translations')->truncate();
-        $db->table('cms_collections')->truncate();
+        $db->query("DELETE FROM `cms_collection_translations`");
+        $db->query("DELETE FROM `cms_collections`");
         $db->enableForeignKeyChecks();
 
         $service = Services::collectionService(false);
         $service->store($this->dto([
             'collection_type' => 'blog',
             'collection_key' => 'blog',
-            'use_preset' => false,
             'is_active' => '1',
             'requires_approval' => '0',
             'enables_categories' => '0',
@@ -103,8 +122,8 @@ final class CollectionServicePresetTest extends CIUnitTestCase
     {
         $db = $this->db;
         $db->disableForeignKeyChecks();
-        $db->table('cms_collection_translations')->truncate();
-        $db->table('cms_collections')->truncate();
+        $db->query("DELETE FROM `cms_collection_translations`");
+        $db->query("DELETE FROM `cms_collections`");
         $db->enableForeignKeyChecks();
 
         $service = Services::collectionService(false);
@@ -113,6 +132,18 @@ final class CollectionServicePresetTest extends CIUnitTestCase
             $service->store($this->dto([
                 'collection_type' => 'blog',
                 'collection_key' => 'blog-qa-service',
+                'block_template' => json_encode([
+                    'version' => '1.0',
+                    'blocks' => [
+                        ['block_key' => 'rich_text', 'label' => 'Titular', 'help_text' => 'Bloque principal de la noticia', 'required' => true, 'locked' => true, 'block_config_defaults' => new \stdClass(), 'sort_order' => 1],
+                    ],
+                ], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES),
+                'wizard_config' => json_encode([
+                    'type' => 'blog',
+                    'steps' => [
+                        ['step_title' => 'Título', 'step_hint' => 'Define el nombre de la entrada', 'fields' => [['key' => 'title', 'label' => 'Título', 'type' => 'text', 'required' => true]]],
+                    ],
+                ], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES),
                 'is_active' => '1',
                 'requires_approval' => '0',
                 'enables_categories' => '0',
@@ -148,8 +179,8 @@ final class CollectionServicePresetTest extends CIUnitTestCase
     {
         $db = $this->db;
         $db->disableForeignKeyChecks();
-        $db->table('cms_collection_translations')->truncate();
-        $db->table('cms_collections')->truncate();
+        $db->query("DELETE FROM `cms_collection_translations`");
+        $db->query("DELETE FROM `cms_collections`");
         $db->enableForeignKeyChecks();
 
         $service = Services::collectionService(false);

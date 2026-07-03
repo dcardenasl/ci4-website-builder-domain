@@ -31,14 +31,14 @@ final class ScheduledPublishingJobTest extends CIUnitTestCase
         parent::setUp();
 
         $this->db->disableForeignKeyChecks();
-        $this->db->table('cms_page_versions')->truncate();
-        $this->db->table('cms_page_translations')->truncate();
-        $this->db->table('cms_pages')->truncate();
-        $this->db->table('cms_entry_versions')->truncate();
-        $this->db->table('cms_entry_translations')->truncate();
-        $this->db->table('cms_entries')->truncate();
-        $this->db->table('cms_collections')->truncate();
-        $this->db->table('cms_languages')->truncate();
+        $this->db->query("DELETE FROM `cms_page_versions`");
+        $this->db->query("DELETE FROM `cms_page_translations`");
+        $this->db->query("DELETE FROM `cms_pages`");
+        $this->db->query("DELETE FROM `cms_entry_versions`");
+        $this->db->query("DELETE FROM `cms_entry_translations`");
+        $this->db->query("DELETE FROM `cms_entries`");
+        $this->db->query("DELETE FROM `cms_collections`");
+        $this->db->query("DELETE FROM `cms_languages`");
         $this->db->enableForeignKeyChecks();
 
         // Seed default language
@@ -191,7 +191,7 @@ final class ScheduledPublishingJobTest extends CIUnitTestCase
     public function testCommandPushesToQueue(): void
     {
         // Truncate jobs table first
-        $this->db->table('jobs')->truncate();
+        $this->db->query("DELETE FROM `jobs`");
 
         // Run CLI command (pushes to queue)
         command('cms:publish-scheduled');

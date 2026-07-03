@@ -28,9 +28,9 @@ final class MenuItemModelTest extends CIUnitTestCase
         parent::setUp();
 
         $this->db->disableForeignKeyChecks();
-        $this->db->table('cms_menu_item_translations')->truncate();
-        $this->db->table('cms_menu_items')->truncate();
-        $this->db->table('cms_menus')->truncate();
+        $this->db->query("DELETE FROM `cms_menu_item_translations`");
+        $this->db->query("DELETE FROM `cms_menu_items`");
+        $this->db->query("DELETE FROM `cms_menus`");
         $this->db->enableForeignKeyChecks();
     }
 

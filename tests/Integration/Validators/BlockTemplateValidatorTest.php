@@ -32,7 +32,7 @@ final class BlockTemplateValidatorTest extends CIUnitTestCase
     {
         $db = Database::connect();
         $db->query('SET FOREIGN_KEY_CHECKS = 0');
-        $db->table('cms_content_blocks')->truncate();
+        $db->query("DELETE FROM `cms_content_blocks`");
         $db->query('SET FOREIGN_KEY_CHECKS = 1');
 
         $db->table('cms_content_blocks')->insert([

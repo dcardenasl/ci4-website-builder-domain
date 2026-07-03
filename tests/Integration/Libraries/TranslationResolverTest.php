@@ -36,11 +36,11 @@ final class TranslationResolverTest extends CIUnitTestCase
 
         // Clean tables
         $db->query('SET FOREIGN_KEY_CHECKS = 0');
-        $db->table('cms_collection_translations')->truncate();
-        $db->table('cms_collections')->truncate();
-        $db->table('cms_setting_translations')->truncate();
-        $db->table('cms_settings')->truncate();
-        $db->table('cms_languages')->truncate();
+        $db->query("DELETE FROM `cms_collection_translations`");
+        $db->query("DELETE FROM `cms_collections`");
+        $db->query("DELETE FROM `cms_setting_translations`");
+        $db->query("DELETE FROM `cms_settings`");
+        $db->query("DELETE FROM `cms_languages`");
         $db->query('SET FOREIGN_KEY_CHECKS = 1');
 
         // 1. Insert Languages

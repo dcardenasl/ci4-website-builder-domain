@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace Tests\Integration\Database\Seeds;
 
-use App\Database\Seeds\SiteBootstrapSeeder;
 use CodeIgniter\Test\CIUnitTestCase;
 use CodeIgniter\Test\DatabaseTestTrait;
 
@@ -27,40 +26,45 @@ final class SiteBootstrapContentTest extends CIUnitTestCase
         parent::setUp();
 
         $this->db->disableForeignKeyChecks();
-        $this->db->table('cms_block_instance_translations')->truncate();
-        $this->db->table('cms_block_instances')->truncate();
-        $this->db->table('cms_content_blocks')->truncate();
-        $this->db->table('cms_form_field_translations')->truncate();
-        $this->db->table('cms_form_fields')->truncate();
-        $this->db->table('cms_form_translations')->truncate();
-        $this->db->table('cms_forms')->truncate();
-        $this->db->table('cms_entry_categories')->truncate();
-        $this->db->table('cms_entry_tags')->truncate();
-        $this->db->table('cms_entry_translations')->truncate();
-        $this->db->table('cms_entries')->truncate();
-        $this->db->table('cms_category_translations')->truncate();
-        $this->db->table('cms_categories')->truncate();
-        $this->db->table('cms_tag_translations')->truncate();
-        $this->db->table('cms_tags')->truncate();
-        $this->db->table('cms_menu_item_translations')->truncate();
-        $this->db->table('cms_menu_items')->truncate();
-        $this->db->table('cms_menus')->truncate();
-        $this->db->table('cms_page_translations')->truncate();
-        $this->db->table('cms_pages')->truncate();
-        $this->db->table('cms_collection_translations')->truncate();
-        $this->db->table('cms_collections')->truncate();
-        $this->db->table('cms_setting_translations')->truncate();
-        $this->db->table('cms_settings')->truncate();
-        $this->db->table('cms_languages')->truncate();
+        $tables = [
+            'cms_block_instance_translations',
+            'cms_block_instances',
+            'cms_content_blocks',
+            'cms_form_field_translations',
+            'cms_form_fields',
+            'cms_form_translations',
+            'cms_forms',
+            'cms_entry_categories',
+            'cms_entry_tags',
+            'cms_entry_translations',
+            'cms_entries',
+            'cms_category_translations',
+            'cms_categories',
+            'cms_tag_translations',
+            'cms_tags',
+            'cms_menu_item_translations',
+            'cms_menu_items',
+            'cms_menus',
+            'cms_page_translations',
+            'cms_pages',
+            'cms_collection_translations',
+            'cms_collections',
+            'cms_setting_translations',
+            'cms_settings',
+            'cms_languages'
+        ];
+        foreach ($tables as $table) {
+            $this->db->query("DELETE FROM `{$table}`");
+        }
         $this->db->enableForeignKeyChecks();
     }
 
     public function testBootstrapSeedsCoreDemoPagesMenusAndBlocks(): void
     {
-        $seeder = new SiteBootstrapSeeder(config('Database'));
-        $seeder->run();
+        $seeder = \Config\Database::seeder();
+        $seeder->call(\App\Database\Seeds\SiteBootstrapSeeder::class);
 
-        $pages = $this->db->table('cms_pages')->whereIn('page_type', ['home', 'contact', 'about', 'history', 'events'])->get()->getResultArray();
+        $pages = $this->db->table('cms_pages')->whereIn('page_type', ['home', 'contact', 'about', 'history', 'portfolio'])->get()->getResultArray();
         $this->assertCount(5, $pages);
 
         $menu = $this->db->table('cms_menus')->whereIn('menu_key', ['main', 'footer'])->get()->getResultArray();

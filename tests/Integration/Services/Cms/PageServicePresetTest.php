@@ -23,22 +23,30 @@ final class PageServicePresetTest extends CIUnitTestCase
     protected $refresh     = false;
     protected $namespace   = 'App';
 
+    protected function setUp(): void
+    {
+        parent::setUp();
+
+        $seeder = \Config\Database::seeder();
+        $seeder->call(\App\Database\Seeds\CmsLanguageSeeder::class);
+    }
+
     protected function tearDown(): void
     {
         Services::reset();
         parent::tearDown();
     }
 
-    public function testStoreSeedsBlocksFromPreset(): void
+    public function testStoreDoesNotAutoSeedBlocksFromService(): void
     {
         $db = $this->db;
         $db->disableForeignKeyChecks();
-        $db->table('cms_block_instance_translations')->truncate();
-        $db->table('cms_block_instances')->truncate();
-        $db->table('cms_pages')->truncate();
-        $db->table('cms_page_translations')->truncate();
-        $db->table('cms_content_blocks')->truncate();
-        $db->table('cms_languages')->truncate();
+        $db->query("DELETE FROM `cms_block_instance_translations`");
+        $db->query("DELETE FROM `cms_block_instances`");
+        $db->query("DELETE FROM `cms_pages`");
+        $db->query("DELETE FROM `cms_page_translations`");
+        $db->query("DELETE FROM `cms_content_blocks`");
+        $db->query("DELETE FROM `cms_languages`");
         $db->enableForeignKeyChecks();
 
         (new CmsLanguageSeeder(config('Database'), $db))->run();
@@ -79,22 +87,10 @@ final class PageServicePresetTest extends CIUnitTestCase
         $blockRows = $db->table('cms_block_instances')
             ->where('owner_type', 'page')
             ->where('owner_id', (int) $page['id'])
-            ->orderBy('sort_order', 'ASC')
             ->get()
             ->getResultArray();
 
-        $this->assertCount(3, $blockRows);
-
-        $keys = array_map(function (array $blockRow) use ($db): string {
-            $blockType = $db->table('cms_content_blocks')
-                ->where('id', (int) $blockRow['block_id'])
-                ->get()
-                ->getRowArray();
-
-            return (string) ($blockType['block_key'] ?? '');
-        }, $blockRows);
-
-        $this->assertSame(['page_header', 'events_grid', 'image'], $keys);
+        $this->assertSame([], $blockRows);
     }
 
     /**

@@ -167,13 +167,13 @@ class CmsBlockTypeSeeder extends Seeder
                 'sort_order'       => 20,
             ],
 
-            // ── events_grid ──────────────────────────────────────────────────────
+            // ── portfolio_grid ───────────────────────────────────────────────────
             [
-                'block_key'         => 'events_grid',
-                'name'              => 'Grilla de Eventos',
-                'description'       => 'Sección de cartelera con tarjetas de eventos. Carga entradas desde una colección del CMS.',
+                'block_key'         => 'portfolio_grid',
+                'name'              => 'Grilla de Portafolio',
+                'description'       => 'Sección de portafolio con tarjetas de proyectos. Carga entradas desde una colección del CMS.',
                 'category'          => 'content',
-                'icon'              => 'calendar-days',
+                'icon'              => 'briefcase',
                 'schema_definition' => json_encode([
                     'fields' => [
                         'section_title'    => ['type' => 'string', 'label' => 'Título de sección',                    'required' => false],
@@ -183,7 +183,7 @@ class CmsBlockTypeSeeder extends Seeder
                         'empty_message'    => ['type' => 'string', 'label' => 'Mensaje cuando no hay contenido',      'required' => false],
                     ],
                     'config_fields' => [
-                        'collection_key' => ['type' => 'string', 'label' => 'Clave de Colección (CMS)', 'required' => true,  'default' => 'cartelera'],
+                        'collection_key' => ['type' => 'string', 'label' => 'Clave de Colección (CMS)', 'required' => true,  'default' => 'portafolio'],
                         'items_limit'    => ['type' => 'number', 'label' => 'Máx. elementos',           'required' => false, 'default' => 6],
                         'css_class'      => ['type' => 'string', 'label' => 'Clase CSS',               'required' => false, 'default' => ''],
                     ],
@@ -274,7 +274,7 @@ class CmsBlockTypeSeeder extends Seeder
                             'required' => false,
                         ],
                     ],
-                    'allowed_children' => ['rich_text', 'image', 'cta', 'video_player', 'contact_form', 'location_info', 'social_links', 'hero_banner', 'faq_accordion', 'features_grid', 'testimonials_slider', 'logo_showcase', 'stats_section'],
+                    'allowed_children' => ['rich_text', 'image', 'cta', 'video_player', 'contact_form', 'location_info', 'social_links', 'hero_banner', 'faq_accordion', 'features_grid', 'testimonials_slider', 'logo_showcase', 'stats_section', 'tabs', 'alert', 'gallery', 'portfolio_grid'],
                 ]),
                 'supports_pages'   => 1,
                 'supports_entries' => 0,
@@ -692,6 +692,142 @@ class CmsBlockTypeSeeder extends Seeder
                 'is_container'     => 0,
                 'is_active'        => 1,
                 'sort_order'       => 110,
+            ],
+            // ── tabs ─────────────────────────────────────────────────────────────
+            [
+                'block_key'         => 'tabs',
+                'name'              => 'Pestañas (Contenedor)',
+                'description'       => 'Contenedor para pestañas de contenido interactivas.',
+                'category'          => 'layout',
+                'icon'              => 'folder',
+                'schema_definition' => json_encode([
+                    'fields' => [],
+                    'config_fields' => [
+                        'layout' => [
+                            'type'     => 'select',
+                            'label'    => 'Distribución',
+                            'options'  => ['horizontal', 'vertical'],
+                            'default'  => 'horizontal',
+                            'required' => false,
+                        ],
+                        'css_class' => ['type' => 'string', 'label' => 'Clase CSS', 'required' => false, 'default' => ''],
+                    ],
+                    'allowed_children' => ['tab_item'],
+                ]),
+                'supports_pages'   => 1,
+                'supports_entries' => 0,
+                'is_container'     => 1,
+                'is_active'        => 1,
+                'sort_order'       => 120,
+            ],
+
+            // ── tab_item ─────────────────────────────────────────────────────────
+            [
+                'block_key'         => 'tab_item',
+                'name'              => 'Pestaña Individual',
+                'description'       => 'Pestaña individual dentro de un bloque de Pestañas.',
+                'category'          => 'content',
+                'icon'              => 'file-text',
+                'schema_definition' => json_encode([
+                    'fields' => [
+                        'title'   => ['type' => 'string',   'label' => 'Título de Pestaña', 'required' => true],
+                        'content' => ['type' => 'richtext', 'label' => 'Contenido',         'required' => true],
+                    ],
+                    'config_fields' => [],
+                ]),
+                'supports_pages'   => 1,
+                'supports_entries' => 0,
+                'is_container'     => 0,
+                'is_active'        => 1,
+                'sort_order'       => 121,
+            ],
+
+            // ── alert ────────────────────────────────────────────────────────────
+            [
+                'block_key'         => 'alert',
+                'name'              => 'Alerta / Mensaje informativo',
+                'description'       => 'Banner de notificación o aviso destacable.',
+                'category'          => 'content',
+                'icon'              => 'alert-circle',
+                'schema_definition' => json_encode([
+                    'fields' => [
+                        'title'   => ['type' => 'string',   'label' => 'Título (Opcional)', 'required' => false],
+                        'message' => ['type' => 'richtext', 'label' => 'Mensaje',           'required' => true],
+                    ],
+                    'config_fields' => [
+                        'type' => [
+                            'type'     => 'select',
+                            'label'    => 'Tipo de Alerta',
+                            'options'  => ['info', 'success', 'warning', 'danger'],
+                            'default'  => 'info',
+                            'required' => true,
+                        ],
+                        'dismissible' => ['type' => 'boolean', 'label' => 'Permitir cerrar (X)', 'required' => false, 'default' => true],
+                        'css_class'   => ['type' => 'string',  'label' => 'Clase CSS',           'required' => false, 'default' => ''],
+                    ],
+                ]),
+                'supports_pages'   => 1,
+                'supports_entries' => 1,
+                'is_container'     => 0,
+                'is_active'        => 1,
+                'sort_order'       => 130,
+            ],
+
+            // ── gallery ──────────────────────────────────────────────────────────
+            [
+                'block_key'         => 'gallery',
+                'name'              => 'Galería de Imágenes (Contenedor)',
+                'description'       => 'Contenedor para grilla de imágenes con visor lightbox.',
+                'category'          => 'media',
+                'icon'              => 'images',
+                'schema_definition' => json_encode([
+                    'fields' => [],
+                    'config_fields' => [
+                        'columns' => [
+                            'type'     => 'select',
+                            'label'    => 'Columnas',
+                            'options'  => ['2', '3', '4', '6'],
+                            'default'  => '3',
+                            'required' => false,
+                        ],
+                        'gap' => [
+                            'type'     => 'select',
+                            'label'    => 'Espaciado',
+                            'options'  => ['small', 'medium', 'large', 'none'],
+                            'default'  => 'medium',
+                            'required' => false,
+                        ],
+                        'css_class' => ['type' => 'string', 'label' => 'Clase CSS', 'required' => false, 'default' => ''],
+                    ],
+                    'allowed_children' => ['gallery_item'],
+                ]),
+                'supports_pages'   => 1,
+                'supports_entries' => 0,
+                'is_container'     => 1,
+                'is_active'        => 1,
+                'sort_order'       => 140,
+            ],
+
+            // ── gallery_item ─────────────────────────────────────────────────────
+            [
+                'block_key'         => 'gallery_item',
+                'name'              => 'Imagen de Galería',
+                'description'       => 'Imagen individual para usar dentro de la Galería.',
+                'category'          => 'media',
+                'icon'              => 'image',
+                'schema_definition' => json_encode([
+                    'fields' => [
+                        'image'   => ['type' => 'file',   'label' => 'Imagen',          'required' => true, 'accept' => 'image'],
+                        'alt'     => ['type' => 'string', 'label' => 'Texto Alt (SEO)', 'required' => false],
+                        'caption' => ['type' => 'string', 'label' => 'Leyenda/Título',  'required' => false],
+                    ],
+                    'config_fields' => [],
+                ]),
+                'supports_pages'   => 1,
+                'supports_entries' => 0,
+                'is_container'     => 0,
+                'is_active'        => 1,
+                'sort_order'       => 141,
             ],
         ];
 

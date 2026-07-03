@@ -4,19 +4,44 @@ declare(strict_types=1);
 
 namespace App\Database\Seeds;
 
-use App\Libraries\Cms\CollectionPresetResolver;
 use CodeIgniter\Database\Seeder;
 
-/**
- * Backfills preset snapshots for existing collections using the shared
- * server-side catalog. This keeps old data aligned with the runtime contract
- * without duplicating the preset definitions in the seeder.
- */
 class WizardConfigSeeder extends Seeder
 {
     public function run(): void
     {
-        $preset = CollectionPresetResolver::resolve('news');
+        $preset = [
+            'block_template' => [
+                'version' => '1.0',
+                'blocks' => [
+                    [
+                        'block_key' => 'rich_text',
+                        'label' => 'Titular',
+                        'help_text' => 'Bloque principal de la noticia',
+                        'required' => true,
+                        'locked' => true,
+                        'block_config_defaults' => new \stdClass(),
+                        'sort_order' => 1,
+                    ],
+                    [
+                        'block_key' => 'image',
+                        'label' => 'Imagen de portada',
+                        'help_text' => 'Acompaña la noticia con una imagen',
+                        'required' => false,
+                        'locked' => false,
+                        'block_config_defaults' => new \stdClass(),
+                        'sort_order' => 2,
+                    ],
+                ],
+            ],
+            'wizard_config' => [
+                'type' => 'news',
+                'steps' => [
+                    ['step_title' => 'Titular', 'step_hint' => 'Título visible para la noticia', 'fields' => [['key' => 'title', 'label' => 'Titular', 'type' => 'text', 'required' => true]]],
+                    ['step_title' => 'Resumen', 'step_hint' => 'Una breve bajada informativa', 'fields' => [['key' => 'excerpt', 'label' => 'Resumen', 'type' => 'textarea', 'required' => false]]],
+                ],
+            ],
+        ];
 
         $query = $this->db->table('cms_collections');
         if ($this->db->fieldExists('collection_type', 'cms_collections')) {

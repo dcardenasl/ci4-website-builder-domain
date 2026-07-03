@@ -33,15 +33,15 @@ final class PublicRedirectControllerTest extends CIUnitTestCase
 
         $db = Database::connect();
         $db->disableForeignKeyChecks();
-        $db->table('cms_slug_redirects')->truncate();
-        $db->table('cms_redirects')->truncate();
-        $db->table('cms_page_translations')->truncate();
-        $db->table('cms_pages')->truncate();
-        $db->table('cms_collection_translations')->truncate();
-        $db->table('cms_entry_translations')->truncate();
-        $db->table('cms_entries')->truncate();
-        $db->table('cms_collections')->truncate();
-        $db->table('cms_languages')->truncate();
+        $db->query("DELETE FROM `cms_slug_redirects`");
+        $db->query("DELETE FROM `cms_redirects`");
+        $db->query("DELETE FROM `cms_page_translations`");
+        $db->query("DELETE FROM `cms_pages`");
+        $db->query("DELETE FROM `cms_collection_translations`");
+        $db->query("DELETE FROM `cms_entry_translations`");
+        $db->query("DELETE FROM `cms_entries`");
+        $db->query("DELETE FROM `cms_collections`");
+        $db->query("DELETE FROM `cms_languages`");
         $db->enableForeignKeyChecks();
 
         // 1. Seed languages

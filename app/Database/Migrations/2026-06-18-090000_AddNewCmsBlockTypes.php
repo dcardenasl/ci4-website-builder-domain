@@ -299,7 +299,9 @@ class AddNewCmsBlockTypes extends Migration
 
     public function down(): void
     {
+        $this->db->disableForeignKeyChecks();
         $keys = array_column($this->blocks, 'block_key');
         $this->db->table('cms_content_blocks')->whereIn('block_key', $keys)->delete();
+        $this->db->enableForeignKeyChecks();
     }
 }
