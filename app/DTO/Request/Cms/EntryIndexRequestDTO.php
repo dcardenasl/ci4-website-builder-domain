@@ -14,6 +14,7 @@ readonly class EntryIndexRequestDTO extends BaseRequestDTO
     public int $per_page;
     public ?string $search;
     public string $sort;
+    public ?int $collection_id;
 
     /**
      * @return array<string, string>
@@ -21,10 +22,11 @@ readonly class EntryIndexRequestDTO extends BaseRequestDTO
     public function rules(): array
     {
         return [
-            'page'      => 'permit_empty|is_natural_no_zero',
-            'per_page'  => 'permit_empty|is_natural_no_zero|less_than[1001]',
-            'search'    => 'permit_empty|string|max_length[100]',
-            'sort'      => 'permit_empty|max_length[100]',
+            'page'          => 'permit_empty|is_natural_no_zero',
+            'per_page'      => 'permit_empty|is_natural_no_zero|less_than[1001]',
+            'search'        => 'permit_empty|string|max_length[100]',
+            'sort'          => 'permit_empty|max_length[100]',
+            'collection_id' => 'permit_empty|integer',
         ];
     }
 
@@ -37,6 +39,8 @@ readonly class EntryIndexRequestDTO extends BaseRequestDTO
         $this->per_page = isset($data['per_page']) ? (int) $data['per_page'] : 20;
         $this->search = $data['search'] ?? null;
         $this->sort = (string) ($data['sort'] ?? '');
+        $collectionId = $data['collection_id'] ?? ($data['filter']['collection_id'] ?? null);
+        $this->collection_id = $collectionId !== null && $collectionId !== '' ? (int) $collectionId : null;
     }
 
     /**
@@ -44,11 +48,19 @@ readonly class EntryIndexRequestDTO extends BaseRequestDTO
      */
     public function toArray(): array
     {
-        return [
+        $payload = [
             'page' => $this->page,
             'per_page' => $this->per_page,
             'search' => $this->search,
             'sort' => $this->sort,
         ];
+
+        if ($this->collection_id !== null) {
+            $payload['filter'] = [
+                'collection_id' => $this->collection_id,
+            ];
+        }
+
+        return $payload;
     }
 }

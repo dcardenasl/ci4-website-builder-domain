@@ -26,10 +26,10 @@ class EntryModel extends BaseAuditableModel
     protected array $searchableFields = [];
 
     /** @var array<int, string> */
-    protected array $filterableFields = ['id'];
+    protected array $filterableFields = ['id', 'collection_id'];
 
     /** @var array<int, string> */
-    protected array $sortableFields = ['id', 'created_at'];
+    protected array $sortableFields = ['id', 'created_at', 'sort_order'];
 
     protected $validationRules = [
         'collection_id' => 'required|integer',

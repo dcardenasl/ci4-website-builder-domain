@@ -38,10 +38,19 @@ class CollectionEntity extends Entity
      */
     public function getBlocksArray(): ?array
     {
-        if (!is_array($this->block_template) || !isset($this->block_template['blocks'])) {
+        $template = $this->block_template;
+        if (is_object($template)) {
+            $encoded = json_encode($template);
+            if (is_string($encoded)) {
+                $template = json_decode($encoded, true);
+            } else {
+                return null;
+            }
+        }
+        if (!is_array($template) || !isset($template['blocks']) || !is_array($template['blocks'])) {
             return null;
         }
-        return $this->block_template['blocks'];
+        return $template['blocks'];
     }
 
     /**
