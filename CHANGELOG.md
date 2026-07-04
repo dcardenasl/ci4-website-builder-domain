@@ -8,6 +8,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- **Entry list filtering by collection** — added `collection_id` filter parameter to `EntryIndexRequestDTO` and model filterable fields; enables admin panel to filter entries by collection in the reorder view
 - **Setting connections management** — new `SettingConnectionController` with CRUD endpoints for managing setting connections; enhanced `SettingEntity` and `SettingTranslationEntity` with `input_type` and `ui_meta` fields for richer settings configuration; added 4 migrations for schema enrichment
 - **File usage tracking with Hub integration** — new `FileUsageController` and `FileUsageService` to track Hub file references across Domain CMS (entries, pages, blocks, settings); refactored `FileUrlResolver` to use `HubClient` for centralized file URL resolution with caching; added batch-file metadata resolution via `HubClient::resolvePublicFileMeta()` for efficient URL lookups
 - **Forms API (CMS-012)** — complete form management system with `FormController` (CRUD), `PublicFormController` (public submission handling), form fields, multilingual translations, submission tracking with autoreply and notification jobs, and web app key authentication filter
