@@ -86,9 +86,14 @@ class EntryService extends BaseCrudService implements EntryServiceInterface
         }
 
         // wizard_extra is a transient payload: pre-fill matching block fields, then clear it.
-        $wizardExtra = ($entity instanceof EntryEntity && is_array($entity->wizard_extra) && $entity->wizard_extra !== [])
-            ? $entity->wizard_extra
-            : null;
+        $rawExtra = ($entity instanceof EntryEntity) ? $entity->wizard_extra : null;
+        $wizardExtra = null;
+        if ($rawExtra !== null) {
+            $extraArray = is_object($rawExtra) ? (array) $rawExtra : (is_array($rawExtra) ? $rawExtra : null);
+            if ($extraArray !== null && $extraArray !== []) {
+                $wizardExtra = $extraArray;
+            }
+        }
 
         $consumedKeys = $this->initializeBlocksFromTemplate($entity, $wizardExtra);
 
