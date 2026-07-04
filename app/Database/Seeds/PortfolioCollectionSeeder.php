@@ -37,18 +37,18 @@ class PortfolioCollectionSeeder extends Seeder
                 'version' => '1.0',
                 'blocks' => [
                     [
-                        'block_key' => 'rich_text',
-                        'label' => 'Detalle del Proyecto',
-                        'help_text' => 'Descripción detallada del caso de estudio',
+                        'block_key' => 'image',
+                        'label' => 'Imagen del Proyecto',
+                        'help_text' => 'Imagen principal del proyecto realizado',
                         'required' => true,
-                        'locked' => true,
+                        'locked' => false,
                         'block_config_defaults' => new \stdClass(),
                         'sort_order' => 1,
                     ],
                     [
-                        'block_key' => 'image',
-                        'label' => 'Imagen del Proyecto',
-                        'help_text' => 'Imagen principal del proyecto realizado',
+                        'block_key' => 'rich_text',
+                        'label' => 'Detalle del Proyecto',
+                        'help_text' => 'Descripción detallada del caso de estudio',
                         'required' => false,
                         'locked' => false,
                         'block_config_defaults' => new \stdClass(),
@@ -272,6 +272,31 @@ class PortfolioCollectionSeeder extends Seeder
                 }
             }
 
+            // Create single block instances for the entry (shared across languages)
+            // Block 1: image
+            $this->db->table('cms_block_instances')->insert([
+                'block_id'   => $blockIds['image'],
+                'owner_type' => 'entry',
+                'owner_id'   => $entryId,
+                'sort_order' => 1,
+                'is_active'  => 1,
+                'created_at' => date('Y-m-d H:i:s'),
+                'updated_at' => date('Y-m-d H:i:s'),
+            ]);
+            $instImageId = (int) $this->db->insertID();
+
+            // Block 2: rich_text
+            $this->db->table('cms_block_instances')->insert([
+                'block_id'   => $blockIds['rich_text'],
+                'owner_type' => 'entry',
+                'owner_id'   => $entryId,
+                'sort_order' => 2,
+                'is_active'  => 1,
+                'created_at' => date('Y-m-d H:i:s'),
+                'updated_at' => date('Y-m-d H:i:s'),
+            ]);
+            $instRichTextId = (int) $this->db->insertID();
+
             // Translations
             foreach (['es', 'en'] as $langCode) {
                 $langId = $langIds[$langCode] ?? null;
@@ -290,47 +315,24 @@ class PortfolioCollectionSeeder extends Seeder
                     'meta_description' => $tData['meta_description'],
                 ]);
 
-                // Auto-create block instances based on template
-                // Block 1: rich_text
-                $this->db->table('cms_block_instances')->insert([
-                    'block_id'   => $blockIds['rich_text'],
-                    'owner_type' => 'entry',
-                    'owner_id'   => $entryId,
-                    'sort_order' => 1,
-                    'is_active'  => 1,
-                    'created_at' => date('Y-m-d H:i:s'),
-                    'updated_at' => date('Y-m-d H:i:s'),
-                ]);
-                $inst1Id = (int) $this->db->insertID();
-
+                // Insert translation for Block 1: image
                 $this->db->table('cms_block_instance_translations')->insert([
-                    'instance_id' => $inst1Id,
-                    'language_id' => $langId,
-                    'block_data'  => json_encode(['content' => $tData['rich_text']], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES),
-                    'created_at'  => date('Y-m-d H:i:s'),
-                    'updated_at'  => date('Y-m-d H:i:s'),
-                ]);
-
-                // Block 2: image
-                $this->db->table('cms_block_instances')->insert([
-                    'block_id'   => $blockIds['image'],
-                    'owner_type' => 'entry',
-                    'owner_id'   => $entryId,
-                    'sort_order' => 2,
-                    'is_active'  => 1,
-                    'created_at' => date('Y-m-d H:i:s'),
-                    'updated_at' => date('Y-m-d H:i:s'),
-                ]);
-                $inst2Id = (int) $this->db->insertID();
-
-                $this->db->table('cms_block_instance_translations')->insert([
-                    'instance_id' => $inst2Id,
+                    'instance_id' => $instImageId,
                     'language_id' => $langId,
                     'block_data'  => json_encode([
                         'image_url' => $entry['featured_image_url'],
                         'alt'       => $tData['title'],
                         'caption'   => 'Proyecto finalizado: ' . $tData['title']
                     ], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES),
+                    'created_at'  => date('Y-m-d H:i:s'),
+                    'updated_at'  => date('Y-m-d H:i:s'),
+                ]);
+
+                // Insert translation for Block 2: rich_text
+                $this->db->table('cms_block_instance_translations')->insert([
+                    'instance_id' => $instRichTextId,
+                    'language_id' => $langId,
+                    'block_data'  => json_encode(['content' => $tData['rich_text']], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES),
                     'created_at'  => date('Y-m-d H:i:s'),
                     'updated_at'  => date('Y-m-d H:i:s'),
                 ]);
