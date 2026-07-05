@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace App\Controllers\Api\V1\Cms;
 
+use App\Libraries\Cms\BlockSchemaIntrospector;
+use App\Libraries\Cms\FieldPrimitiveRegistry;
 use App\Models\BlockTypeModel;
 use App\Models\CollectionModel;
 use App\Models\CollectionTranslationModel;
@@ -92,6 +94,15 @@ class WizardConfigController extends ApiController
                         $wizardConfig = $raw;
                     }
 
+                    $rawBlockTemplate = $c['block_template'] ?? null;
+                    $blockTemplate = null;
+                    if (is_string($rawBlockTemplate) && $rawBlockTemplate !== '') {
+                        $decodedBlockTemplate = json_decode($rawBlockTemplate, true);
+                        $blockTemplate = is_array($decodedBlockTemplate) ? $decodedBlockTemplate : null;
+                    } elseif (is_array($rawBlockTemplate)) {
+                        $blockTemplate = $rawBlockTemplate;
+                    }
+
                     $cid  = $c['id'] ?? null;
                     $name = ($cid !== null && isset($translationsByCollection[$cid]))
                         ? $translationsByCollection[$cid]
@@ -107,6 +118,7 @@ class WizardConfigController extends ApiController
                         'icon'           => $icon,
                         'description'    => $description,
                         'wizard_config'  => $wizardConfig,
+                        'block_template' => $blockTemplate,
                     ];
                 }, $collections);
 
@@ -209,6 +221,9 @@ class WizardConfigController extends ApiController
 
                 /** @var array<string, array<string, mixed>> $blockTypesMap */
                 $blockTypesMap = [];
+                /** @var array<string, array<string, mixed>> $blockCapabilities */
+                $blockCapabilities = [];
+                $introspector = new BlockSchemaIntrospector(new FieldPrimitiveRegistry());
                 foreach ($blockTypes as $bt) {
                     $bkey = (string) ($bt['block_key'] ?? '');
                     if ($bkey === '') {
@@ -216,20 +231,25 @@ class WizardConfigController extends ApiController
                     }
                     $raw    = $bt['schema_definition'] ?? null;
                     $schema = is_string($raw) ? json_decode($raw, true) : (is_array($raw) ? $raw : []);
+                    $capabilities = $introspector->introspect(is_array($schema) ? $schema : []);
                     $blockTypesMap[$bkey] = [
                         'id'            => (int) ($bt['id'] ?? 0),
                         'name'          => (string) ($bt['name'] ?? $bkey),
                         'description'   => $bt['description'] ?? null,
                         'icon'          => $bt['icon'] ?? null,
-                        'fields'        => (array) (is_array($schema) ? ($schema['fields'] ?? []) : []),
+                        'fields'        => $capabilities['fields'],
                         'config_fields' => (array) (is_array($schema) ? ($schema['config_fields'] ?? []) : []),
+                        'capabilities'  => $capabilities,
                         'supports_pages'   => (bool) ($bt['supports_pages'] ?? false),
                         'supports_entries' => (bool) ($bt['supports_entries'] ?? false),
                         'is_container'     => (bool) ($bt['is_container'] ?? false),
                         'is_active'        => (bool) ($bt['is_active'] ?? false),
                         'sort_order'       => (int) ($bt['sort_order'] ?? 0),
                     ];
+                    $blockCapabilities[$bkey] = $capabilities;
                 }
+
+                $fieldRegistry = new FieldPrimitiveRegistry();
 
                 return [
                     'languages'      => $languagesData,
@@ -238,6 +258,13 @@ class WizardConfigController extends ApiController
                     'pages'          => $pagesData,
                     'menus'          => $menusData,
                     'block_types'    => $blockTypesMap,
+                    'field_primitives' => $fieldRegistry->supported(),
+                    'block_capabilities' => $blockCapabilities,
+                    'setup_state' => [
+                        'has_languages' => $languagesData !== [],
+                        'has_collections' => $collectionsData !== [],
+                        'has_active_block_types' => $blockTypesMap !== [],
+                    ],
                 ];
             }
         );

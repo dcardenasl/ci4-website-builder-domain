@@ -7,7 +7,9 @@ namespace App\Database\Seeds;
 use CodeIgniter\Database\Seeder;
 
 /**
- * Seeds the full starter site: content, forms, pages, blocks, collections, and menus.
+ * Seeds the full starter/demo site: content, forms, pages, block type examples,
+ * collections, and menus. Migrations define the CMS structure; this seeder is not
+ * required for the wizard to run.
  */
 class SiteBootstrapSeeder extends Seeder
 {

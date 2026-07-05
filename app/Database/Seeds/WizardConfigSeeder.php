@@ -6,6 +6,12 @@ namespace App\Database\Seeds;
 
 use CodeIgniter\Database\Seeder;
 
+/**
+ * Applies a starter news collection wizard snapshot.
+ *
+ * This is site bootstrap data, not structural CMS data. A fresh install without
+ * this seeder should still expose the wizard with dynamic setup states.
+ */
 class WizardConfigSeeder extends Seeder
 {
     public function run(): void

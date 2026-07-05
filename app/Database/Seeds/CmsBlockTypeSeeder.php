@@ -6,6 +6,12 @@ namespace App\Database\Seeds;
 
 use CodeIgniter\Database\Seeder;
 
+/**
+ * Installs starter block type examples for the default website.
+ *
+ * Block types are editable database configuration composed from native field
+ * primitives. The CMS wizard must not require this seeder to be installed.
+ */
 class CmsBlockTypeSeeder extends Seeder
 {
     public function run(): void
