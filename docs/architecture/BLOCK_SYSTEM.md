@@ -8,9 +8,12 @@ The Content Blocks system is a schema-driven architecture that allows developers
 
 - **Block Type:** Defines the data structure (schema) and the visual template used to render the block. Example: `hero_slider`, `rich_text`, `faq_accordion`.
 - **Block Instance:** The actual block added to a page with specific translation values and settings.
+- **Native Field Primitive:** Code-level field capability such as `text`, `textarea`, `richtext`, `image`, `file`, `url`, `number`, `boolean`, `select`, `date`, or `datetime`. These primitives are structural system capabilities and do not depend on seeded block types.
 - **Schema Definition:** JSON formatted description detailing the block's fields. Divided into:
   - `fields`: Localized fields filled per language (e.g., title, description, image).
   - `config_fields`: Non-localized styling settings (e.g., CSS class, color variant).
+
+Block types live in the database as editable configuration composed from native primitives. Seeders may install starter/demo block types, but the CMS wizard must introspect the active database block types and continue to work when no starter block type seeders have been installed.
 
 ---
 
@@ -23,6 +26,8 @@ The block type designer visually supports the following field types:
 - **`select`:** Preset select dropdowns.
 - **`file`:** Integration with the File Manager (image/video pickers).
 - **`repeater` (Repeaters):** Enables adding dynamic lists of items containing nested subfields (`item_fields`). Ideal for basic grids of cards.
+
+For wizard rendering, aliases are normalized to native primitives. For example, `string` becomes `text`, `text` becomes `textarea`, `rich_text` becomes `richtext`, and `file` with an image accept rule becomes `image`.
 
 ---
 

@@ -8,9 +8,12 @@ El sistema de bloques de contenido es una arquitectura orientada a esquemas (sch
 
 - **Tipo de Bloque (Block Type):** Define la estructura de datos (esquema) y la plantilla visual que renderizará el bloque. Ejemplo: `hero_slider`, `rich_text`, `faq_accordion`.
 - **Instancia de Bloque (Block Instance):** El bloque real insertado en una página con contenidos específicos e idiomas traducidos.
+- **Primitivo Nativo de Campo:** Capacidad estructural definida en código, por ejemplo `text`, `textarea`, `richtext`, `image`, `file`, `url`, `number`, `boolean`, `select`, `date` o `datetime`. Estos primitivos no dependen de tipos de bloque instalados por seeders.
 - **Esquema de Campos (Schema Definition):** Definición en formato JSON que especifica qué campos tiene el bloque. Se divide en:
   - `fields`: Campos traducibles por idioma (e.g., título, descripción, imagen).
   - `config_fields`: Campos estructurales de diseño (e.g., clase CSS, variante de color).
+
+Los tipos de bloque viven en la base de datos como configuración editable compuesta por primitivos nativos. Los seeders pueden instalar bloques de ejemplo para el starter, pero el wizard del CMS debe inspeccionar los tipos de bloque activos y seguir funcionando aunque no se hayan instalado esos seeders.
 
 ---
 
@@ -23,6 +26,8 @@ El diseñador de tipos de bloques soporta visualmente los siguientes tipos:
 - **`select`:** Lista de opciones predefinidas.
 - **`file`:** Vinculación directa con el gestor de archivos (File Manager) para imágenes o videos.
 - **`repeater` (Repetidores):** Permite añadir una lista de ítems dinámicos con subcampos personalizados (`item_fields`). Ideal para grillas de tarjetas simples.
+
+Para renderizar el wizard, los aliases se normalizan a primitivos nativos. Por ejemplo, `string` pasa a `text`, `text` pasa a `textarea`, `rich_text` pasa a `richtext`, y `file` con regla de aceptación de imagen pasa a `image`.
 
 ---
 
