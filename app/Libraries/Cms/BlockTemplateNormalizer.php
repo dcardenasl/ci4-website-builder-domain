@@ -20,6 +20,14 @@ final class BlockTemplateNormalizer
             return null;
         }
 
+        if (is_object($template)) {
+            $json = json_encode($template);
+            if ($json === false) {
+                throw new BlockTemplateValidationException('Failed to encode template as JSON');
+            }
+            $template = json_decode($json, true);
+        }
+
         if (is_string($template)) {
             $decoded = json_decode($template, true);
             if (json_last_error() !== JSON_ERROR_NONE) {
