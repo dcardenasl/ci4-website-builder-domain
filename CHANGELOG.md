@@ -8,6 +8,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- **Dynamic collection types system** — migrated `collection_type` from ENUM to VARCHAR for flexibility; added `BlockSchemaIntrospector` and `FieldPrimitiveRegistry` libraries for dynamic schema analysis and field primitive normalization; enables collections to have custom types beyond fixed presets
+- **Collection-aware entry creation and validation** — enhanced `CollectionCreateRequestDTO`, `CollectionUpdateRequestDTO`, and `EntryCreateRequestDTO` with collection type awareness; `EntryService` now validates and manages entries within their collection context
+- **Wizard configuration API** — new `WizardConfigController` with endpoints for retrieving wizard metadata; enhanced seeders (`CmsBlockTypeSeeder`, `WizardConfigSeeder`) to bootstrap wizard configuration and block type templates
 - **Entry list filtering by collection** — added `collection_id` filter parameter to `EntryIndexRequestDTO` and model filterable fields; enables admin panel to filter entries by collection in the reorder view
 - **Setting connections management** — new `SettingConnectionController` with CRUD endpoints for managing setting connections; enhanced `SettingEntity` and `SettingTranslationEntity` with `input_type` and `ui_meta` fields for richer settings configuration; added 4 migrations for schema enrichment
 - **File usage tracking with Hub integration** — new `FileUsageController` and `FileUsageService` to track Hub file references across Domain CMS (entries, pages, blocks, settings); refactored `FileUrlResolver` to use `HubClient` for centralized file URL resolution with caching; added batch-file metadata resolution via `HubClient::resolvePublicFileMeta()` for efficient URL lookups
