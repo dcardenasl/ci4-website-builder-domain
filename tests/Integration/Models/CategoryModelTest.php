@@ -29,4 +29,13 @@ final class CategoryModelTest extends CIUnitTestCase
 
         $this->assertSame('cms_categories', $model->getTable());
     }
+
+    public function testModelAllowsRelationFilters(): void
+    {
+        $model = new CategoryModel();
+
+        $this->assertContains('collection_id', $model->getFilterableFields());
+        $this->assertContains('parent_id', $model->getFilterableFields());
+        $this->assertContains('is_active', $model->getFilterableFields());
+    }
 }

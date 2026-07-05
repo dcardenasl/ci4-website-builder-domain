@@ -25,6 +25,10 @@ final readonly class CategoryResponseDTO implements DataTransferObjectInterface
         public int $sort_order,
         #[OA\Property(description: 'is_active', type: 'boolean')]
         public bool $is_active,
+        #[OA\Property(description: 'collection_name', type: 'string', nullable: true)]
+        public ?string $collection_name = null,
+        #[OA\Property(description: 'parent_label', type: 'string', nullable: true)]
+        public ?string $parent_label = null,
         #[OA\Property(property: 'created_at', description: 'Creation timestamp', example: '2026-02-26 12:00:00', nullable: true)]
         public ?string $createdAt = null,
         #[OA\Property(property: 'updated_at', description: 'Last update timestamp', example: '2026-02-26 12:00:00', nullable: true)]
@@ -47,6 +51,8 @@ final readonly class CategoryResponseDTO implements DataTransferObjectInterface
             parent_id: isset($data['parent_id']) ? (int) $data['parent_id'] : null,
             sort_order: (int) ($data['sort_order'] ?? 0),
             is_active: (bool) ($data['is_active'] ?? false),
+            collection_name: $data['collection_name'] ?? null,
+            parent_label: $data['parent_label'] ?? null,
             createdAt: DateValue::toString($data['created_at'] ?? null),
             updatedAt: DateValue::toString($data['updated_at'] ?? null),
             name: $data['name'] ?? null,
@@ -62,9 +68,11 @@ final readonly class CategoryResponseDTO implements DataTransferObjectInterface
         return [
             'id' => $this->id,
             'collection_id' => $this->collection_id,
+            'collection_name' => $this->collection_name,
             'name' => $this->name,
             'slug' => $this->slug,
             'parent_id' => $this->parent_id,
+            'parent_label' => $this->parent_label,
             'sort_order' => $this->sort_order,
             'is_active' => $this->is_active,
             'created_at' => $this->createdAt,

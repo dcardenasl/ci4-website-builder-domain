@@ -84,10 +84,37 @@ class CategoryService extends BaseCrudService implements CategoryServiceInterfac
         }
 
         $categoryIds = array_map(fn ($entity) => (int) $entity->id, $entities);
+        $collectionIds = [];
+        foreach ($entities as $entity) {
+            if (isset($entity->collection_id) && is_numeric($entity->collection_id)) {
+                $collectionIds[] = (int) $entity->collection_id;
+            }
+        }
+        $collectionIds = array_values(array_unique(array_filter($collectionIds)));
 
         /** @var \App\Models\CategoryTranslationModel $translationModel */
         $translationModel = model(\App\Models\CategoryTranslationModel::class);
         $translations = $translationModel->whereIn('category_id', $categoryIds)->findAll();
+        $collectionTranslationModel = model(\App\Models\CollectionTranslationModel::class);
+        $collectionTranslations = $collectionIds !== []
+            ? $collectionTranslationModel->whereIn('collection_id', $collectionIds)->findAll()
+            : [];
+
+        $categoryLabelById = [];
+        foreach ($translations as $translation) {
+            /** @var \App\Entities\CategoryTranslationEntity $translation */
+            if (! isset($categoryLabelById[$translation->category_id])) {
+                $categoryLabelById[$translation->category_id] = $translation->name ?: $translation->slug ?: null;
+            }
+        }
+
+        $collectionLabelById = [];
+        foreach ($collectionTranslations as $translation) {
+            /** @var \App\Entities\CollectionTranslationEntity $translation */
+            if (! isset($collectionLabelById[$translation->collection_id])) {
+                $collectionLabelById[$translation->collection_id] = $translation->name ?: $translation->slug ?: null;
+            }
+        }
 
         $translationsGrouped = [];
         foreach ($translations as $translation) {
@@ -107,6 +134,10 @@ class CategoryService extends BaseCrudService implements CategoryServiceInterfac
             $entity->translations = $entityTranslations;
             $entity->name = $entityTranslations[0]['name'] ?? null;
             $entity->slug = $entityTranslations[0]['slug'] ?? null;
+            $entity->collection_name = $collectionLabelById[(int) $entity->collection_id] ?? null;
+            $entity->parent_label = isset($entity->parent_id) && is_numeric($entity->parent_id)
+                ? ($categoryLabelById[(int) $entity->parent_id] ?? null)
+                : null;
         }
 
         return $entities;

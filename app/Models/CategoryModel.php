@@ -26,7 +26,7 @@ class CategoryModel extends BaseAuditableModel
     protected array $searchableFields = [];
 
     /** @var array<int, string> */
-    protected array $filterableFields = ['id'];
+    protected array $filterableFields = ['id', 'collection_id', 'parent_id', 'is_active'];
 
     /** @var array<int, string> */
     protected array $sortableFields = ['id', 'created_at'];
