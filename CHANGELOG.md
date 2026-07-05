@@ -24,6 +24,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Public Settings endpoint** — `GET /api/v1/public/{lang}/settings` to expose public settings with `public` flag filtering
 
 ### Fixed
+- **Category response enrichment** — `CategoryResponseDTO` and `CategoryService` now include `collection_name` and `parent_label` fields for admin UI display; service fetches and maps collection and parent category translations for cleaner relational labels
 - **Legacy rich-text block keys** — `BlockInstanceSerializer` and `BlockInstanceService` normalize `body`/`html`/`text` payload keys to the canonical `content` field on read and write; a backfill migration (`BackfillLegacyBlockContentKeys`) normalizes existing rows
 - **CMS DTO validation** — strengthen translation normalization in `MenuCreateRequestDTO`, `MenuUpdateRequestDTO`, `BlockTypeCreateRequestDTO` with trimming and filtering of empty values
 - **CMS Service response mapping** — add `name` and `slug` fields to `CategoryService`, `EntryService`, and `TagService` responses by extracting from primary translations
