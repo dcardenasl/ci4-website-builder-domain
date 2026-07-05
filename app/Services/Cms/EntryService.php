@@ -61,6 +61,7 @@ class EntryService extends BaseCrudService implements EntryServiceInterface
         $data = parent::beforeStore($data, $context);
 
         $collectionId = isset($data['collection_id']) ? (int) $data['collection_id'] : null;
+        $collection = null;
         if ($collectionId !== null) {
             $collectionModel = model(\App\Models\CollectionModel::class);
             $collection = $collectionModel->find($collectionId);
@@ -72,8 +73,52 @@ class EntryService extends BaseCrudService implements EntryServiceInterface
             }
         }
 
+        if ($collection instanceof \App\Entities\CollectionEntity) {
+            $data = $this->applyCreationDefaults($data, $collection);
+        }
+
         $this->tempTranslations = $data['translations'] ?? null;
         unset($data['translations']);
+        return $data;
+    }
+
+    /**
+     * @param array<string, mixed> $data
+     * @return array<string, mixed>
+     */
+    private function applyCreationDefaults(array $data, \App\Entities\CollectionEntity $collection): array
+    {
+        $data['workflow_status'] = (string) ($data['workflow_status'] ?? 'draft');
+
+        if ((bool) $collection->requires_approval && $data['workflow_status'] === 'published') {
+            $data['workflow_status'] = 'in_review';
+        }
+
+        $data['view_count'] = isset($data['view_count']) && $data['view_count'] !== '' ? (int) $data['view_count'] : 0;
+        $data['sort_order'] = isset($data['sort_order']) && $data['sort_order'] !== '' ? (int) $data['sort_order'] : 0;
+        $data['is_in_sitemap'] = array_key_exists('is_in_sitemap', $data) ? (int) (bool) $data['is_in_sitemap'] : 1;
+
+        if (($data['sitemap_priority'] ?? null) === null || $data['sitemap_priority'] === '') {
+            $data['sitemap_priority'] = $collection->default_sitemap_priority !== null
+                ? (float) $collection->default_sitemap_priority
+                : 0.5;
+        }
+
+        if (($data['sitemap_changefreq'] ?? null) === null || $data['sitemap_changefreq'] === '') {
+            $data['sitemap_changefreq'] = (string) ($collection->default_changefreq ?: 'monthly');
+        }
+
+        if ($data['workflow_status'] === 'published') {
+            if (($data['published_at'] ?? null) === null || $data['published_at'] === '') {
+                $data['published_at'] = date('Y-m-d H:i:s');
+            }
+            $data['scheduled_at'] = null;
+        } elseif ($data['workflow_status'] === 'draft' || $data['workflow_status'] === 'in_review') {
+            if (! array_key_exists('published_at', $data) || ($data['published_at'] ?? null) === '') {
+                $data['published_at'] = null;
+            }
+        }
+
         return $data;
     }
 
@@ -260,7 +305,7 @@ class EntryService extends BaseCrudService implements EntryServiceInterface
         foreach ($schemaFields as $fieldKey => $fieldDef) {
             $fieldType = is_array($fieldDef) ? (string) ($fieldDef['type'] ?? 'string') : 'string';
 
-            if ($fieldType === 'file') {
+            if ($fieldType === 'file' || $fieldType === 'image') {
                 $fileIdKey = $fieldKey . '_file_id';
                 $urlKey    = $fieldKey . '_url';
                 if (isset($wizardExtra[$fileIdKey])) {

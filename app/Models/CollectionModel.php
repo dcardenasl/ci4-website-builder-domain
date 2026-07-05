@@ -33,7 +33,7 @@ class CollectionModel extends BaseAuditableModel
 
     protected $validationRules = [
         'collection_key' => 'required|string|max_length[50]',
-        'collection_type' => 'required|in_list[blog,news,portfolio,services,other]',
+        'collection_type' => 'required|string|max_length[50]|regex_match[/^[a-z0-9]+(?:[-_][a-z0-9]+)*$/]',
         'is_active' => 'permit_empty|boolean_like',
         'requires_approval' => 'permit_empty|boolean_like',
         'enables_categories' => 'permit_empty|boolean_like',

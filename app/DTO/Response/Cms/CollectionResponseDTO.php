@@ -64,11 +64,15 @@ final readonly class CollectionResponseDTO implements DataTransferObjectInterfac
             if (is_string($blockTemplate)) {
                 $decoded = json_decode($blockTemplate, true);
                 $blockTemplate = is_array($decoded) ? $decoded : null;
+            } elseif (is_object($blockTemplate)) {
+                $blockTemplate = json_decode(json_encode($blockTemplate), true);
             }
         }
 
         $wizardConfig = $data['wizard_config'] ?? null;
-        if (is_string($wizardConfig)) {
+        if (is_object($wizardConfig)) {
+            $wizardConfig = json_decode(json_encode($wizardConfig), true);
+        } elseif (is_string($wizardConfig)) {
             $decoded = json_decode($wizardConfig, true);
             $wizardConfig = is_array($decoded) ? $decoded : null;
         }

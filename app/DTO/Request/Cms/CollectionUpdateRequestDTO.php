@@ -13,7 +13,7 @@ use OpenApi\Attributes as OA;
 #[OA\Schema(schema: 'CollectionUpdateRequest')]
 readonly class CollectionUpdateRequestDTO extends BaseRequestDTO
 {
-    #[OA\Property(description: 'collection_type', type: 'string', nullable: true, enum: ['blog', 'news', 'portfolio', 'services', 'other'])]
+    #[OA\Property(description: 'collection_type', type: 'string', nullable: true)]
     public ?string $collection_type;
     #[OA\Property(description: 'collection_key', type: 'string', nullable: true)]
     public ?string $collection_key;
@@ -56,7 +56,7 @@ readonly class CollectionUpdateRequestDTO extends BaseRequestDTO
     public function rules(): array
     {
         return [
-            'collection_type' => 'permit_empty|in_list[blog,news,portfolio,services,other]',
+            'collection_type' => 'permit_empty|string|max_length[50]|regex_match[/^[a-z0-9]+(?:[-_][a-z0-9]+)*$/]',
             'collection_key' => 'permit_empty|string|max_length[50]',
             'is_active' => 'permit_empty|boolean_like',
             'requires_approval' => 'permit_empty|boolean_like',
