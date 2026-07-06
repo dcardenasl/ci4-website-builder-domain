@@ -22,7 +22,7 @@ class CmsPageBlockSeeder extends Seeder
 
         $blockIds = $this->blockIds([
             'hero_slider',
-            'news_grid',
+            'collection_grid',
             'cta',
             'page_header',
             'contact_form',
@@ -89,12 +89,15 @@ class CmsPageBlockSeeder extends Seeder
                 ],
             ],
             [
-                'block_key' => 'news_grid',
+                'block_key' => 'collection_grid',
                 'sort_order' => 2,
                 'config'    => [
-                    'collection_key' => 'noticias',
-                    'items_limit'    => 3,
-                    'css_class'      => '',
+                    'collection_key'  => 'noticias',
+                    'items_limit'     => 3,
+                    'order_by'        => 'published_at',
+                    'order_direction' => 'desc',
+                    'layout_variant'  => 'cards',
+                    'css_class'       => '',
                 ],
                 'data'      => [
                     'es' => [

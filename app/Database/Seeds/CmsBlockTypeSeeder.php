@@ -173,25 +173,28 @@ class CmsBlockTypeSeeder extends Seeder
                 'sort_order'       => 20,
             ],
 
-            // ── portfolio_grid ───────────────────────────────────────────────────
+            // ── collection_grid ──────────────────────────────────────────────────
             [
-                'block_key'         => 'portfolio_grid',
-                'name'              => 'Grilla de Portafolio',
-                'description'       => 'Sección de portafolio con tarjetas de proyectos. Carga entradas desde una colección del CMS.',
+                'block_key'         => 'collection_grid',
+                'name'              => 'Grilla de Colección',
+                'description'       => 'Lista entradas publicadas desde cualquier colección del CMS con límite, orden y variante visual configurables.',
                 'category'          => 'content',
-                'icon'              => 'briefcase',
+                'icon'              => 'layout-grid',
                 'schema_definition' => json_encode([
                     'fields' => [
-                        'section_title'    => ['type' => 'string', 'label' => 'Título de sección',                    'required' => false],
-                        'section_subtitle' => ['type' => 'string', 'label' => 'Subtítulo de sección',                 'required' => false],
-                        'view_all_label'   => ['type' => 'string', 'label' => 'Texto del enlace "Ver todos"',         'required' => false],
-                        'view_all_url'     => ['type' => 'url',    'label' => 'URL del enlace "Ver todos"',           'required' => false],
-                        'empty_message'    => ['type' => 'string', 'label' => 'Mensaje cuando no hay contenido',      'required' => false],
+                        'section_title'    => ['type' => 'string', 'label' => 'Título de sección',               'required' => false],
+                        'section_subtitle' => ['type' => 'string', 'label' => 'Subtítulo de sección',            'required' => false],
+                        'view_all_label'   => ['type' => 'string', 'label' => 'Texto del enlace "Ver todos"',    'required' => false],
+                        'view_all_url'     => ['type' => 'url',    'label' => 'URL del enlace "Ver todos"',      'required' => false],
+                        'empty_message'    => ['type' => 'string', 'label' => 'Mensaje cuando no hay contenido', 'required' => false],
                     ],
                     'config_fields' => [
-                        'collection_key' => ['type' => 'string', 'label' => 'Clave de Colección (CMS)', 'required' => true,  'default' => 'portafolio'],
-                        'items_limit'    => ['type' => 'number', 'label' => 'Máx. elementos',           'required' => false, 'default' => 6],
-                        'css_class'      => ['type' => 'string', 'label' => 'Clase CSS',               'required' => false, 'default' => ''],
+                        'collection_key'  => ['type' => 'string', 'label' => 'Clave de Colección (CMS)', 'required' => true,  'default' => 'noticias'],
+                        'items_limit'     => ['type' => 'number', 'label' => 'Máx. elementos',           'required' => false, 'default' => 3],
+                        'order_by'        => ['type' => 'select', 'label' => 'Ordenar por',              'required' => false, 'options' => ['published_at', 'sort_order', 'created_at', 'title'], 'default' => 'published_at'],
+                        'order_direction' => ['type' => 'select', 'label' => 'Dirección',                'required' => false, 'options' => ['asc', 'desc'], 'default' => 'desc'],
+                        'layout_variant'  => ['type' => 'select', 'label' => 'Variante visual',          'required' => false, 'options' => ['cards', 'compact', 'portfolio'], 'default' => 'cards'],
+                        'css_class'       => ['type' => 'string', 'label' => 'Clase CSS',                'required' => false, 'default' => ''],
                     ],
                 ]),
                 'supports_pages'   => 1,
@@ -199,34 +202,6 @@ class CmsBlockTypeSeeder extends Seeder
                 'is_container'     => 0,
                 'is_active'        => 1,
                 'sort_order'       => 15,
-            ],
-
-            // ── news_grid ────────────────────────────────────────────────────────
-            [
-                'block_key'         => 'news_grid',
-                'name'              => 'Grilla de Noticias',
-                'description'       => 'Sección de noticias con tarjetas en grilla de 3 columnas. Carga entradas desde una colección del CMS.',
-                'category'          => 'content',
-                'icon'              => 'newspaper',
-                'schema_definition' => json_encode([
-                    'fields' => [
-                        'section_title'    => ['type' => 'string', 'label' => 'Título de sección',               'required' => false],
-                        'section_subtitle' => ['type' => 'string', 'label' => 'Subtítulo de sección',            'required' => false],
-                        'view_all_label'   => ['type' => 'string', 'label' => 'Texto del enlace "Ver todas"',    'required' => false],
-                        'view_all_url'     => ['type' => 'url',    'label' => 'URL del enlace "Ver todas"',      'required' => false],
-                        'empty_message'    => ['type' => 'string', 'label' => 'Mensaje cuando no hay noticias',  'required' => false],
-                    ],
-                    'config_fields' => [
-                        'collection_key' => ['type' => 'string', 'label' => 'Clave de Colección (CMS)', 'required' => true,  'default' => 'noticias'],
-                        'items_limit'    => ['type' => 'number', 'label' => 'Máx. elementos',           'required' => false, 'default' => 3],
-                        'css_class'      => ['type' => 'string', 'label' => 'Clase CSS',               'required' => false, 'default' => ''],
-                    ],
-                ]),
-                'supports_pages'   => 1,
-                'supports_entries' => 0,
-                'is_container'     => 0,
-                'is_active'        => 1,
-                'sort_order'       => 25,
             ],
 
             // ── cta ──────────────────────────────────────────────────────────────
@@ -280,7 +255,7 @@ class CmsBlockTypeSeeder extends Seeder
                             'required' => false,
                         ],
                     ],
-                    'allowed_children' => ['rich_text', 'image', 'cta', 'video_player', 'contact_form', 'location_info', 'social_links', 'hero_banner', 'faq_accordion', 'features_grid', 'testimonials_slider', 'logo_showcase', 'stats_section', 'tabs', 'alert', 'gallery', 'portfolio_grid'],
+                    'allowed_children' => ['rich_text', 'image', 'cta', 'video_player', 'contact_form', 'location_info', 'social_links', 'hero_banner', 'faq_accordion', 'features_grid', 'testimonials_slider', 'logo_showcase', 'stats_section', 'tabs', 'alert', 'gallery', 'collection_grid'],
                 ]),
                 'supports_pages'   => 1,
                 'supports_entries' => 0,
@@ -851,6 +826,6 @@ class CmsBlockTypeSeeder extends Seeder
                     ->update($block);
             }
         }
-    }
 
+    }
 }

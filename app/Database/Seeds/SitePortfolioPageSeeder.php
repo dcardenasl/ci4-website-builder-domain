@@ -8,7 +8,7 @@ use CodeIgniter\Database\Seeder;
 
 /**
  * Creates the Portfolio / Portafolio page and seeds the following blocks:
- *   page_header, portfolio_grid, image, alert, tabs, gallery.
+ *   page_header, collection_grid, image, alert, tabs, gallery.
  *
  * Idempotent: upserts the page, its translations, block instances,
  * and block translations.
@@ -48,8 +48,8 @@ class SitePortfolioPageSeeder extends Seeder
             'schema_data'      => null,
         ]);
 
-        $blockIds = $this->blockIds(['page_header', 'portfolio_grid', 'image', 'alert', 'tabs', 'tab_item', 'gallery', 'gallery_item']);
-        $this->removeLegacyPortfolioBlocks($portfolioPageId);
+        $blockIds = $this->blockIds(['page_header', 'collection_grid', 'image', 'alert', 'tabs', 'tab_item', 'gallery', 'gallery_item']);
+        $this->resetPortfolioBlocks($portfolioPageId);
 
         // ── 1. page_header ────────────────────────────────────────────────────
         $this->upsertBlockWithTranslations(
@@ -76,14 +76,21 @@ class SitePortfolioPageSeeder extends Seeder
             $langIds
         );
 
-        // ── 2. portfolio_grid ──────────────────────────────────────────────────
+        // ── 2. collection_grid ─────────────────────────────────────────────────
         $this->upsertBlockWithTranslations(
             $portfolioPageId,
             'page',
             $blockIds,
-            'portfolio_grid',
+            'collection_grid',
             2,
-            ['collection_key' => 'portafolio', 'items_limit' => 6, 'css_class' => ''],
+            [
+                'collection_key'  => 'portafolio',
+                'items_limit'     => 6,
+                'order_by'        => 'sort_order',
+                'order_direction' => 'asc',
+                'layout_variant'  => 'portfolio',
+                'css_class'       => '',
+            ],
             [
                 'es' => [
                     'section_title'    => 'Proyectos Destacados',
@@ -348,7 +355,7 @@ class SitePortfolioPageSeeder extends Seeder
         $this->db->table('cms_page_translations')->where('id', (int) $existing['id'])->update($payload);
     }
 
-    private function removeLegacyPortfolioBlocks(int $pageId): void
+    private function resetPortfolioBlocks(int $pageId): void
     {
         $instanceIds = $this->db->table('cms_block_instances')
             ->select('id')
