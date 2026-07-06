@@ -7,6 +7,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+- **Map embed block extraction** — migration `2026-07-06-110001_ExtractMapEmbedAndNormalizeGenericBlocks` separates embedded maps from `contact_info` block into independent `map_embed` block for better modularity; automatically migrates existing `contact_info` instances that include map URLs to the new dedicated block type
+
 ### Changed
 - **Generic block naming normalization** — consolidated domain-specific block types (news_grid, portfolio_grid, events_grid, contact_form, location_info, faq_accordion, etc.) into unified generic block names (collection_grid, form_embed, contact_info, accordion, etc.); migration `NormalizeCmsGenericBlockKeys` automatically migrates existing instances; improves consistency and reduces block type proliferation
 
