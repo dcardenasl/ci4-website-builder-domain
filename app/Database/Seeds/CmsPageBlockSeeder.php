@@ -27,6 +27,7 @@ class CmsPageBlockSeeder extends Seeder
             'page_header',
             'form_embed',
             'contact_info',
+            'map_embed',
             'social_links',
         ]);
 
@@ -194,8 +195,8 @@ class CmsPageBlockSeeder extends Seeder
                 'block_key' => 'contact_info',
                 'sort_order' => 3,
                 'config'    => [
-                    'map_embed_url' => 'https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3329.0664974635676!2d-70.6508083!3d-33.4474867!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x9662c50f83733e8b%3A0xc38fa632e825a1e7!2sPalacio%20de%20La%20Moneda!5e0!3m2!1ses!2scl!4v1700000000000!5m2!1ses!2scl',
-                    'css_class'     => '',
+                    'layout'    => 'stacked',
+                    'css_class' => '',
                 ],
                 'data'      => [
                     'es' => [
@@ -204,6 +205,8 @@ class CmsPageBlockSeeder extends Seeder
                         'address'        => 'Calle Falsa 123, Santiago, Chile',
                         'phone_label'    => 'Teléfono',
                         'phone'          => '+56 2 2345 6789',
+                        'email_label'    => 'Correo',
+                        'email'          => 'contacto@misitio.local',
                         'hours_label'    => 'Horario',
                         'hours'          => "Lunes a viernes: 09:00 - 18:00\nSábado: 10:00 - 14:00",
                     ],
@@ -213,14 +216,36 @@ class CmsPageBlockSeeder extends Seeder
                         'address'        => '123 Main Street, Santiago, Chile',
                         'phone_label'    => 'Phone',
                         'phone'          => '+56 2 2345 6789',
+                        'email_label'    => 'Email',
+                        'email'          => 'contact@example.local',
                         'hours_label'    => 'Hours',
                         'hours'          => "Monday to Friday: 09:00 - 18:00\nSaturday: 10:00 - 14:00",
                     ],
                 ],
             ],
             [
-                'block_key' => 'social_links',
+                'block_key' => 'map_embed',
                 'sort_order' => 4,
+                'config'    => [
+                    'embed_url'    => 'https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3329.0664974635676!2d-70.6508083!3d-33.4474867!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x9662c50f83733e8b%3A0xc38fa632e825a1e7!2sPalacio%20de%20La%20Moneda!5e0!3m2!1ses!2scl!4v1700000000000!5m2!1ses!2scl',
+                    'aspect_ratio' => '16/9',
+                    'height'       => 360,
+                    'css_class'    => '',
+                ],
+                'data'      => [
+                    'es' => [
+                        'title'   => 'Mapa de ubicación',
+                        'caption' => 'Encuéntranos en nuestro punto de atención principal.',
+                    ],
+                    'en' => [
+                        'title'   => 'Location map',
+                        'caption' => 'Find us at our main service point.',
+                    ],
+                ],
+            ],
+            [
+                'block_key' => 'social_links',
+                'sort_order' => 5,
                 'config'    => [
                     'facebook_url'     => '',
                     'facebook_handle'  => '',

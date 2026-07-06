@@ -203,18 +203,18 @@ class SiteAboutPageSeeder extends Seeder
         $statItems = [
             [
                 'sort_order' => 1,
-                'es' => ['number' => '10+',  'label' => 'Años de trayectoria',    'icon' => 'calendar'],
-                'en' => ['number' => '10+',  'label' => 'Years of experience',    'icon' => 'calendar'],
+                'es' => ['number' => '10',  'suffix' => '+', 'label' => 'Años de trayectoria',    'description' => 'Programas activos desde nuestros primeros proyectos.', 'source_label' => 'Reporte interno', 'icon' => 'calendar'],
+                'en' => ['number' => '10',  'suffix' => '+', 'label' => 'Years of experience',    'description' => 'Active programs since our first projects.', 'source_label' => 'Internal report', 'icon' => 'calendar'],
             ],
             [
                 'sort_order' => 2,
-                'es' => ['number' => '500+', 'label' => 'Personas alcanzadas',    'icon' => 'users'],
-                'en' => ['number' => '500+', 'label' => 'People reached',         'icon' => 'users'],
+                'es' => ['number' => '500', 'suffix' => '+', 'label' => 'Personas alcanzadas',    'description' => 'Participantes directos e indirectos.', 'source_label' => 'Base comunitaria', 'icon' => 'users'],
+                'en' => ['number' => '500', 'suffix' => '+', 'label' => 'People reached',         'description' => 'Direct and indirect participants.', 'source_label' => 'Community database', 'icon' => 'users'],
             ],
             [
                 'sort_order' => 3,
-                'es' => ['number' => '25+',  'label' => 'Aliados estratégicos',   'icon' => 'handshake'],
-                'en' => ['number' => '25+',  'label' => 'Strategic partners',     'icon' => 'handshake'],
+                'es' => ['number' => '25',  'suffix' => '+', 'label' => 'Aliados estratégicos',   'description' => 'Organizaciones que colaboran en iniciativas.', 'source_label' => 'Alianzas vigentes', 'icon' => 'handshake'],
+                'en' => ['number' => '25',  'suffix' => '+', 'label' => 'Strategic partners',     'description' => 'Organizations collaborating on initiatives.', 'source_label' => 'Active partnerships', 'icon' => 'handshake'],
             ],
         ];
         $this->seedChildBlocks($aboutPageId, $statsSectionId, 'metric_item', $statItems, $blockIds, $langIds);
@@ -225,7 +225,7 @@ class SiteAboutPageSeeder extends Seeder
             $blockIds,
             'cards_slider',
             6,
-            ['layout' => 'slider', 'autoplay' => true, 'interval' => 5000, 'css_class' => ''],
+            ['layout' => 'slider', 'autoplay' => true, 'interval' => 5000, 'visible_count' => '1', 'card_variant' => 'testimonial', 'css_class' => ''],
             ['es' => [], 'en' => []],
             $langIds
         );
@@ -234,30 +234,34 @@ class SiteAboutPageSeeder extends Seeder
             [
                 'sort_order' => 1,
                 'es' => [
-                    'quote'  => 'Participar en los programas de esta organización cambió mi perspectiva por completo. Aprendí herramientas concretas y construí una red de personas increíbles.',
-                    'author' => 'María González',
-                    'role'   => 'Participante del programa 2022',
+                    'eyebrow' => 'Testimonio',
+                    'body'    => 'Participar en los programas de esta organización cambió mi perspectiva por completo. Aprendí herramientas concretas y construí una red de personas increíbles.',
+                    'meta_title' => 'María González',
+                    'meta_description' => 'Participante del programa 2022',
                     'rating' => '5',
                 ],
                 'en' => [
-                    'quote'  => 'Participating in this organization\'s programs completely changed my perspective. I learned concrete tools and built a network of incredible people.',
-                    'author' => 'María González',
-                    'role'   => 'Program participant 2022',
+                    'eyebrow' => 'Testimonial',
+                    'body'    => 'Participating in this organization\'s programs completely changed my perspective. I learned concrete tools and built a network of incredible people.',
+                    'meta_title' => 'María González',
+                    'meta_description' => 'Program participant 2022',
                     'rating' => '5',
                 ],
             ],
             [
                 'sort_order' => 2,
                 'es' => [
-                    'quote'  => 'Colaborar con este equipo fue una experiencia transformadora. Su compromiso con la comunidad es genuino y se nota en cada detalle del trabajo que hacen.',
-                    'author' => 'Carlos Rodríguez',
-                    'role'   => 'Aliado institucional',
+                    'eyebrow' => 'Testimonio',
+                    'body'    => 'Colaborar con este equipo fue una experiencia transformadora. Su compromiso con la comunidad es genuino y se nota en cada detalle del trabajo que hacen.',
+                    'meta_title' => 'Carlos Rodríguez',
+                    'meta_description' => 'Aliado institucional',
                     'rating' => '5',
                 ],
                 'en' => [
-                    'quote'  => 'Collaborating with this team was a transformative experience. Their commitment to the community is genuine and shows in every detail of the work they do.',
-                    'author' => 'Carlos Rodríguez',
-                    'role'   => 'Institutional partner',
+                    'eyebrow' => 'Testimonial',
+                    'body'    => 'Collaborating with this team was a transformative experience. Their commitment to the community is genuine and shows in every detail of the work they do.',
+                    'meta_title' => 'Carlos Rodríguez',
+                    'meta_description' => 'Institutional partner',
                     'rating' => '5',
                 ],
             ],

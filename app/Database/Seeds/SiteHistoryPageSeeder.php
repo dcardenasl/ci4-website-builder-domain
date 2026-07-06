@@ -134,23 +134,23 @@ class SiteHistoryPageSeeder extends Seeder
         $statItems = [
             [
                 'sort_order' => 1,
-                'es' => ['number' => '2013', 'label' => 'Año de fundación', 'icon' => 'calendar'],
-                'en' => ['number' => '2013', 'label' => 'Year founded',     'icon' => 'calendar'],
+                'es' => ['number' => '2013', 'label' => 'Año de fundación', 'description' => 'Inicio formal del proyecto.', 'source_label' => 'Acta fundacional', 'icon' => 'calendar'],
+                'en' => ['number' => '2013', 'label' => 'Year founded',     'description' => 'Formal start of the project.', 'source_label' => 'Founding record', 'icon' => 'calendar'],
             ],
             [
                 'sort_order' => 2,
-                'es' => ['number' => '10+',  'label' => 'Años de trayectoria',   'icon' => 'clock'],
-                'en' => ['number' => '10+',  'label' => 'Years of trajectory',   'icon' => 'clock'],
+                'es' => ['number' => '10', 'suffix' => '+', 'label' => 'Años de trayectoria',   'description' => 'Experiencia acumulada en comunidad.', 'icon' => 'clock'],
+                'en' => ['number' => '10', 'suffix' => '+', 'label' => 'Years of trajectory',   'description' => 'Accumulated community experience.', 'icon' => 'clock'],
             ],
             [
                 'sort_order' => 3,
-                'es' => ['number' => '50+',  'label' => 'Proyectos realizados',  'icon' => 'briefcase'],
-                'en' => ['number' => '50+',  'label' => 'Projects completed',    'icon' => 'briefcase'],
+                'es' => ['number' => '50', 'suffix' => '+', 'label' => 'Proyectos realizados',  'description' => 'Iniciativas, pilotos y programas.', 'icon' => 'briefcase'],
+                'en' => ['number' => '50', 'suffix' => '+', 'label' => 'Projects completed',    'description' => 'Initiatives, pilots, and programs.', 'icon' => 'briefcase'],
             ],
             [
                 'sort_order' => 4,
-                'es' => ['number' => '500+', 'label' => 'Personas en comunidad', 'icon' => 'users'],
-                'en' => ['number' => '500+', 'label' => 'People in community',   'icon' => 'users'],
+                'es' => ['number' => '500', 'suffix' => '+', 'label' => 'Personas en comunidad', 'description' => 'Red activa de participantes.', 'icon' => 'users'],
+                'en' => ['number' => '500', 'suffix' => '+', 'label' => 'People in community',   'description' => 'Active participant network.', 'icon' => 'users'],
             ],
         ];
         $this->seedChildBlocks($historyPageId, $statsSectionId, 'metric_item', $statItems, $blockIds, $langIds);
