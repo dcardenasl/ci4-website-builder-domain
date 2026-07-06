@@ -160,6 +160,63 @@ final class PublicEntryControllerTest extends CIUnitTestCase
         $this->assertSame('http://localhost:8180/uploads/posts/post-con-imagen.png', $body['data'][0]['featured_image_url']);
     }
 
+    public function testPublicEntriesSupportLimitAndOrdering(): void
+    {
+        $entries = [
+            [
+                'slug'         => 'zeta',
+                'title'        => 'Zeta',
+                'sort_order'   => 2,
+                'published_at' => '2026-06-02 09:00:00',
+            ],
+            [
+                'slug'         => 'alpha',
+                'title'        => 'Alpha',
+                'sort_order'   => 1,
+                'published_at' => '2026-06-01 09:00:00',
+            ],
+            [
+                'slug'         => 'omega',
+                'title'        => 'Omega',
+                'sort_order'   => 3,
+                'published_at' => '2026-06-03 09:00:00',
+            ],
+        ];
+
+        foreach ($entries as $entry) {
+            $this->db->table('cms_entries')->insert([
+                'collection_id'    => $this->collectionId,
+                'workflow_status'  => 'published',
+                'published_at'     => $entry['published_at'],
+                'is_featured'      => 0,
+                'view_count'       => 0,
+                'sort_order'       => $entry['sort_order'],
+                'is_in_sitemap'    => 1,
+            ]);
+            $entryId = $this->db->insertID();
+
+            $this->db->table('cms_entry_translations')->insert([
+                'entry_id'    => $entryId,
+                'language_id' => $this->langEsId,
+                'slug'        => $entry['slug'],
+                'title'       => $entry['title'],
+                'excerpt'     => 'Entrada para probar orden.',
+            ]);
+        }
+
+        $result = $this->get('/api/v1/public/es/entries/blog?limit=2&order_by=title&order_direction=asc');
+
+        $result->assertStatus(200);
+
+        $body = json_decode($result->getJSON(), true);
+        $this->assertSame('success', $body['status']);
+        $this->assertCount(2, $body['data']);
+        $this->assertSame('alpha', $body['data'][0]['slug']);
+        $this->assertSame('omega', $body['data'][1]['slug']);
+        $this->assertSame(3, (int) $body['meta']['total']);
+        $this->assertSame(2, (int) $body['meta']['per_page']);
+    }
+
     public function testShowIncludesFeaturedImageUrl(): void
     {
         // Create entry with a public featured image URL

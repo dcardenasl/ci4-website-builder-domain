@@ -98,6 +98,12 @@ final class SiteBootstrapSeederTest extends CIUnitTestCase
             ->getRowArray();
         $this->assertNotNull($contactBlockType);
 
+        $collectionGridType = $this->db->table('cms_content_blocks')
+            ->where('block_key', 'collection_grid')
+            ->get()
+            ->getRowArray();
+        $this->assertNotNull($collectionGridType);
+
         $contactBlock = $this->db->table('cms_block_instances')
             ->where('block_id', (int) $contactBlockType['id'])
             ->where('owner_type', 'page')
@@ -161,6 +167,7 @@ final class SiteBootstrapSeederTest extends CIUnitTestCase
            ->get()
            ->getResultArray();
         $this->assertCount(11, $portfolioBlocks);
+        $this->assertSame('collection_grid', $this->blockKeyForInstance((int) $portfolioBlocks[1]['block_id']));
     }
 
     public function testBootstrapSeederIsIdempotent(): void
