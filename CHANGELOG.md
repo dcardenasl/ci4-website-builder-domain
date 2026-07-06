@@ -8,6 +8,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- **Dynamic ordering for entry listings** — enhanced `PublicEntryIndexRequestDTO` and `PublicEntryReader` with `order_by` (published_at, created_at, sort_order, title) and `order_direction` (asc/desc) parameters; public `/api/v1/cms/public/{lang}/entries/{collection}` endpoint now supports flexible sorting with title-based ordering via join to translations table
+- **Unified collection grid block** — consolidated a set of collection-specific grid block types into a single `collection_grid` block with flexible configuration (order_by, order_direction, layout_variant); updated `BlockTemplateCatalog` and database seeders to use the new unified block
 - **Dynamic collection types system** — migrated `collection_type` from ENUM to VARCHAR for flexibility; added `BlockSchemaIntrospector` and `FieldPrimitiveRegistry` libraries for dynamic schema analysis and field primitive normalization; enables collections to have custom types beyond fixed presets
 - **Collection-aware entry creation and validation** — enhanced `CollectionCreateRequestDTO`, `CollectionUpdateRequestDTO`, and `EntryCreateRequestDTO` with collection type awareness; `EntryService` now validates and manages entries within their collection context
 - **Wizard configuration API** — new `WizardConfigController` with endpoints for retrieving wizard metadata; enhanced seeders (`CmsBlockTypeSeeder`, `WizardConfigSeeder`) to bootstrap wizard configuration and block type templates
