@@ -55,4 +55,42 @@ final class BlockTemplateCatalogTest extends CIUnitTestCase
         $this->assertSame('string', $schema['breadcrumb_url']['type'] ?? null);
         $this->assertSame('/', $template['preview_sample']['breadcrumb_url'] ?? null);
     }
+
+    public function testContactInfoAndMapEmbedAreSeparateTemplates(): void
+    {
+        $contactInfo = BlockTemplateCatalog::findByKey('contact_info');
+        $mapEmbed    = BlockTemplateCatalog::findByKey('map_embed');
+
+        $this->assertIsArray($contactInfo);
+        $this->assertIsArray($mapEmbed);
+
+        $contactFields = $contactInfo['default_schema']['fields'] ?? [];
+        $contactConfig = $contactInfo['default_schema']['config_fields'] ?? [];
+        $mapConfig     = $mapEmbed['default_schema']['config_fields'] ?? [];
+
+        $this->assertArrayHasKey('email', $contactFields);
+        $this->assertArrayHasKey('layout', $contactConfig);
+        $this->assertArrayNotHasKey('map_embed_url', $contactConfig);
+        $this->assertArrayHasKey('embed_url', $mapConfig);
+    }
+
+    public function testGenericCardAndMetricTemplatesDoNotExposeLegacyFields(): void
+    {
+        $slideCard  = BlockTemplateCatalog::findByKey('slide_card');
+        $metricItem = BlockTemplateCatalog::findByKey('metric_item');
+
+        $this->assertIsArray($slideCard);
+        $this->assertIsArray($metricItem);
+
+        $slideFields  = $slideCard['default_schema']['fields'] ?? [];
+        $metricFields = $metricItem['default_schema']['fields'] ?? [];
+
+        $this->assertArrayHasKey('body', $slideFields);
+        $this->assertArrayHasKey('meta_title', $slideFields);
+        $this->assertArrayNotHasKey('quote', $slideFields);
+        $this->assertArrayNotHasKey('author', $slideFields);
+        $this->assertArrayHasKey('prefix', $metricFields);
+        $this->assertArrayHasKey('suffix', $metricFields);
+        $this->assertArrayHasKey('source_label', $metricFields);
+    }
 }
