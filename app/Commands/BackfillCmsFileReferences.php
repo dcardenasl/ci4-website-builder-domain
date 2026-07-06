@@ -23,7 +23,15 @@ class BackfillCmsFileReferences extends BaseCommand
     private ?FileUrlResolver $resolver = null;
     private ?FileReferenceSynchronizer $synchronizer = null;
 
+    public function setResolver(FileUrlResolver $resolver): void
+    {
+        $this->resolver = $resolver;
+    }
 
+    public function setSynchronizer(FileReferenceSynchronizer $synchronizer): void
+    {
+        $this->synchronizer = $synchronizer;
+    }
 
     public function run(array $params): void
     {

@@ -63,7 +63,7 @@ composer cs-fix           # auto-fix style
 
 # Database
 php spark migrate         # idempotency_keys, audit_logs, request_logs, metrics, jobs
-php spark db:seed SiteBootstrapSeeder # Spanish-first site bootstrap: languages, settings, pages, menus, blocks
+php spark db:seed SiteBootstrapSeeder # OPTIONAL demo content (languages, settings, pages, menus, blocks) — NOT required. See README.md "Required vs. optional bootstrap".
 
 # Hub permission sync (idempotent — safe to rerun). Needs a superadmin JWT.
 php spark domain:sync-permissions --admin-token=<jwt>     # or set hub.adminToken in .env
@@ -138,7 +138,7 @@ module needs distinct read/write codes.
 | `hub.url` | Base URL of the hub (e.g. `http://localhost:8080`) |
 | `hub.apiKey` | X-App-Key bound to this app's `applications` row in the hub |
 | `hub.appCode` | Application code as registered in the hub |
-| `hub.introspectCacheTtl` | (optional) TTL in seconds for cached introspect responses, default 60 |
+| `hub.introspectCacheTtl` | (optional) TTL in seconds for cached introspect responses, default 30 |
 | `hub.adminToken` | (optional) Superadmin JWT. Only needed when running `domain:sync-permissions --mirror-to-self` or `--assign-to-role`. |
 | `database.default.*` | Website builder app's own MySQL connection |
 | `encryption.key` | CI4 encryption key (32 bytes after `hex2bin:` decode) |
@@ -169,7 +169,8 @@ You can re-run `domain:sync-permissions` at any time — it is idempotent.
 
 PHPStan runs at level 8 with a `phpstan-baseline.neon` that tracks historical type-debt.
 **Rule:** the baseline entry count can only decrease. New code must not introduce new errors.
-Current count after audit cleanup: **0 entries** (fully drained; all real errors resolved).
+Current count: **36 baselined entries** (covering 74 suppressed errors). This is
+type-debt still to drain — not a clean slate. New code must not add to it.
 
 Run before pushing:
 
@@ -185,6 +186,15 @@ composer quality
   (admin/web layer) or pass via Authorization header (SPAs).
 - ❌ Hardcoding permission strings — use `DomainPermissions::PERMISSIONS` and
   `domain:sync-permissions` so the hub stays in sync.
+- ❌ **Running `php spark migrate` (or any migration/refresh command) without checking which
+  database you're targeting.** With no `-g` flag it targets `database.default` — the persistent
+  **dev** database — not `database.tests`. Test-only workflows must use
+  `php spark tests:prepare-db` (which explicitly connects to the `tests` group) or pass
+  `-g tests` yourself. Running an untargeted `migrate --all`/`migrate:refresh` against a database
+  you didn't mean to touch can drop and recreate its schema empty. If this happens, the app keeps
+  working (see "Required vs. optional bootstrap" in README.md) — just re-run
+  `db:seed SiteBootstrapSeeder` to restore the demo content, or accept the empty state and rebuild
+  through the admin UI. There is no way to recover data that wasn't part of that seeder.
 
 ## Where to read next
 

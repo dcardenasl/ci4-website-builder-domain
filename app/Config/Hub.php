@@ -34,9 +34,11 @@ class Hub extends BaseConfig
 
     /**
      * Cache TTL (seconds) for /auth/introspect responses keyed by JTI.
-     * Lower = fresher revocation; higher = less load on the hub.
+     * Lower = fresher revocation; higher = less load on the hub. Default 30s
+     * bounds the window in which a revoked token is still accepted; raise via
+     * hub.introspectCacheTtl if hub load matters more than revocation latency.
      */
-    public int $introspectCacheTtl = 60;
+    public int $introspectCacheTtl = 30;
 
     /**
      * Refresh the cached service token this many seconds before its expiry.

@@ -89,7 +89,7 @@ php spark serve --port 8090
 
 # Database
 php spark migrate                    # Local migrations only — never touches the hub DB
-php spark db:seed SiteBootstrapSeeder # Spanish-first starter content: languages, settings, pages, menus, blocks
+php spark db:seed SiteBootstrapSeeder # OPTIONAL: Spanish-first demo content (languages, settings, pages, menus, blocks). Safe to skip or re-run at any time — see "Required vs. optional bootstrap" below.
 php spark tests:prepare-db           # Sync the test DB before feature tests
 
 # Hub permission sync (idempotent — safe to rerun)
@@ -110,6 +110,24 @@ composer cs-fix                      # Auto-fix style — run before committing
 # OpenAPI
 php spark swagger:generate
 ```
+
+### Required vs. optional bootstrap
+
+**Only two things are actually required for this app to function:**
+
+1. `php spark migrate` — creates the schema. Without this, nothing works.
+2. `php spark domain:sync-permissions` (with the hub's `RbacBootstrapSeeder` already run on the hub side) —
+   registers this app's permission codes so RBAC gating on domain routes works.
+
+**Everything under `db:seed SiteBootstrapSeeder` is optional demo content**, not structural setup:
+languages, site identity/contact settings, block type examples, the "noticias"/"cartelera"/"portafolio"
+demo collections, and the demo pages (home, about, history, portfolio) and menus it builds from them. A
+fresh install with *only* migrations run (no seeders) is a fully working, empty CMS: the admin panel lets
+you create your first language, block type, page, and collection from scratch through its own CRUD screens
+— none of that requires seed data to exist first. Losing or resetting this content (e.g. by re-running
+`php spark migrate:refresh` against a database you didn't mean to touch) does not break the application; it
+just leaves you with an empty CMS. Re-run `php spark db:seed SiteBootstrapSeeder` at any time to restore the
+demo content, or build your own content from the empty state.
 
 ### Adding a new CRUD module
 

@@ -256,7 +256,7 @@ class BlockTemplateCatalog
                         'view_all_url'     => ['type' => 'url',    'label' => 'URL "Ver todos"',          'required' => false],
                     ],
                     'config_fields' => [
-                        'collection_key' => ['type' => 'string', 'label' => 'Clave de Colección (CMS)', 'required' => true, 'default' => 'cartelera'],
+                        'collection_key' => ['type' => 'string', 'label' => 'Clave de Colección (CMS)', 'required' => true, 'default' => ''],
                         'items_limit'    => ['type' => 'number', 'label' => 'Máx. elementos a mostrar', 'required' => false, 'default' => 6],
                         'css_class'      => ['type' => 'string', 'label' => 'Clase CSS',               'required' => false, 'default' => ''],
                     ],
@@ -286,7 +286,7 @@ class BlockTemplateCatalog
                         'view_all_url'   => ['type' => 'url',    'label' => 'URL "Ver todas"',    'required' => false],
                     ],
                     'config_fields' => [
-                        'collection_key' => ['type' => 'string', 'label' => 'Clave de Colección (CMS)', 'required' => true, 'default' => 'noticias'],
+                        'collection_key' => ['type' => 'string', 'label' => 'Clave de Colección (CMS)', 'required' => true, 'default' => ''],
                         'items_limit'    => ['type' => 'number', 'label' => 'Máx. elementos a mostrar', 'required' => false, 'default' => 3],
                         'css_class'      => ['type' => 'string', 'label' => 'Clase CSS',               'required' => false, 'default' => ''],
                     ],

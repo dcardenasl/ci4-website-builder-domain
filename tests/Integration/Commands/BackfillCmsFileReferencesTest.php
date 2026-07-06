@@ -43,7 +43,9 @@ final class BackfillCmsFileReferencesTest extends CIUnitTestCase
                     : $currentUrl;
             }
         };
-        $command = new BackfillCmsFileReferences($resolver, new FileReferenceSynchronizer($db, $resolver));
+        $command = new BackfillCmsFileReferences(service('logger'), service('commands'));
+        $command->setResolver($resolver);
+        $command->setSynchronizer(new FileReferenceSynchronizer($db, $resolver));
 
         $db->query('SET FOREIGN_KEY_CHECKS = 0');
         $db->query("DELETE FROM `cms_block_instance_translations`");
