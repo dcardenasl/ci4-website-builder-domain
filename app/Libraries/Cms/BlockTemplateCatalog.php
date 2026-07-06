@@ -311,9 +311,9 @@ class BlockTemplateCatalog
                 ],
             ],
             [
-                'key'         => 'contact_form',
-                'name'        => 'Formulario de Contacto',
-                'description' => 'Formulario de contacto dinámico configurado desde el sistema de formularios.',
+                'key'         => 'form_embed',
+                'name'        => 'Formulario Embebido',
+                'description' => 'Formulario dinámico configurado desde el sistema de formularios.',
                 'category'    => 'interactive',
                 'icon'        => 'mail',
                 'default_schema' => [
@@ -330,9 +330,9 @@ class BlockTemplateCatalog
                 ],
             ],
             [
-                'key'         => 'location_info',
-                'name'        => 'Información de Ubicación',
-                'description' => 'Dirección, teléfono, horarios y mapa embebido de Google Maps. Ideal para páginas de contacto.',
+                'key'         => 'contact_info',
+                'name'        => 'Información de Contacto',
+                'description' => 'Datos estructurados de contacto, horarios y mapa embebido.',
                 'category'    => 'contact',
                 'icon'        => 'map-pin',
                 'default_schema' => [

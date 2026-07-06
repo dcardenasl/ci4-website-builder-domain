@@ -13,7 +13,7 @@ readonly class SettingConnectionCreateRequestDTO extends BaseRequestDTO
     #[OA\Property(description: 'Type of the connected entity', example: 'block_type')]
     public string $entityType;
 
-    #[OA\Property(description: 'Key of the connected entity (e.g. hero_banner, contact_form)', example: 'hero_banner')]
+    #[OA\Property(description: 'Key of the connected entity (e.g. hero_banner, form_embed)', example: 'hero_banner')]
     public string $entityKey;
 
     #[OA\Property(description: 'Human-readable description of how this setting is used', nullable: true, example: 'Logo shown in hero banner')]

@@ -92,6 +92,7 @@ class PrepareTestDatabase extends BaseCommand
         }
 
         $this->enableForeignKeys($db);
+        $db->resetDataCache();
         CLI::write('Dropped all existing tables.');
     }
 

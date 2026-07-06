@@ -12,7 +12,7 @@ use HTMLPurifier_Config;
  *
  * Uses HTMLPurifier with a strict allowlist of safe elements and attributes.
  * Call clean() on any user-supplied HTML string (rich_text block content,
- * FAQ answers, etc.) before storing it in the database.
+ * accordion content, rich text sections, etc.) before storing it in the database.
  *
  * The purifier instance is created once per process (singleton pattern).
  */
