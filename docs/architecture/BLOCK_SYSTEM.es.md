@@ -6,7 +6,7 @@ El sistema de bloques de contenido es una arquitectura orientada a esquemas (sch
 
 ## 1. Conceptos Clave
 
-- **Tipo de Bloque (Block Type):** Define la estructura de datos (esquema) y la plantilla visual que renderizará el bloque. Ejemplo: `hero_slider`, `rich_text`, `faq_accordion`.
+- **Tipo de Bloque (Block Type):** Define la estructura de datos (esquema) y la plantilla visual que renderizará el bloque. Ejemplo: `hero_slider`, `rich_text`, `accordion`.
 - **Instancia de Bloque (Block Instance):** El bloque real insertado en una página con contenidos específicos e idiomas traducidos.
 - **Primitivo Nativo de Campo:** Capacidad estructural definida en código, por ejemplo `text`, `textarea`, `richtext`, `image`, `file`, `url`, `number`, `boolean`, `select`, `date` o `datetime`. Estos primitivos no dependen de tipos de bloque instalados por seeders.
 - **Esquema de Campos (Schema Definition):** Definición en formato JSON que especifica qué campos tiene el bloque. Se divide en:
@@ -46,14 +46,14 @@ Para estructuras más complejas (carruseles, acordeones, grillas complejas), el 
   "config_fields": {
     "css_class": { "type": "string", "label": "Clase CSS" }
   },
-  "allowed_children": ["faq_item"]
+  "allowed_children": ["accordion_item"]
 }
 ```
 
 ### Flujo de Trabajo en el Panel de Administración:
 1. Al listar los bloques de una página, los bloques marcados con `is_container` muestran un botón **"Slides"**.
 2. Al hacer clic en **"Slides"**, se abre un sublistado donde se administran y reordenan los bloques hijos vinculados mediante el campo `parent_instance_id`.
-3. Al hacer clic en **"Agregar Diapositiva"**, el controlador del panel detecta el tipo de bloque del contenedor padre, consulta sus `allowed_children` y filtra las opciones de creación para que el usuario solo elija bloques autorizados (e.g., solo añadir `faq_item` dentro de `faq_accordion`).
+3. Al hacer clic en **"Agregar Diapositiva"**, el controlador del panel detecta el tipo de bloque del contenedor padre, consulta sus `allowed_children` y filtra las opciones de creación para que el usuario solo elija bloques autorizados (e.g., solo añadir `accordion_item` dentro de `accordion`).
 
 ---
 
@@ -62,7 +62,7 @@ Para estructuras más complejas (carruseles, acordeones, grillas complejas), el 
 Las tablas involucradas en el módulo CMS son:
 
 ### `cms_content_blocks` (Tipos de Bloques)
-- `block_key` (VARCHAR): Clave única del bloque (ej. `faq_accordion`).
+- `block_key` (VARCHAR): Clave única del bloque (ej. `accordion`).
 - `name`, `description`, `category`, `icon`: Metadatos visuales.
 - `schema_definition` (JSON): El esquema de campos y vinculación de hijos (`allowed_children`).
 - `is_container` (TINYINT): Indica si acepta bloques hijos.

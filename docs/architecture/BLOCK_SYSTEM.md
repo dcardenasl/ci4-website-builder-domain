@@ -6,7 +6,7 @@ The Content Blocks system is a schema-driven architecture that allows developers
 
 ## 1. Key Concepts
 
-- **Block Type:** Defines the data structure (schema) and the visual template used to render the block. Example: `hero_slider`, `rich_text`, `faq_accordion`.
+- **Block Type:** Defines the data structure (schema) and the visual template used to render the block. Example: `hero_slider`, `rich_text`, `accordion`.
 - **Block Instance:** The actual block added to a page with specific translation values and settings.
 - **Native Field Primitive:** Code-level field capability such as `text`, `textarea`, `richtext`, `image`, `file`, `url`, `number`, `boolean`, `select`, `date`, or `datetime`. These primitives are structural system capabilities and do not depend on seeded block types.
 - **Schema Definition:** JSON formatted description detailing the block's fields. Divided into:
@@ -46,7 +46,7 @@ For complex component hierarchies (sliders, accordion groups, card columns), the
   "config_fields": {
     "css_class": { "type": "string", "label": "CSS Class" }
   },
-  "allowed_children": ["faq_item"]
+  "allowed_children": ["accordion_item"]
 }
 ```
 
@@ -62,7 +62,7 @@ For complex component hierarchies (sliders, accordion groups, card columns), the
 The tables involved in the CMS module are:
 
 ### `cms_content_blocks` (Block Types)
-- `block_key` (VARCHAR): Unique key identifier (e.g. `faq_accordion`).
+- `block_key` (VARCHAR): Unique key identifier (e.g. `accordion`).
 - `name`, `description`, `category`, `icon`: Visual metadata.
 - `schema_definition` (JSON): Schema fields and allowed children configurations (`allowed_children`).
 - `is_container` (TINYINT): Boolean toggle allowing nested instances.

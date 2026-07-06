@@ -103,7 +103,7 @@ final class SiteBootstrapContentTest extends CIUnitTestCase
         $this->assertNotNull($heroInstance);
 
         $contactBlock = $this->db->table('cms_content_blocks')
-            ->where('block_key', 'contact_form')
+            ->where('block_key', 'form_embed')
             ->get()
             ->getRowArray();
         $this->assertNotNull($contactBlock);

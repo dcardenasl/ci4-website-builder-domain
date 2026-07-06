@@ -93,7 +93,7 @@ final class SiteBootstrapSeederTest extends CIUnitTestCase
         $this->assertNotNull($contactPage);
 
         $contactBlockType = $this->db->table('cms_content_blocks')
-            ->where('block_key', 'contact_form')
+            ->where('block_key', 'form_embed')
             ->get()
             ->getRowArray();
         $this->assertNotNull($contactBlockType);
@@ -163,10 +163,11 @@ final class SiteBootstrapSeederTest extends CIUnitTestCase
         $portfolioBlocks = $this->db->table('cms_block_instances')
            ->where('owner_type', 'page')
            ->where('owner_id', (int) $portfolioPage['id'])
+           ->where('parent_instance_id IS NULL', null, false)
            ->orderBy('sort_order', 'ASC')
            ->get()
            ->getResultArray();
-        $this->assertCount(11, $portfolioBlocks);
+        $this->assertCount(6, $portfolioBlocks);
         $this->assertSame('collection_grid', $this->blockKeyForInstance((int) $portfolioBlocks[1]['block_id']));
     }
 
