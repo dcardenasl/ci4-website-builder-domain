@@ -9,9 +9,9 @@ use CodeIgniter\Database\Seeder;
 /**
  * Creates the History / Historia page with the following blocks:
  *   page_header, rich_text, image,
- *   stats_section (container) + 4 × stat_item children,
+ *   metrics_grid (container) + 4 × metric_item children,
  *   rich_text (second section),
- *   faq_accordion (container) + 3 × faq_item children,
+ *   accordion (container) + 3 × accordion_item children,
  *   cta.
  *
  * Idempotent: upserts pages, translations, instances, and block translations.
@@ -53,8 +53,8 @@ class SiteHistoryPageSeeder extends Seeder
 
         $blockIds = $this->blockIds([
             'page_header', 'rich_text', 'image',
-            'stats_section', 'stat_item',
-            'faq_accordion', 'faq_item',
+            'metrics_grid', 'metric_item',
+            'accordion', 'accordion_item',
             'cta',
         ]);
 
@@ -120,11 +120,11 @@ class SiteHistoryPageSeeder extends Seeder
             $langIds
         );
 
-        // ── 4. stats_section (dark) + 4 stat_item children ───────────────────
+        // ── 4. metrics_grid (dark) + 4 metric_item children ───────────────────
         $statsSectionId = $this->upsertBlock(
             $historyPageId,
             $blockIds,
-            'stats_section',
+            'metrics_grid',
             4,
             ['variant' => 'dark', 'css_class' => ''],
             ['es' => [], 'en' => []],
@@ -153,7 +153,7 @@ class SiteHistoryPageSeeder extends Seeder
                 'en' => ['number' => '500+', 'label' => 'People in community',   'icon' => 'users'],
             ],
         ];
-        $this->seedChildBlocks($historyPageId, $statsSectionId, 'stat_item', $statItems, $blockIds, $langIds);
+        $this->seedChildBlocks($historyPageId, $statsSectionId, 'metric_item', $statItems, $blockIds, $langIds);
 
         // ── 5. rich_text — Continuación ───────────────────────────────────────
         $this->upsertBlock(
@@ -173,11 +173,11 @@ class SiteHistoryPageSeeder extends Seeder
             $langIds
         );
 
-        // ── 6. faq_accordion + 3 faq_item children ────────────────────────────
+        // ── 6. accordion + 3 accordion_item children ────────────────────────────
         $faqAccordionId = $this->upsertBlock(
             $historyPageId,
             $blockIds,
-            'faq_accordion',
+            'accordion',
             6,
             ['css_class' => ''],
             ['es' => [], 'en' => []],
@@ -189,42 +189,42 @@ class SiteHistoryPageSeeder extends Seeder
                 'sort_order' => 1,
                 'is_open'    => true,
                 'es' => [
-                    'question' => '¿Cómo nació la organización?',
-                    'answer'   => '<p>La organización nació en 2013 de la iniciativa de un grupo de personas con una visión común: construir comunidad desde la acción. Lo que comenzó como reuniones informales se transformó rápidamente en un proyecto estructurado con objetivos claros.</p>',
+                    'title'    => '¿Cómo nació la organización?',
+                    'content'  => '<p>La organización nació en 2013 de la iniciativa de un grupo de personas con una visión común: construir comunidad desde la acción. Lo que comenzó como reuniones informales se transformó rápidamente en un proyecto estructurado con objetivos claros.</p>',
                 ],
                 'en' => [
-                    'question' => 'How was the organization founded?',
-                    'answer'   => '<p>The organization was founded in 2013 by a group of people with a common vision: to build community through action. What began as informal meetings quickly became a structured project with clear objectives.</p>',
+                    'title'    => 'How was the organization founded?',
+                    'content'  => '<p>The organization was founded in 2013 by a group of people with a common vision: to build community through action. What began as informal meetings quickly became a structured project with clear objectives.</p>',
                 ],
             ],
             [
                 'sort_order' => 2,
                 'is_open'    => false,
                 'es' => [
-                    'question' => '¿Cuáles han sido los hitos más importantes?',
-                    'answer'   => '<p>Entre los momentos clave de nuestra historia están la obtención de nuestro primer financiamiento institucional en 2015, la apertura de nuestra segunda sede en 2018, y la consolidación de nuestra plataforma digital en 2022, que nos permitió llegar a más personas que nunca.</p>',
+                    'title'    => '¿Cuáles han sido los hitos más importantes?',
+                    'content'  => '<p>Entre los momentos clave de nuestra historia están la obtención de nuestro primer financiamiento institucional en 2015, la apertura de nuestra segunda sede en 2018, y la consolidación de nuestra plataforma digital en 2022, que nos permitió llegar a más personas que nunca.</p>',
                 ],
                 'en' => [
-                    'question' => 'What have been the most important milestones?',
-                    'answer'   => '<p>Among the key moments in our history are obtaining our first institutional funding in 2015, opening our second location in 2018, and consolidating our digital platform in 2022, which allowed us to reach more people than ever before.</p>',
+                    'title'    => 'What have been the most important milestones?',
+                    'content'  => '<p>Among the key moments in our history are obtaining our first institutional funding in 2015, opening our second location in 2018, and consolidating our digital platform in 2022, which allowed us to reach more people than ever before.</p>',
                 ],
             ],
             [
                 'sort_order' => 3,
                 'is_open'    => false,
                 'es' => [
-                    'question' => '¿Hacia dónde va la organización?',
-                    'answer'   => '<p>Nuestro plan para los próximos años contempla la expansión a nuevas regiones, el fortalecimiento de nuestros programas de formación y la construcción de alianzas estratégicas con otras organizaciones. Queremos seguir creciendo sin perder el espíritu que nos trajo hasta aquí.</p>',
+                    'title'    => '¿Hacia dónde va la organización?',
+                    'content'  => '<p>Nuestro plan para los próximos años contempla la expansión a nuevas regiones, el fortalecimiento de nuestros programas de formación y la construcción de alianzas estratégicas con otras organizaciones. Queremos seguir creciendo sin perder el espíritu que nos trajo hasta aquí.</p>',
                 ],
                 'en' => [
-                    'question' => 'Where is the organization headed?',
-                    'answer'   => '<p>Our plan for the coming years includes expanding to new regions, strengthening our training programs, and building strategic alliances with other organizations. We want to keep growing without losing the spirit that brought us here.</p>',
+                    'title'    => 'Where is the organization headed?',
+                    'content'  => '<p>Our plan for the coming years includes expanding to new regions, strengthening our training programs, and building strategic alliances with other organizations. We want to keep growing without losing the spirit that brought us here.</p>',
                 ],
             ],
         ];
 
         foreach ($faqItems as $faqItem) {
-            $blockId = $blockIds['faq_item'] ?? null;
+            $blockId = $blockIds['accordion_item'] ?? null;
             if ($blockId === null) {
                 continue;
             }

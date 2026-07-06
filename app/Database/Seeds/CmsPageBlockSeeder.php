@@ -25,8 +25,8 @@ class CmsPageBlockSeeder extends Seeder
             'collection_grid',
             'cta',
             'page_header',
-            'contact_form',
-            'location_info',
+            'form_embed',
+            'contact_info',
             'social_links',
         ]);
 
@@ -164,7 +164,7 @@ class CmsPageBlockSeeder extends Seeder
                 ],
             ],
             [
-                'block_key' => 'contact_form',
+                'block_key' => 'form_embed',
                 'sort_order' => 2,
                 'config'    => [
                     'form_key'        => 'contact',
@@ -191,7 +191,7 @@ class CmsPageBlockSeeder extends Seeder
                 ],
             ],
             [
-                'block_key' => 'location_info',
+                'block_key' => 'contact_info',
                 'sort_order' => 3,
                 'config'    => [
                     'map_embed_url' => 'https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3329.0664974635676!2d-70.6508083!3d-33.4474867!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x9662c50f83733e8b%3A0xc38fa632e825a1e7!2sPalacio%20de%20La%20Moneda!5e0!3m2!1ses!2scl!4v1700000000000!5m2!1ses!2scl',

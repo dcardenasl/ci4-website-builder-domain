@@ -9,11 +9,11 @@ use CodeIgniter\Database\Seeder;
 /**
  * Creates the About / Quiénes Somos page with the following blocks:
  *   page_header, hero_banner, rich_text,
- *   features_grid (container) + 3 × feature_card (Misión, Visión, Valores),
- *   stats_section (container) + 3 × stat_item,
- *   testimonials_slider (container) + 2 × testimonial_card,
- *   logo_showcase (container) + 3 × logo_item,
- *   faq_accordion (container) + 3 × faq_item,
+ *   cards_grid (container) + 3 × card_item (Misión, Visión, Valores),
+ *   metrics_grid (container) + 3 × metric_item,
+ *   cards_slider (container) + 2 × slide_card,
+ *   asset_showcase (container) + 3 × asset_item,
+ *   accordion (container) + 3 × accordion_item,
  *   video_player.
  *
  * Idempotent: upserts pages, translations, instances, and block translations.
@@ -55,11 +55,11 @@ class SiteAboutPageSeeder extends Seeder
 
         $blockIds = $this->blockIds([
             'page_header', 'hero_banner', 'rich_text',
-            'features_grid', 'feature_card',
-            'stats_section', 'stat_item',
-            'testimonials_slider', 'testimonial_card',
-            'logo_showcase', 'logo_item',
-            'faq_accordion', 'faq_item',
+            'cards_grid', 'card_item',
+            'metrics_grid', 'metric_item',
+            'cards_slider', 'slide_card',
+            'asset_showcase', 'asset_item',
+            'accordion', 'accordion_item',
             'video_player',
         ]);
 
@@ -129,11 +129,11 @@ class SiteAboutPageSeeder extends Seeder
             $langIds
         );
 
-        // ── 4. features_grid (Misión / Visión / Valores) ─────────────────────
+        // ── 4. cards_grid (Misión / Visión / Valores) ─────────────────────
         $featuresGridId = $this->upsertBlock(
             $aboutPageId,
             $blockIds,
-            'features_grid',
+            'cards_grid',
             4,
             ['columns_desktop' => '3', 'variant' => 'bordered', 'css_class' => ''],
             ['es' => [], 'en' => []],
@@ -187,13 +187,13 @@ class SiteAboutPageSeeder extends Seeder
                 ],
             ],
         ];
-        $this->seedChildBlocks($aboutPageId, $featuresGridId, 'feature_card', $featureCards, $blockIds, $langIds);
+        $this->seedChildBlocks($aboutPageId, $featuresGridId, 'card_item', $featureCards, $blockIds, $langIds);
 
-        // ── 5. stats_section (primary) + 3 stat_item children ────────────────
+        // ── 5. metrics_grid (primary) + 3 metric_item children ────────────────
         $statsSectionId = $this->upsertBlock(
             $aboutPageId,
             $blockIds,
-            'stats_section',
+            'metrics_grid',
             5,
             ['variant' => 'primary', 'css_class' => ''],
             ['es' => [], 'en' => []],
@@ -217,13 +217,13 @@ class SiteAboutPageSeeder extends Seeder
                 'en' => ['number' => '25+',  'label' => 'Strategic partners',     'icon' => 'handshake'],
             ],
         ];
-        $this->seedChildBlocks($aboutPageId, $statsSectionId, 'stat_item', $statItems, $blockIds, $langIds);
+        $this->seedChildBlocks($aboutPageId, $statsSectionId, 'metric_item', $statItems, $blockIds, $langIds);
 
-        // ── 6. testimonials_slider + 2 testimonial_card children ─────────────
+        // ── 6. cards_slider + 2 slide_card children ─────────────
         $testimonialsSliderId = $this->upsertBlock(
             $aboutPageId,
             $blockIds,
-            'testimonials_slider',
+            'cards_slider',
             6,
             ['layout' => 'slider', 'autoplay' => true, 'interval' => 5000, 'css_class' => ''],
             ['es' => [], 'en' => []],
@@ -262,13 +262,13 @@ class SiteAboutPageSeeder extends Seeder
                 ],
             ],
         ];
-        $this->seedChildBlocks($aboutPageId, $testimonialsSliderId, 'testimonial_card', $testimonialCards, $blockIds, $langIds);
+        $this->seedChildBlocks($aboutPageId, $testimonialsSliderId, 'slide_card', $testimonialCards, $blockIds, $langIds);
 
-        // ── 7. logo_showcase (aliados) + 3 logo_item children ────────────────
+        // ── 7. asset_showcase (aliados) + 3 asset_item children ────────────────
         $logoShowcaseId = $this->upsertBlock(
             $aboutPageId,
             $blockIds,
-            'logo_showcase',
+            'asset_showcase',
             7,
             ['layout' => 'marquee', 'speed' => 'normal', 'grayscale' => true, 'css_class' => ''],
             ['es' => [], 'en' => []],
@@ -292,13 +292,13 @@ class SiteAboutPageSeeder extends Seeder
                 'en' => ['name' => 'Partner C', 'link_url' => ''],
             ],
         ];
-        $this->seedChildBlocks($aboutPageId, $logoShowcaseId, 'logo_item', $logoItems, $blockIds, $langIds);
+        $this->seedChildBlocks($aboutPageId, $logoShowcaseId, 'asset_item', $logoItems, $blockIds, $langIds);
 
-        // ── 8. faq_accordion + 3 faq_item children ────────────────────────────
+        // ── 8. accordion + 3 accordion_item children ────────────────────────────
         $faqAccordionId = $this->upsertBlock(
             $aboutPageId,
             $blockIds,
-            'faq_accordion',
+            'accordion',
             8,
             ['css_class' => ''],
             ['es' => [], 'en' => []],
@@ -310,42 +310,42 @@ class SiteAboutPageSeeder extends Seeder
                 'sort_order' => 1,
                 'is_open'    => true,
                 'es' => [
-                    'question' => '¿Cuál es la misión de la organización?',
-                    'answer'   => '<p>Nuestra misión es crear oportunidades de crecimiento y transformación para las personas y comunidades con las que trabajamos, a través de programas, proyectos e iniciativas con impacto medible.</p>',
+                    'title'    => '¿Cuál es la misión de la organización?',
+                    'content'  => '<p>Nuestra misión es crear oportunidades de crecimiento y transformación para las personas y comunidades con las que trabajamos, a través de programas, proyectos e iniciativas con impacto medible.</p>',
                 ],
                 'en' => [
-                    'question' => 'What is the organization\'s mission?',
-                    'answer'   => '<p>Our mission is to create opportunities for growth and transformation for the people and communities we work with, through programs, projects, and initiatives with measurable impact.</p>',
+                    'title'    => 'What is the organization\'s mission?',
+                    'content'  => '<p>Our mission is to create opportunities for growth and transformation for the people and communities we work with, through programs, projects, and initiatives with measurable impact.</p>',
                 ],
             ],
             [
                 'sort_order' => 2,
                 'is_open'    => false,
                 'es' => [
-                    'question' => '¿Quiénes pueden participar en sus programas?',
-                    'answer'   => '<p>Nuestros programas están abiertos a personas, organizaciones e instituciones que compartan nuestros valores y quieran sumarse a un proceso de aprendizaje y desarrollo. Contáctanos para conocer los requisitos específicos de cada iniciativa.</p>',
+                    'title'    => '¿Quiénes pueden participar en sus programas?',
+                    'content'  => '<p>Nuestros programas están abiertos a personas, organizaciones e instituciones que compartan nuestros valores y quieran sumarse a un proceso de aprendizaje y desarrollo. Contáctanos para conocer los requisitos específicos de cada iniciativa.</p>',
                 ],
                 'en' => [
-                    'question' => 'Who can participate in your programs?',
-                    'answer'   => '<p>Our programs are open to individuals, organizations, and institutions that share our values and want to join a learning and development process. Contact us to learn about the specific requirements for each initiative.</p>',
+                    'title'    => 'Who can participate in your programs?',
+                    'content'  => '<p>Our programs are open to individuals, organizations, and institutions that share our values and want to join a learning and development process. Contact us to learn about the specific requirements for each initiative.</p>',
                 ],
             ],
             [
                 'sort_order' => 3,
                 'is_open'    => false,
                 'es' => [
-                    'question' => '¿Cómo puedo colaborar con la organización?',
-                    'answer'   => '<p>Hay muchas formas de colaborar: como voluntario, como aliado institucional, como patrocinador o simplemente difundiendo nuestro trabajo. Escríbenos a través del formulario de contacto y te contamos cómo puedes sumarte.</p>',
+                    'title'    => '¿Cómo puedo colaborar con la organización?',
+                    'content'  => '<p>Hay muchas formas de colaborar: como voluntario, como aliado institucional, como patrocinador o simplemente difundiendo nuestro trabajo. Escríbenos a través del formulario de contacto y te contamos cómo puedes sumarte.</p>',
                 ],
                 'en' => [
-                    'question' => 'How can I collaborate with the organization?',
-                    'answer'   => '<p>There are many ways to collaborate: as a volunteer, as an institutional partner, as a sponsor, or simply by spreading the word about our work. Write to us through the contact form and we will tell you how you can get involved.</p>',
+                    'title'    => 'How can I collaborate with the organization?',
+                    'content'  => '<p>There are many ways to collaborate: as a volunteer, as an institutional partner, as a sponsor, or simply by spreading the word about our work. Write to us through the contact form and we will tell you how you can get involved.</p>',
                 ],
             ],
         ];
 
         foreach ($faqItems as $faqItem) {
-            $blockId = $blockIds['faq_item'] ?? null;
+            $blockId = $blockIds['accordion_item'] ?? null;
             if ($blockId === null) {
                 continue;
             }

@@ -10,9 +10,9 @@ class AddNewCmsBlockTypes extends Migration
 {
     private array $blocks = [
         [
-            'block_key' => 'faq_accordion',
-            'name' => 'Acordeón FAQ (Contenedor)',
-            'description' => 'Contenedor para agrupar preguntas frecuentes con despliegue interactivo.',
+            'block_key' => 'accordion',
+            'name' => 'Acordeón (Contenedor)',
+            'description' => 'Contenedor para agrupar elementos desplegables como preguntas, requisitos, programa o detalles.',
             'category' => 'content',
             'icon' => 'list',
             'schema_definition' => [
@@ -28,15 +28,15 @@ class AddNewCmsBlockTypes extends Migration
             'sort_order' => 80,
         ],
         [
-            'block_key' => 'faq_item',
-            'name' => 'Pregunta FAQ',
-            'description' => 'Pregunta y respuesta individual dentro de un Acordeón FAQ.',
+            'block_key' => 'accordion_item',
+            'name' => 'Elemento de Acordeón',
+            'description' => 'Elemento desplegable individual dentro de un acordeón.',
             'category' => 'content',
             'icon' => 'help-circle',
             'schema_definition' => [
                 'fields' => [
-                    'question' => ['type' => 'string', 'label' => 'Pregunta', 'required' => true],
-                    'answer' => ['type' => 'richtext', 'label' => 'Respuesta', 'required' => true],
+                    'title' => ['type' => 'string', 'label' => 'Título', 'required' => true],
+                    'content' => ['type' => 'richtext', 'label' => 'Contenido', 'required' => true],
                 ],
                 'config_fields' => [
                     'is_open' => ['type' => 'boolean', 'label' => 'Abierto por defecto', 'required' => false, 'default' => false],
@@ -49,9 +49,9 @@ class AddNewCmsBlockTypes extends Migration
             'sort_order' => 81,
         ],
         [
-            'block_key' => 'features_grid',
-            'name' => 'Grilla de Características (Contenedor)',
-            'description' => 'Contenedor para mostrar servicios o características en una cuadrícula responsiva.',
+            'block_key' => 'cards_grid',
+            'name' => 'Grilla de Tarjetas (Contenedor)',
+            'description' => 'Contenedor para mostrar tarjetas manuales en una cuadrícula responsiva.',
             'category' => 'layout',
             'icon' => 'layout-grid',
             'schema_definition' => [
@@ -81,9 +81,9 @@ class AddNewCmsBlockTypes extends Migration
             'sort_order' => 85,
         ],
         [
-            'block_key' => 'feature_card',
-            'name' => 'Tarjeta de Característica',
-            'description' => 'Tarjeta individual de servicio, beneficio o característica con imagen, descripción y enlace.',
+            'block_key' => 'card_item',
+            'name' => 'Tarjeta',
+            'description' => 'Tarjeta individual con imagen, título, descripción y enlace opcional.',
             'category' => 'content',
             'icon' => 'credit-card',
             'schema_definition' => [
@@ -103,9 +103,9 @@ class AddNewCmsBlockTypes extends Migration
             'sort_order' => 86,
         ],
         [
-            'block_key' => 'testimonials_slider',
-            'name' => 'Testimonios (Contenedor)',
-            'description' => 'Contenedor para mostrar opiniones o testimonios en formato slider o cuadrícula.',
+            'block_key' => 'cards_slider',
+            'name' => 'Slider de Tarjetas (Contenedor)',
+            'description' => 'Contenedor para mostrar tarjetas editoriales en formato slider o cuadrícula.',
             'category' => 'marketing',
             'icon' => 'message-square',
             'schema_definition' => [
@@ -130,14 +130,14 @@ class AddNewCmsBlockTypes extends Migration
             'sort_order' => 90,
         ],
         [
-            'block_key' => 'testimonial_card',
-            'name' => 'Tarjeta de Testimonio',
-            'description' => 'Tarjeta de testimonio individual con cita, autor, rol, foto y calificación.',
+            'block_key' => 'slide_card',
+            'name' => 'Tarjeta de Slider',
+            'description' => 'Tarjeta individual para carrusel o grilla con cita, autor, rol, imagen y calificación opcional.',
             'category' => 'marketing',
             'icon' => 'user-check',
             'schema_definition' => [
                 'fields' => [
-                    'quote' => ['type' => 'text', 'label' => 'Testimonio / Cita', 'required' => true],
+                    'quote' => ['type' => 'text', 'label' => 'Cita / Texto', 'required' => true],
                     'author' => ['type' => 'string', 'label' => 'Autor', 'required' => true],
                     'role' => ['type' => 'string', 'label' => 'Organización o Rol', 'required' => false],
                     'avatar' => ['type' => 'file', 'label' => 'Foto del Autor', 'required' => false, 'accept' => 'image'],
@@ -158,9 +158,9 @@ class AddNewCmsBlockTypes extends Migration
             'sort_order' => 91,
         ],
         [
-            'block_key' => 'logo_showcase',
-            'name' => 'Vitrina de Logos (Contenedor)',
-            'description' => 'Contenedor para marcas o auspiciadores en carrusel infinito o grilla.',
+            'block_key' => 'asset_showcase',
+            'name' => 'Vitrina de Activos (Contenedor)',
+            'description' => 'Contenedor para logos, marcas, auspiciadores, certificaciones o recursos visuales en carrusel o grilla.',
             'category' => 'marketing',
             'icon' => 'images',
             'schema_definition' => [
@@ -191,14 +191,14 @@ class AddNewCmsBlockTypes extends Migration
             'sort_order' => 95,
         ],
         [
-            'block_key' => 'logo_item',
-            'name' => 'Logo de Auspiciador',
-            'description' => 'Logo individual dentro de la vitrina de auspiciadores.',
+            'block_key' => 'asset_item',
+            'name' => 'Activo Visual',
+            'description' => 'Elemento visual individual dentro de una vitrina de activos.',
             'category' => 'marketing',
             'icon' => 'image',
             'schema_definition' => [
                 'fields' => [
-                    'logo' => ['type' => 'file', 'label' => 'Imagen del Logo', 'required' => true, 'accept' => 'image'],
+                    'logo' => ['type' => 'file', 'label' => 'Imagen del Logo', 'required' => false, 'accept' => 'image'],
                     'name' => ['type' => 'string', 'label' => 'Nombre', 'required' => true],
                     'link_url' => ['type' => 'url', 'label' => 'URL Sitio Web', 'required' => false],
                 ],
@@ -211,9 +211,9 @@ class AddNewCmsBlockTypes extends Migration
             'sort_order' => 96,
         ],
         [
-            'block_key' => 'stats_section',
-            'name' => 'Sección de Estadísticas (Contenedor)',
-            'description' => 'Contenedor para mostrar cifras o logros numéricos con animación.',
+            'block_key' => 'metrics_grid',
+            'name' => 'Grilla de Métricas (Contenedor)',
+            'description' => 'Contenedor para mostrar métricas, cifras o logros numéricos.',
             'category' => 'layout',
             'icon' => 'calculator',
             'schema_definition' => [
@@ -236,9 +236,9 @@ class AddNewCmsBlockTypes extends Migration
             'sort_order' => 100,
         ],
         [
-            'block_key' => 'stat_item',
-            'name' => 'Cifra de Estadística',
-            'description' => 'Logro o estadística individual con número animado e ícono.',
+            'block_key' => 'metric_item',
+            'name' => 'Métrica',
+            'description' => 'Métrica individual con número, etiqueta e ícono opcional.',
             'category' => 'content',
             'icon' => 'hash',
             'schema_definition' => [
