@@ -7,6 +7,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+- **Generic block naming normalization** — consolidated domain-specific block types (news_grid, portfolio_grid, events_grid, contact_form, location_info, faq_accordion, etc.) into unified generic block names (collection_grid, form_embed, contact_info, accordion, etc.); migration `NormalizeCmsGenericBlockKeys` automatically migrates existing instances; improves consistency and reduces block type proliferation
+
 ### Added
 - **Dynamic ordering for entry listings** — enhanced `PublicEntryIndexRequestDTO` and `PublicEntryReader` with `order_by` (published_at, created_at, sort_order, title) and `order_direction` (asc/desc) parameters; public `/api/v1/cms/public/{lang}/entries/{collection}` endpoint now supports flexible sorting with title-based ordering via join to translations table
 - **Unified collection grid block** — consolidated a set of collection-specific grid block types into a single `collection_grid` block with flexible configuration (order_by, order_direction, layout_variant); updated `BlockTemplateCatalog` and database seeders to use the new unified block
