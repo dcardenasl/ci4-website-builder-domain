@@ -91,9 +91,25 @@ class PublicEntryReader
                 ->orWhere('scheduled_at <=', $now)
             ->groupEnd();
 
-        $total   = (int) $builder->countAllResults(false);
+        $total = (int) $builder->countAllResults(false);
+
+        $orderColumn = match ($dto->order_by) {
+            'published_at' => 'cms_entries.published_at',
+            'created_at'   => 'cms_entries.created_at',
+            'title'        => 'cms_entry_translations.title',
+            default        => 'cms_entries.sort_order',
+        };
+
+        if ($dto->order_by === 'title') {
+            $builder->join(
+                'cms_entry_translations',
+                'cms_entry_translations.entry_id = cms_entries.id AND cms_entry_translations.language_id = ' . (int) $langId,
+                'left'
+            );
+        }
+
         $entries = $builder
-            ->orderBy('cms_entries.sort_order', 'ASC')
+            ->orderBy($orderColumn, $dto->order_direction)
             ->orderBy('cms_entries.created_at', 'DESC')
             ->findAll($dto->per_page, $offset);
 

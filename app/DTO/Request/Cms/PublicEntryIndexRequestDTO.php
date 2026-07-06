@@ -14,6 +14,8 @@ readonly class PublicEntryIndexRequestDTO extends BaseRequestDTO
     public int $per_page;
     public ?string $category;
     public ?string $tag;
+    public string $order_by;
+    public string $order_direction;
 
     /** @return array<string, string> */
     public function rules(): array
@@ -23,8 +25,11 @@ readonly class PublicEntryIndexRequestDTO extends BaseRequestDTO
             'collection_key' => 'required|string|max_length[50]',
             'page'           => 'permit_empty|is_natural_no_zero',
             'per_page'       => 'permit_empty|is_natural_no_zero|less_than[101]',
+            'limit'          => 'permit_empty|is_natural_no_zero|less_than[101]',
             'category'       => 'permit_empty|string|max_length[150]',
             'tag'            => 'permit_empty|string|max_length[100]',
+            'order_by'       => 'permit_empty|in_list[published_at,sort_order,created_at,title]',
+            'order_direction' => 'permit_empty|in_list[asc,desc,ASC,DESC]',
         ];
     }
 
@@ -34,9 +39,13 @@ readonly class PublicEntryIndexRequestDTO extends BaseRequestDTO
         $this->lang           = (string) ($data['lang'] ?? '');
         $this->collection_key = (string) ($data['collection_key'] ?? '');
         $this->page           = isset($data['page']) && $data['page'] !== '' ? (int) $data['page'] : 1;
-        $this->per_page       = isset($data['per_page']) && $data['per_page'] !== '' ? (int) $data['per_page'] : 20;
+        $perPage              = $data['per_page'] ?? ($data['limit'] ?? 20);
+        $this->per_page       = $perPage !== '' ? (int) $perPage : 20;
         $this->category       = isset($data['category']) && $data['category'] !== '' ? (string) $data['category'] : null;
         $this->tag            = isset($data['tag']) && $data['tag'] !== '' ? (string) $data['tag'] : null;
+        $this->order_by       = (string) ($data['order_by'] ?? 'sort_order');
+        $direction            = strtoupper((string) ($data['order_direction'] ?? 'ASC'));
+        $this->order_direction = $direction === 'DESC' ? 'DESC' : 'ASC';
     }
 
     /** @return array<string, mixed> */
@@ -49,6 +58,8 @@ readonly class PublicEntryIndexRequestDTO extends BaseRequestDTO
             'per_page'       => $this->per_page,
             'category'       => $this->category,
             'tag'            => $this->tag,
+            'order_by'       => $this->order_by,
+            'order_direction' => $this->order_direction,
         ];
     }
 }
