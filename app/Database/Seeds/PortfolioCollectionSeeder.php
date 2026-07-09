@@ -4,26 +4,19 @@ declare(strict_types=1);
 
 namespace App\Database\Seeds;
 
+use App\Database\Seeds\Concerns\IdempotentSeederSupport;
 use CodeIgniter\Database\Seeder;
 
 /**
  * Seeds the starter site's portfolio collection with categories, tags, and sample entries.
- * Idempotent: skips if the collection already exists.
+ * Idempotent across repeated bootstrap runs and partial reseeds.
  */
 class PortfolioCollectionSeeder extends Seeder
 {
+    use IdempotentSeederSupport;
+
     public function run(): void
     {
-        $existing = $this->db->table('cms_collections')
-            ->where('collection_key', 'portafolio')
-            ->get()
-            ->getRowArray();
-
-        if ($existing !== null) {
-            echo "PortfolioCollectionSeeder: 'portafolio' collection already exists, skipping.\n";
-            return;
-        }
-
         $langIds = $this->langIds(['es', 'en']);
 
         if (empty($langIds['es'])) {
@@ -66,7 +59,9 @@ class PortfolioCollectionSeeder extends Seeder
         ];
 
         // ── 1. Collection ──────────────────────────────────────────────────────
-        $this->db->table('cms_collections')->insert([
+        $collectionId = $this->upsertRecord('cms_collections', [
+            'collection_key' => 'portafolio',
+        ], [
             'collection_key'           => 'portafolio',
             'collection_type'          => 'portfolio',
             'is_active'                => 1,
@@ -78,10 +73,12 @@ class PortfolioCollectionSeeder extends Seeder
             'sort_order'               => 20,
             'block_template'           => json_encode($preset['block_template'], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES),
             'wizard_config'            => json_encode($preset['wizard_config'], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES),
-            'created_at'               => date('Y-m-d H:i:s'),
-            'updated_at'               => date('Y-m-d H:i:s'),
         ]);
-        $collectionId = (int) $this->db->insertID();
+
+        if ($collectionId === null) {
+            echo "PortfolioCollectionSeeder: unable to seed 'portafolio' collection.\n";
+            return;
+        }
 
         // ── 2. Collection translations ─────────────────────────────────────────
         $collectionTranslations = [
@@ -110,10 +107,10 @@ class PortfolioCollectionSeeder extends Seeder
             if ($langId === null) {
                 continue;
             }
-            $this->db->table('cms_collection_translations')->insert(array_merge([
+            $this->upsertRecord('cms_collection_translations', [
                 'collection_id' => $collectionId,
                 'language_id'   => $langId,
-            ], $trans));
+            ], $trans);
         }
 
         // ── 3. Categories ──────────────────────────────────────────────────────
@@ -124,26 +121,29 @@ class PortfolioCollectionSeeder extends Seeder
 
         $catIdMap = [];
         foreach ($categories as $index => $cat) {
-            $this->db->table('cms_categories')->insert([
+            $catId = $this->upsertRecord('cms_categories', [
                 'collection_id' => $collectionId,
-                'parent_id'     => null,
                 'sort_order'    => $index + 1,
-                'is_active'     => 1,
-                'created_at'    => date('Y-m-d H:i:s'),
-                'updated_at'    => date('Y-m-d H:i:s'),
+            ], [
+                'parent_id'  => null,
+                'is_active'   => 1,
             ]);
-            $catId = (int) $this->db->insertID();
+
+            if ($catId === null) {
+                continue;
+            }
 
             foreach ($cat as $langCode => $trans) {
                 $langId = $langIds[$langCode] ?? null;
                 if ($langId === null) {
                     continue;
                 }
-                $this->db->table('cms_category_translations')->insert([
+                $this->upsertRecord('cms_category_translations', [
                     'category_id' => $catId,
                     'language_id' => $langId,
-                    'name'        => $trans['name'],
-                    'slug'        => $trans['slug'],
+                ], [
+                    'name' => $trans['name'],
+                    'slug' => $trans['slug'],
                 ]);
             }
             $catIdMap[$cat['es']['slug']] = $catId;
@@ -157,44 +157,18 @@ class PortfolioCollectionSeeder extends Seeder
 
         $tagIdMap = [];
         foreach ($tags as $tag) {
-            $existingTag = $this->db->table('cms_tags')
-                ->select('cms_tags.id')
-                ->join('cms_tag_translations', 'cms_tag_translations.tag_id = cms_tags.id')
-                ->where('cms_tag_translations.slug', $tag['es']['slug'])
-                ->get()
-                ->getRowArray();
-
-            if ($existingTag !== null) {
-                $tagIdMap[$tag['es']['slug']] = (int) $existingTag['id'];
+            $tagId = $this->upsertTag($tag, $langIds);
+            if ($tagId <= 0) {
                 continue;
             }
 
-            $this->db->table('cms_tags')->insert([
-                'is_active'  => 1,
-                'created_at' => date('Y-m-d H:i:s'),
-                'updated_at' => date('Y-m-d H:i:s'),
-            ]);
-            $tagId = (int) $this->db->insertID();
-
-            foreach ($tag as $langCode => $trans) {
-                $langId = $langIds[$langCode] ?? null;
-                if ($langId === null) {
-                    continue;
-                }
-                $this->db->table('cms_tag_translations')->insert([
-                    'tag_id'      => $tagId,
-                    'language_id' => $langId,
-                    'name'        => $trans['name'],
-                    'slug'        => $trans['slug'],
-                ]);
-            }
             $tagIdMap[$tag['es']['slug']] = $tagId;
         }
 
         // ── 5. Entries (Sample Projects) ───────────────────────────────────────
         $entries = [
             [
-                'featured_image_url' => 'https://images.unsplash.com/photo-1507238691740-187a5b1d37b8?auto=format&fit=crop&w=600&q=80',
+                'featured_image_url' => 'https://picsum.photos/id/2/600/400',
                 'category_slug'      => 'desarrollo-web',
                 'tag_slugs'          => ['reciente', 'destacado'],
                 'es' => [
@@ -215,7 +189,7 @@ class PortfolioCollectionSeeder extends Seeder
                 ],
             ],
             [
-                'featured_image_url' => 'https://images.unsplash.com/photo-1586717791821-3f44a563fa4c?auto=format&fit=crop&w=600&q=80',
+                'featured_image_url' => 'https://picsum.photos/id/10/600/400',
                 'category_slug'      => 'diseno-ui-ux',
                 'tag_slugs'          => ['destacado'],
                 'es' => [
@@ -240,62 +214,60 @@ class PortfolioCollectionSeeder extends Seeder
         $blockIds = $this->blockIds(['rich_text', 'image']);
 
         foreach ($entries as $index => $entry) {
-            $this->db->table('cms_entries')->insert([
-                'collection_id'      => $collectionId,
-                'workflow_status'    => 'published',
-                'is_featured'        => in_array('destacado', $entry['tag_slugs'], true) ? 1 : 0,
-                'sort_order'         => ($index + 1) * 10,
-                'published_at'       => date('Y-m-d H:i:s'),
-                'created_at'         => date('Y-m-d H:i:s'),
-                'updated_at'         => date('Y-m-d H:i:s'),
+            $entryId = $this->upsertRecord('cms_entries', [
+                'collection_id' => $collectionId,
+                'sort_order'    => ($index + 1) * 10,
+            ], [
+                'workflow_status' => 'published',
+                'is_featured'     => in_array('destacado', $entry['tag_slugs'], true) ? 1 : 0,
+                'published_at'    => date('Y-m-d H:i:s'),
             ]);
-            $entryId = (int) $this->db->insertID();
+
+            if ($entryId === null) {
+                continue;
+            }
 
             // Category relation
             $catSlug = $entry['category_slug'];
             $catId   = $catIdMap[$catSlug] ?? null;
             if ($catId !== null) {
-                $this->db->table('cms_entry_categories')->insert([
+                $this->upsertRecord('cms_entry_categories', [
                     'entry_id'    => $entryId,
                     'category_id' => $catId,
-                ]);
+                ], []);
             }
 
             // Tag relations
             foreach ($entry['tag_slugs'] as $tagSlug) {
                 $tagId = $tagIdMap[$tagSlug] ?? null;
                 if ($tagId !== null) {
-                    $this->db->table('cms_entry_tags')->insert([
+                    $this->upsertRecord('cms_entry_tags', [
                         'entry_id' => $entryId,
                         'tag_id'   => $tagId,
-                    ]);
+                    ], []);
                 }
             }
 
             // Create single block instances for the entry (shared across languages)
             // Block 1: image
-            $this->db->table('cms_block_instances')->insert([
+            $instImageId = $this->upsertRecord('cms_block_instances', [
                 'block_id'   => $blockIds['image'],
                 'owner_type' => 'entry',
                 'owner_id'   => $entryId,
                 'sort_order' => 1,
-                'is_active'  => 1,
-                'created_at' => date('Y-m-d H:i:s'),
-                'updated_at' => date('Y-m-d H:i:s'),
+            ], [
+                'is_active' => 1,
             ]);
-            $instImageId = (int) $this->db->insertID();
 
             // Block 2: rich_text
-            $this->db->table('cms_block_instances')->insert([
+            $instRichTextId = $this->upsertRecord('cms_block_instances', [
                 'block_id'   => $blockIds['rich_text'],
                 'owner_type' => 'entry',
                 'owner_id'   => $entryId,
                 'sort_order' => 2,
-                'is_active'  => 1,
-                'created_at' => date('Y-m-d H:i:s'),
-                'updated_at' => date('Y-m-d H:i:s'),
+            ], [
+                'is_active' => 1,
             ]);
-            $instRichTextId = (int) $this->db->insertID();
 
             // Translations
             foreach (['es', 'en'] as $langCode) {
@@ -305,36 +277,36 @@ class PortfolioCollectionSeeder extends Seeder
                 }
                 $tData = $entry[$langCode];
 
-                $this->db->table('cms_entry_translations')->insert([
+                $this->upsertRecord('cms_entry_translations', [
                     'entry_id'         => $entryId,
                     'language_id'      => $langId,
+                ], [
                     'title'            => $tData['title'],
                     'slug'             => $tData['slug'],
                     'excerpt'          => $tData['excerpt'],
+                    'featured_image_url' => $entry['featured_image_url'],
                     'meta_title'       => $tData['meta_title'],
                     'meta_description' => $tData['meta_description'],
                 ]);
 
                 // Insert translation for Block 1: image
-                $this->db->table('cms_block_instance_translations')->insert([
+                $this->upsertRecord('cms_block_instance_translations', [
                     'instance_id' => $instImageId,
                     'language_id' => $langId,
+                ], [
                     'block_data'  => json_encode([
                         'image_url' => $entry['featured_image_url'],
                         'alt'       => $tData['title'],
                         'caption'   => 'Proyecto finalizado: ' . $tData['title']
                     ], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES),
-                    'created_at'  => date('Y-m-d H:i:s'),
-                    'updated_at'  => date('Y-m-d H:i:s'),
                 ]);
 
                 // Insert translation for Block 2: rich_text
-                $this->db->table('cms_block_instance_translations')->insert([
+                $this->upsertRecord('cms_block_instance_translations', [
                     'instance_id' => $instRichTextId,
                     'language_id' => $langId,
+                ], [
                     'block_data'  => json_encode(['content' => $tData['rich_text']], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES),
-                    'created_at'  => date('Y-m-d H:i:s'),
-                    'updated_at'  => date('Y-m-d H:i:s'),
                 ]);
             }
         }
@@ -376,5 +348,56 @@ class PortfolioCollectionSeeder extends Seeder
             $map[$row['code']] = (int) $row['id'];
         }
         return $map;
+    }
+
+    /**
+     * @param array<string, array{name: string, slug: string}> $tag
+     * @param array<string, int>                               $langIds
+     */
+    private function upsertTag(array $tag, array $langIds): int
+    {
+        $slugs = [];
+        foreach ($tag as $translation) {
+            $slugs[] = $translation['slug'];
+        }
+
+        $existingTag = $this->db->table('cms_tags')
+            ->select('cms_tags.id')
+            ->join('cms_tag_translations', 'cms_tag_translations.tag_id = cms_tags.id')
+            ->whereIn('cms_tag_translations.slug', $slugs)
+            ->groupBy('cms_tags.id')
+            ->orderBy('cms_tags.id', 'ASC')
+            ->limit(1)
+            ->get()
+            ->getRowArray();
+
+        if ($existingTag !== null) {
+            $tagId = (int) $existingTag['id'];
+        } else {
+            $tagId = $this->createRecord('cms_tags', [
+                'is_active' => 1,
+            ]) ?? 0;
+        }
+
+        if ($tagId <= 0) {
+            return 0;
+        }
+
+        foreach ($tag as $langCode => $trans) {
+            $langId = $langIds[$langCode] ?? null;
+            if ($langId === null) {
+                continue;
+            }
+
+            $this->upsertRecord('cms_tag_translations', [
+                'tag_id'      => $tagId,
+                'language_id' => $langId,
+            ], [
+                'name' => $trans['name'],
+                'slug' => $trans['slug'],
+            ]);
+        }
+
+        return $tagId;
     }
 }

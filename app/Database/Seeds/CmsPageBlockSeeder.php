@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Database\Seeds;
 
+use App\Database\Seeds\Concerns\IdempotentSeederSupport;
 use CodeIgniter\Database\Seeder;
 
 /**
@@ -12,14 +13,10 @@ use CodeIgniter\Database\Seeder;
  */
 class CmsPageBlockSeeder extends Seeder
 {
+    use IdempotentSeederSupport;
+
     public function run(): void
     {
-        $this->call(CmsLanguageSeeder::class);
-        $this->call(CmsFormSeeder::class);
-        $this->call(CmsBlockTypeSeeder::class);
-        $this->call(SitePagesSeeder::class);
-        $this->call(NewsCollectionSeeder::class);
-
         $blockIds = $this->blockIds([
             'hero_slider',
             'collection_grid',
@@ -39,6 +36,9 @@ class CmsPageBlockSeeder extends Seeder
             echo "CmsPageBlockSeeder: missing prerequisite pages, blocks or languages.\n";
             return;
         }
+
+        $this->resetPageBlocks($homePageId);
+        $this->resetPageBlocks($contactPageId);
 
         $homeBlocks = [
             [
@@ -291,6 +291,24 @@ class CmsPageBlockSeeder extends Seeder
         return $map;
     }
 
+    private function resetPageBlocks(int $pageId): void
+    {
+        $instanceIds = $this->db->table('cms_block_instances')
+            ->select('id')
+            ->where('owner_type', 'page')
+            ->where('owner_id', $pageId)
+            ->get()
+            ->getResultArray();
+
+        if ($instanceIds === []) {
+            return;
+        }
+
+        $ids = array_map(static fn (array $row): int => (int) $row['id'], $instanceIds);
+        $this->db->table('cms_block_instance_translations')->whereIn('instance_id', $ids)->delete();
+        $this->db->table('cms_block_instances')->whereIn('id', $ids)->delete();
+    }
+
     /**
      * @param string[] $codes
      * @return array<string, int>
@@ -334,38 +352,20 @@ class CmsPageBlockSeeder extends Seeder
                 continue;
             }
 
-            $existing = $this->db->table('cms_block_instances')
-                ->where('block_id', $blockId)
-                ->where('owner_type', $ownerType)
-                ->where('owner_id', $ownerId)
-                ->where('sort_order', (int) $block['sort_order'])
-                ->get()
-                ->getRowArray();
-
-            $payload = [
-                'block_id'         => $blockId,
+            $instanceId = $this->upsertRecord('cms_block_instances', [
+                'block_id'           => $blockId,
                 'owner_type'       => $ownerType,
                 'owner_id'         => $ownerId,
                 'parent_instance_id' => null,
                 'sort_order'       => (int) $block['sort_order'],
+            ], [
                 'column_index'     => null,
                 'is_active'        => 1,
                 'block_config'     => json_encode($block['config'] ?? [], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES),
-            ];
+            ]);
 
-            if ($existing === null) {
-                $this->db->table('cms_block_instances')->insert(array_merge($payload, [
-                    'created_at' => date('Y-m-d H:i:s'),
-                    'updated_at' => date('Y-m-d H:i:s'),
-                ]));
-                $instanceId = (int) $this->db->insertID();
-            } else {
-                $instanceId = (int) $existing['id'];
-                $this->db->table('cms_block_instances')
-                    ->where('id', $instanceId)
-                    ->update(array_merge($payload, [
-                        'updated_at' => date('Y-m-d H:i:s'),
-                    ]));
+            if ($instanceId === null) {
+                continue;
             }
 
             foreach (($block['data'] ?? []) as $langCode => $data) {
@@ -384,32 +384,13 @@ class CmsPageBlockSeeder extends Seeder
      */
     private function upsertBlockTranslation(int $instanceId, int $languageId, array $blockData): void
     {
-        $existing = $this->db->table('cms_block_instance_translations')
-            ->where('instance_id', $instanceId)
-            ->where('language_id', $languageId)
-            ->get()
-            ->getRowArray();
-
-        $payload = [
-            'instance_id'  => $instanceId,
-            'language_id'  => $languageId,
+        $this->upsertRecord('cms_block_instance_translations', [
+            'instance_id' => $instanceId,
+            'language_id' => $languageId,
+        ], [
             'block_data'   => json_encode($blockData, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES),
-            'is_published'  => 1,
-        ];
-
-        if ($existing === null) {
-            $this->db->table('cms_block_instance_translations')->insert(array_merge($payload, [
-                'created_at' => date('Y-m-d H:i:s'),
-                'updated_at' => date('Y-m-d H:i:s'),
-            ]));
-            return;
-        }
-
-        $this->db->table('cms_block_instance_translations')
-            ->where('id', (int) $existing['id'])
-            ->update(array_merge($payload, [
-                'updated_at' => date('Y-m-d H:i:s'),
-            ]));
+            'is_published' => 1,
+        ]);
     }
 
     private function placeholderSlide(string $label, string $background, string $foreground): string

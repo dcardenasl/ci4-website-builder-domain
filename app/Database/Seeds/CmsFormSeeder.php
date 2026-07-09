@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Database\Seeds;
 
+use App\Database\Seeds\Concerns\IdempotentSeederSupport;
 use CodeIgniter\Database\Seeder;
 
 /**
@@ -12,6 +13,8 @@ use CodeIgniter\Database\Seeder;
  */
 class CmsFormSeeder extends Seeder
 {
+    use IdempotentSeederSupport;
+
     private const CONTACT_FORM_KEY = 'contact';
 
     public function run(): void
@@ -126,94 +129,61 @@ class CmsFormSeeder extends Seeder
     /** @param array<string, mixed> $data */
     private function upsertForm(array $data): int
     {
-        $existing = $this->db->table('cms_forms')
-            ->where('form_key', $data['form_key'])
-            ->get()
-            ->getRowArray();
+        $formId = $this->upsertRecord('cms_forms', [
+            'form_key' => $data['form_key'],
+        ], [
+            'is_active'             => $data['is_active'],
+            'has_captcha'           => $data['has_captcha'],
+            'notify_email'          => $data['notify_email'],
+            'autoreply_enabled'     => $data['autoreply_enabled'],
+            'autoreply_email_field' => $data['autoreply_email_field'],
+        ]);
 
-        $payload = array_diff_key($data, ['form_key' => null]);
-
-        if ($existing === null) {
-            $this->db->table('cms_forms')->insert(array_merge(['form_key' => $data['form_key']], $payload));
-            return (int) $this->db->insertID();
+        if ($formId === null) {
+            throw new \RuntimeException('CmsFormSeeder: unable to seed contact form.');
         }
 
-        $this->db->table('cms_forms')->where('id', (int) $existing['id'])->update($payload);
-        return (int) $existing['id'];
+        return $formId;
     }
 
     /** @param array<string, mixed> $data */
     private function upsertFormTranslation(int $formId, int $languageId, array $data): void
     {
-        $existing = $this->db->table('cms_form_translations')
-            ->where('form_id', $formId)
-            ->where('language_id', $languageId)
-            ->get()
-            ->getRowArray();
-
-        if ($existing === null) {
-            $this->db->table('cms_form_translations')->insert(array_merge(
-                ['form_id' => $formId, 'language_id' => $languageId],
-                $data
-            ));
-            return;
-        }
-
-        $this->db->table('cms_form_translations')
-            ->where('id', (int) $existing['id'])
-            ->update($data);
+        $this->upsertRecord('cms_form_translations', [
+            'form_id'     => $formId,
+            'language_id' => $languageId,
+        ], $data);
     }
 
     /** @param array<string, mixed> $data */
     private function upsertFormField(int $formId, array $data): int
     {
-        $existing = $this->db->table('cms_form_fields')
-            ->where('form_id', $formId)
-            ->where('field_key', $data['field_key'])
-            ->get()
-            ->getRowArray();
-
-        $payload = [
+        $fieldId = $this->upsertRecord('cms_form_fields', [
+            'form_id'   => $formId,
+            'field_key' => $data['field_key'],
+        ], [
             'field_type'    => $data['field_type'],
             'display_order' => $data['display_order'],
             'is_required'   => $data['is_required'],
             'is_active'     => 1,
-        ];
+        ]);
 
-        if ($existing === null) {
-            $this->db->table('cms_form_fields')->insert(array_merge(
-                ['form_id' => $formId, 'field_key' => $data['field_key']],
-                $payload
+        if ($fieldId === null) {
+            throw new \RuntimeException(sprintf(
+                'CmsFormSeeder: unable to seed form field "%s".',
+                (string) $data['field_key']
             ));
-            return (int) $this->db->insertID();
         }
 
-        $this->db->table('cms_form_fields')
-            ->where('id', (int) $existing['id'])
-            ->update($payload);
-
-        return (int) $existing['id'];
+        return $fieldId;
     }
 
     /** @param array<string, mixed> $data */
     private function upsertFormFieldTranslation(int $fieldId, int $languageId, array $data): void
     {
-        $existing = $this->db->table('cms_form_field_translations')
-            ->where('form_field_id', $fieldId)
-            ->where('language_id', $languageId)
-            ->get()
-            ->getRowArray();
-
-        if ($existing === null) {
-            $this->db->table('cms_form_field_translations')->insert(array_merge(
-                ['form_field_id' => $fieldId, 'language_id' => $languageId],
-                $data
-            ));
-            return;
-        }
-
-        $this->db->table('cms_form_field_translations')
-            ->where('id', (int) $existing['id'])
-            ->update($data);
+        $this->upsertRecord('cms_form_field_translations', [
+            'form_field_id' => $fieldId,
+            'language_id'   => $languageId,
+        ], $data);
     }
 }

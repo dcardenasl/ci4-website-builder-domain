@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Database\Seeds;
 
+use App\Database\Seeds\Concerns\IdempotentSeederSupport;
 use CodeIgniter\Database\Seeder;
 
 /**
@@ -15,11 +16,10 @@ use CodeIgniter\Database\Seeder;
  */
 class CmsHeroSliderChildrenSeeder extends Seeder
 {
+    use IdempotentSeederSupport;
+
     public function run(): void
     {
-        $this->call(CmsBlockTypeSeeder::class);
-        $this->call(CmsPageBlockSeeder::class);
-
         $langIds = $this->langIds(['es', 'en']);
         if (! isset($langIds['es'], $langIds['en'])) {
             echo "CmsHeroSliderChildrenSeeder: missing languages. Seed CmsLanguageSeeder first.\n";
@@ -38,6 +38,8 @@ class CmsHeroSliderChildrenSeeder extends Seeder
             return;
         }
 
+        $this->resetHeroSliderChildren($heroSliderInstanceId);
+
         $homePageId = $this->homePageId();
         if ($homePageId === null) {
             echo "CmsHeroSliderChildrenSeeder: home page not found.\n";
@@ -49,12 +51,14 @@ class CmsHeroSliderChildrenSeeder extends Seeder
                 'sort_order' => 1,
                 'data' => [
                     'es' => [
+                        'image_url' => 'https://picsum.photos/id/180/1920/1080',
                         'heading'   => 'Bienvenidos a Mi Sitio',
                         'subtitle'  => 'Contenido multilingüe y gestión moderna para tu sitio web.',
                         'cta_label' => 'Conocer más',
                         'cta_url'   => '/nosotros',
                     ],
                     'en' => [
+                        'image_url' => 'https://picsum.photos/id/180/1920/1080',
                         'heading'   => 'Welcome to My Site',
                         'subtitle'  => 'Multilingual content and modern management for your website.',
                         'cta_label' => 'Learn more',
@@ -66,12 +70,14 @@ class CmsHeroSliderChildrenSeeder extends Seeder
                 'sort_order' => 2,
                 'data' => [
                     'es' => [
+                        'image_url' => 'https://picsum.photos/id/24/1920/1080',
                         'heading'   => 'Nuestra Historia',
                         'subtitle'  => 'Conoce el camino que hemos recorrido y los hitos que nos definen.',
                         'cta_label' => 'Ver nuestra historia',
                         'cta_url'   => '/historia',
                     ],
                     'en' => [
+                        'image_url' => 'https://picsum.photos/id/24/1920/1080',
                         'heading'   => 'Our History',
                         'subtitle'  => 'Discover the journey we have traveled and the milestones that define us.',
                         'cta_label' => 'Read our story',
@@ -83,12 +89,14 @@ class CmsHeroSliderChildrenSeeder extends Seeder
                 'sort_order' => 3,
                 'data' => [
                     'es' => [
+                        'image_url' => 'https://picsum.photos/id/370/1920/1080',
                         'heading'   => 'Contáctanos',
                         'subtitle'  => 'Escríbenos y te responderemos a la brevedad.',
                         'cta_label' => 'Ir al formulario',
                         'cta_url'   => '/contacto',
                     ],
                     'en' => [
+                        'image_url' => 'https://picsum.photos/id/370/1920/1080',
                         'heading'   => 'Contact Us',
                         'subtitle'  => 'Write to us and we will reply as soon as possible.',
                         'cta_label' => 'Open form',
@@ -99,35 +107,20 @@ class CmsHeroSliderChildrenSeeder extends Seeder
         ];
 
         foreach ($slides as $slide) {
-            $existing = $this->db->table('cms_block_instances')
-                ->where('block_id', $slideBannerId)
-                ->where('parent_instance_id', $heroSliderInstanceId)
-                ->where('sort_order', (int) $slide['sort_order'])
-                ->get()
-                ->getRowArray();
-
-            $payload = [
+            $instanceId = $this->upsertRecord('cms_block_instances', [
                 'block_id'           => $slideBannerId,
                 'owner_type'         => 'page',
                 'owner_id'           => $homePageId,
                 'parent_instance_id' => $heroSliderInstanceId,
                 'sort_order'         => (int) $slide['sort_order'],
-                'column_index'       => null,
-                'is_active'          => 1,
-                'block_config'       => json_encode([], JSON_UNESCAPED_UNICODE),
-            ];
+            ], [
+                'column_index' => null,
+                'is_active'    => 1,
+                'block_config' => json_encode([], JSON_UNESCAPED_UNICODE),
+            ]);
 
-            if ($existing === null) {
-                $this->db->table('cms_block_instances')->insert(array_merge($payload, [
-                    'created_at' => date('Y-m-d H:i:s'),
-                    'updated_at' => date('Y-m-d H:i:s'),
-                ]));
-                $instanceId = (int) $this->db->insertID();
-            } else {
-                $instanceId = (int) $existing['id'];
-                $this->db->table('cms_block_instances')
-                    ->where('id', $instanceId)
-                    ->update(array_merge($payload, ['updated_at' => date('Y-m-d H:i:s')]));
+            if ($instanceId === null) {
+                continue;
             }
 
             foreach ($slide['data'] as $langCode => $data) {
@@ -138,6 +131,23 @@ class CmsHeroSliderChildrenSeeder extends Seeder
                 $this->upsertTranslation($instanceId, $langId, $data);
             }
         }
+    }
+
+    private function resetHeroSliderChildren(int $parentInstanceId): void
+    {
+        $instances = $this->db->table('cms_block_instances')
+            ->select('id')
+            ->where('parent_instance_id', $parentInstanceId)
+            ->get()
+            ->getResultArray();
+
+        if ($instances === []) {
+            return;
+        }
+
+        $instanceIds = array_map(static fn (array $row): int => (int) $row['id'], $instances);
+        $this->db->table('cms_block_instance_translations')->whereIn('instance_id', $instanceIds)->delete();
+        $this->db->table('cms_block_instances')->whereIn('id', $instanceIds)->delete();
     }
 
     private function heroSliderInstanceId(): ?int
@@ -206,29 +216,12 @@ class CmsHeroSliderChildrenSeeder extends Seeder
      */
     private function upsertTranslation(int $instanceId, int $languageId, array $blockData): void
     {
-        $existing = $this->db->table('cms_block_instance_translations')
-            ->where('instance_id', $instanceId)
-            ->where('language_id', $languageId)
-            ->get()
-            ->getRowArray();
-
-        $payload = [
-            'instance_id'  => $instanceId,
-            'language_id'  => $languageId,
+        $this->upsertRecord('cms_block_instance_translations', [
+            'instance_id' => $instanceId,
+            'language_id' => $languageId,
+        ], [
             'block_data'   => json_encode($blockData, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES),
             'is_published' => 1,
-        ];
-
-        if ($existing === null) {
-            $this->db->table('cms_block_instance_translations')->insert(array_merge($payload, [
-                'created_at' => date('Y-m-d H:i:s'),
-                'updated_at' => date('Y-m-d H:i:s'),
-            ]));
-            return;
-        }
-
-        $this->db->table('cms_block_instance_translations')
-            ->where('id', (int) $existing['id'])
-            ->update(array_merge($payload, ['updated_at' => date('Y-m-d H:i:s')]));
+        ]);
     }
 }

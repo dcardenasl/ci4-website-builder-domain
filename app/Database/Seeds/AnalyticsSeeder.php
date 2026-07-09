@@ -4,10 +4,13 @@ declare(strict_types=1);
 
 namespace App\Database\Seeds;
 
+use App\Database\Seeds\Concerns\IdempotentSeederSupport;
 use CodeIgniter\Database\Seeder;
 
 class AnalyticsSeeder extends Seeder
 {
+    use IdempotentSeederSupport;
+
     public function run(): void
     {
         $settings = [
@@ -36,25 +39,18 @@ class AnalyticsSeeder extends Seeder
         ];
 
         foreach ($settings as $setting) {
-            $existing = $this->db->table('cms_settings')
-                ->where('setting_key', $setting['setting_key'])
-                ->get()
-                ->getRowArray();
-
-            if ($existing === null) {
-                $this->db->table('cms_settings')->insert($setting);
-            } else {
-                $this->db->table('cms_settings')
-                    ->where('setting_key', $setting['setting_key'])
-                    ->update([
-                        'setting_type'  => $setting['setting_type'],
-                        'setting_group' => $setting['setting_group'],
-                        'is_public'     => $setting['is_public'],
-                        'is_active'     => $setting['is_active'],
-                        'sort_order'    => $setting['sort_order'],
-                        'description'   => $setting['description'],
-                    ]);
-            }
+            $this->upsertRecord('cms_settings', [
+                'setting_key' => $setting['setting_key'],
+            ], [
+                'setting_value'   => $setting['setting_value'],
+                'setting_type'    => $setting['setting_type'],
+                'setting_group'   => $setting['setting_group'],
+                'is_translatable' => $setting['is_translatable'],
+                'is_public'       => $setting['is_public'],
+                'is_active'       => $setting['is_active'],
+                'sort_order'      => $setting['sort_order'],
+                'description'     => $setting['description'],
+            ]);
         }
     }
 }

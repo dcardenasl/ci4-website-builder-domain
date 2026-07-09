@@ -4,10 +4,13 @@ declare(strict_types=1);
 
 namespace App\Database\Seeds;
 
+use App\Database\Seeds\Concerns\IdempotentSeederSupport;
 use CodeIgniter\Database\Seeder;
 
 class SitePagesSeeder extends Seeder
 {
+    use IdempotentSeederSupport;
+
     public function run(): void
     {
         $langIds = $this->langIds(['es', 'en']);
@@ -107,26 +110,19 @@ class SitePagesSeeder extends Seeder
      */
     private function upsertPage(string $pageType, array $pageData): int
     {
-        $existing = $this->db->table('cms_pages')
-            ->where('page_type', $pageType)
-            ->where('deleted_at IS NULL', null, false)
-            ->get()
-            ->getRowArray();
+        $pageId = $this->upsertRecord('cms_pages', [
+            'page_type'  => $pageType,
+            'deleted_at' => null,
+        ], array_merge($pageData, [
+            'page_type'  => $pageType,
+            'deleted_at' => null,
+        ]));
 
-        $payload = array_merge($pageData, [
-            'page_type' => $pageType,
-        ]);
-
-        if ($existing === null) {
-            $this->db->table('cms_pages')->insert($payload);
-            return (int) $this->db->insertID();
+        if ($pageId === null) {
+            throw new \RuntimeException(sprintf('SitePagesSeeder: unable to seed page "%s".', $pageType));
         }
 
-        $this->db->table('cms_pages')
-            ->where('id', (int) $existing['id'])
-            ->update($pageData);
-
-        return (int) $existing['id'];
+        return $pageId;
     }
 
     /**
@@ -134,48 +130,29 @@ class SitePagesSeeder extends Seeder
      */
     private function upsertPageTranslation(int $pageId, int $languageId, array $translationData): void
     {
-        $existing = $this->db->table('cms_page_translations')
-            ->where('page_id', $pageId)
-            ->where('language_id', $languageId)
-            ->get()
-            ->getRowArray();
-
         $slug = (string) ($translationData['slug'] ?? '');
-        $slugConflict = null;
         if ($slug !== '') {
             $slugConflict = $this->db->table('cms_page_translations')
                 ->where('language_id', $languageId)
                 ->where('slug', $slug)
                 ->get()
                 ->getRowArray();
-        }
-
-        $payload = array_merge([
-            'page_id'     => $pageId,
-            'language_id' => $languageId,
-        ], $translationData, [
-            'updated_at' => date('Y-m-d H:i:s'),
-        ]);
-
-        if ($existing === null) {
             if ($slugConflict !== null && (int) $slugConflict['page_id'] !== $pageId) {
                 $this->db->table('cms_page_translations')
                     ->where('id', (int) $slugConflict['id'])
-                    ->update($payload + [
-                        'page_id' => $pageId,
-                    ]);
+                    ->update(array_merge($translationData, [
+                        'page_id'     => $pageId,
+                        'language_id' => $languageId,
+                        'updated_at'   => date('Y-m-d H:i:s'),
+                    ]));
 
                 return;
             }
-
-            $payload['created_at'] = date('Y-m-d H:i:s');
-            $this->db->table('cms_page_translations')->insert($payload);
-            return;
         }
 
-        unset($payload['page_id'], $payload['language_id'], $payload['created_at']);
-        $this->db->table('cms_page_translations')
-            ->where('id', (int) $existing['id'])
-            ->update($payload);
+        $this->upsertRecord('cms_page_translations', [
+            'page_id'     => $pageId,
+            'language_id' => $languageId,
+        ], $translationData);
     }
 }

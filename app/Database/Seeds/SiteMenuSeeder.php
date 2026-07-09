@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Database\Seeds;
 
+use App\Database\Seeds\Concerns\IdempotentSeederSupport;
 use CodeIgniter\Database\Seeder;
 
 /**
@@ -25,26 +26,23 @@ use CodeIgniter\Database\Seeder;
  */
 class SiteMenuSeeder extends Seeder
 {
+    use IdempotentSeederSupport;
+
     public function run(): void
     {
-        $this->call(SitePagesSeeder::class);
-        $this->call(SiteAboutPageSeeder::class);
-        $this->call(SiteHistoryPageSeeder::class);
-        $this->call(SitePortfolioPageSeeder::class);
-        $this->call(NewsCollectionSeeder::class);
-
         $langIds = $this->langIds(['es', 'en']);
         if (! isset($langIds['es'], $langIds['en'])) {
             echo "SiteMenuSeeder: missing languages. Seed CmsLanguageSeeder first.\n";
             return;
         }
 
-        $homePageId       = $this->pageIdByType('home');
-        $aboutPageId      = $this->pageIdByType('about');
-        $historyPageId    = $this->pageIdByType('history');
-        $portfolioPageId  = $this->pageIdByType('portfolio');
-        $contactPageId    = $this->pageIdByType('contact');
-        $newsCollectionId = $this->collectionIdByKey('noticias');
+        $homePageId            = $this->pageIdByType('home');
+        $aboutPageId           = $this->pageIdByType('about');
+        $historyPageId         = $this->pageIdByType('history');
+        $portfolioCollectionId = $this->collectionIdByKey('portafolio');
+        $portfolioPageId       = $portfolioCollectionId !== null ? $this->pageIdByCollectionId($portfolioCollectionId) : null;
+        $contactPageId         = $this->pageIdByType('contact');
+        $newsCollectionId      = $this->collectionIdByKey('noticias');
 
         if ($homePageId === null || $contactPageId === null || $newsCollectionId === null) {
             echo "SiteMenuSeeder: missing required pages or collection. Seed SitePagesSeeder and NewsCollectionSeeder first.\n";
@@ -207,6 +205,18 @@ class SiteMenuSeeder extends Seeder
         return $row !== null ? (int) $row['id'] : null;
     }
 
+    private function pageIdByCollectionId(int $collectionId): ?int
+    {
+        $row = $this->db->table('cms_pages')
+            ->where('page_type', 'collection_index')
+            ->where('collection_id', $collectionId)
+            ->where('deleted_at IS NULL', null, false)
+            ->get()
+            ->getRowArray();
+
+        return $row !== null ? (int) $row['id'] : null;
+    }
+
     private function collectionIdByKey(string $collectionKey): ?int
     {
         $row = $this->db->table('cms_collections')
@@ -220,26 +230,15 @@ class SiteMenuSeeder extends Seeder
     /** @param array<string, string> $translations */
     private function upsertMenu(string $menuKey, string $location, array $translations): int
     {
-        $existing = $this->db->table('cms_menus')
-            ->where('menu_key', $menuKey)
-            ->where('deleted_at IS NULL', null, false)
-            ->get()
-            ->getRowArray();
-
-        $payload = [
-            'menu_key'  => $menuKey,
+        $menuId = $this->upsertRecord('cms_menus', [
+            'menu_key' => $menuKey,
+        ], [
             'location'  => $location,
             'is_active' => 1,
-        ];
+        ]);
 
-        if ($existing === null) {
-            $this->db->table('cms_menus')->insert($payload);
-            $menuId = (int) $this->db->insertID();
-        } else {
-            $menuId = (int) $existing['id'];
-            $this->db->table('cms_menus')
-                ->where('id', $menuId)
-                ->update($payload);
+        if ($menuId === null) {
+            throw new \RuntimeException(sprintf('Unable to seed menu "%s".', $menuKey));
         }
 
         $langIds = $this->langIds(array_keys($translations));
@@ -256,24 +255,12 @@ class SiteMenuSeeder extends Seeder
 
     private function upsertMenuTranslation(int $menuId, int $languageId, string $name): void
     {
-        $existing = $this->db->table('cms_menu_translations')
-            ->where('menu_id', $menuId)
-            ->where('language_id', $languageId)
-            ->get()
-            ->getRowArray();
-
-        if ($existing === null) {
-            $this->db->table('cms_menu_translations')->insert([
-                'menu_id'     => $menuId,
-                'language_id' => $languageId,
-                'name'        => $name,
-            ]);
-            return;
-        }
-
-        $this->db->table('cms_menu_translations')
-            ->where('id', (int) $existing['id'])
-            ->update(['name' => $name]);
+        $this->upsertRecord('cms_menu_translations', [
+            'menu_id'     => $menuId,
+            'language_id' => $languageId,
+        ], [
+            'name' => $name,
+        ]);
     }
 
     /**
@@ -286,45 +273,14 @@ class SiteMenuSeeder extends Seeder
      */
     private function upsertMenuItem(int $menuId, string $linkType, array $references, array $translations, array $langIds): int
     {
-        $builder = $this->db->table('cms_menu_items')
-            ->where('menu_id', $menuId)
-            ->where('link_type', $linkType)
-            ->where('sort_order', (int) ($references['sort_order'] ?? 0));
+        $menuItemId = $this->upsertMenuItemRecord($menuId, $linkType, $references);
 
-        foreach (['parent_id', 'page_id', 'entry_id', 'collection_id'] as $column) {
-            if (array_key_exists($column, $references)) {
-                if ($references[$column] === null) {
-                    $builder->where($column . ' IS NULL', null, false);
-                } else {
-                    $builder->where($column, $references[$column]);
-                }
-            }
-        }
-
-        $existing = $builder->get()->getRowArray();
-
-        $payload = [
-            'menu_id'       => $menuId,
-            'parent_id'     => $references['parent_id'] ?? null,
-            'link_type'     => $linkType,
-            'page_id'       => $references['page_id'] ?? null,
-            'entry_id'      => $references['entry_id'] ?? null,
-            'collection_id' => $references['collection_id'] ?? null,
-            'link_target'   => '_self',
-            'icon'          => null,
-            'css_class'     => null,
-            'sort_order'    => (int) ($references['sort_order'] ?? 0),
-            'is_active'     => 1,
-        ];
-
-        if ($existing === null) {
-            $this->db->table('cms_menu_items')->insert($payload);
-            $menuItemId = (int) $this->db->insertID();
-        } else {
-            $menuItemId = (int) $existing['id'];
-            $this->db->table('cms_menu_items')
-                ->where('id', $menuItemId)
-                ->update($payload);
+        if ($menuItemId === null) {
+            throw new \RuntimeException(sprintf(
+                'Unable to seed menu item "%s" for menu %d.',
+                $linkType,
+                $menuId
+            ));
         }
 
         foreach ($translations as $langCode => $label) {
@@ -339,6 +295,36 @@ class SiteMenuSeeder extends Seeder
     }
 
     /**
+     * @param array<string, int|null> $references
+     */
+    private function upsertMenuItemRecord(int $menuId, string $linkType, array $references): ?int
+    {
+        $payload = [
+            'menu_id'       => $menuId,
+            'parent_id'     => $references['parent_id'] ?? null,
+            'link_type'     => $linkType,
+            'page_id'       => $references['page_id'] ?? null,
+            'entry_id'      => $references['entry_id'] ?? null,
+            'collection_id' => $references['collection_id'] ?? null,
+            'link_target'   => '_self',
+            'icon'          => null,
+            'css_class'     => null,
+            'sort_order'    => (int) ($references['sort_order'] ?? 0),
+            'is_active'     => 1,
+        ];
+
+        return $this->upsertRecord('cms_menu_items', [
+            'menu_id'       => $menuId,
+            'parent_id'     => $references['parent_id'] ?? null,
+            'link_type'     => $linkType,
+            'page_id'       => $references['page_id'] ?? null,
+            'entry_id'      => $references['entry_id'] ?? null,
+            'collection_id' => $references['collection_id'] ?? null,
+            'sort_order'    => (int) ($references['sort_order'] ?? 0),
+        ], $payload);
+    }
+
+    /**
      * Upsert a no_link menu item (dropdown label with no URL).
      * Keyed by: menu_id + link_type='no_link' + parent_id + sort_order.
      *
@@ -348,47 +334,10 @@ class SiteMenuSeeder extends Seeder
      */
     private function upsertMenuItemNoLink(int $menuId, array $references, array $translations, array $langIds): int
     {
-        $parentId  = $references['parent_id'] ?? null;
-        $sortOrder = (int) ($references['sort_order'] ?? 0);
+        $menuItemId = $this->upsertMenuItemRecord($menuId, 'no_link', $references);
 
-        $builder = $this->db->table('cms_menu_items')
-            ->where('menu_id', $menuId)
-            ->where('link_type', 'no_link')
-            ->where('sort_order', $sortOrder)
-            ->where('page_id IS NULL', null, false)
-            ->where('entry_id IS NULL', null, false)
-            ->where('collection_id IS NULL', null, false);
-
-        if ($parentId === null) {
-            $builder->where('parent_id IS NULL', null, false);
-        } else {
-            $builder->where('parent_id', $parentId);
-        }
-
-        $existing = $builder->get()->getRowArray();
-
-        $payload = [
-            'menu_id'       => $menuId,
-            'parent_id'     => $parentId,
-            'link_type'     => 'no_link',
-            'page_id'       => null,
-            'entry_id'      => null,
-            'collection_id' => null,
-            'link_target'   => '_self',
-            'icon'          => null,
-            'css_class'     => null,
-            'sort_order'    => $sortOrder,
-            'is_active'     => 1,
-        ];
-
-        if ($existing === null) {
-            $this->db->table('cms_menu_items')->insert($payload);
-            $menuItemId = (int) $this->db->insertID();
-        } else {
-            $menuItemId = (int) $existing['id'];
-            $this->db->table('cms_menu_items')
-                ->where('id', $menuItemId)
-                ->update($payload);
+        if ($menuItemId === null) {
+            throw new \RuntimeException(sprintf('Unable to seed no-link menu item for menu %d.', $menuId));
         }
 
         foreach ($translations as $langCode => $label) {
@@ -404,27 +353,12 @@ class SiteMenuSeeder extends Seeder
 
     private function upsertMenuItemTranslation(int $menuItemId, int $languageId, string $label): void
     {
-        $existing = $this->db->table('cms_menu_item_translations')
-            ->where('menu_item_id', $menuItemId)
-            ->where('language_id', $languageId)
-            ->get()
-            ->getRowArray();
-
-        if ($existing === null) {
-            $this->db->table('cms_menu_item_translations')->insert([
-                'menu_item_id' => $menuItemId,
-                'language_id'  => $languageId,
-                'label'        => $label,
-                'custom_url'   => null,
-            ]);
-            return;
-        }
-
-        $this->db->table('cms_menu_item_translations')
-            ->where('id', (int) $existing['id'])
-            ->update([
-                'label'      => $label,
-                'custom_url' => null,
-            ]);
+        $this->upsertRecord('cms_menu_item_translations', [
+            'menu_item_id' => $menuItemId,
+            'language_id'  => $languageId,
+        ], [
+            'label'      => $label,
+            'custom_url' => null,
+        ]);
     }
 }

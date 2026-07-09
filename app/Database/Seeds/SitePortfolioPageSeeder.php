@@ -4,29 +4,35 @@ declare(strict_types=1);
 
 namespace App\Database\Seeds;
 
+use App\Database\Seeds\Concerns\IdempotentSeederSupport;
 use CodeIgniter\Database\Seeder;
 
 /**
- * Creates the Portfolio / Portafolio page and seeds the following blocks:
- *   page_header, collection_grid, image, alert, tabs, gallery.
+ * Creates the Portfolio / Portafolio collection index page and seeds the following blocks:
+ *   page_header, rich_text, collection_listing, image, alert, tabs.
  *
  * Idempotent: upserts the page, its translations, block instances,
  * and block translations.
  */
 class SitePortfolioPageSeeder extends Seeder
 {
+    use IdempotentSeederSupport;
+
     public function run(): void
     {
-        $this->call(CmsLanguageSeeder::class);
-        $this->call(CmsBlockTypeSeeder::class);
-
         $langIds = $this->langIds(['es', 'en']);
         if (! isset($langIds['es'], $langIds['en'])) {
             echo "SitePortfolioPageSeeder: missing languages. Seed CmsLanguageSeeder first.\n";
             return;
         }
 
-        $portfolioPageId = $this->upsertPage();
+        $collectionId = $this->collectionIdByKey('portafolio');
+        if ($collectionId === null) {
+            echo "SitePortfolioPageSeeder: portfolio collection not found. Seed PortfolioCollectionSeeder first.\n";
+            return;
+        }
+
+        $portfolioPageId = $this->upsertPage($collectionId);
         $this->upsertPageTranslation($portfolioPageId, $langIds['es'], [
             'slug'             => 'portafolio',
             'title'            => 'Portafolio',
@@ -48,11 +54,11 @@ class SitePortfolioPageSeeder extends Seeder
             'schema_data'      => null,
         ]);
 
-        $blockIds = $this->blockIds(['page_header', 'collection_grid', 'image', 'alert', 'tabs', 'tab_item', 'gallery', 'gallery_item']);
-        $this->resetPortfolioBlocks($portfolioPageId);
+        $blockIds = $this->blockIds(['page_header', 'collection_listing', 'rich_text', 'image', 'alert', 'tabs', 'tab_item']);
+        $keptInstanceIds = [];
 
         // ── 1. page_header ────────────────────────────────────────────────────
-        $this->upsertBlockWithTranslations(
+        $this->trackInstanceId($keptInstanceIds, $this->upsertBlockWithTranslations(
             $portfolioPageId,
             'page',
             $blockIds,
@@ -74,70 +80,90 @@ class SitePortfolioPageSeeder extends Seeder
                 ],
             ],
             $langIds
-        );
+        ));
 
-        // ── 2. collection_grid ─────────────────────────────────────────────────
-        $this->upsertBlockWithTranslations(
+        // ── 2. rich_text intro ─────────────────────────────────────────────────
+        $this->trackInstanceId($keptInstanceIds, $this->upsertBlockWithTranslations(
             $portfolioPageId,
             'page',
             $blockIds,
-            'collection_grid',
+            'rich_text',
             2,
-            [
-                'collection_key'  => 'portafolio',
-                'items_limit'     => 6,
-                'order_by'        => 'sort_order',
-                'order_direction' => 'asc',
-                'layout_variant'  => 'portfolio',
-                'css_class'       => '',
-            ],
+            [],
             [
                 'es' => [
-                    'section_title'    => 'Proyectos Destacados',
-                    'section_subtitle' => 'Diseños y desarrollos a medida realizados con pasión.',
-                    'view_all_label'   => 'Ver todos los proyectos',
-                    'view_all_url'     => '/portafolio',
-                    'empty_message'    => 'No hay proyectos en el portafolio por el momento.',
+                    'content' => '<p>Explora una selección curada de proyectos y casos de estudio que muestran nuestro enfoque, el proceso y el resultado final.</p>',
                 ],
                 'en' => [
-                    'section_title'    => 'Featured Projects',
-                    'section_subtitle' => 'Custom design and development made with passion.',
-                    'view_all_label'   => 'View all projects',
-                    'view_all_url'     => '/portfolio',
-                    'empty_message'    => 'No projects in the portfolio at the moment.',
+                    'content' => '<p>Explore a curated selection of projects and case studies that showcase our approach, process, and final outcomes.</p>',
                 ],
             ],
             $langIds
-        );
+        ));
 
-        // ── 3. image (standalone banner) ───────────────────────────────────────
-        $this->upsertBlockWithTranslations(
+        // ── 3. collection_listing ─────────────────────────────────────────────
+        $this->trackInstanceId($keptInstanceIds, $this->upsertBlockWithTranslations(
+            $portfolioPageId,
+            'page',
+            $blockIds,
+            'collection_listing',
+            3,
+            [
+                'collection_id'    => $collectionId,
+                'per_page'         => 12,
+                'order_by'         => 'published_at',
+                'order_direction'  => 'desc',
+                'layout_variant'   => 'portfolio',
+                'show_search'      => 1,
+                'show_categories'  => 1,
+                'show_tags'        => 1,
+                'css_class'        => '',
+            ],
+            [
+                'es' => [
+                    'intro_title'   => 'Listado completo',
+                    'intro_text'    => '<p>Filtra por categorías o etiquetas, busca proyectos específicos y navega por páginas sin perder contexto.</p>',
+                    'empty_message' => 'No hay proyectos disponibles por el momento.',
+                ],
+                'en' => [
+                    'intro_title'   => 'Full listing',
+                    'intro_text'    => '<p>Filter by categories or tags, search for specific projects, and navigate the results without losing context.</p>',
+                    'empty_message' => 'No projects available at the moment.',
+                ],
+            ],
+            $langIds
+        ));
+
+        // ── 4. image (standalone banner) ───────────────────────────────────────
+        $this->trackInstanceId($keptInstanceIds, $this->upsertBlockWithTranslations(
             $portfolioPageId,
             'page',
             $blockIds,
             'image',
-            3,
+            4,
             ['aspect_ratio' => '16/9', 'css_class' => ''],
             [
                 'es' => [
-                    'alt'     => 'Imagen de la sección de portafolio',
-                    'caption' => 'Construimos el futuro digital de nuestros clientes.',
+                    'url'       => 'https://picsum.photos/id/355/1200/675',
+                    'alt'       => 'Imagen de la sección de portafolio',
+                    'caption'   => 'Construimos el futuro digital de nuestros clientes.',
                 ],
                 'en' => [
-                    'alt'     => 'Portfolio section image',
-                    'caption' => 'Building the digital future of our clients.',
+                    'url'       => 'https://picsum.photos/id/355/1200/675',
+                    'alt'       => 'Portfolio section image',
+                    'caption'   => 'Building the digital future of our clients.',
                 ],
             ],
             $langIds
-        );
+        ));
 
-        // ── 4. alert (important note) ──────────────────────────────────────────
-        $this->upsertBlockWithTranslations(
+        // ── 5. alert (important note) ──────────────────────────────────────────
+        $this->trackInstanceId($keptInstanceIds, $this->upsertBlockWithTranslations(
             $portfolioPageId,
             'page',
             $blockIds,
             'alert',
-            4,
+            5,
             ['alert_type' => 'info', 'dismissible' => true, 'css_class' => 'my-8'],
             [
                 'es' => [
@@ -150,23 +176,24 @@ class SitePortfolioPageSeeder extends Seeder
                 ],
             ],
             $langIds
-        );
+        ));
 
-        // ── 5. tabs (methodology & technologies) ────────────────────────────────
+        // ── 6. tabs (methodology & technologies) ────────────────────────────────
         $tabsInstanceId = $this->upsertBlockWithTranslations(
             $portfolioPageId,
             'page',
             $blockIds,
             'tabs',
-            5,
+            6,
             ['layout' => 'horizontal', 'css_class' => 'my-12'],
             ['es' => [], 'en' => []],
             $langIds
         );
+        $this->trackInstanceId($keptInstanceIds, $tabsInstanceId);
 
         if ($tabsInstanceId > 0) {
             // Tab item 1: Methodology
-            $this->upsertBlockWithTranslations(
+            $this->trackInstanceId($keptInstanceIds, $this->upsertBlockWithTranslations(
                 $portfolioPageId,
                 'page',
                 $blockIds,
@@ -185,10 +212,10 @@ class SitePortfolioPageSeeder extends Seeder
                 ],
                 $langIds,
                 $tabsInstanceId
-            );
+            ));
 
             // Tab item 2: Technologies
-            $this->upsertBlockWithTranslations(
+            $this->trackInstanceId($keptInstanceIds, $this->upsertBlockWithTranslations(
                 $portfolioPageId,
                 'page',
                 $blockIds,
@@ -207,102 +234,17 @@ class SitePortfolioPageSeeder extends Seeder
                 ],
                 $langIds,
                 $tabsInstanceId
-            );
+            ));
         }
 
-        // ── 6. gallery (mosaico de capturas de proyectos) ───────────────────────
-        $galleryInstanceId = $this->upsertBlockWithTranslations(
-            $portfolioPageId,
-            'page',
-            $blockIds,
-            'gallery',
-            6,
-            ['columns' => '3', 'gap' => 'gap-6', 'css_class' => 'my-16'],
-            ['es' => [], 'en' => []],
-            $langIds
-        );
-
-        if ($galleryInstanceId > 0) {
-            // Gallery item 1: Dashboard UI
-            $this->upsertBlockWithTranslations(
-                $portfolioPageId,
-                'page',
-                $blockIds,
-                'gallery_item',
-                1,
-                ['image_url' => 'https://images.unsplash.com/photo-1551288049-bebda4e38f71?auto=format&fit=crop&w=600&q=80', 'css_class' => ''],
-                [
-                    'es' => [
-                        'alt'     => 'Panel de Control de Analítica',
-                        'caption' => 'Visualización de datos avanzados y monitoreo en tiempo real.',
-                    ],
-                    'en' => [
-                        'alt'     => 'Analytics Dashboard Control Panel',
-                        'caption' => 'Advanced data visualization and real-time monitoring.',
-                    ],
-                ],
-                $langIds,
-                $galleryInstanceId
-            );
-
-            // Gallery item 2: Responsive UI Design
-            $this->upsertBlockWithTranslations(
-                $portfolioPageId,
-                'page',
-                $blockIds,
-                'gallery_item',
-                2,
-                ['image_url' => 'https://images.unsplash.com/photo-1507238691740-187a5b1d37b8?auto=format&fit=crop&w=600&q=80', 'css_class' => ''],
-                [
-                    'es' => [
-                        'alt'     => 'Diseño UI Adaptable para Tablet',
-                        'caption' => 'Interfaces optimizadas para ofrecer una navegación impecable en dispositivos móviles.',
-                    ],
-                    'en' => [
-                        'alt'     => 'Adaptive UI Design for Tablet',
-                        'caption' => 'Optimized interfaces delivering seamless navigation across mobile devices.',
-                    ],
-                ],
-                $langIds,
-                $galleryInstanceId
-            );
-
-            // Gallery item 3: E-commerce Architecture
-            $this->upsertBlockWithTranslations(
-                $portfolioPageId,
-                'page',
-                $blockIds,
-                'gallery_item',
-                3,
-                ['image_url' => 'https://images.unsplash.com/photo-1460925895917-afdab827c52f?auto=format&fit=crop&w=600&q=80', 'css_class' => ''],
-                [
-                    'es' => [
-                        'alt'     => 'Arquitectura de Comercio Electrónico',
-                        'caption' => 'Catálogos dinámicos auto-administrables y pasarelas de cobro completamente seguras.',
-                    ],
-                    'en' => [
-                        'alt'     => 'E-commerce Architecture Design',
-                        'caption' => 'Self-managed dynamic catalogs and completely secure payment gateways.',
-                    ],
-                ],
-                $langIds,
-                $galleryInstanceId
-            );
-        }
+        $this->cleanupStalePortfolioBlocks($portfolioPageId, $keptInstanceIds);
     }
 
     // ── Helpers ───────────────────────────────────────────────────────────────
 
-    private function upsertPage(): int
+    private function upsertPage(int $collectionId): ?int
     {
-        $existing = $this->db->table('cms_pages')
-            ->where('page_type', 'portfolio')
-            ->where('deleted_at IS NULL', null, false)
-            ->get()
-            ->getRowArray();
-
-        $payload = [
-            'page_type'          => 'portfolio',
+        return $this->upsertCollectionIndexPageRecord($collectionId, ['portfolio'], [
             'status'             => 'published',
             'published_at'       => date('Y-m-d H:i:s'),
             'scheduled_at'       => null,
@@ -310,15 +252,18 @@ class SitePortfolioPageSeeder extends Seeder
             'sitemap_priority'   => '0.8',
             'sitemap_changefreq' => 'weekly',
             'is_in_sitemap'      => 1,
-        ];
+            'deleted_at'         => null,
+        ]);
+    }
 
-        if ($existing === null) {
-            $this->db->table('cms_pages')->insert($payload);
-            return (int) $this->db->insertID();
-        }
+    private function collectionIdByKey(string $collectionKey): ?int
+    {
+        $row = $this->db->table('cms_collections')
+            ->where('collection_key', $collectionKey)
+            ->get()
+            ->getRowArray();
 
-        $this->db->table('cms_pages')->where('id', (int) $existing['id'])->update($payload);
-        return (int) $existing['id'];
+        return is_array($row) ? (int) $row['id'] : null;
     }
 
     /**
@@ -326,14 +271,8 @@ class SitePortfolioPageSeeder extends Seeder
      */
     private function upsertPageTranslation(int $pageId, int $languageId, array $translationData): void
     {
-        $existing = $this->db->table('cms_page_translations')
-            ->where('page_id', $pageId)
-            ->where('language_id', $languageId)
-            ->get()
-            ->getRowArray();
-
         $slug = (string) ($translationData['slug'] ?? '');
-        if ($slug !== '' && $existing === null) {
+        if ($slug !== '') {
             $conflict = $this->db->table('cms_page_translations')
                 ->where('language_id', $languageId)
                 ->where('slug', $slug)
@@ -344,34 +283,10 @@ class SitePortfolioPageSeeder extends Seeder
             }
         }
 
-        $payload = array_merge(['page_id' => $pageId, 'language_id' => $languageId], $translationData, ['updated_at' => date('Y-m-d H:i:s')]);
-
-        if ($existing === null) {
-            $this->db->table('cms_page_translations')->insert(array_merge($payload, ['created_at' => date('Y-m-d H:i:s')]));
-            return;
-        }
-
-        unset($payload['page_id'], $payload['language_id'], $payload['created_at']);
-        $this->db->table('cms_page_translations')->where('id', (int) $existing['id'])->update($payload);
-    }
-
-    private function resetPortfolioBlocks(int $pageId): void
-    {
-        $instanceIds = $this->db->table('cms_block_instances')
-            ->select('id')
-            ->where('owner_type', 'page')
-            ->where('owner_id', $pageId)
-            ->where('parent_instance_id IS NULL', null, false)
-            ->get()
-            ->getResultArray();
-
-        if ($instanceIds === []) {
-            return;
-        }
-
-        $ids = array_map(static fn (array $row): int => (int) $row['id'], $instanceIds);
-        $this->db->table('cms_block_instance_translations')->whereIn('instance_id', $ids)->delete();
-        $this->db->table('cms_block_instances')->whereIn('id', $ids)->delete();
+        $this->upsertRecord('cms_page_translations', [
+            'page_id'     => $pageId,
+            'language_id' => $languageId,
+        ], $translationData);
     }
 
     /**
@@ -397,43 +312,17 @@ class SitePortfolioPageSeeder extends Seeder
             return 0;
         }
 
-        $query = $this->db->table('cms_block_instances')
-            ->where('block_id', $blockId)
-            ->where('owner_type', $ownerType)
-            ->where('owner_id', $pageId)
-            ->where('sort_order', $sortOrder);
-
-        if ($parentInstanceId !== null) {
-            $query->where('parent_instance_id', $parentInstanceId);
-        } else {
-            $query->where('parent_instance_id IS NULL', null, false);
-        }
-
-        $existing = $query->get()->getRowArray();
-
-        $payload = [
+        $instanceId = $this->upsertRecord('cms_block_instances', [
             'block_id'           => $blockId,
             'owner_type'         => $ownerType,
             'owner_id'           => $pageId,
             'parent_instance_id' => $parentInstanceId,
             'sort_order'         => $sortOrder,
-            'column_index'       => null,
-            'is_active'          => 1,
-            'block_config'       => json_encode($config, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES),
-        ];
-
-        if ($existing === null) {
-            $this->db->table('cms_block_instances')->insert(array_merge($payload, [
-                'created_at' => date('Y-m-d H:i:s'),
-                'updated_at' => date('Y-m-d H:i:s'),
-            ]));
-            $instanceId = (int) $this->db->insertID();
-        } else {
-            $instanceId = (int) $existing['id'];
-            $this->db->table('cms_block_instances')
-                ->where('id', $instanceId)
-                ->update(array_merge($payload, ['updated_at' => date('Y-m-d H:i:s')]));
-        }
+        ], [
+            'column_index' => null,
+            'is_active'    => 1,
+            'block_config'  => json_encode($config, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES),
+        ]);
 
         foreach ($translations as $langCode => $data) {
             $langId = $langIds[$langCode] ?? null;
@@ -444,6 +333,51 @@ class SitePortfolioPageSeeder extends Seeder
         }
 
         return $instanceId;
+    }
+
+    /**
+     * @param array<int, int> $keptInstanceIds
+     */
+    private function trackInstanceId(array &$keptInstanceIds, int $instanceId): void
+    {
+        if ($instanceId > 0) {
+            $keptInstanceIds[$instanceId] = $instanceId;
+        }
+    }
+
+    /**
+     * Remove stale block instances only after the desired tree has been synced.
+     *
+     * @param array<int, int> $keptInstanceIds
+     */
+    private function cleanupStalePortfolioBlocks(int $pageId, array $keptInstanceIds): void
+    {
+        $rows = $this->db->table('cms_block_instances')
+            ->select('id')
+            ->where('owner_type', 'page')
+            ->where('owner_id', $pageId)
+            ->get()
+            ->getResultArray();
+
+        if ($rows === []) {
+            return;
+        }
+
+        $keepIds = array_values($keptInstanceIds);
+        $staleIds = [];
+        foreach ($rows as $row) {
+            $id = (int) $row['id'];
+            if (! in_array($id, $keepIds, true)) {
+                $staleIds[] = $id;
+            }
+        }
+
+        if ($staleIds === []) {
+            return;
+        }
+
+        $this->db->table('cms_block_instance_translations')->whereIn('instance_id', $staleIds)->delete();
+        $this->db->table('cms_block_instances')->whereIn('id', $staleIds)->delete();
     }
 
     /**
@@ -487,29 +421,12 @@ class SitePortfolioPageSeeder extends Seeder
      */
     private function upsertTranslation(int $instanceId, int $languageId, array $blockData): void
     {
-        $existing = $this->db->table('cms_block_instance_translations')
-            ->where('instance_id', $instanceId)
-            ->where('language_id', $languageId)
-            ->get()
-            ->getRowArray();
-
-        $payload = [
-            'instance_id'  => $instanceId,
-            'language_id'  => $languageId,
+        $this->upsertRecord('cms_block_instance_translations', [
+            'instance_id' => $instanceId,
+            'language_id' => $languageId,
+        ], [
             'block_data'   => json_encode($blockData, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES),
             'is_published' => 1,
-        ];
-
-        if ($existing === null) {
-            $this->db->table('cms_block_instance_translations')->insert(array_merge($payload, [
-                'created_at' => date('Y-m-d H:i:s'),
-                'updated_at' => date('Y-m-d H:i:s'),
-            ]));
-            return;
-        }
-
-        $this->db->table('cms_block_instance_translations')
-            ->where('id', (int) $existing['id'])
-            ->update(array_merge($payload, ['updated_at' => date('Y-m-d H:i:s')]));
+        ]);
     }
 }

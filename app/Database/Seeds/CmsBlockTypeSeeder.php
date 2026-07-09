@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Database\Seeds;
 
+use App\Database\Seeds\Concerns\IdempotentSeederSupport;
 use CodeIgniter\Database\Seeder;
 
 /**
@@ -14,6 +15,8 @@ use CodeIgniter\Database\Seeder;
  */
 class CmsBlockTypeSeeder extends Seeder
 {
+    use IdempotentSeederSupport;
+
     public function run(): void
     {
         $blocks = [
@@ -204,6 +207,39 @@ class CmsBlockTypeSeeder extends Seeder
                 'sort_order'       => 15,
             ],
 
+            // ── collection_listing ──────────────────────────────────────────────
+            [
+                'block_key'         => 'collection_listing',
+                'name'              => 'Listado de Colección',
+                'description'       => 'Listado público completo de una colección, con filtros, orden, búsqueda y paginación.',
+                'category'          => 'content',
+                'icon'              => 'list-tree',
+                'schema_definition' => json_encode([
+                    'fields' => [
+                        'intro_title'      => ['type' => 'string', 'label' => 'Título introductorio',              'required' => false],
+                        'intro_text'       => ['type' => 'richtext', 'label' => 'Texto introductorio',            'required' => false],
+                        'empty_message'    => ['type' => 'string', 'label' => 'Mensaje cuando no hay contenido', 'required' => false],
+                        'css_class'        => ['type' => 'string', 'label' => 'Clase CSS',                       'required' => false, 'default' => ''],
+                    ],
+                    'config_fields' => [
+                        'collection_id'    => ['type' => 'number', 'label' => 'ID canónico de colección', 'required' => true, 'default' => 0],
+                        'per_page'         => ['type' => 'number', 'label' => 'Elementos por página',      'required' => false, 'default' => 12],
+                        'order_by'         => ['type' => 'select', 'label' => 'Ordenar por',               'required' => false, 'options' => ['published_at', 'sort_order', 'created_at', 'title'], 'default' => 'published_at'],
+                        'order_direction'  => ['type' => 'select', 'label' => 'Dirección',                 'required' => false, 'options' => ['asc', 'desc'], 'default' => 'desc'],
+                        'layout_variant'   => ['type' => 'select', 'label' => 'Variante visual',           'required' => false, 'options' => ['cards', 'compact', 'portfolio'], 'default' => 'cards'],
+                        'show_search'      => ['type' => 'boolean', 'label' => 'Mostrar búsqueda',          'required' => false, 'default' => true],
+                        'show_categories'  => ['type' => 'boolean', 'label' => 'Mostrar categorías',       'required' => false, 'default' => true],
+                        'show_tags'        => ['type' => 'boolean', 'label' => 'Mostrar etiquetas',         'required' => false, 'default' => false],
+                        'css_class'        => ['type' => 'string', 'label' => 'Clase CSS',                 'required' => false, 'default' => ''],
+                    ],
+                ]),
+                'supports_pages'   => 1,
+                'supports_entries' => 0,
+                'is_container'     => 0,
+                'is_active'        => 1,
+                'sort_order'       => 16,
+            ],
+
             // ── cta ──────────────────────────────────────────────────────────────
             [
                 'block_key'         => 'cta',
@@ -255,7 +291,7 @@ class CmsBlockTypeSeeder extends Seeder
                             'required' => false,
                         ],
                     ],
-                    'allowed_children' => ['rich_text', 'image', 'cta', 'video_player', 'form_embed', 'contact_info', 'map_embed', 'social_links', 'hero_banner', 'accordion', 'cards_grid', 'cards_slider', 'asset_showcase', 'metrics_grid', 'tabs', 'alert', 'gallery', 'collection_grid'],
+                    'allowed_children' => ['rich_text', 'image', 'cta', 'video_player', 'form_embed', 'contact_info', 'map_embed', 'social_links', 'hero_banner', 'accordion', 'cards_grid', 'cards_slider', 'asset_showcase', 'metrics_grid', 'tabs', 'alert', 'gallery', 'collection_grid', 'collection_listing'],
                 ]),
                 'supports_pages'   => 1,
                 'supports_entries' => 0,
@@ -815,6 +851,13 @@ class CmsBlockTypeSeeder extends Seeder
                 'schema_definition' => json_encode([
                     'fields' => [],
                     'config_fields' => [
+                        'presentation_mode' => [
+                            'type'     => 'select',
+                            'label'    => 'Modo de Presentación',
+                            'options'  => ['grid', 'inline_preview', 'modal_preview'],
+                            'default'  => 'modal_preview',
+                            'required' => false,
+                        ],
                         'columns' => [
                             'type'     => 'select',
                             'label'    => 'Columnas',
@@ -852,6 +895,8 @@ class CmsBlockTypeSeeder extends Seeder
                         'image'   => ['type' => 'file',   'label' => 'Imagen',          'required' => true, 'accept' => 'image'],
                         'alt'     => ['type' => 'string', 'label' => 'Texto Alt (SEO)', 'required' => false],
                         'caption' => ['type' => 'string', 'label' => 'Leyenda/Título',  'required' => false],
+                        'link_url'   => ['type' => 'url',    'label' => 'URL de destino', 'required' => false],
+                        'link_label' => ['type' => 'string', 'label' => 'Texto del enlace', 'required' => false],
                     ],
                     'config_fields' => [],
                 ]),
@@ -864,18 +909,20 @@ class CmsBlockTypeSeeder extends Seeder
         ];
 
         foreach ($blocks as $block) {
-            $existing = $this->db->table('cms_content_blocks')
-                ->where('block_key', $block['block_key'])
-                ->get()
-                ->getRow();
-
-            if ($existing === null) {
-                $this->db->table('cms_content_blocks')->insert($block);
-            } else {
-                $this->db->table('cms_content_blocks')
-                    ->where('id', $existing->id)
-                    ->update($block);
-            }
+            $this->upsertRecord('cms_content_blocks', [
+                'block_key' => $block['block_key'],
+            ], [
+                'name'              => $block['name'],
+                'description'       => $block['description'],
+                'category'          => $block['category'],
+                'icon'              => $block['icon'],
+                'schema_definition' => $block['schema_definition'],
+                'supports_pages'    => $block['supports_pages'],
+                'supports_entries'  => $block['supports_entries'],
+                'is_container'      => $block['is_container'],
+                'is_active'         => $block['is_active'],
+                'sort_order'        => $block['sort_order'],
+            ]);
         }
 
     }

@@ -4,14 +4,17 @@ declare(strict_types=1);
 
 namespace App\Database\Seeds;
 
+use App\Database\Seeds\Concerns\IdempotentSeederSupport;
 use CodeIgniter\Database\Seeder;
 
 /**
- * Seeds the starter site's news collection with categories, tags, and sample entries.
- * Idempotent: skips if the collection already exists.
+ * Seeds the starter site's news collection and its public collection index page.
+ * Idempotent across repeated bootstrap runs.
  */
 class NewsCollectionSeeder extends Seeder
 {
+    use IdempotentSeederSupport;
+
     public function run(): void
     {
         $existing = $this->db->table('cms_collections')
@@ -19,15 +22,36 @@ class NewsCollectionSeeder extends Seeder
             ->get()
             ->getRowArray();
 
-        if ($existing !== null) {
-            echo "NewsCollectionSeeder: 'noticias' collection already exists, skipping.\n";
-            return;
-        }
-
         $langIds = $this->langIds(['es', 'en']);
 
         if (empty($langIds['es'])) {
             echo "NewsCollectionSeeder: 'es' language not found in cms_languages. Seed CmsLanguageSeeder first.\n";
+            return;
+        }
+
+        if ($existing !== null) {
+            $collectionId = (int) $existing['id'];
+            $newsPageId = $this->upsertCollectionIndexPage($collectionId);
+            if ($newsPageId !== null) {
+                $this->upsertCollectionIndexTranslation($newsPageId, $langIds['es'] ?? null, [
+                    'slug'             => 'noticias',
+                    'title'            => 'Noticias',
+                    'excerpt'          => 'Mantente al día con las noticias y novedades del sitio.',
+                    'meta_title'       => 'Noticias | Mi Sitio',
+                    'meta_description' => 'Explora el índice público de noticias y actualizaciones.',
+                ]);
+                $this->upsertCollectionIndexTranslation($newsPageId, $langIds['en'] ?? null, [
+                    'slug'             => 'news',
+                    'title'            => 'News',
+                    'excerpt'          => 'Stay up to date with the site news and updates.',
+                    'meta_title'       => 'News | My Site',
+                    'meta_description' => 'Explore the public index of news and updates.',
+                ]);
+            }
+
+            $this->seedSampleEntries($collectionId, $langIds);
+
+            echo "NewsCollectionSeeder: 'noticias' collection already exists, repaired/ensured collection index page.\n";
             return;
         }
 
@@ -66,7 +90,7 @@ class NewsCollectionSeeder extends Seeder
         ];
 
         // ── 1. Collection ──────────────────────────────────────────────────────
-        $this->db->table('cms_collections')->insert([
+        $collectionPayload = [
             'collection_key'           => 'noticias',
             'collection_type'          => 'news',
             'is_active'                => 1,
@@ -80,8 +104,16 @@ class NewsCollectionSeeder extends Seeder
             'wizard_config'            => json_encode($preset['wizard_config'], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES),
             'created_at'               => date('Y-m-d H:i:s'),
             'updated_at'               => date('Y-m-d H:i:s'),
-        ]);
-        $collectionId = (int) $this->db->insertID();
+        ];
+
+        $collectionId = $this->upsertRecord('cms_collections', [
+            'collection_key' => 'noticias',
+        ], $collectionPayload);
+
+        if ($collectionId === null) {
+            echo "NewsCollectionSeeder: unable to seed 'noticias' collection.\n";
+            return;
+        }
 
         // ── 2. Collection translations ─────────────────────────────────────────
         $collectionTranslations = [
@@ -110,228 +142,180 @@ class NewsCollectionSeeder extends Seeder
             if ($langId === null) {
                 continue;
             }
-            $this->db->table('cms_collection_translations')->insert(array_merge([
+            $this->upsertRecord('cms_collection_translations', [
                 'collection_id' => $collectionId,
                 'language_id'   => $langId,
-            ], $trans));
+            ], $trans);
         }
 
-        // ── 3. Categories ──────────────────────────────────────────────────────
-        $categoryDefs = [
-            ['es' => ['name' => 'General',     'slug' => 'general'],     'en' => ['name' => 'General',        'slug' => 'general']],
-            ['es' => ['name' => 'Actualidad',  'slug' => 'actualidad'],  'en' => ['name' => 'Current Events', 'slug' => 'current-events']],
-            ['es' => ['name' => 'Eventos',     'slug' => 'eventos'],     'en' => ['name' => 'Events',         'slug' => 'events']],
-            ['es' => ['name' => 'Tecnología',  'slug' => 'tecnologia'],  'en' => ['name' => 'Technology',     'slug' => 'technology']],
+        $this->seedSampleEntries($collectionId, $langIds);
+
+        $newsPageId = $this->upsertCollectionIndexPage($collectionId);
+        if ($newsPageId !== null) {
+            $this->upsertCollectionIndexTranslation($newsPageId, $langIds['es'] ?? null, [
+                'slug'             => 'noticias',
+                'title'            => 'Noticias',
+                'excerpt'          => 'Mantente al día con las noticias y novedades del sitio.',
+                'meta_title'       => 'Noticias | Mi Sitio',
+                'meta_description' => 'Explora el índice público de noticias y actualizaciones.',
+            ]);
+            $this->upsertCollectionIndexTranslation($newsPageId, $langIds['en'] ?? null, [
+                'slug'             => 'news',
+                'title'            => 'News',
+                'excerpt'          => 'Stay up to date with the site news and updates.',
+                'meta_title'       => 'News | My Site',
+                'meta_description' => 'Explore the public index of news and updates.',
+            ]);
+        }
+
+        echo "NewsCollectionSeeder: 'noticias' collection seeded successfully (collection_id={$collectionId}, index page ensured).\n";
+        return;
+    }
+
+    /**
+     * @param array<string, int> $langIds
+     */
+    private function seedSampleEntries(int $collectionId, array $langIds): void
+    {
+        $newsEntries = [
+            [
+                'sort_order'         => 1,
+                'featured_image_url' => 'https://picsum.photos/id/1011/1200/800',
+                'es' => [
+                    'title'            => 'Lanzamos el nuevo portal editorial',
+                    'slug'             => 'nuevo-portal-editorial',
+                    'excerpt'          => 'Publicamos una experiencia editorial renovada, con mejor lectura y navegación más clara.',
+                    'meta_title'       => 'Nuevo portal editorial | Noticias',
+                    'meta_description' => 'Descubre el nuevo portal editorial y sus mejoras de lectura.',
+                    'rich_text'        => '<p>El portal editorial se renovó para ofrecer una navegación más limpia, tarjetas con imagen y una jerarquía visual más consistente.</p><p>La nueva presentación mejora la lectura en pantallas grandes y móviles sin perder contexto del contenido.</p>',
+                ],
+                'en' => [
+                    'title'            => 'We launched the new editorial portal',
+                    'slug'             => 'new-editorial-portal',
+                    'excerpt'          => 'We released a refreshed editorial experience with clearer reading flow and navigation.',
+                    'meta_title'       => 'New editorial portal | News',
+                    'meta_description' => 'Discover the new editorial portal and its reading improvements.',
+                    'rich_text'        => '<p>The editorial portal was refreshed to provide clearer navigation, image-backed cards, and a more consistent visual hierarchy.</p><p>The new layout improves readability on large and small screens without losing content context.</p>',
+                ],
+            ],
+            [
+                'sort_order'         => 2,
+                'featured_image_url' => 'https://picsum.photos/id/1015/1200/800',
+                'es' => [
+                    'title'            => 'La colección de noticias ahora destaca portadas',
+                    'slug'             => 'noticias-destacan-portadas',
+                    'excerpt'          => 'Cada tarjeta del listado público puede mostrar una portada destacada si la entrada la tiene configurada.',
+                    'meta_title'       => 'Noticias con portada | Noticias',
+                    'meta_description' => 'Las tarjetas del listado ahora muestran portadas destacadas cuando existen.',
+                    'rich_text'        => '<p>Las noticias del starter ahora incluyen imágenes de portada reales para que el grid de inicio no se vea vacío o incompleto.</p><p>Si una entrada no tiene imagen, la tarjeta sigue funcionando sin romper el diseño.</p>',
+                ],
+                'en' => [
+                    'title'            => 'News now highlights cover images',
+                    'slug'             => 'news-highlights-cover-images',
+                    'excerpt'          => 'Each public listing card can show a featured cover when the entry has one configured.',
+                    'meta_title'       => 'News with cover image | News',
+                    'meta_description' => 'Listing cards now show featured cover images when available.',
+                    'rich_text'        => '<p>The starter news items now include real cover images so the home grid no longer feels empty or incomplete.</p><p>If an entry has no image, the card still renders safely without breaking the layout.</p>',
+                ],
+            ],
         ];
 
-        $categoryIds = [];
-        foreach ($categoryDefs as $i => $def) {
-            $this->db->table('cms_categories')->insert([
+        $blockIds = $this->blockIds(['rich_text', 'image']);
+        if (! isset($blockIds['rich_text'], $blockIds['image'])) {
+            return;
+        }
+
+        foreach ($newsEntries as $entry) {
+            $entryId = $this->upsertRecord('cms_entries', [
                 'collection_id' => $collectionId,
-                'parent_id'     => null,
-                'sort_order'    => $i + 1,
-                'is_active'     => 1,
-                'created_at'    => date('Y-m-d H:i:s'),
-                'updated_at'    => date('Y-m-d H:i:s'),
+                'sort_order'    => $entry['sort_order'],
+            ], [
+                'workflow_status' => 'published',
+                'is_featured'     => 1,
+                'published_at'    => date('Y-m-d H:i:s'),
             ]);
-            $catId = (int) $this->db->insertID();
-            $categoryIds[$i] = $catId;
 
-            foreach (['es', 'en'] as $code) {
-                $langId = $langIds[$code] ?? null;
-                if ($langId === null || !isset($def[$code])) {
-                    continue;
-                }
-                $this->db->table('cms_category_translations')->insert([
-                    'category_id' => $catId,
-                    'language_id' => $langId,
-                    'slug'        => $def[$code]['slug'],
-                    'name'        => $def[$code]['name'],
-                    'description' => null,
-                    'meta_title'  => null,
-                    'meta_description' => null,
-                ]);
+            if ($entryId === null) {
+                continue;
             }
-        }
 
-        // ── 4. Tags ────────────────────────────────────────────────────────────
-        $tagDefs = [
-            ['es' => 'destacado', 'en' => 'featured'],
-            ['es' => 'nuevo',     'en' => 'new'],
-        ];
+            $imageBlockId = $this->upsertRecord('cms_block_instances', [
+                'block_id'   => $blockIds['image'],
+                'owner_type' => 'entry',
+                'owner_id'   => $entryId,
+                'sort_order' => 1,
+            ], ['is_active' => 1]);
 
-        $tagIds = [];
-        foreach ($tagDefs as $def) {
-            $this->db->table('cms_tags')->insert([
-                'is_active'  => 1,
-                'created_at' => date('Y-m-d H:i:s'),
-                'updated_at' => date('Y-m-d H:i:s'),
-            ]);
-            $tagId   = (int) $this->db->insertID();
-            $tagIds[] = $tagId;
+            $textBlockId = $this->upsertRecord('cms_block_instances', [
+                'block_id'   => $blockIds['rich_text'],
+                'owner_type' => 'entry',
+                'owner_id'   => $entryId,
+                'sort_order' => 2,
+            ], ['is_active' => 1]);
 
-            foreach (['es', 'en'] as $code) {
-                $langId = $langIds[$code] ?? null;
+            foreach (['es', 'en'] as $langCode) {
+                $langId = $langIds[$langCode] ?? null;
                 if ($langId === null) {
                     continue;
                 }
-                $this->db->table('cms_tag_translations')->insert([
-                    'tag_id'      => $tagId,
+
+                $translation = $entry[$langCode];
+                $this->upsertRecord('cms_entry_translations', [
+                    'entry_id'    => $entryId,
                     'language_id' => $langId,
-                    'slug'        => $def[$code],
-                    'name'        => ucfirst($def[$code]),
+                ], [
+                    'title'              => $translation['title'],
+                    'slug'               => $translation['slug'],
+                    'excerpt'            => $translation['excerpt'],
+                    'featured_image_url' => $entry['featured_image_url'],
+                    'meta_title'         => $translation['meta_title'],
+                    'meta_description'   => $translation['meta_description'],
                 ]);
+
+                if ($imageBlockId !== null) {
+                    $this->upsertRecord('cms_block_instance_translations', [
+                        'instance_id' => $imageBlockId,
+                        'language_id' => $langId,
+                    ], [
+                        'block_data' => json_encode([
+                            'image_url' => $entry['featured_image_url'],
+                            'alt'       => $translation['title'],
+                            'caption'   => $translation['title'],
+                        ], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES),
+                    ]);
+                }
+
+                if ($textBlockId !== null) {
+                    $this->upsertRecord('cms_block_instance_translations', [
+                        'instance_id' => $textBlockId,
+                        'language_id' => $langId,
+                    ], [
+                        'block_data' => json_encode([
+                            'content' => $translation['rich_text'],
+                        ], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES),
+                    ]);
+                }
             }
         }
+    }
 
-        // ── 5. Sample entries ──────────────────────────────────────────────────
-        $now = date('Y-m-d H:i:s');
+    /**
+     * @param string[] $keys
+     * @return array<string, int>
+     */
+    private function blockIds(array $keys): array
+    {
+        $rows = $this->db->table('cms_content_blocks')
+            ->whereIn('block_key', $keys)
+            ->get()
+            ->getResultArray();
 
-        // Entry 1: Bienvenida (featured)
-        $this->db->table('cms_entries')->insert([
-            'collection_id'    => $collectionId,
-            'author_id'        => null,
-            'workflow_status'  => 'published',
-            'published_at'     => $now,
-            'scheduled_at'     => null,
-            'is_featured'      => 1,
-            'view_count'       => 0,
-            'sort_order'       => 1,
-            'sitemap_priority' => '0.80',
-            'sitemap_changefreq' => 'weekly',
-            'is_in_sitemap'    => 1,
-            'created_at'       => $now,
-            'updated_at'       => $now,
-        ]);
-        $entry1Id = (int) $this->db->insertID();
-
-        $entry1Trans = [
-            'es' => [
-                'slug'             => 'bienvenidos-a-nuestras-noticias',
-                'title'            => 'Bienvenidos a nuestras noticias',
-                'excerpt'          => 'Hoy inauguramos nuestra sección de noticias. Aquí encontrarás información actualizada, eventos próximos y todo lo que necesitas saber.',
-                'meta_title'       => 'Bienvenidos a nuestras noticias',
-                'meta_description' => 'Inauguramos la sección de noticias con información actualizada y eventos próximos.',
-            ],
-            'en' => [
-                'slug'             => 'welcome-to-our-news',
-                'title'            => 'Welcome to Our News',
-                'excerpt'          => 'Today we launch our news section. Here you will find updated information, upcoming events, and everything you need to know.',
-                'meta_title'       => 'Welcome to Our News',
-                'meta_description' => 'We launch our news section with updated information and upcoming events.',
-            ],
-        ];
-
-        foreach ($entry1Trans as $code => $trans) {
-            $langId = $langIds[$code] ?? null;
-            if ($langId === null) {
-                continue;
-            }
-            $this->db->table('cms_entry_translations')->insert(array_merge([
-                'entry_id'    => $entry1Id,
-                'language_id' => $langId,
-                'featured_file_id' => null,
-                'og_image_file_id' => null,
-                'og_type'    => 'article',
-                'canonical_url' => null,
-                'robots'     => 'index, follow',
-                'schema_data' => null,
-            ], $trans));
+        $map = [];
+        foreach ($rows as $row) {
+            $map[$row['block_key']] = (int) $row['id'];
         }
 
-        // Entry 1 category: General (index 0)
-        $this->db->table('cms_entry_categories')->insert([
-            'entry_id'    => $entry1Id,
-            'category_id' => $categoryIds[0],
-            'sort_order'  => 1,
-        ]);
-
-        // Entry 1 tag: nuevo (index 1)
-        $this->db->table('cms_entry_tags')->insert([
-            'entry_id' => $entry1Id,
-            'tag_id'   => $tagIds[1],
-        ]);
-
-        // Entry 1 rich_text block
-        $this->insertRichTextBlock($entry1Id, $langIds, [
-            'es' => '<p>Estamos muy emocionados de inaugurar esta sección de noticias. Desde aquí compartiremos novedades, eventos, actualizaciones y todo lo relevante para nuestra comunidad.</p><p>Te invitamos a visitarnos regularmente para estar al tanto de todo lo que sucede.</p>',
-            'en' => '<p>We are very excited to launch this news section. From here we will share updates, events, news, and everything relevant to our community.</p><p>We invite you to visit us regularly to stay up to date with everything happening.</p>',
-        ]);
-
-        // Entry 2: Novedades (no featured)
-        $this->db->table('cms_entries')->insert([
-            'collection_id'    => $collectionId,
-            'author_id'        => null,
-            'workflow_status'  => 'published',
-            'published_at'     => date('Y-m-d H:i:s', strtotime('-3 days')),
-            'scheduled_at'     => null,
-            'is_featured'      => 0,
-            'view_count'       => 0,
-            'sort_order'       => 2,
-            'sitemap_priority' => '0.70',
-            'sitemap_changefreq' => 'weekly',
-            'is_in_sitemap'    => 1,
-            'created_at'       => date('Y-m-d H:i:s', strtotime('-3 days')),
-            'updated_at'       => date('Y-m-d H:i:s', strtotime('-3 days')),
-        ]);
-        $entry2Id = (int) $this->db->insertID();
-
-        $entry2Trans = [
-            'es' => [
-                'slug'             => 'novedades-de-la-temporada',
-                'title'            => 'Novedades de la temporada',
-                'excerpt'          => 'Descubre todo lo que tenemos preparado para esta temporada: nuevas actividades, exposiciones especiales y mucho más.',
-                'meta_title'       => 'Novedades de la temporada',
-                'meta_description' => 'Nuevas actividades, exposiciones y eventos para esta temporada.',
-            ],
-            'en' => [
-                'slug'             => 'season-updates',
-                'title'            => 'Season Updates',
-                'excerpt'          => 'Discover everything we have prepared for this season: new activities, special exhibitions, and much more.',
-                'meta_title'       => 'Season Updates',
-                'meta_description' => 'New activities, exhibitions, and events for this season.',
-            ],
-        ];
-
-        foreach ($entry2Trans as $code => $trans) {
-            $langId = $langIds[$code] ?? null;
-            if ($langId === null) {
-                continue;
-            }
-            $this->db->table('cms_entry_translations')->insert(array_merge([
-                'entry_id'    => $entry2Id,
-                'language_id' => $langId,
-                'featured_file_id' => null,
-                'og_image_file_id' => null,
-                'og_type'    => 'article',
-                'canonical_url' => null,
-                'robots'     => 'index, follow',
-                'schema_data' => null,
-            ], $trans));
-        }
-
-        // Entry 2 category: Actualidad (index 1)
-        $this->db->table('cms_entry_categories')->insert([
-            'entry_id'    => $entry2Id,
-            'category_id' => $categoryIds[1],
-            'sort_order'  => 1,
-        ]);
-
-        // Entry 2 tag: destacado (index 0)
-        $this->db->table('cms_entry_tags')->insert([
-            'entry_id' => $entry2Id,
-            'tag_id'   => $tagIds[0],
-        ]);
-
-        // Entry 2 rich_text block
-        $this->insertRichTextBlock($entry2Id, $langIds, [
-            'es' => '<p>Esta temporada viene cargada de sorpresas. Hemos preparado un programa completo con actividades para toda la familia, exposiciones temáticas y talleres especializados.</p><p>Consulta el calendario completo en nuestra web y reserva tu lugar con anticipación.</p>',
-            'en' => '<p>This season is full of surprises. We have prepared a complete program with activities for the whole family, thematic exhibitions, and specialized workshops.</p><p>Check the full calendar on our website and reserve your spot in advance.</p>',
-        ]);
-
-        // $this->db->transComplete();
-        // if ($this->db->transStatus() === false) { ... }
-        echo "NewsCollectionSeeder: 'noticias' collection seeded successfully (collection_id={$collectionId}, entries={$entry1Id},{$entry2Id}).\n";
+        return $map;
     }
 
     /** @param array<string, string> $langIds */
@@ -349,52 +333,30 @@ class NewsCollectionSeeder extends Seeder
         return $map;
     }
 
-    /**
-     * Insert a rich_text block instance for an entry with per-language content.
-     *
-     * @param array<string, int> $langIds
-     * @param array<string, string> $content  language_code => HTML
-     */
-    private function insertRichTextBlock(int $entryId, array $langIds, array $content): void
+    private function upsertCollectionIndexPage(int $collectionId): ?int
     {
-        $blockRow = $this->db->table('cms_content_blocks')
-            ->where('block_key', 'rich_text')
-            ->get()
-            ->getRowArray();
+        return $this->upsertCollectionIndexPageRecord($collectionId, ['news'], [
+            'status'             => 'published',
+            'published_at'       => date('Y-m-d H:i:s'),
+            'scheduled_at'       => null,
+            'sort_order'         => 30,
+            'sitemap_priority'   => '0.8',
+            'sitemap_changefreq' => 'weekly',
+            'is_in_sitemap'      => 1,
+            'deleted_at'         => null,
+        ]);
+    }
 
-        if ($blockRow === null) {
+    private function upsertCollectionIndexTranslation(?int $pageId, ?int $languageId, array $translationData): void
+    {
+        if ($pageId === null || $languageId === null) {
             return;
         }
 
-        $blockId = (int) $blockRow['id'];
-
-        $this->db->table('cms_block_instances')->insert([
-            'block_id'           => $blockId,
-            'owner_type'         => 'entry',
-            'owner_id'           => $entryId,
-            'parent_instance_id' => null,
-            'sort_order'         => 1,
-            'column_index'       => null,
-            'is_active'          => 1,
-            'block_config'       => null,
-            'created_at'         => date('Y-m-d H:i:s'),
-            'updated_at'         => date('Y-m-d H:i:s'),
-        ]);
-        $instanceId = (int) $this->db->insertID();
-
-        foreach ($content as $code => $html) {
-            $langId = $langIds[$code] ?? null;
-            if ($langId === null) {
-                continue;
-            }
-            $this->db->table('cms_block_instance_translations')->insert([
-                'instance_id' => $instanceId,
-                'language_id' => $langId,
-                'block_data'  => json_encode(['content' => $html]),
-                'is_published' => 1,
-                'created_at'  => date('Y-m-d H:i:s'),
-                'updated_at'  => date('Y-m-d H:i:s'),
-            ]);
-        }
+        $this->upsertRecord('cms_page_translations', [
+            'page_id'     => $pageId,
+            'language_id' => $languageId,
+        ], $translationData);
     }
+
 }

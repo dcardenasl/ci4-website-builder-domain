@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Database\Seeds;
 
+use App\Database\Seeds\Concerns\IdempotentSeederSupport;
 use CodeIgniter\Database\Seeder;
 
 /**
@@ -18,11 +19,10 @@ use CodeIgniter\Database\Seeder;
  */
 class SiteHistoryPageSeeder extends Seeder
 {
+    use IdempotentSeederSupport;
+
     public function run(): void
     {
-        $this->call(CmsLanguageSeeder::class);
-        $this->call(CmsBlockTypeSeeder::class);
-
         $langIds = $this->langIds(['es', 'en']);
         if (! isset($langIds['es'], $langIds['en'])) {
             echo "SiteHistoryPageSeeder: missing languages. Seed CmsLanguageSeeder first.\n";
@@ -50,6 +50,8 @@ class SiteHistoryPageSeeder extends Seeder
             'robots'           => 'index, follow',
             'schema_data'      => null,
         ]);
+
+        $this->resetPageBlocks($historyPageId);
 
         $blockIds = $this->blockIds([
             'page_header', 'rich_text', 'image',
@@ -109,12 +111,14 @@ class SiteHistoryPageSeeder extends Seeder
             ['aspect_ratio' => '16/9', 'css_class' => ''],
             [
                 'es' => [
-                    'alt'     => 'Imagen histórica de la organización',
-                    'caption' => 'Los primeros pasos de una historia que sigue escribiéndose.',
+                    'image_url' => 'https://picsum.photos/id/1015/800/600',
+                    'alt'       => 'Imagen histórica de la organización',
+                    'caption'   => 'Los primeros pasos de una historia que sigue escribiéndose.',
                 ],
                 'en' => [
-                    'alt'     => 'Historical image of the organization',
-                    'caption' => 'The first steps of a story that continues to be written.',
+                    'image_url' => 'https://picsum.photos/id/1015/800/600',
+                    'alt'       => 'Historical image of the organization',
+                    'caption'   => 'The first steps of a story that continues to be written.',
                 ],
             ],
             $langIds
@@ -229,35 +233,20 @@ class SiteHistoryPageSeeder extends Seeder
                 continue;
             }
 
-            $existing = $this->db->table('cms_block_instances')
-                ->where('block_id', $blockId)
-                ->where('parent_instance_id', $faqAccordionId)
-                ->where('sort_order', (int) $faqItem['sort_order'])
-                ->get()
-                ->getRowArray();
-
-            $payload = [
+            $instanceId = $this->upsertRecord('cms_block_instances', [
                 'block_id'           => $blockId,
                 'owner_type'         => 'page',
                 'owner_id'           => $historyPageId,
                 'parent_instance_id' => $faqAccordionId,
                 'sort_order'         => (int) $faqItem['sort_order'],
-                'column_index'       => null,
-                'is_active'          => 1,
-                'block_config'       => json_encode(['is_open' => $faqItem['is_open']], JSON_UNESCAPED_UNICODE),
-            ];
+            ], [
+                'column_index' => null,
+                'is_active'    => 1,
+                'block_config'  => json_encode(['is_open' => $faqItem['is_open']], JSON_UNESCAPED_UNICODE),
+            ]);
 
-            if ($existing === null) {
-                $this->db->table('cms_block_instances')->insert(array_merge($payload, [
-                    'created_at' => date('Y-m-d H:i:s'),
-                    'updated_at' => date('Y-m-d H:i:s'),
-                ]));
-                $instanceId = (int) $this->db->insertID();
-            } else {
-                $instanceId = (int) $existing['id'];
-                $this->db->table('cms_block_instances')
-                    ->where('id', $instanceId)
-                    ->update(array_merge($payload, ['updated_at' => date('Y-m-d H:i:s')]));
+            if ($instanceId === null) {
+                continue;
             }
 
             foreach (['es', 'en'] as $lang) {
@@ -294,18 +283,31 @@ class SiteHistoryPageSeeder extends Seeder
         );
     }
 
+    private function resetPageBlocks(int $pageId): void
+    {
+        $instanceIds = $this->db->table('cms_block_instances')
+            ->select('id')
+            ->where('owner_type', 'page')
+            ->where('owner_id', $pageId)
+            ->get()
+            ->getResultArray();
+
+        if ($instanceIds === []) {
+            return;
+        }
+
+        $ids = array_map(static fn (array $row): int => (int) $row['id'], $instanceIds);
+        $this->db->table('cms_block_instance_translations')->whereIn('instance_id', $ids)->delete();
+        $this->db->table('cms_block_instances')->whereIn('id', $ids)->delete();
+    }
+
     // ── Helpers ───────────────────────────────────────────────────────────────
 
     private function upsertPage(): int
     {
-        $existing = $this->db->table('cms_pages')
-            ->where('page_type', 'history')
-            ->where('deleted_at IS NULL', null, false)
-            ->get()
-            ->getRowArray();
-
-        $payload = [
-            'page_type'          => 'history',
+        $pageId = $this->upsertRecord('cms_pages', [
+            'page_type' => 'history',
+        ], [
             'status'             => 'published',
             'published_at'       => date('Y-m-d H:i:s'),
             'scheduled_at'       => null,
@@ -313,28 +315,21 @@ class SiteHistoryPageSeeder extends Seeder
             'sitemap_priority'   => '0.6',
             'sitemap_changefreq' => 'yearly',
             'is_in_sitemap'      => 1,
-        ];
+            'deleted_at'         => null,
+        ]);
 
-        if ($existing === null) {
-            $this->db->table('cms_pages')->insert($payload);
-            return (int) $this->db->insertID();
+        if ($pageId === null) {
+            throw new \RuntimeException('SiteHistoryPageSeeder: unable to seed history page.');
         }
 
-        $this->db->table('cms_pages')->where('id', (int) $existing['id'])->update($payload);
-        return (int) $existing['id'];
+        return $pageId;
     }
 
     /** @param array<string, mixed> $translationData */
     private function upsertPageTranslation(int $pageId, int $languageId, array $translationData): void
     {
-        $existing = $this->db->table('cms_page_translations')
-            ->where('page_id', $pageId)
-            ->where('language_id', $languageId)
-            ->get()
-            ->getRowArray();
-
         $slug = (string) ($translationData['slug'] ?? '');
-        if ($slug !== '' && $existing === null) {
+        if ($slug !== '') {
             $conflict = $this->db->table('cms_page_translations')
                 ->where('language_id', $languageId)
                 ->where('slug', $slug)
@@ -345,19 +340,10 @@ class SiteHistoryPageSeeder extends Seeder
             }
         }
 
-        $payload = array_merge(
-            ['page_id' => $pageId, 'language_id' => $languageId],
-            $translationData,
-            ['updated_at' => date('Y-m-d H:i:s')]
-        );
-
-        if ($existing === null) {
-            $this->db->table('cms_page_translations')->insert(array_merge($payload, ['created_at' => date('Y-m-d H:i:s')]));
-            return;
-        }
-
-        unset($payload['page_id'], $payload['language_id'], $payload['created_at']);
-        $this->db->table('cms_page_translations')->where('id', (int) $existing['id'])->update($payload);
+        $this->upsertRecord('cms_page_translations', [
+            'page_id'     => $pageId,
+            'language_id' => $languageId,
+        ], $translationData);
     }
 
     /**
@@ -384,43 +370,17 @@ class SiteHistoryPageSeeder extends Seeder
             return 0;
         }
 
-        $query = $this->db->table('cms_block_instances')
-            ->where('block_id', $blockId)
-            ->where('owner_type', 'page')
-            ->where('owner_id', $pageId)
-            ->where('sort_order', $sortOrder);
-
-        if ($parentInstanceId !== null) {
-            $query->where('parent_instance_id', $parentInstanceId);
-        } else {
-            $query->where('parent_instance_id IS NULL', null, false);
-        }
-
-        $existing = $query->get()->getRowArray();
-
-        $payload = [
+        $instanceId = $this->upsertRecord('cms_block_instances', [
             'block_id'           => $blockId,
             'owner_type'         => 'page',
             'owner_id'           => $pageId,
             'parent_instance_id' => $parentInstanceId,
             'sort_order'         => $sortOrder,
+        ], [
             'column_index'       => null,
             'is_active'          => 1,
             'block_config'       => json_encode($config, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES),
-        ];
-
-        if ($existing === null) {
-            $this->db->table('cms_block_instances')->insert(array_merge($payload, [
-                'created_at' => date('Y-m-d H:i:s'),
-                'updated_at' => date('Y-m-d H:i:s'),
-            ]));
-            $instanceId = (int) $this->db->insertID();
-        } else {
-            $instanceId = (int) $existing['id'];
-            $this->db->table('cms_block_instances')
-                ->where('id', $instanceId)
-                ->update(array_merge($payload, ['updated_at' => date('Y-m-d H:i:s')]));
-        }
+        ]);
 
         foreach ($translations as $langCode => $data) {
             $langId = $langIds[$langCode] ?? null;
@@ -446,36 +406,17 @@ class SiteHistoryPageSeeder extends Seeder
         }
 
         foreach ($items as $item) {
-            $existing = $this->db->table('cms_block_instances')
-                ->where('block_id', $blockId)
-                ->where('parent_instance_id', $parentInstanceId)
-                ->where('sort_order', (int) $item['sort_order'])
-                ->get()
-                ->getRowArray();
-
-            $payload = [
+            $instanceId = $this->upsertRecord('cms_block_instances', [
                 'block_id'           => $blockId,
                 'owner_type'         => 'page',
                 'owner_id'           => $pageId,
                 'parent_instance_id' => $parentInstanceId,
                 'sort_order'         => (int) $item['sort_order'],
+            ], [
                 'column_index'       => null,
                 'is_active'          => 1,
                 'block_config'       => json_encode([], JSON_UNESCAPED_UNICODE),
-            ];
-
-            if ($existing === null) {
-                $this->db->table('cms_block_instances')->insert(array_merge($payload, [
-                    'created_at' => date('Y-m-d H:i:s'),
-                    'updated_at' => date('Y-m-d H:i:s'),
-                ]));
-                $instanceId = (int) $this->db->insertID();
-            } else {
-                $instanceId = (int) $existing['id'];
-                $this->db->table('cms_block_instances')
-                    ->where('id', $instanceId)
-                    ->update(array_merge($payload, ['updated_at' => date('Y-m-d H:i:s')]));
-            }
+            ]);
 
             foreach (['es', 'en'] as $lang) {
                 $langId = $langIds[$lang] ?? null;
@@ -522,29 +463,12 @@ class SiteHistoryPageSeeder extends Seeder
     /** @param array<string, mixed> $blockData */
     private function upsertTranslation(int $instanceId, int $languageId, array $blockData): void
     {
-        $existing = $this->db->table('cms_block_instance_translations')
-            ->where('instance_id', $instanceId)
-            ->where('language_id', $languageId)
-            ->get()
-            ->getRowArray();
-
-        $payload = [
-            'instance_id'  => $instanceId,
-            'language_id'  => $languageId,
+        $this->upsertRecord('cms_block_instance_translations', [
+            'instance_id' => $instanceId,
+            'language_id' => $languageId,
+        ], [
             'block_data'   => json_encode($blockData, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES),
             'is_published' => 1,
-        ];
-
-        if ($existing === null) {
-            $this->db->table('cms_block_instance_translations')->insert(array_merge($payload, [
-                'created_at' => date('Y-m-d H:i:s'),
-                'updated_at' => date('Y-m-d H:i:s'),
-            ]));
-            return;
-        }
-
-        $this->db->table('cms_block_instance_translations')
-            ->where('id', (int) $existing['id'])
-            ->update(array_merge($payload, ['updated_at' => date('Y-m-d H:i:s')]));
+        ]);
     }
 }

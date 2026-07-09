@@ -4,10 +4,13 @@ declare(strict_types=1);
 
 namespace App\Database\Seeds;
 
+use App\Database\Seeds\Concerns\IdempotentSeederSupport;
 use CodeIgniter\Database\Seeder;
 
 class SiteIdentitySeeder extends Seeder
 {
+    use IdempotentSeederSupport;
+
     public function run(): void
     {
         $langIds = $this->langIds(['es', 'en']);
@@ -160,11 +163,6 @@ class SiteIdentitySeeder extends Seeder
      */
     private function upsertSetting(array $setting): int
     {
-        $existing = $this->db->table('cms_settings')
-            ->where('setting_key', $setting['setting_key'])
-            ->get()
-            ->getRowArray();
-
         $payload = [
             'setting_value'   => $setting['setting_value'] ?? '',
             'setting_type'    => $setting['setting_type'],
@@ -181,42 +179,24 @@ class SiteIdentitySeeder extends Seeder
             $payload['setting_meta'] = $setting['setting_meta'];
         }
 
-        if ($existing === null) {
-            $this->db->table('cms_settings')->insert(array_merge([
-                'setting_key' => $setting['setting_key'],
-            ], $payload));
+        $settingId = $this->upsertRecord('cms_settings', [
+            'setting_key' => $setting['setting_key'],
+        ], $payload);
 
-            return (int) $this->db->insertID();
+        if ($settingId === null) {
+            throw new \RuntimeException(sprintf('SiteIdentitySeeder: unable to seed setting "%s".', (string) $setting['setting_key']));
         }
 
-        $this->db->table('cms_settings')
-            ->where('id', (int) $existing['id'])
-            ->update($payload);
-
-        return (int) $existing['id'];
+        return $settingId;
     }
 
     private function upsertSettingTranslation(int $settingId, int $languageId, string $value): void
     {
-        $existing = $this->db->table('cms_setting_translations')
-            ->where('setting_id', $settingId)
-            ->where('language_id', $languageId)
-            ->get()
-            ->getRowArray();
-
-        $payload = [
-            'setting_id'    => $settingId,
-            'language_id'   => $languageId,
+        $this->upsertRecord('cms_setting_translations', [
+            'setting_id'  => $settingId,
+            'language_id' => $languageId,
+        ], [
             'setting_value' => $value,
-        ];
-
-        if ($existing === null) {
-            $this->db->table('cms_setting_translations')->insert($payload);
-            return;
-        }
-
-        $this->db->table('cms_setting_translations')
-            ->where('id', (int) $existing['id'])
-            ->update(['setting_value' => $value]);
+        ]);
     }
 }

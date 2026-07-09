@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Database\Seeds;
 
+use App\Database\Seeds\Concerns\IdempotentSeederSupport;
 use CodeIgniter\Database\Seeder;
 
 /**
@@ -12,6 +13,8 @@ use CodeIgniter\Database\Seeder;
  */
 class CmsLanguageSeeder extends Seeder
 {
+    use IdempotentSeederSupport;
+
     public function run(): void
     {
         $languages = [
@@ -34,26 +37,17 @@ class CmsLanguageSeeder extends Seeder
         ];
 
         foreach ($languages as $lang) {
-            $existing = $this->db->table('cms_languages')
-                ->where('code', $lang['code'])
-                ->get()
-                ->getRowArray();
+            $this->upsertRecord('cms_languages', [
+                'code' => $lang['code'],
+            ], [
+                'name'        => $lang['name'],
+                'native_name' => $lang['native_name'],
+                'is_default'  => $lang['is_default'],
+                'is_active'   => $lang['is_active'],
+                'sort_order'  => $lang['sort_order'],
+            ]);
 
-            if ($existing === null) {
-                $this->db->table('cms_languages')->insert($lang);
-                echo "CmsLanguageSeeder: inserted '{$lang['code']}'.\n";
-            } else {
-                $this->db->table('cms_languages')
-                    ->where('code', $lang['code'])
-                    ->update([
-                        'name'        => $lang['name'],
-                        'native_name' => $lang['native_name'],
-                        'is_default'  => $lang['is_default'],
-                        'is_active'   => $lang['is_active'],
-                        'sort_order'  => $lang['sort_order'],
-                    ]);
-                echo "CmsLanguageSeeder: updated '{$lang['code']}'.\n";
-            }
+            echo "CmsLanguageSeeder: upserted '{$lang['code']}'.\n";
         }
     }
 }
