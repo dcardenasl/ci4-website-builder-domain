@@ -154,11 +154,19 @@ final class SiteBootstrapSeederTest extends CIUnitTestCase
             ->getRowArray();
         $this->assertNotNull($historyPage);
 
+        $portfolioCollection = $this->db->table('cms_collections')
+            ->where('collection_key', 'portafolio')
+            ->get()
+            ->getRowArray();
+        $this->assertNotNull($portfolioCollection);
+
         $portfolioPage = $this->db->table('cms_pages')
-            ->where('page_type', 'portfolio')
+            ->where('page_type', 'collection_index')
+            ->where('collection_id', (int) $portfolioCollection['id'])
             ->get()
             ->getRowArray();
         $this->assertNotNull($portfolioPage);
+        $this->assertNotEmpty($portfolioPage['collection_id'] ?? null);
 
         $portfolioBlocks = $this->db->table('cms_block_instances')
            ->where('owner_type', 'page')
@@ -168,7 +176,7 @@ final class SiteBootstrapSeederTest extends CIUnitTestCase
            ->get()
            ->getResultArray();
         $this->assertCount(6, $portfolioBlocks);
-        $this->assertSame('collection_grid', $this->blockKeyForInstance((int) $portfolioBlocks[1]['block_id']));
+        $this->assertSame('collection_listing', $this->blockKeyForInstance((int) $portfolioBlocks[2]['block_id']));
     }
 
     public function testBootstrapSeederIsIdempotent(): void

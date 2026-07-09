@@ -64,8 +64,8 @@ final class SiteBootstrapContentTest extends CIUnitTestCase
         $seeder = \Config\Database::seeder();
         $seeder->call(\App\Database\Seeds\SiteBootstrapSeeder::class);
 
-        $pages = $this->db->table('cms_pages')->whereIn('page_type', ['home', 'contact', 'about', 'history', 'portfolio'])->get()->getResultArray();
-        $this->assertCount(5, $pages);
+        $pages = $this->db->table('cms_pages')->whereIn('page_type', ['home', 'contact', 'about', 'history', 'collection_index'])->get()->getResultArray();
+        $this->assertCount(6, $pages);
 
         $menu = $this->db->table('cms_menus')->whereIn('menu_key', ['main', 'footer'])->get()->getResultArray();
         $this->assertCount(2, $menu);
