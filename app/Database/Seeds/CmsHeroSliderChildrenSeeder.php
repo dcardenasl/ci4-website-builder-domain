@@ -116,7 +116,10 @@ class CmsHeroSliderChildrenSeeder extends Seeder
             ], [
                 'column_index' => null,
                 'is_active'    => 1,
-                'block_config' => json_encode([], JSON_UNESCAPED_UNICODE),
+                'block_config' => json_encode([
+                    'text_color' => '#ffffff',
+                    'overlay_color' => 'rgba(15, 23, 42, 0.4)',
+                ], JSON_UNESCAPED_UNICODE),
             ]);
 
             if ($instanceId === null) {

@@ -84,7 +84,10 @@ class CmsBlockTypeSeeder extends Seeder
                         'cta_label' => ['type' => 'string', 'label' => 'Texto del botón',  'required' => false],
                         'cta_url'   => ['type' => 'url',    'label' => 'URL del botón',    'required' => false],
                     ],
-                    'config_fields' => [],
+                    'config_fields' => [
+                        'text_color' => ['type' => 'color', 'label' => 'Color del texto', 'required' => false, 'default' => '#ffffff'],
+                        'overlay_color' => ['type' => 'color', 'label' => 'Filtro de fondo', 'required' => false, 'default' => 'rgba(15, 23, 42, 0.4)'],
+                    ],
                 ]),
                 'supports_pages'   => 1,
                 'supports_entries' => 0,
@@ -113,6 +116,8 @@ class CmsBlockTypeSeeder extends Seeder
                     ],
                     'config_fields' => [
                         'css_class' => ['type' => 'string', 'label' => 'Clase CSS', 'required' => false, 'default' => ''],
+                        'text_color' => ['type' => 'color', 'label' => 'Color del texto', 'required' => false, 'default' => '#ffffff'],
+                        'overlay_color' => ['type' => 'color', 'label' => 'Filtro de fondo', 'required' => false, 'default' => 'rgba(15, 23, 42, 0.4)'],
                     ],
                 ]),
                 'supports_pages'   => 1,
@@ -222,7 +227,7 @@ class CmsBlockTypeSeeder extends Seeder
                         'css_class'        => ['type' => 'string', 'label' => 'Clase CSS',                       'required' => false, 'default' => ''],
                     ],
                     'config_fields' => [
-                        'collection_id'    => ['type' => 'number', 'label' => 'ID canónico de colección', 'required' => true, 'default' => 0],
+                        'collection_id'    => ['type' => 'select', 'label' => 'Colección', 'required' => true, 'options' => [], 'default' => ''],
                         'per_page'         => ['type' => 'number', 'label' => 'Elementos por página',      'required' => false, 'default' => 12],
                         'order_by'         => ['type' => 'select', 'label' => 'Ordenar por',               'required' => false, 'options' => ['published_at', 'sort_order', 'created_at', 'title'], 'default' => 'published_at'],
                         'order_direction'  => ['type' => 'select', 'label' => 'Dirección',                 'required' => false, 'options' => ['asc', 'desc'], 'default' => 'desc'],

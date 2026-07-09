@@ -72,5 +72,29 @@ final class NewsCollectionSeederTest extends CIUnitTestCase
 
         $this->assertNotEmpty($entryTranslations);
         $this->assertNotEmpty($entryTranslations[0]['featured_image_url'] ?? null);
+
+        $blockInstances = $this->db->table('cms_block_instances')
+            ->where('owner_type', 'entry')
+            ->where('owner_id', (int) $entries[0]['id'])
+            ->orderBy('sort_order', 'ASC')
+            ->get()
+            ->getResultArray();
+
+        $this->assertCount(6, $blockInstances);
+        $this->assertSame(
+            ['image', 'rich_text', 'page_header', 'hero_banner', 'cta', 'alert'],
+            array_map(function (array $block): string {
+                $type = $this->db->table('cms_content_blocks')
+                    ->where('id', (int) $block['block_id'])
+                    ->get()
+                    ->getRowArray();
+
+                return (string) ($type['block_key'] ?? '');
+            }, $blockInstances)
+        );
+
+        $this->assertSame(12, $this->db->table('cms_block_instance_translations')
+            ->whereIn('instance_id', array_column($blockInstances, 'id'))
+            ->countAllResults());
     }
 }

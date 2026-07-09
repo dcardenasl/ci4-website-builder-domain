@@ -47,6 +47,42 @@ class PortfolioCollectionSeeder extends Seeder
                         'block_config_defaults' => new \stdClass(),
                         'sort_order' => 2,
                     ],
+                    [
+                        'block_key' => 'page_header',
+                        'label' => 'Encabezado del caso',
+                        'help_text' => 'Introduce el proyecto y su contexto',
+                        'required' => false,
+                        'locked' => false,
+                        'block_config_defaults' => new \stdClass(),
+                        'sort_order' => 3,
+                    ],
+                    [
+                        'block_key' => 'hero_banner',
+                        'label' => 'Hero del proyecto',
+                        'help_text' => 'Muestra el resultado con una imagen y un mensaje principal',
+                        'required' => false,
+                        'locked' => false,
+                        'block_config_defaults' => new \stdClass(),
+                        'sort_order' => 4,
+                    ],
+                    [
+                        'block_key' => 'cta',
+                        'label' => 'CTA del caso de éxito',
+                        'help_text' => 'Conecta el caso con una acción comercial',
+                        'required' => false,
+                        'locked' => false,
+                        'block_config_defaults' => new \stdClass(),
+                        'sort_order' => 5,
+                    ],
+                    [
+                        'block_key' => 'alert',
+                        'label' => 'Resultado destacado',
+                        'help_text' => 'Resalta una métrica, aprendizaje o decisión del proyecto',
+                        'required' => false,
+                        'locked' => false,
+                        'block_config_defaults' => new \stdClass(),
+                        'sort_order' => 6,
+                    ],
                 ],
             ],
             'wizard_config' => [
@@ -169,6 +205,7 @@ class PortfolioCollectionSeeder extends Seeder
         $entries = [
             [
                 'featured_image_url' => 'https://picsum.photos/id/2/600/400',
+                'detail_image_url'   => 'https://picsum.photos/id/1040/1200/800',
                 'category_slug'      => 'desarrollo-web',
                 'tag_slugs'          => ['reciente', 'destacado'],
                 'es' => [
@@ -177,7 +214,7 @@ class PortfolioCollectionSeeder extends Seeder
                     'excerpt'          => 'Desarrollo a gran escala de una tienda online moderna con pasarela de pago integrada.',
                     'meta_title'       => 'Plataforma E-commerce | Portafolio',
                     'meta_description' => 'Caso de éxito sobre el desarrollo de una tienda online moderna y escalable.',
-                    'rich_text'        => '<p>Diseñamos y desarrollamos una solución de comercio electrónico completa que permite transacciones rápidas, administración sencilla de inventarios y una interfaz móvil sumamente intuitiva.</p><p>El proyecto logró un aumento del 40% en conversiones móviles en su primer trimestre.</p>',
+                    'rich_text'        => '<p>Diseñamos y desarrollamos una solución de comercio electrónico completa que permite transacciones rápidas, administración sencilla de inventarios y una interfaz móvil sumamente intuitiva.</p><h2>Del descubrimiento al lanzamiento</h2><p>El equipo comenzó mapeando los momentos de mayor fricción: búsqueda, checkout y seguimiento del pedido. Con esa información definimos una arquitectura modular y un sistema visual capaz de crecer junto al catálogo.</p><ul><li>Catálogo y filtros preparados para miles de productos.</li><li>Checkout optimizado para pantallas pequeñas.</li><li>Panel editorial para actualizar campañas sin depender de desarrollo.</li></ul><p>El proyecto logró un aumento del 40% en conversiones móviles en su primer trimestre.</p>',
                 ],
                 'en' => [
                     'title'            => 'National E-commerce Platform',
@@ -185,11 +222,12 @@ class PortfolioCollectionSeeder extends Seeder
                     'excerpt'          => 'Large-scale development of a modern online store with integrated payment gateway.',
                     'meta_title'       => 'E-commerce Platform | Portfolio',
                     'meta_description' => 'Success story on the development of a modern and scalable online store.',
-                    'rich_text'        => '<p>We designed and developed a complete e-commerce solution enabling fast transactions, easy inventory management, and a highly intuitive mobile interface.</p>',
+                    'rich_text'        => '<p>We designed and developed a complete e-commerce solution enabling fast transactions, easy inventory management, and a highly intuitive mobile interface.</p><h2>From discovery to launch</h2><p>The team mapped the highest-friction moments: search, checkout, and order tracking. We used those insights to define a modular architecture and a visual system that could grow with the catalog.</p><ul><li>Catalog and filters ready for thousands of products.</li><li>A checkout flow optimized for small screens.</li><li>An editorial panel for campaign updates without developer support.</li></ul><p>The project delivered a 40% increase in mobile conversion during its first quarter.</p>',
                 ],
             ],
             [
                 'featured_image_url' => 'https://picsum.photos/id/10/600/400',
+                'detail_image_url'   => 'https://picsum.photos/id/1050/1200/800',
                 'category_slug'      => 'diseno-ui-ux',
                 'tag_slugs'          => ['destacado'],
                 'es' => [
@@ -198,7 +236,7 @@ class PortfolioCollectionSeeder extends Seeder
                     'excerpt'          => 'Nueva propuesta de interfaz y experiencia de usuario enfocada en la simplicidad y accesibilidad.',
                     'meta_title'       => 'Rediseño UI/UX Banca | Portafolio',
                     'meta_description' => 'Proyecto de diseño UX/UI para transformar la experiencia de banca móvil digital.',
-                    'rich_text'        => '<p>Llevamos a cabo talleres de investigación y diseño centrado en el usuario para simplificar el flujo de transferencias bancarias de 5 a solo 2 pasos simples, logrando un diseño limpio y moderno.</p>',
+                    'rich_text'        => '<p>Llevamos a cabo talleres de investigación y diseño centrado en el usuario para simplificar el flujo de transferencias bancarias de 5 a sólo 2 pasos, logrando un diseño limpio y moderno.</p><h2>Menos pasos, más confianza</h2><p>La investigación reveló que las personas no necesitaban más funciones, sino mejor orientación en los momentos críticos. Convertimos esas señales en prototipos, pruebas moderadas y una interfaz accesible.</p><ul><li>Flujo principal reducido de cinco pasos a dos.</li><li>Estados y confirmaciones más fáciles de entender.</li><li>Componentes accesibles y consistentes en toda la aplicación.</li></ul><p>El resultado fue una experiencia más clara para usuarios nuevos y más rápida para quienes realizan operaciones todos los días.</p>',
                 ],
                 'en' => [
                     'title'            => 'Digital Banking App Redesign',
@@ -206,12 +244,13 @@ class PortfolioCollectionSeeder extends Seeder
                     'excerpt'          => 'New interface and user experience design focused on simplicity and accessibility.',
                     'meta_title'       => 'Banking UI/UX Redesign | Portfolio',
                     'meta_description' => 'UI/UX design project to transform the digital mobile banking experience.',
-                    'rich_text'        => '<p>We conducted user-centered research and design workshops to simplify bank transfers from 5 to just 2 simple steps, achieving a clean and modern design.</p>',
+                    'rich_text'        => '<p>We conducted user-centered research and design workshops to simplify bank transfers from 5 to just 2 steps, achieving a clean and modern design.</p><h2>Fewer steps, more confidence</h2><p>Research showed that people did not need more features; they needed better guidance at critical moments. We turned those signals into prototypes, moderated tests, and an accessible interface.</p><ul><li>The primary flow was reduced from five steps to two.</li><li>Statuses and confirmations became easier to understand.</li><li>Accessible, consistent components were used across the app.</li></ul><p>The result was a clearer experience for new users and a faster one for people completing daily transactions.</p>',
                 ],
             ],
         ];
 
         $blockIds = $this->blockIds(['rich_text', 'image']);
+        $keptInstanceIds = [];
 
         foreach ($entries as $index => $entry) {
             $entryId = $this->upsertRecord('cms_entries', [
@@ -268,6 +307,7 @@ class PortfolioCollectionSeeder extends Seeder
             ], [
                 'is_active' => 1,
             ]);
+            $keptInstanceIds = array_values(array_filter([$instImageId, $instRichTextId]));
 
             // Translations
             foreach (['es', 'en'] as $langCode) {
@@ -295,7 +335,7 @@ class PortfolioCollectionSeeder extends Seeder
                     'language_id' => $langId,
                 ], [
                     'block_data'  => json_encode([
-                        'image_url' => $entry['featured_image_url'],
+                        'image_url' => $entry['detail_image_url'],
                         'alt'       => $tData['title'],
                         'caption'   => 'Proyecto finalizado: ' . $tData['title']
                     ], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES),
@@ -309,9 +349,125 @@ class PortfolioCollectionSeeder extends Seeder
                     'block_data'  => json_encode(['content' => $tData['rich_text']], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES),
                 ]);
             }
+
+            // Complete the case study with reusable presentation blocks. Each
+            // language gets its own localized payload, while instances remain
+            // shared by the entry as they are in the CMS.
+            $extraBlocks = [
+                'page_header' => [
+                    'es' => [
+                        'heading' => 'El desafío detrás de ' . $entry['es']['title'],
+                        'subheading' => 'Caso de estudio: estrategia, diseño y tecnología trabajando en conjunto.',
+                        'breadcrumb_label' => 'Portafolio',
+                        'breadcrumb_url' => '/portafolio',
+                    ],
+                    'en' => [
+                        'heading' => 'The challenge behind ' . $entry['en']['title'],
+                        'subheading' => 'Case study: strategy, design, and technology working together.',
+                        'breadcrumb_label' => 'Portfolio',
+                        'breadcrumb_url' => '/portfolio',
+                    ],
+                ],
+                'hero_banner' => [
+                    'es' => [
+                        'image_url' => $entry['detail_image_url'],
+                        'alt' => $entry['es']['title'],
+                        'heading' => 'Resultados que se pueden ver y medir',
+                        'subheading' => $entry['es']['excerpt'],
+                        'cta_label' => 'Conocer el portafolio',
+                        'cta_url' => '/portafolio',
+                    ],
+                    'en' => [
+                        'image_url' => $entry['detail_image_url'],
+                        'alt' => $entry['en']['title'],
+                        'heading' => 'Results you can see and measure',
+                        'subheading' => $entry['en']['excerpt'],
+                        'cta_label' => 'Explore the portfolio',
+                        'cta_url' => '/portfolio',
+                    ],
+                ],
+                'cta' => [
+                    'es' => [
+                        'heading' => 'Hablemos de tu próximo desafío',
+                        'text' => 'Cuéntanos qué quieres construir y diseñemos una experiencia digital con impacto.',
+                        'label' => 'Iniciar una conversación',
+                        'url' => '/contacto',
+                    ],
+                    'en' => [
+                        'heading' => 'Let’s talk about your next challenge',
+                        'text' => 'Tell us what you want to build and let’s design a digital experience with impact.',
+                        'label' => 'Start a conversation',
+                        'url' => '/contact',
+                    ],
+                ],
+                'alert' => [
+                    'es' => [
+                        'title' => 'Resultado destacado',
+                        'message' => '<p>Este caso demuestra cómo una entrada puede combinar narrativa, evidencia visual, decisiones de diseño y una llamada comercial dentro de una misma estructura dinámica.</p>',
+                    ],
+                    'en' => [
+                        'title' => 'Featured result',
+                        'message' => '<p>This case shows how one entry can combine narrative, visual evidence, design decisions, and a commercial call to action inside one dynamic structure.</p>',
+                    ],
+                ],
+            ];
+            $extraBlockIds = $this->blockIds(array_keys($extraBlocks));
+            foreach ($extraBlocks as $blockKey => $translations) {
+                if (! isset($extraBlockIds[$blockKey])) {
+                    continue;
+                }
+                $instanceId = $this->upsertRecord('cms_block_instances', [
+                    'block_id' => $extraBlockIds[$blockKey],
+                    'owner_type' => 'entry',
+                    'owner_id' => $entryId,
+                    'sort_order' => ['page_header' => 3, 'hero_banner' => 4, 'cta' => 5, 'alert' => 6][$blockKey],
+                ], ['is_active' => 1, 'block_config' => json_encode(match ($blockKey) {
+                    'cta' => ['variant' => 'dark'],
+                    'alert' => ['type' => 'success', 'dismissible' => false],
+                    'page_header' => ['bg_color' => 'bg-slate-100'],
+                    'hero_banner' => ['overlay_color' => 'rgba(15, 23, 42, 0.65)'],
+                    default => [],
+                })]);
+                if ($instanceId === null) {
+                    continue;
+                }
+                $keptInstanceIds[] = $instanceId;
+                foreach ($translations as $langCode => $blockData) {
+                    $langId = $langIds[$langCode] ?? null;
+                    if ($langId === null) {
+                        continue;
+                    }
+                    $this->upsertRecord('cms_block_instance_translations', [
+                        'instance_id' => $instanceId,
+                        'language_id' => $langId,
+                    ], ['block_data' => json_encode($blockData, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES)]);
+                }
+            }
+
+            if (count($keptInstanceIds) === 6) {
+                $this->cleanupStaleEntryBlocks($entryId, $keptInstanceIds);
+            }
         }
         // $this->db->transComplete();
         echo "PortfolioCollectionSeeder: 'portafolio' collection and 2 sample entries seeded.\n";
+    }
+
+    /** @param list<int> $keptInstanceIds */
+    private function cleanupStaleEntryBlocks(int $entryId, array $keptInstanceIds): void
+    {
+        $stale = $this->db->table('cms_block_instances')
+            ->select('id')
+            ->where('owner_type', 'entry')
+            ->where('owner_id', $entryId)
+            ->whereNotIn('id', $keptInstanceIds)
+            ->get()
+            ->getResultArray();
+
+        foreach ($stale as $instance) {
+            $this->db->table('cms_block_instances')
+                ->where('id', (int) $instance['id'])
+                ->delete();
+        }
     }
 
     /**

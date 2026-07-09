@@ -97,7 +97,7 @@ class SiteAboutPageSeeder extends Seeder
             $blockIds,
             'hero_banner',
             2,
-            ['css_class' => ''],
+            ['css_class' => '', 'text_color' => '#ffffff', 'overlay_color' => 'rgba(15, 23, 42, 0.4)'],
             [
                 'es' => [
                     'heading'    => 'Nuestra misión nos une',

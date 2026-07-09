@@ -294,7 +294,7 @@ class BlockTemplateCatalog
                         'empty_message' => ['type' => 'string', 'label' => 'Mensaje vacío', 'required' => false],
                     ],
                     'config_fields' => [
-                        'collection_id'   => ['type' => 'integer', 'label' => 'ID de Colección', 'required' => true, 'default' => 0],
+                        'collection_id'   => ['type' => 'select', 'label' => 'Colección', 'required' => true, 'options' => [], 'default' => ''],
                         'per_page'        => ['type' => 'number', 'label' => 'Elementos por página', 'required' => false, 'default' => 12],
                         'order_by'        => ['type' => 'select', 'label' => 'Ordenar por', 'required' => false, 'options' => ['published_at', 'sort_order', 'created_at', 'title'], 'default' => 'published_at'],
                         'order_direction' => ['type' => 'select', 'label' => 'Dirección', 'required' => false, 'options' => ['asc', 'desc'], 'default' => 'desc'],
