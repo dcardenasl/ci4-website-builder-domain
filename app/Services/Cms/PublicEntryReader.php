@@ -76,6 +76,27 @@ class PublicEntryReader
                 ->where('cms_entry_tags.tag_id', (int) $tagTrans->tag_id);
         }
 
+        if ($dto->q !== null) {
+            $search = trim($dto->q);
+            if ($search !== '') {
+                $searchLangIds = [(int) $langId];
+                if ($defaultLangId !== $langId) {
+                    $searchLangIds[] = (int) $defaultLangId;
+                }
+                $entryModel->join(
+                    'cms_entry_translations search_trans',
+                    'search_trans.entry_id = cms_entries.id AND search_trans.language_id IN (' . implode(', ', $searchLangIds) . ')',
+                    'left'
+                );
+                $entryModel->groupStart()
+                    ->where('MATCH(search_trans.title, search_trans.excerpt) AGAINST(' . $entryModel->db->escape($search) . ' IN BOOLEAN MODE)', null, false)
+                    ->orLike('search_trans.title', $search)
+                    ->orLike('search_trans.excerpt', $search)
+                ->groupEnd();
+                $entryModel->groupBy('cms_entries.id');
+            }
+        }
+
         $now    = date('Y-m-d H:i:s');
         $offset = ($dto->page - 1) * $dto->per_page;
 
@@ -96,14 +117,14 @@ class PublicEntryReader
         $orderColumn = match ($dto->order_by) {
             'published_at' => 'cms_entries.published_at',
             'created_at'   => 'cms_entries.created_at',
-            'title'        => 'cms_entry_translations.title',
+            'title'        => 'title_trans.title',
             default        => 'cms_entries.sort_order',
         };
 
         if ($dto->order_by === 'title') {
             $builder->join(
-                'cms_entry_translations',
-                'cms_entry_translations.entry_id = cms_entries.id AND cms_entry_translations.language_id = ' . (int) $langId,
+                'cms_entry_translations title_trans',
+                'title_trans.entry_id = cms_entries.id AND title_trans.language_id = ' . (int) $langId,
                 'left'
             );
         }

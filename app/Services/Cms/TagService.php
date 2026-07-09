@@ -20,6 +20,7 @@ class TagService extends BaseCrudService implements TagServiceInterface
     private ?array $tempTranslations = null;
 
     private \App\Libraries\Cms\CacheInvalidationClient $cacheInvalidator;
+    private \App\Libraries\Cms\TranslationResolver $translationResolver;
 
     /**
      * @param RepositoryInterface<TagEntity> $tagRepository
@@ -31,6 +32,7 @@ class TagService extends BaseCrudService implements TagServiceInterface
     ) {
         parent::__construct($tagRepository, $responseMapper);
         $this->cacheInvalidator = $cacheInvalidator ?? service('cacheInvalidationClient');
+        $this->translationResolver = service('translationResolver');
     }
 
     protected function beforeStore(array $data, ?SecurityContext $context): array
@@ -103,6 +105,53 @@ class TagService extends BaseCrudService implements TagServiceInterface
         }
 
         return $entities;
+    }
+
+    /**
+     * Public list of active tags for a collection.
+     *
+     * @return array<int, array<string, mixed>>
+     */
+    public function listPublic(string $lang, string $collectionKey): array
+    {
+        /** @var \App\Models\CollectionModel $collectionModel */
+        $collectionModel = model(\App\Models\CollectionModel::class);
+        $collection = $collectionModel
+            ->where('collection_key', $collectionKey)
+            ->where('is_active', 1)
+            ->first();
+
+        if (! $collection instanceof \App\Entities\CollectionEntity) {
+            return [];
+        }
+
+        /** @var \App\Models\TagModel $tagModel */
+        $tagModel = model(\App\Models\TagModel::class);
+        $tags = $tagModel
+            ->where('is_active', 1)
+            ->orderBy('created_at', 'ASC')
+            ->findAll();
+
+        if ($tags === []) {
+            return [];
+        }
+
+        $result = [];
+        foreach ($tags as $tag) {
+            if (! $tag instanceof \App\Entities\TagEntity) {
+                continue;
+            }
+
+            $resolved = $this->translationResolver->resolve('tag', (int) $tag->id, $lang);
+            $result[] = [
+                'id'          => (int) $tag->id,
+                'slug'        => $resolved['slug'] ?? '',
+                'name'        => $resolved['name'] ?? '',
+                'is_fallback' => $resolved['is_fallback'] ?? false,
+            ];
+        }
+
+        return $result;
     }
 
     /**

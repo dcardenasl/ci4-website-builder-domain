@@ -8,7 +8,8 @@ use dcardenasl\Ci4ApiCore\Services\CrudServiceContract;
 
 interface TagServiceInterface extends CrudServiceContract
 {
-    // Declare resource-specific service methods here.
-    // Implement them in TagService; until ready, throw:
-    //   throw new \BadMethodCallException(__METHOD__ . ' not implemented');
+    /**
+     * @return array<int, array<string, mixed>>
+     */
+    public function listPublic(string $lang, string $collectionKey): array;
 }

@@ -60,6 +60,8 @@ class PageService extends BaseCrudService implements PageServiceInterface
             $data['sort_order'] = 0;
         }
 
+        $data = $this->normalizeCollectionIndexPayload($data);
+
         if (! array_key_exists('is_in_sitemap', $data) || $data['is_in_sitemap'] === null || $data['is_in_sitemap'] === '') {
             $data['is_in_sitemap'] = '1';
         }
@@ -92,7 +94,7 @@ class PageService extends BaseCrudService implements PageServiceInterface
         }
         $this->fileReferenceSynchronizer->syncPage((int) $entity->id);
         $this->createVersionSnapshot((int) $entity->id, 'Initial creation');
-        $this->cacheInvalidator->invalidate(['pages']);
+        $this->cacheInvalidator->invalidate(['pages', 'collections']);
         $this->tempTranslations = null;
     }
 
@@ -104,6 +106,8 @@ class PageService extends BaseCrudService implements PageServiceInterface
             $parentId = $data['parent_id'] !== null && $data['parent_id'] !== '' ? (int) $data['parent_id'] : null;
             $this->validateParent($id, $parentId);
         }
+
+        $data = $this->normalizeCollectionIndexPayload($data, $id);
 
         if (array_key_exists('translations', $data)) {
             $this->tempTranslations = $data['translations'];
@@ -122,7 +126,7 @@ class PageService extends BaseCrudService implements PageServiceInterface
             $this->saveTranslations((int) $entity->id, $this->tempTranslations);
         }
         $this->createVersionSnapshot((int) $entity->id, 'Update page');
-        $this->cacheInvalidator->invalidate(['pages']);
+        $this->cacheInvalidator->invalidate(['pages', 'collections']);
         $this->tempTranslations = null;
     }
 
@@ -337,6 +341,91 @@ class PageService extends BaseCrudService implements PageServiceInterface
 
             $ancestor = $this->repository->find($currentParentId);
             $currentParentId = $ancestor ? $ancestor->parent_id : null;
+        }
+    }
+
+    /**
+     * Normalizes and validates the collection index relationship for pages.
+     *
+     * @param array<string, mixed> $data
+     * @return array<string, mixed>
+     */
+    private function normalizeCollectionIndexPayload(array $data, ?int $pageId = null): array
+    {
+        $currentPageType = null;
+        if ($pageId !== null) {
+            $currentPage = $this->repository->find($pageId);
+            if ($currentPage instanceof PageEntity) {
+                $currentPageType = $currentPage->page_type;
+            }
+        }
+
+        $pageType = array_key_exists('page_type', $data)
+            ? (string) ($data['page_type'] ?? '')
+            : ($currentPageType ?? '');
+
+        if ($pageType !== 'collection_index') {
+            $data['collection_id'] = null;
+            return $data;
+        }
+
+        if (! array_key_exists('collection_id', $data) && $pageId !== null) {
+            $currentPage = $this->repository->find($pageId);
+            if ($currentPage instanceof PageEntity && (int) ($currentPage->collection_id ?? 0) > 0) {
+                $data['collection_id'] = (int) $currentPage->collection_id;
+            }
+        }
+
+        $collectionId = isset($data['collection_id']) && $data['collection_id'] !== '' ? (int) $data['collection_id'] : null;
+
+        // At this point, we know $pageType === 'collection_index' (or we would have returned earlier)
+        if ($collectionId === null) {
+            throw new ValidationException(
+                lang('Pages.invalid_hierarchy'),
+                ['collection_id' => lang('Pages.collection_required_for_index')]
+            );
+        }
+
+        $this->assertCollectionExists($collectionId);
+        $this->assertCollectionIndexUniqueness($collectionId, $pageId);
+        $data['collection_id'] = $collectionId;
+
+        return $data;
+    }
+
+    private function assertCollectionExists(int $collectionId): void
+    {
+        /** @var \App\Models\CollectionModel $collectionModel */
+        $collectionModel = model(\App\Models\CollectionModel::class);
+        $collection = $collectionModel->find($collectionId);
+
+        if (! $collection instanceof \App\Entities\CollectionEntity || (int) ($collection->is_active ?? 0) !== 1) {
+            throw new ValidationException(
+                lang('Pages.invalid_hierarchy'),
+                ['collection_id' => lang('Pages.collection_not_exists')]
+            );
+        }
+    }
+
+    private function assertCollectionIndexUniqueness(int $collectionId, ?int $pageId = null): void
+    {
+        /** @var \App\Models\PageModel $pageModel */
+        $pageModel = model(\App\Models\PageModel::class);
+
+        $builder = $pageModel->builder()
+            ->where('page_type', 'collection_index')
+            ->where('collection_id', $collectionId)
+            ->where('deleted_at IS NULL', null, false);
+
+        if ($pageId !== null) {
+            $builder->where('id !=', $pageId);
+        }
+
+        if ($builder->countAllResults() > 0) {
+            throw new ValidationException(
+                lang('Pages.invalid_hierarchy'),
+                ['collection_id' => lang('Pages.collection_index_already_exists')]
+            );
         }
     }
 }
