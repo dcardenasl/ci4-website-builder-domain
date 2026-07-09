@@ -22,6 +22,8 @@ final readonly class PageResponseDTO implements DataTransferObjectInterface
         public int $id,
         #[OA\Property(description: 'parent_id', type: 'integer', nullable: true)]
         public ?int $parent_id,
+        #[OA\Property(description: 'collection_id', type: 'integer', nullable: true)]
+        public ?int $collection_id,
         #[OA\Property(description: 'page_type', type: 'string')]
         public string $page_type,
         #[OA\Property(description: 'status', type: 'string')]
@@ -55,6 +57,7 @@ final readonly class PageResponseDTO implements DataTransferObjectInterface
         return new static(
             id: (int) ($data['id'] ?? 0),
             parent_id: isset($data['parent_id']) ? (int) $data['parent_id'] : null,
+            collection_id: isset($data['collection_id']) ? (int) $data['collection_id'] : null,
             page_type: (string) ($data['page_type'] ?? ''),
             status: (string) ($data['status'] ?? ''),
             published_at: $data['published_at'] ?? null,
@@ -77,6 +80,7 @@ final readonly class PageResponseDTO implements DataTransferObjectInterface
         $res = [
             'id' => $this->id,
             'parent_id' => $this->parent_id,
+            'collection_id' => $this->collection_id,
             'page_type' => $this->page_type,
             'status' => $this->status,
             'published_at' => $this->published_at,

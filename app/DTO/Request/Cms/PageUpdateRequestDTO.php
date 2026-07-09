@@ -13,7 +13,9 @@ readonly class PageUpdateRequestDTO extends BaseRequestDTO
 {
     #[OA\Property(description: 'parent_id', type: 'integer', nullable: true)]
     public ?int $parent_id;
-    #[OA\Property(description: 'page_type', type: 'string', nullable: true, enum: ['home', 'generic', 'contact', 'privacy', 'terms', '404', '500', 'maintenance', 'about', 'history', 'events'])]
+    #[OA\Property(description: 'collection_id', type: 'integer', nullable: true)]
+    public ?int $collection_id;
+    #[OA\Property(description: 'page_type', type: 'string', nullable: true, enum: ['home', 'generic', 'contact', 'privacy', 'terms', '404', '500', 'maintenance', 'about', 'history', 'events', 'collection_index'])]
     public ?string $page_type;
     #[OA\Property(description: 'status', type: 'string', nullable: true, enum: ['draft', 'published', 'archived'])]
     public ?string $status;
@@ -44,7 +46,8 @@ readonly class PageUpdateRequestDTO extends BaseRequestDTO
     public function rules(): array
     {
         return [
-            'parent_id' => 'permit_empty|integer',
+            'parent_id' => 'permit_empty|is_natural_no_zero',
+            'collection_id' => 'permit_empty|is_natural_no_zero',
             'page_type' => 'permit_empty|' . CmsEnums::inListRule(CmsEnums::PAGE_TYPE),
             'status' => 'permit_empty|' . CmsEnums::inListRule(CmsEnums::PAGE_STATUS),
             'published_at' => 'permit_empty|valid_date',
@@ -80,6 +83,13 @@ readonly class PageUpdateRequestDTO extends BaseRequestDTO
             $mappedFields['parent_id'] = $this->parent_id;
         } else {
             $this->parent_id = null;
+        }
+
+        if (array_key_exists('collection_id', $data)) {
+            $this->collection_id = $data['collection_id'] !== null && $data['collection_id'] !== '' ? (int) $data['collection_id'] : null;
+            $mappedFields['collection_id'] = $this->collection_id;
+        } else {
+            $this->collection_id = null;
         }
 
         if (array_key_exists('page_type', $data)) {

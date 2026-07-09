@@ -16,6 +16,7 @@ class PageEntity extends Entity
     protected $casts = [
         'id' => 'integer',
         'parent_id' => 'int',
+        'collection_id' => 'int',
         'page_type' => 'string',
         'status' => 'string',
         'published_at' => 'string',

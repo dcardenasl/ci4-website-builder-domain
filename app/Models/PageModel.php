@@ -20,7 +20,7 @@ class PageModel extends BaseAuditableModel
     protected $useSoftDeletes = true;
     protected $useTimestamps = true;
 
-    protected $allowedFields = ['parent_id', 'page_type', 'status', 'published_at', 'scheduled_at', 'sort_order', 'sitemap_priority', 'sitemap_changefreq', 'is_in_sitemap'];
+    protected $allowedFields = ['parent_id', 'collection_id', 'page_type', 'status', 'published_at', 'scheduled_at', 'sort_order', 'sitemap_priority', 'sitemap_changefreq', 'is_in_sitemap'];
 
     /** @var array<int, string> */
     protected array $searchableFields = [];
@@ -32,8 +32,9 @@ class PageModel extends BaseAuditableModel
     protected array $sortableFields = ['id', 'created_at'];
 
     protected $validationRules = [
-        'parent_id' => 'permit_empty|integer',
-        'page_type' => 'required|in_list[home,generic,contact,privacy,terms,404,500,maintenance,about,history,events]',
+        'parent_id' => 'permit_empty|is_natural_no_zero',
+        'collection_id' => 'permit_empty|is_natural_no_zero',
+        'page_type' => 'required|in_list[home,generic,contact,privacy,terms,404,500,maintenance,about,history,events,collection_index]',
         'status' => 'required|in_list[draft,published,archived]',
         'published_at' => 'permit_empty|valid_date',
         'scheduled_at' => 'permit_empty|valid_date',

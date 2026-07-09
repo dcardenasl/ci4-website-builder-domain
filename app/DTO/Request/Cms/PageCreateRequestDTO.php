@@ -13,7 +13,9 @@ readonly class PageCreateRequestDTO extends BaseRequestDTO
 {
     #[OA\Property(description: 'parent_id', type: 'integer', nullable: true)]
     public ?int $parent_id;
-    #[OA\Property(description: 'page_type', type: 'string', enum: ['home', 'generic', 'contact', 'privacy', 'terms', '404', '500', 'maintenance', 'about', 'history', 'events'])]
+    #[OA\Property(description: 'collection_id', type: 'integer', nullable: true)]
+    public ?int $collection_id;
+    #[OA\Property(description: 'page_type', type: 'string', enum: ['home', 'generic', 'contact', 'privacy', 'terms', '404', '500', 'maintenance', 'about', 'history', 'events', 'collection_index'])]
     public string $page_type;
     #[OA\Property(description: 'status', type: 'string', nullable: true, enum: ['draft', 'published', 'archived'])]
     public string $status;
@@ -42,7 +44,8 @@ readonly class PageCreateRequestDTO extends BaseRequestDTO
     public function rules(): array
     {
         return [
-            'parent_id' => 'permit_empty|integer',
+            'parent_id' => 'permit_empty|is_natural_no_zero',
+            'collection_id' => 'permit_empty|is_natural_no_zero',
             'page_type' => 'required|' . CmsEnums::inListRule(CmsEnums::PAGE_TYPE),
             'status' => 'permit_empty|' . CmsEnums::inListRule(CmsEnums::PAGE_STATUS),
             'published_at' => 'permit_empty|valid_date',
@@ -72,6 +75,7 @@ readonly class PageCreateRequestDTO extends BaseRequestDTO
     protected function map(array $data): void
     {
         $this->parent_id = isset($data['parent_id']) && $data['parent_id'] !== '' ? (int) $data['parent_id'] : null;
+        $this->collection_id = isset($data['collection_id']) && $data['collection_id'] !== '' ? (int) $data['collection_id'] : null;
         $this->page_type = (string) ($data['page_type'] ?? '');
         $this->status = (string) ($data['status'] ?? 'draft');
         $this->published_at = $data['published_at'] ?? null;
@@ -90,6 +94,7 @@ readonly class PageCreateRequestDTO extends BaseRequestDTO
     {
         return [
             'parent_id' => $this->parent_id,
+            'collection_id' => $this->collection_id,
             'page_type' => $this->page_type,
             'status' => $this->status,
             'published_at' => $this->published_at,
