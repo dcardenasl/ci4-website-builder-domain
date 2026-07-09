@@ -140,7 +140,7 @@ class HubClient extends CoreHubClient
                 ],
             ]);
 
-            return (int) ($data['data']['job_id'] ?? 0);
+            return (int) ($data['job_id'] ?? 0);
         } catch (\Throwable $e) {
             log_message('error', '[HubClient] queueEmail failed: ' . $e->getMessage());
             return 0;

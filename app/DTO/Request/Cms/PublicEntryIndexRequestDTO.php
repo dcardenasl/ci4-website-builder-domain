@@ -14,6 +14,7 @@ readonly class PublicEntryIndexRequestDTO extends BaseRequestDTO
     public int $per_page;
     public ?string $category;
     public ?string $tag;
+    public ?string $q;
     public string $order_by;
     public string $order_direction;
 
@@ -28,6 +29,7 @@ readonly class PublicEntryIndexRequestDTO extends BaseRequestDTO
             'limit'          => 'permit_empty|is_natural_no_zero|less_than[101]',
             'category'       => 'permit_empty|string|max_length[150]',
             'tag'            => 'permit_empty|string|max_length[100]',
+            'q'              => 'permit_empty|string|max_length[255]',
             'order_by'       => 'permit_empty|in_list[published_at,sort_order,created_at,title]',
             'order_direction' => 'permit_empty|in_list[asc,desc,ASC,DESC]',
         ];
@@ -43,6 +45,7 @@ readonly class PublicEntryIndexRequestDTO extends BaseRequestDTO
         $this->per_page       = $perPage !== '' ? (int) $perPage : 20;
         $this->category       = isset($data['category']) && $data['category'] !== '' ? (string) $data['category'] : null;
         $this->tag            = isset($data['tag']) && $data['tag'] !== '' ? (string) $data['tag'] : null;
+        $this->q              = isset($data['q']) && $data['q'] !== '' ? (string) $data['q'] : null;
         $this->order_by       = (string) ($data['order_by'] ?? 'sort_order');
         $direction            = strtoupper((string) ($data['order_direction'] ?? 'ASC'));
         $this->order_direction = $direction === 'DESC' ? 'DESC' : 'ASC';
@@ -58,6 +61,7 @@ readonly class PublicEntryIndexRequestDTO extends BaseRequestDTO
             'per_page'       => $this->per_page,
             'category'       => $this->category,
             'tag'            => $this->tag,
+            'q'              => $this->q,
             'order_by'       => $this->order_by,
             'order_direction' => $this->order_direction,
         ];

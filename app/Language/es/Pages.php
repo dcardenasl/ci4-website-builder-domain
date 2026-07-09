@@ -17,6 +17,9 @@ return [
         'parent_id' => 'Parent',
         'parent_id_placeholder' => 'Ingresa Parent',
         'parent_id_help' => 'Ingresa Parent.',
+        'collection_id' => 'Colección',
+        'collection_id_placeholder' => 'Seleccione Colección',
+        'collection_id_help' => 'Seleccione la colección vinculada a esta página cuando sea un índice de colección.',
         'page_type' => 'Page Type',
         'page_type_placeholder' => 'Ingresa Page Type',
         'page_type_help' => 'Ingresa Page Type.',
@@ -53,4 +56,8 @@ return [
     'page_type_about' => 'Nosotros',
     'page_type_history' => 'Historia',
     'page_type_events' => 'Eventos',
+    'page_type_collection_index' => 'Índice de Colección',
+    'collection_required_for_index' => 'Se requiere una colección para las páginas índice de colección.',
+    'collection_not_exists' => 'La colección seleccionada no existe.',
+    'collection_index_already_exists' => 'Esa colección ya tiene una página índice.',
 ];

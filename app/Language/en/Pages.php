@@ -17,6 +17,9 @@ return [
         'parent_id' => 'Parent',
         'parent_id_placeholder' => 'Enter Parent',
         'parent_id_help' => 'Enter Parent.',
+        'collection_id' => 'Collection',
+        'collection_id_placeholder' => 'Select Collection',
+        'collection_id_help' => 'Select the collection linked to this page when it is a collection index.',
         'page_type' => 'Page Type',
         'page_type_placeholder' => 'Enter Page Type',
         'page_type_help' => 'Enter Page Type.',
@@ -53,4 +56,8 @@ return [
     'page_type_about' => 'About',
     'page_type_history' => 'History',
     'page_type_events' => 'Events',
+    'page_type_collection_index' => 'Collection Index',
+    'collection_required_for_index' => 'A collection is required for collection index pages.',
+    'collection_not_exists' => 'The selected collection does not exist.',
+    'collection_index_already_exists' => 'That collection already has an index page.',
 ];
