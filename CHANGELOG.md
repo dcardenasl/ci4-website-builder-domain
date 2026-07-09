@@ -8,6 +8,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- **Component and media page types** — migration `2026-07-09-000001_AddComponentsAndMediaPageTypesToCmsPages` introduces two new page types (`component` and `media`) for modular page composition; adds `SiteComponentsPageSeeder` and `SiteMediaPageSeeder` to bootstrap example pages with full block coverage validation tests
 - **Map embed block extraction** — migration `2026-07-06-110001_ExtractMapEmbedAndNormalizeGenericBlocks` separates embedded maps from `contact_info` block into independent `map_embed` block for better modularity; automatically migrates existing `contact_info` instances that include map URLs to the new dedicated block type
 
 ### Changed
