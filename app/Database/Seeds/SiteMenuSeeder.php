@@ -15,12 +15,14 @@ use CodeIgniter\Database\Seeder;
  *   2. Nosotros / About (no_link dropdown)
  *      2.1 Quiénes Somos / About Us         → about page
  *      2.2 Historia / History               → history page
- *   3. Eventos / Events                     → events page
- *   4. Noticias / News                      → noticias collection
- *   5. Contacto / Contact                   → contact page
+ *   3. Portafolio / Portfolio               → collection index page
+ *   4. Bloques / Components                 → components page
+ *   5. Multimedia / Media                  → multimedia page
+ *   6. Noticias / News                      → noticias collection
+ *   7. Contacto / Contact                   → contact page
  *
  * Footer menu (flat):
- *   1. Inicio  2. Quiénes Somos  3. Historia  4. Eventos  5. Noticias  6. Contacto
+ *   1. Inicio  2. Quiénes Somos  3. Historia  4. Portafolio  5. Bloques  6. Multimedia  7. Noticias  8. Contacto
  *
  * Idempotent: upserts menus, items, and translations.
  */
@@ -41,6 +43,8 @@ class SiteMenuSeeder extends Seeder
         $historyPageId         = $this->pageIdByType('history');
         $portfolioCollectionId = $this->collectionIdByKey('portafolio');
         $portfolioPageId       = $portfolioCollectionId !== null ? $this->pageIdByCollectionId($portfolioCollectionId) : null;
+        $componentsPageId      = $this->pageIdBySlug(['bloques', 'components']);
+        $mediaPageId           = $this->pageIdBySlug(['multimedia', 'media']);
         $contactPageId         = $this->pageIdByType('contact');
         $newsCollectionId      = $this->collectionIdByKey('noticias');
 
@@ -54,8 +58,9 @@ class SiteMenuSeeder extends Seeder
             'es' => 'Navegación principal',
             'en' => 'Main navigation',
         ]);
+        $mainMenuItemIds = [];
 
-        $this->upsertMenuItem($mainMenuId, 'page', [
+        $mainMenuItemIds[] = $this->upsertMenuItem($mainMenuId, 'page', [
             'page_id'       => $homePageId,
             'entry_id'      => null,
             'collection_id' => null,
@@ -68,9 +73,10 @@ class SiteMenuSeeder extends Seeder
             'parent_id'  => null,
             'sort_order' => 2,
         ], ['es' => 'Nosotros', 'en' => 'About'], $langIds);
+        $mainMenuItemIds[] = $nosotrosItemId;
 
         if ($aboutPageId !== null) {
-            $this->upsertMenuItem($mainMenuId, 'page', [
+            $mainMenuItemIds[] = $this->upsertMenuItem($mainMenuId, 'page', [
                 'page_id'       => $aboutPageId,
                 'entry_id'      => null,
                 'collection_id' => null,
@@ -80,7 +86,7 @@ class SiteMenuSeeder extends Seeder
         }
 
         if ($historyPageId !== null) {
-            $this->upsertMenuItem($mainMenuId, 'page', [
+            $mainMenuItemIds[] = $this->upsertMenuItem($mainMenuId, 'page', [
                 'page_id'       => $historyPageId,
                 'entry_id'      => null,
                 'collection_id' => null,
@@ -90,7 +96,7 @@ class SiteMenuSeeder extends Seeder
         }
 
         if ($portfolioPageId !== null) {
-            $this->upsertMenuItem($mainMenuId, 'page', [
+            $mainMenuItemIds[] = $this->upsertMenuItem($mainMenuId, 'page', [
                 'page_id'       => $portfolioPageId,
                 'entry_id'      => null,
                 'collection_id' => null,
@@ -99,29 +105,52 @@ class SiteMenuSeeder extends Seeder
             ], ['es' => 'Portafolio', 'en' => 'Portfolio'], $langIds);
         }
 
-        $this->upsertMenuItem($mainMenuId, 'collection_listing', [
+        if ($componentsPageId !== null) {
+            $mainMenuItemIds[] = $this->upsertMenuItem($mainMenuId, 'page', [
+                'page_id'       => $componentsPageId,
+                'entry_id'      => null,
+                'collection_id' => null,
+                'parent_id'     => null,
+                'sort_order'    => 4,
+            ], ['es' => 'Bloques', 'en' => 'Components'], $langIds);
+        }
+
+        if ($mediaPageId !== null) {
+            $mainMenuItemIds[] = $this->upsertMenuItem($mainMenuId, 'page', [
+                'page_id'       => $mediaPageId,
+                'entry_id'      => null,
+                'collection_id' => null,
+                'parent_id'     => null,
+                'sort_order'    => 5,
+            ], ['es' => 'Multimedia', 'en' => 'Media'], $langIds);
+        }
+
+        $mainMenuItemIds[] = $this->upsertMenuItem($mainMenuId, 'collection_listing', [
             'page_id'       => null,
             'entry_id'      => null,
             'collection_id' => $newsCollectionId,
             'parent_id'     => null,
-            'sort_order'    => 4,
+            'sort_order'    => 6,
         ], ['es' => 'Noticias', 'en' => 'News'], $langIds);
 
-        $this->upsertMenuItem($mainMenuId, 'page', [
+        $mainMenuItemIds[] = $this->upsertMenuItem($mainMenuId, 'page', [
             'page_id'       => $contactPageId,
             'entry_id'      => null,
             'collection_id' => null,
             'parent_id'     => null,
-            'sort_order'    => 5,
+            'sort_order'    => 7,
         ], ['es' => 'Contacto', 'en' => 'Contact'], $langIds);
+
+        $this->pruneMenuItems($mainMenuId, $mainMenuItemIds);
 
         // ── Footer menu (flat) ─────────────────────────────────────────────────
         $footerMenuId = $this->upsertMenu('footer', 'footer', [
             'es' => 'Pie de página',
             'en' => 'Footer navigation',
         ]);
+        $footerMenuItemIds = [];
 
-        $this->upsertMenuItem($footerMenuId, 'page', [
+        $footerMenuItemIds[] = $this->upsertMenuItem($footerMenuId, 'page', [
             'page_id'       => $homePageId,
             'entry_id'      => null,
             'collection_id' => null,
@@ -130,7 +159,7 @@ class SiteMenuSeeder extends Seeder
         ], ['es' => 'Inicio', 'en' => 'Home'], $langIds);
 
         if ($aboutPageId !== null) {
-            $this->upsertMenuItem($footerMenuId, 'page', [
+            $footerMenuItemIds[] = $this->upsertMenuItem($footerMenuId, 'page', [
                 'page_id'       => $aboutPageId,
                 'entry_id'      => null,
                 'collection_id' => null,
@@ -140,7 +169,7 @@ class SiteMenuSeeder extends Seeder
         }
 
         if ($historyPageId !== null) {
-            $this->upsertMenuItem($footerMenuId, 'page', [
+            $footerMenuItemIds[] = $this->upsertMenuItem($footerMenuId, 'page', [
                 'page_id'       => $historyPageId,
                 'entry_id'      => null,
                 'collection_id' => null,
@@ -150,7 +179,7 @@ class SiteMenuSeeder extends Seeder
         }
 
         if ($portfolioPageId !== null) {
-            $this->upsertMenuItem($footerMenuId, 'page', [
+            $footerMenuItemIds[] = $this->upsertMenuItem($footerMenuId, 'page', [
                 'page_id'       => $portfolioPageId,
                 'entry_id'      => null,
                 'collection_id' => null,
@@ -159,21 +188,43 @@ class SiteMenuSeeder extends Seeder
             ], ['es' => 'Portafolio', 'en' => 'Portfolio'], $langIds);
         }
 
-        $this->upsertMenuItem($footerMenuId, 'collection_listing', [
+        if ($componentsPageId !== null) {
+            $footerMenuItemIds[] = $this->upsertMenuItem($footerMenuId, 'page', [
+                'page_id'       => $componentsPageId,
+                'entry_id'      => null,
+                'collection_id' => null,
+                'parent_id'     => null,
+                'sort_order'    => 5,
+            ], ['es' => 'Bloques', 'en' => 'Components'], $langIds);
+        }
+
+        if ($mediaPageId !== null) {
+            $footerMenuItemIds[] = $this->upsertMenuItem($footerMenuId, 'page', [
+                'page_id'       => $mediaPageId,
+                'entry_id'      => null,
+                'collection_id' => null,
+                'parent_id'     => null,
+                'sort_order'    => 6,
+            ], ['es' => 'Multimedia', 'en' => 'Media'], $langIds);
+        }
+
+        $footerMenuItemIds[] = $this->upsertMenuItem($footerMenuId, 'collection_listing', [
             'page_id'       => null,
             'entry_id'      => null,
             'collection_id' => $newsCollectionId,
             'parent_id'     => null,
-            'sort_order'    => 5,
+            'sort_order'    => 7,
         ], ['es' => 'Noticias', 'en' => 'News'], $langIds);
 
-        $this->upsertMenuItem($footerMenuId, 'page', [
+        $footerMenuItemIds[] = $this->upsertMenuItem($footerMenuId, 'page', [
             'page_id'       => $contactPageId,
             'entry_id'      => null,
             'collection_id' => null,
             'parent_id'     => null,
-            'sort_order'    => 6,
+            'sort_order'    => 8,
         ], ['es' => 'Contacto', 'en' => 'Contact'], $langIds);
+
+        $this->pruneMenuItems($footerMenuId, $footerMenuItemIds);
     }
 
     // ── Private helpers ───────────────────────────────────────────────────────
@@ -211,6 +262,27 @@ class SiteMenuSeeder extends Seeder
             ->where('page_type', 'collection_index')
             ->where('collection_id', $collectionId)
             ->where('deleted_at IS NULL', null, false)
+            ->get()
+            ->getRowArray();
+
+        return $row !== null ? (int) $row['id'] : null;
+    }
+
+    /**
+     * @param list<string> $slugs
+     */
+    private function pageIdBySlug(array $slugs): ?int
+    {
+        if ($slugs === []) {
+            return null;
+        }
+
+        $row = $this->db->table('cms_pages')
+            ->select('cms_pages.id')
+            ->join('cms_page_translations', 'cms_page_translations.page_id = cms_pages.id')
+            ->where('cms_pages.deleted_at IS NULL', null, false)
+            ->whereIn('cms_page_translations.slug', $slugs)
+            ->orderBy('cms_pages.id', 'ASC')
             ->get()
             ->getRowArray();
 
@@ -360,5 +432,26 @@ class SiteMenuSeeder extends Seeder
             'label'      => $label,
             'custom_url' => null,
         ]);
+    }
+
+    /**
+     * Remove stale menu rows that are no longer part of the canonical seed.
+     *
+     * @param list<int> $keepIds
+     */
+    private function pruneMenuItems(int $menuId, array $keepIds): void
+    {
+        $keepIds = array_values(array_unique(array_filter(
+            array_map(static fn ($id): int => (int) $id, $keepIds),
+            static fn (int $id): bool => $id > 0
+        )));
+
+        $builder = $this->db->table('cms_menu_items')->where('menu_id', $menuId);
+
+        if ($keepIds !== []) {
+            $builder->whereNotIn('id', $keepIds);
+        }
+
+        $builder->delete();
     }
 }

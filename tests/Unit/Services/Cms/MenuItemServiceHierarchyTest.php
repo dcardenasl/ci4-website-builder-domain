@@ -94,4 +94,29 @@ final class MenuItemServiceHierarchyTest extends CIUnitTestCase
         ], Services::validation());
         $service->store($requestDto);
     }
+
+    public function testDuplicateMenuItemInSameMenuThrowsException(): void
+    {
+        $service = Services::menuItemService();
+
+        $this->db->table('cms_menu_items')->insert([
+            'menu_id' => $this->menuId,
+            'link_type' => 'no_link',
+            'link_target' => '_self',
+            'sort_order' => 1,
+            'is_active' => 1,
+        ]);
+
+        $this->expectException(\dcardenasl\Ci4ApiCore\Exceptions\ValidationException::class);
+
+        $requestDto = new MenuItemCreateRequestDTO([
+            'menu_id' => $this->menuId,
+            'link_type' => 'no_link',
+            'link_target' => '_self',
+            'sort_order' => 2,
+            'is_active' => 1,
+        ], Services::validation());
+
+        $service->store($requestDto);
+    }
 }

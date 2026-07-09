@@ -43,6 +43,7 @@ class MenuItemService extends BaseCrudService implements MenuItemServiceInterfac
 
         $this->validateMenuExists($menuId);
         $this->validateLinkConstraints($data);
+        $this->validateDuplicateLink($menuId, $parentId, $data);
 
         if ($parentId !== null) {
             $this->validateParentExistsAndBelongsToMenu($parentId, $menuId);
@@ -85,6 +86,7 @@ class MenuItemService extends BaseCrudService implements MenuItemServiceInterfac
         // Validate links based on updated payload merged with existing item fields
         $mergedDataForLinks = array_merge($currentItem->toArray(), $data);
         $this->validateLinkConstraints($mergedDataForLinks);
+        $this->validateDuplicateLink($menuId, $parentId, $mergedDataForLinks, $id);
 
         if ($parentId !== null) {
             $this->validateParentExistsAndBelongsToMenu($parentId, $menuId);
@@ -364,6 +366,51 @@ class MenuItemService extends BaseCrudService implements MenuItemServiceInterfac
             throw new ValidationException(
                 lang('Menus.invalid_hierarchy'),
                 ['link_type' => lang('Menus.invalid_link_type')]
+            );
+        }
+    }
+
+    /**
+     * @param array<string, mixed> $data
+     */
+    private function validateDuplicateLink(int $menuId, ?int $parentId, array $data, ?int $ignoreId = null): void
+    {
+        $linkType = (string) ($data['link_type'] ?? '');
+
+        if ($linkType === 'custom_url') {
+            return;
+        }
+
+        $query = model(\App\Models\MenuItemModel::class)
+            ->where('menu_id', $menuId)
+            ->where('link_type', $linkType)
+            ->where('is_active', 1);
+
+        if ($parentId === null) {
+            $query->where('parent_id IS NULL', null, false);
+        } else {
+            $query->where('parent_id', $parentId);
+        }
+
+        foreach (['page_id', 'entry_id', 'collection_id'] as $field) {
+            if (! array_key_exists($field, $data) || $data[$field] === null || $data[$field] === '') {
+                $query->where($field . ' IS NULL', null, false);
+
+                continue;
+            }
+
+            $query->where($field, (int) $data[$field]);
+        }
+
+        if ($ignoreId !== null) {
+            $query->where('id !=', $ignoreId);
+        }
+
+        $duplicate = $query->first();
+        if ($duplicate !== null) {
+            throw new ValidationException(
+                lang('Menus.invalid_hierarchy'),
+                ['menu_id' => lang('Menus.duplicate_menu_item')]
             );
         }
     }

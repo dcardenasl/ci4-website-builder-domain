@@ -56,6 +56,8 @@ return [
     'page_type_about' => 'About',
     'page_type_history' => 'History',
     'page_type_events' => 'Events',
+    'page_type_components' => 'Components',
+    'page_type_media' => 'Media',
     'page_type_collection_index' => 'Collection Index',
     'collection_required_for_index' => 'A collection is required for collection index pages.',
     'collection_not_exists' => 'The selected collection does not exist.',

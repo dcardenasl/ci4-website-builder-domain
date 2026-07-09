@@ -8,7 +8,7 @@ final class CmsEnums
 {
     public const WORKFLOW_STATUS    = ['draft', 'in_review', 'approved', 'published', 'archived'];
     public const PAGE_STATUS        = ['draft', 'published', 'archived'];
-    public const PAGE_TYPE          = ['home', 'generic', 'contact', 'privacy', 'terms', '404', '500', 'maintenance', 'about', 'history', 'events', 'collection_index'];
+    public const PAGE_TYPE          = ['home', 'generic', 'contact', 'privacy', 'terms', '404', '500', 'maintenance', 'about', 'history', 'events', 'components', 'media', 'collection_index'];
     public const SITEMAP_CHANGEFREQ = ['always', 'hourly', 'daily', 'weekly', 'monthly', 'yearly', 'never'];
 
     /** @param array<string> $values */

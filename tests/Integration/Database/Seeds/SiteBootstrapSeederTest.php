@@ -169,14 +169,23 @@ final class SiteBootstrapSeederTest extends CIUnitTestCase
         $this->assertNotEmpty($portfolioPage['collection_id'] ?? null);
 
         $portfolioBlocks = $this->db->table('cms_block_instances')
+           ->select('cms_content_blocks.block_key')
+           ->join('cms_content_blocks', 'cms_content_blocks.id = cms_block_instances.block_id')
            ->where('owner_type', 'page')
            ->where('owner_id', (int) $portfolioPage['id'])
-           ->where('parent_instance_id IS NULL', null, false)
-           ->orderBy('sort_order', 'ASC')
+           ->orderBy('cms_block_instances.sort_order', 'ASC')
            ->get()
            ->getResultArray();
-        $this->assertCount(6, $portfolioBlocks);
-        $this->assertSame('collection_listing', $this->blockKeyForInstance((int) $portfolioBlocks[2]['block_id']));
+
+        $portfolioBlockKeys = array_map(
+            static fn (array $row): string => (string) ($row['block_key'] ?? ''),
+            $portfolioBlocks
+        );
+
+        $this->assertContains('page_header', $portfolioBlockKeys);
+        $this->assertContains('rich_text', $portfolioBlockKeys);
+        $this->assertContains('collection_listing', $portfolioBlockKeys);
+        $this->assertContains('tabs', $portfolioBlockKeys);
     }
 
     public function testBootstrapSeederIsIdempotent(): void

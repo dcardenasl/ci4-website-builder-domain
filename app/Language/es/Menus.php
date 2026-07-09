@@ -27,4 +27,5 @@ return [
     'invalid_link_type' => 'Las propiedades del tipo de enlace seleccionado no son válidas para este elemento de menú.',
     'menu_not_found' => 'El menú superior no existe.',
     'parent_different_menu' => 'El elemento de menú superior pertenece a un menú diferente.',
+    'duplicate_menu_item' => 'Ya existe un elemento de menú con el mismo destino en este menú.',
 ];

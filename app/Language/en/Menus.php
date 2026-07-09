@@ -27,4 +27,5 @@ return [
     'invalid_link_type' => 'The selected link type properties are invalid for this menu item.',
     'menu_not_found' => 'The parent menu does not exist.',
     'parent_different_menu' => 'Parent menu item belongs to a different menu.',
+    'duplicate_menu_item' => 'A menu item with the same destination already exists in this menu.',
 ];
