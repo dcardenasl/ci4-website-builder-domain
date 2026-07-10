@@ -13,7 +13,10 @@ return [
     'block_types' => [
         'block_key_must_be_unique'          => 'Block key must be unique.',
         'block_key_already_taken'           => "The block key '{0}' is already taken.",
-        'in_use'                             => 'Cannot delete: this block type is in use by {0} instance(s). Remove or replace those blocks first.',
+        'in_use'                             => 'Cannot delete: this block type is in use by {0} instance(s) — {1}. Remove or replace those blocks first.',
+        'usage_page'                         => 'Page',
+        'usage_entry'                        => 'Entry',
+        'usage_instance'                     => 'instance',
     ],
     'settings' => [
         'create_success' => 'Setting created successfully.',

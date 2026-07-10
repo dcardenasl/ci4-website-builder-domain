@@ -180,11 +180,7 @@ trait CmsDomainServices
         if ($getShared) {
             return static::getSharedInstance('blockTypeService');
         }
-        return new \App\Services\Cms\BlockTypeService(
-            new \dcardenasl\Ci4ApiCore\Repositories\GenericRepository(model(\App\Models\BlockTypeModel::class)),
-            static::blockTypeResponseMapper(),
-            new \dcardenasl\Ci4ApiCore\Repositories\GenericRepository(model(\App\Models\BlockInstanceModel::class)),
-        );
+        return new \App\Services\Cms\BlockTypeService(new \dcardenasl\Ci4ApiCore\Repositories\GenericRepository(model(\App\Models\BlockTypeModel::class)), static::blockTypeResponseMapper());
     }
     public static function blockInstanceResponseMapper(bool $getShared = true): \dcardenasl\Ci4ApiCore\Mappers\ResponseMapperInterface
     {

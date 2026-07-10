@@ -80,6 +80,7 @@ $routes->group('cms', ['namespace' => '\App\Controllers\Api\V1\Cms'], function (
         $routes->put('files/(:num)/translations/(:num)', 'FileTranslationController::update/$1/$2', ['filter' => 'permission:cms.pages.write']);
         $routes->delete('files/(:num)/translations/(:num)', 'FileTranslationController::delete/$1/$2', ['filter' => 'permission:cms.pages.write']);
         $routes->get('block-types/(:num)', 'BlockTypeController::show/$1', ['filter' => 'permission:cms.blocks.read']);
+        $routes->get('block-types/(:num)/usages', 'BlockTypeController::usages/$1', ['filter' => 'permission:cms.blocks.read']);
         $routes->put('block-types/(:num)', 'BlockTypeController::update/$1', ['filter' => 'permission:cms.blocks.write']);
         $routes->delete('block-types/(:num)', 'BlockTypeController::delete/$1', ['filter' => 'permission:cms.blocks.write']);
         // Block Instances CRUD nested under pages

@@ -4,9 +4,10 @@ declare(strict_types=1);
 
 namespace App\Services\Cms;
 
-use App\Entities\BlockInstanceEntity;
 use App\Entities\BlockTypeEntity;
 use App\Interfaces\Cms\BlockTypeServiceInterface;
+use CodeIgniter\Database\BaseConnection;
+use Config\Database;
 use dcardenasl\Ci4ApiCore\Dto\SecurityContext;
 use dcardenasl\Ci4ApiCore\Exceptions\ConflictException;
 use dcardenasl\Ci4ApiCore\Exceptions\ValidationException;
@@ -21,16 +22,20 @@ class BlockTypeService extends BaseCrudService implements BlockTypeServiceInterf
 {
     private const ALLOWED_CONTENT_SOURCES = ['manual', 'page', 'collection', 'entry', 'container'];
 
+    /** @var BaseConnection<mixed, mixed> */
+    private BaseConnection $db;
+
     /**
      * @param RepositoryInterface<BlockTypeEntity> $blockTypeRepository
-     * @param RepositoryInterface<BlockInstanceEntity> $blockInstanceRepository
+     * @param BaseConnection<mixed, mixed>|null $db
      */
     public function __construct(
         RepositoryInterface $blockTypeRepository,
         ResponseMapperInterface $responseMapper,
-        private readonly RepositoryInterface $blockInstanceRepository,
+        ?BaseConnection $db = null,
     ) {
         parent::__construct($blockTypeRepository, $responseMapper);
+        $this->db = $db ?? Database::connect();
     }
 
     protected function beforeStore(array $data, ?SecurityContext $context): array
@@ -54,12 +59,82 @@ class BlockTypeService extends BaseCrudService implements BlockTypeServiceInterf
     {
         parent::beforeDelete($id, $context);
 
-        $instanceCount = $this->blockInstanceRepository->getModel()->where('block_id', $id)->countAllResults();
-        if ($instanceCount > 0) {
-            throw new ConflictException(
-                lang('Cms.block_types.in_use', [(string) $instanceCount])
-            );
+        $usages = $this->getUsages($id);
+        if ($usages === []) {
+            return;
         }
+
+        $descriptions = array_map(fn (array $usage): string => $this->describeUsage($usage), $usages);
+
+        throw new ConflictException(
+            lang('Cms.block_types.in_use', [(string) count($usages), implode('; ', $descriptions)])
+        );
+    }
+
+    /**
+     * @return list<array{resource: string, resource_id: int, role: string, label: string|null, context: array{owner_type: string, owner_id: int}}>
+     */
+    public function getUsages(int $blockTypeId): array
+    {
+        $instancesResult = $this->db->table('cms_block_instances')
+            ->select('id, owner_type, owner_id')
+            ->where('block_id', $blockTypeId)
+            ->get();
+
+        /** @var list<array{id: int|string, owner_type: string, owner_id: int|string}> $instances */
+        $instances = $instancesResult ? $instancesResult->getResultArray() : [];
+
+        return array_map(function (array $instance): array {
+            $ownerType = (string) $instance['owner_type'];
+            $ownerId   = (int) $instance['owner_id'];
+
+            return [
+                'resource'    => 'block_instances',
+                'resource_id' => (int) $instance['id'],
+                'role'        => $ownerType,
+                'label'       => $this->resolveOwnerTitle($ownerType, $ownerId),
+                'context'     => [
+                    'owner_type' => $ownerType,
+                    'owner_id'   => $ownerId,
+                ],
+            ];
+        }, $instances);
+    }
+
+    private function resolveOwnerTitle(string $ownerType, int $ownerId): ?string
+    {
+        $table = match ($ownerType) {
+            'page' => 'cms_page_translations',
+            'entry' => 'cms_entry_translations',
+            default => null,
+        };
+
+        if ($table === null) {
+            return null;
+        }
+
+        $fkColumn = $ownerType === 'page' ? 'page_id' : 'entry_id';
+        $result   = $this->db->table($table)->select('title')->where($fkColumn, $ownerId)->get();
+        $row      = $result ? $result->getRowArray() : null;
+
+        return $row['title'] ?? null;
+    }
+
+    /**
+     * @param array{resource: string, resource_id: int, role: string, label: string|null, context: array{owner_type: string, owner_id: int}} $usage
+     */
+    private function describeUsage(array $usage): string
+    {
+        $ownerType  = $usage['context']['owner_type'];
+        $ownerId    = $usage['context']['owner_id'];
+        $instanceId = $usage['resource_id'];
+        $title      = $usage['label'];
+
+        $label = $ownerType === 'page' ? lang('Cms.block_types.usage_page') : lang('Cms.block_types.usage_entry');
+
+        return $title !== null
+            ? sprintf('%s "%s" (id %d, %s #%d)', $label, $title, $ownerId, lang('Cms.block_types.usage_instance'), $instanceId)
+            : sprintf('%s (id %d, %s #%d)', $label, $ownerId, lang('Cms.block_types.usage_instance'), $instanceId);
     }
 
     /**

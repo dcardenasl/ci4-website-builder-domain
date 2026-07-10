@@ -103,4 +103,16 @@ class BlockTypeController extends ApiController
             }
         );
     }
+
+    public function usages(int $id): ResponseInterface
+    {
+        return $this->handleRequest(
+            function (array $dto, SecurityContext $context) use ($id): mixed {
+                if (!$context->hasPermission('cms.blocks.read')) {
+                    throw new \dcardenasl\Ci4ApiCore\Exceptions\AuthorizationException(lang('Api.forbidden'));
+                }
+                return $this->blockTypeService->getUsages($id);
+            }
+        );
+    }
 }

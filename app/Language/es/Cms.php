@@ -13,7 +13,10 @@ return [
     'block_types' => [
         'block_key_must_be_unique'          => 'La clave del bloque debe ser única.',
         'block_key_already_taken'           => "La clave del bloque '{0}' ya está en uso.",
-        'in_use'                             => 'No se puede eliminar: este tipo de bloque está en uso en {0} instancia(s). Elimina o reemplaza esos bloques primero.',
+        'in_use'                             => 'No se puede eliminar: este tipo de bloque está en uso en {0} instancia(s) — {1}. Elimina o reemplaza esos bloques primero.',
+        'usage_page'                         => 'Página',
+        'usage_entry'                        => 'Entrada',
+        'usage_instance'                     => 'instancia',
     ],
     'settings' => [
         'create_success' => 'Configuración creada exitosamente.',
