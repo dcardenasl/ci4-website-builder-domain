@@ -350,103 +350,13 @@ class PortfolioCollectionSeeder extends Seeder
                 ]);
             }
 
-            // Complete the case study with reusable presentation blocks. Each
-            // language gets its own localized payload, while instances remain
-            // shared by the entry as they are in the CMS.
-            $extraBlocks = [
-                'page_header' => [
-                    'es' => [
-                        'heading' => 'El desafío detrás de ' . $entry['es']['title'],
-                        'subheading' => 'Caso de estudio: estrategia, diseño y tecnología trabajando en conjunto.',
-                        'breadcrumb_label' => 'Portafolio',
-                        'breadcrumb_url' => '/portafolio',
-                    ],
-                    'en' => [
-                        'heading' => 'The challenge behind ' . $entry['en']['title'],
-                        'subheading' => 'Case study: strategy, design, and technology working together.',
-                        'breadcrumb_label' => 'Portfolio',
-                        'breadcrumb_url' => '/portfolio',
-                    ],
-                ],
-                'hero_banner' => [
-                    'es' => [
-                        'image_url' => $entry['detail_image_url'],
-                        'alt' => $entry['es']['title'],
-                        'heading' => 'Resultados que se pueden ver y medir',
-                        'subheading' => $entry['es']['excerpt'],
-                        'cta_label' => 'Conocer el portafolio',
-                        'cta_url' => '/portafolio',
-                    ],
-                    'en' => [
-                        'image_url' => $entry['detail_image_url'],
-                        'alt' => $entry['en']['title'],
-                        'heading' => 'Results you can see and measure',
-                        'subheading' => $entry['en']['excerpt'],
-                        'cta_label' => 'Explore the portfolio',
-                        'cta_url' => '/portfolio',
-                    ],
-                ],
-                'cta' => [
-                    'es' => [
-                        'heading' => 'Hablemos de tu próximo desafío',
-                        'text' => 'Cuéntanos qué quieres construir y diseñemos una experiencia digital con impacto.',
-                        'label' => 'Iniciar una conversación',
-                        'url' => '/contacto',
-                    ],
-                    'en' => [
-                        'heading' => 'Let’s talk about your next challenge',
-                        'text' => 'Tell us what you want to build and let’s design a digital experience with impact.',
-                        'label' => 'Start a conversation',
-                        'url' => '/contact',
-                    ],
-                ],
-                'alert' => [
-                    'es' => [
-                        'title' => 'Resultado destacado',
-                        'message' => '<p>Este caso demuestra cómo una entrada puede combinar narrativa, evidencia visual, decisiones de diseño y una llamada comercial dentro de una misma estructura dinámica.</p>',
-                    ],
-                    'en' => [
-                        'title' => 'Featured result',
-                        'message' => '<p>This case shows how one entry can combine narrative, visual evidence, design decisions, and a commercial call to action inside one dynamic structure.</p>',
-                    ],
-                ],
-            ];
-            $extraBlockIds = $this->blockIds(array_keys($extraBlocks));
-            foreach ($extraBlocks as $blockKey => $translations) {
-                if (! isset($extraBlockIds[$blockKey])) {
-                    continue;
-                }
-                $instanceId = $this->upsertRecord('cms_block_instances', [
-                    'block_id' => $extraBlockIds[$blockKey],
-                    'owner_type' => 'entry',
-                    'owner_id' => $entryId,
-                    'sort_order' => ['page_header' => 3, 'hero_banner' => 4, 'cta' => 5, 'alert' => 6][$blockKey],
-                ], ['is_active' => 1, 'block_config' => json_encode(match ($blockKey) {
-                    'cta' => ['variant' => 'dark'],
-                    'alert' => ['type' => 'success', 'dismissible' => false],
-                    'page_header' => ['bg_color' => 'bg-slate-100'],
-                    'hero_banner' => ['overlay_color' => 'rgba(15, 23, 42, 0.65)'],
-                    default => [],
-                })]);
-                if ($instanceId === null) {
-                    continue;
-                }
-                $keptInstanceIds[] = $instanceId;
-                foreach ($translations as $langCode => $blockData) {
-                    $langId = $langIds[$langCode] ?? null;
-                    if ($langId === null) {
-                        continue;
-                    }
-                    $this->upsertRecord('cms_block_instance_translations', [
-                        'instance_id' => $instanceId,
-                        'language_id' => $langId,
-                    ], ['block_data' => json_encode($blockData, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES)]);
-                }
-            }
-
-            if (count($keptInstanceIds) === 6) {
-                $this->cleanupStaleEntryBlocks($entryId, $keptInstanceIds);
-            }
+            // Case study entries are article content: a cover image and body
+            // text. The article template already renders the breadcrumb,
+            // title, category badges, date, and back-link, so entries do not
+            // need their own page_header/hero_banner/cta blocks — those are
+            // landing-page building blocks and would duplicate what the
+            // template already shows.
+            $this->cleanupStaleEntryBlocks($entryId, $keptInstanceIds);
         }
         // $this->db->transComplete();
         echo "PortfolioCollectionSeeder: 'portafolio' collection and 2 sample entries seeded.\n";

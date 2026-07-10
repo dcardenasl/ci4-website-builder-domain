@@ -31,25 +31,10 @@ class NewsCollectionSeeder extends Seeder
 
         if ($existing !== null) {
             $collectionId = (int) $existing['id'];
-            $newsPageId = $this->upsertCollectionIndexPage($collectionId);
-            if ($newsPageId !== null) {
-                $this->upsertCollectionIndexTranslation($newsPageId, $langIds['es'] ?? null, [
-                    'slug'             => 'noticias',
-                    'title'            => 'Noticias',
-                    'excerpt'          => 'Mantente al día con las noticias y novedades del sitio.',
-                    'meta_title'       => 'Noticias | Mi Sitio',
-                    'meta_description' => 'Explora el índice público de noticias y actualizaciones.',
-                ]);
-                $this->upsertCollectionIndexTranslation($newsPageId, $langIds['en'] ?? null, [
-                    'slug'             => 'news',
-                    'title'            => 'News',
-                    'excerpt'          => 'Stay up to date with the site news and updates.',
-                    'meta_title'       => 'News | My Site',
-                    'meta_description' => 'Explore the public index of news and updates.',
-                ]);
-            }
 
-            $this->seedSampleEntries($collectionId, $langIds);
+            $catIdMap = $this->seedCategories($collectionId, $langIds);
+            $this->seedSampleEntries($collectionId, $langIds, $catIdMap);
+            $this->ensureCollectionIndexPage($collectionId, $langIds);
 
             echo "NewsCollectionSeeder: 'noticias' collection already exists, repaired/ensured collection index page.\n";
             return;
@@ -184,25 +169,9 @@ class NewsCollectionSeeder extends Seeder
             ], $trans);
         }
 
-        $this->seedSampleEntries($collectionId, $langIds);
-
-        $newsPageId = $this->upsertCollectionIndexPage($collectionId);
-        if ($newsPageId !== null) {
-            $this->upsertCollectionIndexTranslation($newsPageId, $langIds['es'] ?? null, [
-                'slug'             => 'noticias',
-                'title'            => 'Noticias',
-                'excerpt'          => 'Mantente al día con las noticias y novedades del sitio.',
-                'meta_title'       => 'Noticias | Mi Sitio',
-                'meta_description' => 'Explora el índice público de noticias y actualizaciones.',
-            ]);
-            $this->upsertCollectionIndexTranslation($newsPageId, $langIds['en'] ?? null, [
-                'slug'             => 'news',
-                'title'            => 'News',
-                'excerpt'          => 'Stay up to date with the site news and updates.',
-                'meta_title'       => 'News | My Site',
-                'meta_description' => 'Explore the public index of news and updates.',
-            ]);
-        }
+        $catIdMap = $this->seedCategories($collectionId, $langIds);
+        $this->seedSampleEntries($collectionId, $langIds, $catIdMap);
+        $this->ensureCollectionIndexPage($collectionId, $langIds);
 
         echo "NewsCollectionSeeder: 'noticias' collection seeded successfully (collection_id={$collectionId}, index page ensured).\n";
         return;
@@ -211,11 +180,87 @@ class NewsCollectionSeeder extends Seeder
     /**
      * @param array<string, int> $langIds
      */
-    private function seedSampleEntries(int $collectionId, array $langIds): void
+    private function ensureCollectionIndexPage(int $collectionId, array $langIds): void
+    {
+        $newsPageId = $this->upsertCollectionIndexPage($collectionId);
+        if ($newsPageId === null) {
+            return;
+        }
+
+        $this->upsertCollectionIndexTranslation($newsPageId, $langIds['es'] ?? null, [
+            'slug'             => 'noticias',
+            'title'            => 'Noticias',
+            'excerpt'          => 'Mantente al día con las noticias y novedades del sitio.',
+            'meta_title'       => 'Noticias | Mi Sitio',
+            'meta_description' => 'Explora el índice público de noticias y actualizaciones.',
+        ]);
+        $this->upsertCollectionIndexTranslation($newsPageId, $langIds['en'] ?? null, [
+            'slug'             => 'news',
+            'title'            => 'News',
+            'excerpt'          => 'Stay up to date with the site news and updates.',
+            'meta_title'       => 'News | My Site',
+            'meta_description' => 'Explore the public index of news and updates.',
+        ]);
+    }
+
+    /**
+     * Seeds the two news categories and returns a slug => category_id map.
+     *
+     * @param array<string, int> $langIds
+     * @return array<string, int>
+     */
+    private function seedCategories(int $collectionId, array $langIds): array
+    {
+        $categories = [
+            ['es' => ['name' => 'Producto', 'slug' => 'producto'], 'en' => ['name' => 'Product', 'slug' => 'product']],
+            ['es' => ['name' => 'Compañía', 'slug' => 'compania'], 'en' => ['name' => 'Company', 'slug' => 'company']],
+        ];
+
+        $catIdMap = [];
+        foreach ($categories as $index => $cat) {
+            $catId = $this->upsertRecord('cms_categories', [
+                'collection_id' => $collectionId,
+                'sort_order'    => $index + 1,
+            ], [
+                'parent_id' => null,
+                'is_active' => 1,
+            ]);
+
+            if ($catId === null) {
+                continue;
+            }
+
+            foreach ($cat as $langCode => $trans) {
+                $langId = $langIds[$langCode] ?? null;
+                if ($langId === null) {
+                    continue;
+                }
+                $this->upsertRecord('cms_category_translations', [
+                    'category_id' => $catId,
+                    'language_id' => $langId,
+                ], [
+                    'name' => $trans['name'],
+                    'slug' => $trans['slug'],
+                ]);
+            }
+
+            $catIdMap[$cat['es']['slug']] = $catId;
+        }
+
+        return $catIdMap;
+    }
+
+    /**
+     * @param array<string, int> $langIds
+     * @param array<string, int> $catIdMap
+     */
+    private function seedSampleEntries(int $collectionId, array $langIds, array $catIdMap = []): void
     {
         $newsEntries = [
             [
                 'sort_order'         => 1,
+                'published_days_ago' => 2,
+                'category_slug'      => 'producto',
                 'featured_image_url' => 'https://picsum.photos/id/1011/1200/800',
                 'detail_image_url'   => 'https://picsum.photos/id/1025/1200/800',
                 'es' => [
@@ -237,6 +282,8 @@ class NewsCollectionSeeder extends Seeder
             ],
             [
                 'sort_order'         => 2,
+                'published_days_ago' => 1,
+                'category_slug'      => 'producto',
                 'featured_image_url' => 'https://picsum.photos/id/1015/1200/800',
                 'detail_image_url'   => 'https://picsum.photos/id/1035/1200/800',
                 'es' => [
@@ -256,6 +303,29 @@ class NewsCollectionSeeder extends Seeder
                     'rich_text'        => '<p>The starter news items now include real cover images so the home grid no longer feels empty or incomplete.</p><h2>Editorial design with flexibility</h2><p>The cover is only the beginning: every entry combines an image, a summary, rich content, and calls to action that can change without touching the template.</p><ul><li>Image-backed cards for standout stories.</li><li>A safe fallback when an entry has no cover.</li><li>Filters and listings ready to grow.</li></ul><p>The same system can present a short update, a product announcement, or a long-form story.</p>',
                 ],
             ],
+            [
+                'sort_order'         => 3,
+                'published_days_ago' => 0,
+                'category_slug'      => 'compania',
+                'featured_image_url' => 'https://picsum.photos/id/1043/1200/800',
+                'detail_image_url'   => 'https://picsum.photos/id/1044/1200/800',
+                'es' => [
+                    'title'            => 'Ahora cada noticia sugiere historias relacionadas',
+                    'slug'             => 'historias-relacionadas',
+                    'excerpt'          => 'Al final de cada entrada mostramos otras noticias de la misma categoría para seguir explorando.',
+                    'meta_title'       => 'Historias relacionadas | Noticias',
+                    'meta_description' => 'Las entradas ahora enlazan a otras noticias relacionadas por categoría.',
+                    'rich_text'        => '<p>Cada entrada del sitio ahora cierra con una sección de historias relacionadas, calculada a partir de la categoría que comparte con otras noticias.</p><h2>Contenido que invita a seguir leyendo</h2><p>Cuando no hay suficientes noticias en la misma categoría, el sistema completa la lista con las publicaciones más recientes de la colección, así la sección nunca queda vacía.</p><ul><li>Selección automática por categoría compartida.</li><li>Alternativa segura cuando falta contenido relacionado.</li><li>Botones para compartir la noticia en redes o copiar el enlace.</li></ul><p>El objetivo es que cada historia sea también una puerta de entrada a las demás.</p>',
+                ],
+                'en' => [
+                    'title'            => 'Every story now surfaces related reads',
+                    'slug'             => 'related-stories',
+                    'excerpt'          => 'Each entry now closes with other news from the same category so readers keep exploring.',
+                    'meta_title'       => 'Related stories | News',
+                    'meta_description' => 'Entries now link to other related news by category.',
+                    'rich_text'        => '<p>Every entry on the site now ends with a related-stories section, computed from the category it shares with other news items.</p><h2>Content that invites you to keep reading</h2><p>When there aren\'t enough stories in the same category, the system fills the list with the most recent entries in the collection, so the section is never empty.</p><ul><li>Automatic selection by shared category.</li><li>A safe fallback when related content is scarce.</li><li>Buttons to share the story on social media or copy the link.</li></ul><p>The goal is for every story to also be a doorway into the others.</p>',
+                ],
+            ],
         ];
 
         $blockIds = $this->blockIds(['rich_text', 'image']);
@@ -264,17 +334,27 @@ class NewsCollectionSeeder extends Seeder
         }
 
         foreach ($newsEntries as $entry) {
+            $publishedAt = date('Y-m-d H:i:s', strtotime('-' . (int) $entry['published_days_ago'] . ' days'));
+
             $entryId = $this->upsertRecord('cms_entries', [
                 'collection_id' => $collectionId,
                 'sort_order'    => $entry['sort_order'],
             ], [
                 'workflow_status' => 'published',
                 'is_featured'     => 1,
-                'published_at'    => date('Y-m-d H:i:s'),
+                'published_at'    => $publishedAt,
             ]);
 
             if ($entryId === null) {
                 continue;
+            }
+
+            $catId = $catIdMap[$entry['category_slug']] ?? null;
+            if ($catId !== null) {
+                $this->upsertRecord('cms_entry_categories', [
+                    'entry_id'    => $entryId,
+                    'category_id' => $catId,
+                ], []);
             }
 
             $imageBlockId = $this->upsertRecord('cms_block_instances', [
@@ -335,103 +415,14 @@ class NewsCollectionSeeder extends Seeder
                 }
             }
 
-            // Additional editorial blocks make the seeded entry a complete,
-            // bilingual showcase of the dynamic content system.
-            $extraBlocks = [
-                'page_header' => [
-                    'es' => [
-                        'heading' => 'Detrás de la historia',
-                        'subheading' => 'El contexto, las decisiones y los aprendizajes detrás de esta actualización.',
-                        'breadcrumb_label' => 'Noticias',
-                        'breadcrumb_url' => '/noticias',
-                    ],
-                    'en' => [
-                        'heading' => 'Behind the story',
-                        'subheading' => 'The context, decisions, and lessons behind this update.',
-                        'breadcrumb_label' => 'News',
-                        'breadcrumb_url' => '/news',
-                    ],
-                ],
-                'hero_banner' => [
-                    'es' => [
-                        'image_url' => $entry['detail_image_url'],
-                        'alt' => $entry['es']['title'],
-                        'heading' => 'Una experiencia editorial renovada',
-                        'subheading' => $entry['es']['excerpt'],
-                        'cta_label' => 'Explorar más historias',
-                        'cta_url' => '/noticias',
-                    ],
-                    'en' => [
-                        'image_url' => $entry['detail_image_url'],
-                        'alt' => $entry['en']['title'],
-                        'heading' => 'A refreshed editorial experience',
-                        'subheading' => $entry['en']['excerpt'],
-                        'cta_label' => 'Explore more stories',
-                        'cta_url' => '/news',
-                    ],
-                ],
-                'cta' => [
-                    'es' => [
-                        'heading' => '¿Quieres seguir descubriendo?',
-                        'text' => 'Revisa todas las noticias y encuentra nuevas ideas para tu próximo proyecto.',
-                        'label' => 'Ver todas las noticias',
-                        'url' => '/noticias',
-                    ],
-                    'en' => [
-                        'heading' => 'Want to keep exploring?',
-                        'text' => 'Browse all news and find fresh ideas for your next project.',
-                        'label' => 'View all news',
-                        'url' => '/news',
-                    ],
-                ],
-                'alert' => [
-                    'es' => [
-                        'title' => 'Idea clave',
-                        'message' => '<p>El contenido y la presentación viven en bloques independientes: el equipo editorial puede cambiar el orden, el diseño o el llamado a la acción sin rehacer la entrada.</p>',
-                    ],
-                    'en' => [
-                        'title' => 'Key idea',
-                        'message' => '<p>Content and presentation live in independent blocks: editors can change the order, design, or call to action without rebuilding the entry.</p>',
-                    ],
-                ],
-            ];
-            $extraBlockIds = $this->blockIds(array_keys($extraBlocks));
+            // Seeded news entries are article content: a headline and a cover
+            // image. The article template already renders the breadcrumb,
+            // title, category badges, date, and related-stories section, so
+            // entries do not need their own page_header/hero_banner/cta
+            // blocks — those are landing-page building blocks and would
+            // duplicate what the template already shows.
             $keptInstanceIds = array_values(array_filter([$imageBlockId, $textBlockId]));
-            foreach ($extraBlocks as $blockKey => $translations) {
-                if (! isset($extraBlockIds[$blockKey])) {
-                    continue;
-                }
-                $instanceId = $this->upsertRecord('cms_block_instances', [
-                    'block_id' => $extraBlockIds[$blockKey],
-                    'owner_type' => 'entry',
-                    'owner_id' => $entryId,
-                    'sort_order' => ['page_header' => 3, 'hero_banner' => 4, 'cta' => 5, 'alert' => 6][$blockKey],
-                ], ['is_active' => 1, 'block_config' => json_encode(match ($blockKey) {
-                    'cta' => ['variant' => 'blue'],
-                    'alert' => ['type' => 'info', 'dismissible' => false],
-                    'page_header' => ['bg_color' => 'bg-slate-50'],
-                    'hero_banner' => ['overlay_color' => 'rgba(15, 23, 42, 0.55)'],
-                    default => [],
-                })]);
-                if ($instanceId === null) {
-                    continue;
-                }
-                $keptInstanceIds[] = $instanceId;
-                foreach ($translations as $langCode => $blockData) {
-                    $langId = $langIds[$langCode] ?? null;
-                    if ($langId === null) {
-                        continue;
-                    }
-                    $this->upsertRecord('cms_block_instance_translations', [
-                        'instance_id' => $instanceId,
-                        'language_id' => $langId,
-                    ], ['block_data' => json_encode($blockData, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES)]);
-                }
-            }
-
-            if (count($keptInstanceIds) === 6) {
-                $this->cleanupStaleEntryBlocks($entryId, $keptInstanceIds);
-            }
+            $this->cleanupStaleEntryBlocks($entryId, $keptInstanceIds);
         }
     }
 

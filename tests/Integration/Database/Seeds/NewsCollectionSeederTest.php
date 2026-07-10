@@ -63,7 +63,7 @@ final class NewsCollectionSeederTest extends CIUnitTestCase
             ->get()
             ->getResultArray();
 
-        $this->assertCount(2, $entries);
+        $this->assertCount(3, $entries);
 
         $entryTranslations = $this->db->table('cms_entry_translations')
             ->where('entry_id', (int) $entries[0]['id'])
@@ -80,9 +80,9 @@ final class NewsCollectionSeederTest extends CIUnitTestCase
             ->get()
             ->getResultArray();
 
-        $this->assertCount(6, $blockInstances);
+        $this->assertCount(2, $blockInstances);
         $this->assertSame(
-            ['image', 'rich_text', 'page_header', 'hero_banner', 'cta', 'alert'],
+            ['image', 'rich_text'],
             array_map(function (array $block): string {
                 $type = $this->db->table('cms_content_blocks')
                     ->where('id', (int) $block['block_id'])
@@ -93,7 +93,7 @@ final class NewsCollectionSeederTest extends CIUnitTestCase
             }, $blockInstances)
         );
 
-        $this->assertSame(12, $this->db->table('cms_block_instance_translations')
+        $this->assertSame(4, $this->db->table('cms_block_instance_translations')
             ->whereIn('instance_id', array_column($blockInstances, 'id'))
             ->countAllResults());
     }
