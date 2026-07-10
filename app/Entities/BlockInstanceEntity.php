@@ -17,7 +17,7 @@ class BlockInstanceEntity extends Entity
         'sort_order' => 'int',
         'column_index' => 'int',
         'is_active' => 'bool',
-        'block_config' => 'json',
+        'block_config' => 'json[array]',
     ];
 
     protected $dates = ['created_at', 'updated_at'];

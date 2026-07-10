@@ -46,6 +46,26 @@ final class BlockInstanceRequestDTOTest extends CIUnitTestCase
         $this->assertSame([], $updateDto->toArray()['translations'][0]['block_data'] ?? []);
     }
 
+    public function testUpdateAcceptsEmptyTranslationsArrayWithoutValidationError(): void
+    {
+        // A block instance with no translation rows yet (e.g. freshly created,
+        // or re-saved via the admin's reorder endpoint) legitimately sends
+        // translations: []. CodeIgniter's Validation engine used to reject
+        // this: for a genuinely empty array it synthesizes a single null value
+        // keyed by the literal wildcard field name and validates that, so
+        // required_with[translations] wrongly treated the empty array as
+        // "present" and failed on the synthetic null. Constructing the DTO
+        // for real (not via the reflection-based hydrateDto() bypass used
+        // above) exercises the actual validate() path against a real
+        // Validation instance.
+        $dto = new BlockInstanceUpdateRequestDTO(
+            ['translations' => []],
+            \Config\Services::validation()
+        );
+
+        $this->assertSame([], $dto->toArray()['translations']);
+    }
+
     /**
      * @template T of object
      * @param class-string<T> $class
