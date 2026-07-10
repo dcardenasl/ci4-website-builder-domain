@@ -10,9 +10,12 @@ final readonly class FormFieldResponseDTO implements DataTransferObjectInterface
 {
     /** @var list<array<string, mixed>> */
     public array $translations;
+    /** @var list<array{value: string, label: string}> */
+    public array $options;
 
     /**
-     * @param list<array<string, mixed>> $translations
+     * @param list<array<string, mixed>>            $translations
+     * @param list<array{value: string, label: string}>|null $options
      */
     public function __construct(
         public int    $id,
@@ -25,8 +28,10 @@ final readonly class FormFieldResponseDTO implements DataTransferObjectInterface
         public string $created_at,
         public string $updated_at,
         array         $translations = [],
+        ?array        $options = null,
     ) {
         $this->translations = $translations;
+        $this->options       = $options ?? [];
     }
 
     /**
@@ -45,6 +50,7 @@ final readonly class FormFieldResponseDTO implements DataTransferObjectInterface
             created_at:    (string) ($data['created_at'] ?? ''),
             updated_at:    (string) ($data['updated_at'] ?? ''),
             translations:  is_array($data['translations'] ?? null) ? array_values($data['translations']) : [],
+            options:       is_array($data['options'] ?? null) ? array_values($data['options']) : null,
         );
     }
 
@@ -61,6 +67,7 @@ final readonly class FormFieldResponseDTO implements DataTransferObjectInterface
             'display_order' => $this->display_order,
             'is_required'   => $this->is_required,
             'is_active'     => $this->is_active,
+            'options'       => $this->options,
             'created_at'    => $this->created_at,
             'updated_at'    => $this->updated_at,
             'translations'  => $this->translations,

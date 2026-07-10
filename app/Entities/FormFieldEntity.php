@@ -14,6 +14,7 @@ class FormFieldEntity extends Entity
         'form_id'       => 'integer',
         'field_key'     => 'string',
         'field_type'    => 'string',
+        'options'       => 'json-array',
         'display_order' => 'integer',
         'is_required'   => 'boolean',
         'is_active'     => 'boolean',

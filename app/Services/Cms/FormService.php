@@ -222,6 +222,7 @@ class FormService
             'form_id'       => $formId,
             'field_key'     => $dto->field_key,
             'field_type'    => $dto->field_type,
+            'options'       => $dto->options !== null ? json_encode($dto->options, JSON_UNESCAPED_UNICODE) : null,
             'display_order' => $dto->display_order,
             'is_required'   => $dto->is_required,
             'is_active'     => $dto->is_active,
@@ -247,6 +248,9 @@ class FormService
 
         $fields = $dto->toArray();
         unset($fields['translations']);
+        if (array_key_exists('options', $fields)) {
+            $fields['options'] = $fields['options'] !== null ? json_encode($fields['options'], JSON_UNESCAPED_UNICODE) : null;
+        }
 
         $db = \Config\Database::connect();
         $db->transStart();
@@ -333,6 +337,7 @@ class FormService
             return [
                 'field_key'     => $fieldData['field_key'],
                 'field_type'    => $fieldData['field_type'],
+                'options'       => is_array($fieldData['options'] ?? null) ? $fieldData['options'] : [],
                 'is_required'   => (bool) $fieldData['is_required'],
                 'display_order' => (int) $fieldData['display_order'],
                 'label'         => $fieldTrans['label'] ?? $fieldData['field_key'],

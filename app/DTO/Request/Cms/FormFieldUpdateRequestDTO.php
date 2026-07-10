@@ -12,6 +12,8 @@ readonly class FormFieldUpdateRequestDTO extends BaseRequestDTO
     public ?int    $display_order;
     public ?bool   $is_required;
     public ?bool   $is_active;
+    /** @var list<array{value: string, label: string}>|null */
+    public ?array  $options;
     /** @var array<int|string, mixed> */
     public array   $translations;
 
@@ -21,7 +23,7 @@ readonly class FormFieldUpdateRequestDTO extends BaseRequestDTO
     public function rules(): array
     {
         return [
-            'field_type' => 'permit_empty|in_list[text,email,phone,textarea]',
+            'field_type' => 'permit_empty|in_list[text,email,phone,textarea,select,radio,checkbox,date,number,url]',
         ];
     }
 
@@ -34,7 +36,20 @@ readonly class FormFieldUpdateRequestDTO extends BaseRequestDTO
         $this->display_order = array_key_exists('display_order', $data) ? (int) $data['display_order'] : null;
         $this->is_required   = array_key_exists('is_required', $data) ? (bool) $data['is_required'] : null;
         $this->is_active     = array_key_exists('is_active', $data) ? (bool) $data['is_active'] : null;
+        $this->options       = array_key_exists('options', $data) ? FormFieldCreateRequestDTO::normalizeOptions($data['options']) : null;
         $this->translations  = is_array($data['translations'] ?? null) ? $data['translations'] : [];
+
+        // Only enforceable when field_type is part of THIS submission — an update
+        // that doesn't touch field_type can't know the row's current type here.
+        if ($this->field_type !== null
+            && in_array($this->field_type, FormFieldCreateRequestDTO::CHOICE_TYPES, true)
+            && ($this->options === null || $this->options === [])
+        ) {
+            throw new \dcardenasl\Ci4ApiCore\Exceptions\ValidationException(
+                lang('Api.validationFailed'),
+                ['options' => lang('Forms.options_required_for_choice_type')]
+            );
+        }
     }
 
     /**
@@ -54,6 +69,9 @@ readonly class FormFieldUpdateRequestDTO extends BaseRequestDTO
         }
         if ($this->is_active !== null) {
             $result['is_active'] = $this->is_active;
+        }
+        if ($this->options !== null) {
+            $result['options'] = $this->options;
         }
         return $result;
     }
