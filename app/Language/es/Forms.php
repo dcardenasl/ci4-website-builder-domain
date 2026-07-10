@@ -13,4 +13,5 @@ return [
     'field_reorder_failed_db' => 'Error al reordenar los campos del formulario.',
     'duplicate_form_key'     => 'Ya existe un formulario con esta clave.',
     'duplicate_field_key'    => 'Ya existe un campo con esta clave en este formulario.',
+    'options_required_for_choice_type' => 'Este tipo de campo requiere al menos una opción.',
 ];

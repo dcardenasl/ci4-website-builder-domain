@@ -67,7 +67,9 @@ class FormSubmissionNotificationJob extends Job
         $rows = '';
         foreach ($formData as $key => $value) {
             $label   = esc(ucfirst(str_replace('_', ' ', (string) $key)));
-            $val     = esc((string) $value);
+            // Checkbox-group fields submit as an array of selected option values.
+            $valueText = is_array($value) ? implode(', ', array_map('strval', $value)) : (string) $value;
+            $val     = esc($valueText);
             $display = nl2br($val);
             $rows   .= "<tr>
                 <td style=\"padding:8px 12px;font-weight:600;color:#475569;white-space:nowrap;vertical-align:top\">{$label}</td>

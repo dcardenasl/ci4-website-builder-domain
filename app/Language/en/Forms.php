@@ -13,4 +13,5 @@ return [
     'field_reorder_failed_db' => 'Failed to reorder form fields.',
     'duplicate_form_key'     => 'A form with this key already exists.',
     'duplicate_field_key'    => 'A field with this key already exists in this form.',
+    'options_required_for_choice_type' => 'This field type requires at least one option.',
 ];
