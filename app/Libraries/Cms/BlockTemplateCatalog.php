@@ -25,15 +25,17 @@ class BlockTemplateCatalog
                 'icon'        => 'layout',
                 'default_schema' => [
                     'fields' => [
-                        'image_url'  => ['type' => 'url',    'label' => 'URL de la Imagen',   'required' => true],
-                        'alt'        => ['type' => 'string', 'label' => 'Texto Alt',           'required' => false],
+                        'image'      => ['type' => 'file',   'label' => 'Imagen de fondo',     'required' => true, 'accept' => 'image'],
+                        'alt'        => ['type' => 'string', 'label' => 'Texto Alt (fallback)', 'required' => false],
                         'heading'    => ['type' => 'string', 'label' => 'Título Principal',    'required' => true],
                         'subheading' => ['type' => 'string', 'label' => 'Subtítulo',           'required' => false],
                         'cta_label'  => ['type' => 'string', 'label' => 'Texto del Botón CTA', 'required' => false],
                         'cta_url'    => ['type' => 'url',    'label' => 'URL del Botón CTA',   'required' => false],
                     ],
                     'config_fields' => [
-                        'css_class' => ['type' => 'string', 'label' => 'Clase CSS', 'required' => false, 'default' => ''],
+                        'css_class'     => ['type' => 'string', 'label' => 'Clase CSS',      'required' => false, 'default' => ''],
+                        'text_color'    => ['type' => 'color',  'label' => 'Color del texto', 'required' => false, 'default' => '#ffffff'],
+                        'overlay_color' => ['type' => 'color',  'label' => 'Filtro de fondo', 'required' => false, 'default' => 'rgba(15, 23, 42, 0.4)'],
                     ],
                 ],
                 'preview_sample' => [
@@ -45,7 +47,9 @@ class BlockTemplateCatalog
                     'cta_url'    => '#',
                 ],
                 'config_sample' => [
-                    'css_class' => '',
+                    'css_class'     => '',
+                    'text_color'    => '#ffffff',
+                    'overlay_color' => 'rgba(15, 23, 42, 0.4)',
                 ],
             ],
             [

@@ -52,42 +52,10 @@ class CmsPageBlockSeeder extends Seeder
                     'controls_position' => 'below',
                     'css_class'         => '',
                 ],
-                'data'      => [
-                    'es' => [
-                        'slide_1_image_url' => $this->placeholderSlide('Mi Sitio', '#e5e7eb', '#111827'),
-                        'slide_1_heading'   => 'Mi Sitio',
-                        'slide_1_subtitle'  => 'Contenido multilingüe para tu sitio.',
-                        'slide_1_cta_label' => 'Conocer más',
-                        'slide_1_cta_url'   => '/contacto',
-                        'slide_2_image_url' => $this->placeholderSlide('Noticias', '#dbeafe', '#0f172a'),
-                        'slide_2_heading'   => 'Noticias',
-                        'slide_2_subtitle'  => 'Actualizaciones y novedades del sitio.',
-                        'slide_2_cta_label' => 'Ver noticias',
-                        'slide_2_cta_url'   => '/noticias',
-                        'slide_3_image_url' => $this->placeholderSlide('Contacto', '#f3f4f6', '#111827'),
-                        'slide_3_heading'   => 'Contacto',
-                        'slide_3_subtitle'  => 'Escríbenos y te responderemos pronto.',
-                        'slide_3_cta_label' => 'Ir al formulario',
-                        'slide_3_cta_url'   => '/contacto',
-                    ],
-                    'en' => [
-                        'slide_1_image_url' => $this->placeholderSlide('My Site', '#e5e7eb', '#111827'),
-                        'slide_1_heading'   => 'My Site',
-                        'slide_1_subtitle'  => 'Multilingual content for your website.',
-                        'slide_1_cta_label' => 'Learn more',
-                        'slide_1_cta_url'   => '/contact',
-                        'slide_2_image_url' => $this->placeholderSlide('News', '#dbeafe', '#0f172a'),
-                        'slide_2_heading'   => 'News',
-                        'slide_2_subtitle'  => 'Updates and highlights from the site.',
-                        'slide_2_cta_label' => 'View news',
-                        'slide_2_cta_url'   => '/news',
-                        'slide_3_image_url' => $this->placeholderSlide('Contact', '#f3f4f6', '#111827'),
-                        'slide_3_heading'   => 'Contact',
-                        'slide_3_subtitle'  => 'Write to us and we will reply soon.',
-                        'slide_3_cta_label' => 'Open form',
-                        'slide_3_cta_url'   => '/contact',
-                    ],
-                ],
+                // hero_slider has no translatable `fields` of its own (schema_definition
+                // in CmsBlockTypeSeeder declares `fields => []`) — the actual slide content
+                // lives on its `slide_banner` children, seeded separately by
+                // CmsHeroSliderChildrenSeeder. No `data` key here (no translation rows to write).
             ],
             [
                 'block_key' => 'collection_grid',
@@ -391,17 +359,5 @@ class CmsPageBlockSeeder extends Seeder
             'block_data'   => json_encode($blockData, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES),
             'is_published' => 1,
         ]);
-    }
-
-    private function placeholderSlide(string $label, string $background, string $foreground): string
-    {
-        $svg = sprintf(
-            '<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="500" viewBox="0 0 1200 500"><rect width="1200" height="500" fill="%s"/><text x="50%%" y="50%%" fill="%s" font-family="Arial,Helvetica,sans-serif" font-size="56" font-weight="700" text-anchor="middle" dominant-baseline="middle">%s</text></svg>',
-            htmlspecialchars($background, ENT_QUOTES | ENT_XML1, 'UTF-8'),
-            htmlspecialchars($foreground, ENT_QUOTES | ENT_XML1, 'UTF-8'),
-            htmlspecialchars($label, ENT_QUOTES | ENT_XML1, 'UTF-8')
-        );
-
-        return 'data:image/svg+xml;charset=UTF-8,' . rawurlencode($svg);
     }
 }

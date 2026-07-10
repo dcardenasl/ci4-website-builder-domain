@@ -100,12 +100,16 @@ class SiteAboutPageSeeder extends Seeder
             ['css_class' => '', 'text_color' => '#ffffff', 'overlay_color' => 'rgba(15, 23, 42, 0.4)'],
             [
                 'es' => [
+                    'image_url'  => 'https://picsum.photos/id/1015/1920/1080',
+                    'alt'        => 'Equipo colaborando en un espacio de trabajo comunitario',
                     'heading'    => 'Nuestra misión nos une',
                     'subheading' => 'Trabajamos para crear espacios de encuentro, aprendizaje y transformación que impacten positivamente a nuestra comunidad.',
                     'cta_label'  => 'Conoce nuestra historia',
                     'cta_url'    => '/historia',
                 ],
                 'en' => [
+                    'image_url'  => 'https://picsum.photos/id/1015/1920/1080',
+                    'alt'        => 'Team collaborating in a community workspace',
                     'heading'    => 'Our mission brings us together',
                     'subheading' => 'We work to create spaces of encounter, learning, and transformation that positively impact our community.',
                     'cta_label'  => 'Learn our history',
