@@ -47,7 +47,7 @@ final class LanguageAuditRealDataTest extends ApiTestCase
     // ========== SMOKE TESTS - Endpoint existence ==========
 
     /**
-     * @test Stats endpoint exists and requires authentication
+     * Stats endpoint exists and requires authentication.
      */
     public function testAuditStatsEndpointExists(): void
     {
@@ -57,7 +57,7 @@ final class LanguageAuditRealDataTest extends ApiTestCase
     }
 
     /**
-     * @test Report endpoint exists and requires authentication
+     * Report endpoint exists and requires authentication.
      */
     public function testAuditReportEndpointExists(): void
     {
@@ -67,7 +67,7 @@ final class LanguageAuditRealDataTest extends ApiTestCase
     }
 
     /**
-     * @test Resource page audit endpoint exists and requires authentication
+     * Resource page audit endpoint exists and requires authentication.
      */
     public function testAuditResourcePageEndpointExists(): void
     {
@@ -77,7 +77,7 @@ final class LanguageAuditRealDataTest extends ApiTestCase
     }
 
     /**
-     * @test Resource collection audit endpoint exists
+     * Resource collection audit endpoint exists.
      */
     public function testAuditResourceCollectionEndpointExists(): void
     {
@@ -87,7 +87,7 @@ final class LanguageAuditRealDataTest extends ApiTestCase
     }
 
     /**
-     * @test Resource menu audit endpoint exists
+     * Resource menu audit endpoint exists.
      */
     public function testAuditResourceMenuEndpointExists(): void
     {
@@ -97,7 +97,7 @@ final class LanguageAuditRealDataTest extends ApiTestCase
     }
 
     /**
-     * @test Resource menu_item audit endpoint exists
+     * Resource menu_item audit endpoint exists.
      */
     public function testAuditResourceMenuItemEndpointExists(): void
     {
@@ -107,7 +107,7 @@ final class LanguageAuditRealDataTest extends ApiTestCase
     }
 
     /**
-     * @test Resource entry audit endpoint exists
+     * Resource entry audit endpoint exists.
      */
     public function testAuditResourceEntryEndpointExists(): void
     {
@@ -119,7 +119,7 @@ final class LanguageAuditRealDataTest extends ApiTestCase
     // ========== DATA INTEGRITY TESTS - Via Unit Service ==========
 
     /**
-     * @test Service correctly counts overall completeness
+     * Service correctly counts overall completeness.
      */
     public function testServiceCountsOverallCompletion(): void
     {
@@ -152,7 +152,7 @@ final class LanguageAuditRealDataTest extends ApiTestCase
     }
 
     /**
-     * @test Service calculates completion percentage correctly
+     * Service calculates completion percentage correctly.
      *
      * Expected for EN:
      * - Pages: 1 translated + 4 missing = 20% (1/5)
@@ -195,7 +195,7 @@ final class LanguageAuditRealDataTest extends ApiTestCase
     }
 
     /**
-     * @test Missing translations report includes all incomplete items
+     * Missing translations report includes all incomplete items.
      */
     public function testServiceDetectsMissingTranslations(): void
     {
@@ -215,7 +215,7 @@ final class LanguageAuditRealDataTest extends ApiTestCase
     }
 
     /**
-     * @test Missing translations can be filtered by language
+     * Missing translations can be filtered by language.
      */
     public function testServiceFiltersReportByLanguage(): void
     {
@@ -229,7 +229,7 @@ final class LanguageAuditRealDataTest extends ApiTestCase
     }
 
     /**
-     * @test Resource-level audit shows translation status per language
+     * Resource-level audit shows translation status per language.
      */
     public function testServiceAuditResourceShowsPerLanguageStatus(): void
     {
@@ -248,7 +248,7 @@ final class LanguageAuditRealDataTest extends ApiTestCase
     }
 
     /**
-     * @test Resource with full translations shows complete status
+     * Resource with full translations shows complete status.
      */
     public function testServiceAuditFullyTranslatedResource(): void
     {
@@ -260,7 +260,7 @@ final class LanguageAuditRealDataTest extends ApiTestCase
     }
 
     /**
-     * @test Audit includes all resource types
+     * Audit includes all resource types.
      */
     public function testServiceAuditIncludesAllResourceTypes(): void
     {
@@ -274,7 +274,7 @@ final class LanguageAuditRealDataTest extends ApiTestCase
     }
 
     /**
-     * @test Performance: audit completes in reasonable time
+     * Performance: audit completes in reasonable time.
      */
     public function testServicePerformanceStatsGeneration(): void
     {
@@ -288,7 +288,7 @@ final class LanguageAuditRealDataTest extends ApiTestCase
     }
 
     /**
-     * @test Performance: report generation completes in reasonable time
+     * Performance: report generation completes in reasonable time.
      */
     public function testServicePerformanceReportGeneration(): void
     {
@@ -302,7 +302,7 @@ final class LanguageAuditRealDataTest extends ApiTestCase
     }
 
     /**
-     * @test Performance: resource audit completes quickly
+     * Performance: resource audit completes quickly.
      */
     public function testServicePerformanceResourceAudit(): void
     {

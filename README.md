@@ -171,6 +171,16 @@ Required environment variables (see `.env.example`):
 
 > **Tokens are server-side only.** Pass them via `Authorization: Bearer …` headers (SPA) or PHP sessions (server-rendered admin). Never store JWTs in `localStorage` or non-HttpOnly cookies.
 
+### Docker configuration
+
+`docker compose config --quiet` works on a clean checkout using non-production
+development defaults. To override them, copy `.env.docker.example` to the
+gitignored `.env.docker`, replace every placeholder, and start the stack with
+`docker compose --env-file .env.docker up`. The standalone Domain stack uses ports `8086` (application), `3308`
+(MySQL), and `8087` (phpMyAdmin profile) by default; override them with
+`DOMAIN_HOST_PORT`, `DOMAIN_DB_HOST_PORT`, and
+`DOMAIN_PHPMYADMIN_HOST_PORT`.
+
 ---
 
 ## Architecture
