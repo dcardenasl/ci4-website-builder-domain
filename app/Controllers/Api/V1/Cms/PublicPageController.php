@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Controllers\Api\V1\Cms;
 
+use App\Libraries\Cms\PreviewToken;
 use CodeIgniter\HTTP\ResponseInterface;
 use Config\Services;
 use dcardenasl\Ci4ApiCore\Exceptions\NotFoundException;
@@ -79,16 +80,30 @@ class PublicPageController extends ApiController
         return $this->handleRequest(
             function () use ($lang, $slug): ResponseInterface {
                 $slugRouter = Services::slugRouter();
-                $pageId = $slugRouter->resolve($lang, 'page', $slug);
+
+                // Slug resolution itself is published-only (findPageBySlugAndParent),
+                // so a signed preview link must be verified against lang+slug —
+                // before we even know the page ID — to be allowed to bypass it.
+                $previewExpiresRaw = $this->request->getGet('preview_expires');
+                $previewSigRaw = $this->request->getGet('preview_sig');
+                $preview = $this->request->getGet('preview') === '1'
+                    && PreviewToken::verify(
+                        'page',
+                        $lang . ':' . trim($slug, '/'),
+                        is_string($previewExpiresRaw) ? $previewExpiresRaw : null,
+                        is_string($previewSigRaw) ? $previewSigRaw : null
+                    );
+
+                $pageId = $slugRouter->resolve($lang, 'page', $slug, $preview);
 
                 if ($pageId === null) {
                     throw new NotFoundException(lang('Pages.not_found'));
                 }
 
-                // Verify page exists and is published
+                // Verify page exists and is published (or a validly-signed preview link)
                 $pageModel = model(\App\Models\PageModel::class);
                 $page = $pageModel->find($pageId);
-                if (!$page || $page->status !== 'published') {
+                if (!$page || (!$preview && $page->status !== 'published')) {
                     throw new NotFoundException(lang('Pages.not_found'));
                 }
 

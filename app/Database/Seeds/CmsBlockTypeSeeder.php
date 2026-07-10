@@ -189,6 +189,11 @@ class CmsBlockTypeSeeder extends Seeder
                 'category'          => 'content',
                 'icon'              => 'layout-grid',
                 'schema_definition' => json_encode([
+                    'content_source' => [
+                        'type'        => 'collection',
+                        'label'       => 'Colección',
+                        'description' => 'Bloque que consume entradas publicadas de una colección.',
+                    ],
                     'fields' => [
                         'section_title'    => ['type' => 'string', 'label' => 'Título de sección',               'required' => false],
                         'section_subtitle' => ['type' => 'string', 'label' => 'Subtítulo de sección',            'required' => false],
@@ -220,6 +225,11 @@ class CmsBlockTypeSeeder extends Seeder
                 'category'          => 'content',
                 'icon'              => 'list-tree',
                 'schema_definition' => json_encode([
+                    'content_source' => [
+                        'type'        => 'collection',
+                        'label'       => 'Colección',
+                        'description' => 'Listado público de entradas publicadas desde una colección.',
+                    ],
                     'fields' => [
                         'intro_title'      => ['type' => 'string', 'label' => 'Título introductorio',              'required' => false],
                         'intro_text'       => ['type' => 'richtext', 'label' => 'Texto introductorio',            'required' => false],

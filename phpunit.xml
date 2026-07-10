@@ -53,5 +53,6 @@
 
         <env name="JWT_SECRET_KEY" value="testing-secret-key-at-least-32-characters-long"/>
         <env name="JWT_ALGORITHM" value="HS256"/>
+        <env name="CMS_PREVIEW_SECRET" value="testing-preview-secret-at-least-32-characters"/>
     </php>
 </phpunit>

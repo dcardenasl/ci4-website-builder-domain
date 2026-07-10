@@ -349,4 +349,74 @@ final class PublicEntryControllerTest extends CIUnitTestCase
         $body = json_decode($result->getJSON(), true);
         $this->assertCount(0, $body['data']);
     }
+
+    private function insertDraftEntry(): int
+    {
+        $this->db->table('cms_entries')->insert([
+            'collection_id'    => $this->collectionId,
+            'workflow_status'  => 'draft',
+            'is_featured'      => 0,
+            'view_count'       => 0,
+            'sort_order'       => 1,
+            'is_in_sitemap'    => 0,
+        ]);
+        $entryId = $this->db->insertID();
+
+        $this->db->table('cms_entry_translations')->insert([
+            'entry_id'    => $entryId,
+            'language_id' => $this->langEsId,
+            'slug'        => 'entrada-borrador',
+            'title'       => 'Entrada en borrador',
+            'excerpt'     => 'No debe ser visible sin una firma válida.',
+        ]);
+
+        return $entryId;
+    }
+
+    private function signPreview(string $type, int $id, int $ttlSeconds = 3600): array
+    {
+        $expires = (string) (time() + $ttlSeconds);
+
+        return [
+            'expires' => $expires,
+            'sig'     => hash_hmac('sha256', $type . ':' . $id . ':' . $expires, (string) env('CMS_PREVIEW_SECRET', '')),
+        ];
+    }
+
+    public function testDraftEntryIsNotFoundByDefault(): void
+    {
+        $this->insertDraftEntry();
+
+        $result = $this->get('/api/v1/public/es/entries/blog/entrada-borrador');
+        $result->assertStatus(404);
+    }
+
+    public function testDraftEntryIsNotFoundWithBarePreviewFlagAndNoSignature(): void
+    {
+        $this->insertDraftEntry();
+
+        $result = $this->get('/api/v1/public/es/entries/blog/entrada-borrador?preview=1');
+        $result->assertStatus(404);
+    }
+
+    public function testDraftEntryIsNotFoundWithSignatureForADifferentEntry(): void
+    {
+        $entryId = $this->insertDraftEntry();
+        $token = $this->signPreview('entry', $entryId + 999);
+
+        $result = $this->get('/api/v1/public/es/entries/blog/entrada-borrador?preview=1&preview_expires=' . $token['expires'] . '&preview_sig=' . $token['sig']);
+        $result->assertStatus(404);
+    }
+
+    public function testDraftEntryIsVisibleWithAValidSignature(): void
+    {
+        $entryId = $this->insertDraftEntry();
+        $token = $this->signPreview('entry', $entryId);
+
+        $result = $this->get('/api/v1/public/es/entries/blog/entrada-borrador?preview=1&preview_expires=' . $token['expires'] . '&preview_sig=' . $token['sig']);
+        $result->assertStatus(200);
+
+        $body = json_decode($result->getJSON(), true);
+        $this->assertSame('Entrada en borrador', $body['data']['title']);
+    }
 }

@@ -16,7 +16,7 @@ class BlockTemplateCatalog
      */
     public static function all(): array
     {
-        return [
+        $templates = [
             [
                 'key'         => 'hero_banner',
                 'name'        => 'Hero Banner',
@@ -595,6 +595,12 @@ class BlockTemplateCatalog
                 'config_sample' => [],
             ],
         ];
+
+        return array_map(static function (array $template): array {
+            $template['content_source'] = $template['content_source'] ?? self::inferContentSource($template);
+
+            return $template;
+        }, $templates);
     }
 
     /**
@@ -610,6 +616,45 @@ class BlockTemplateCatalog
         );
 
         return 'data:image/svg+xml;charset=UTF-8,' . rawurlencode($svg);
+    }
+
+    /**
+     * @param array<string, mixed> $template
+     * @return array{type: string, label: string, description: string}
+     */
+    private static function inferContentSource(array $template): array
+    {
+        $key = (string) ($template['key'] ?? '');
+
+        if (in_array($key, ['container', 'hero_slider', 'cards_slider'], true)) {
+            return [
+                'type' => 'container',
+                'label' => 'Contenedor',
+                'description' => 'Bloque con hijos o piezas componibles.',
+            ];
+        }
+
+        if (in_array($key, ['collection_grid', 'collection_listing'], true)) {
+            return [
+                'type' => 'collection',
+                'label' => 'Colección',
+                'description' => 'Bloque ligado a una colección.',
+            ];
+        }
+
+        if (str_contains($key, 'page')) {
+            return [
+                'type' => 'page',
+                'label' => 'Página',
+                'description' => 'Bloque ligado a una página.',
+            ];
+        }
+
+        return [
+            'type' => 'manual',
+            'label' => 'Manual',
+            'description' => 'Bloque libre con contenido y configuración manuales.',
+        ];
     }
 
     /**

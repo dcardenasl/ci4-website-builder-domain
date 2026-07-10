@@ -7,6 +7,7 @@ return [
     'update_success' => 'BlockType updated successfully.',
     'delete_success' => 'BlockType deleted successfully.',
     'not_found'      => 'BlockType not found.',
+    'invalid_content_source' => 'The selected content source is not valid.',
     'fields'         => [
         'block_key' => 'Block Key',
         'block_key_placeholder' => 'Enter Block Key',

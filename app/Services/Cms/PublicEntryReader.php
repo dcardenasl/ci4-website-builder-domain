@@ -8,6 +8,7 @@ use App\DTO\Request\Cms\PublicEntryIndexRequestDTO;
 use App\DTO\Request\Cms\PublicEntryShowRequestDTO;
 use App\Entities\EntryEntity;
 use App\Libraries\Cms\FileUrlResolver;
+use App\Libraries\Cms\PreviewToken;
 use dcardenasl\Ci4ApiCore\Dto\Common\PayloadResponseDTO;
 use dcardenasl\Ci4ApiCore\Dto\DataTransferObjectInterface;
 use dcardenasl\Ci4ApiCore\Dto\PaginatedResponseDTO;
@@ -212,23 +213,29 @@ class PublicEntryReader
         }
 
         $entryId = (int) $entryTranslation->entry_id;
+        $preview = (bool) ($dto->preview ?? false)
+            && PreviewToken::verify('entry', (string) $entryId, $dto->preview_expires, $dto->preview_sig);
 
         $now    = date('Y-m-d H:i:s');
         /** @var \App\Models\EntryModel $entryModel */
         $entryModel = model(\App\Models\EntryModel::class);
-        $entry = $entryModel
+        $query = $entryModel
             ->where('id', $entryId)
-            ->where('collection_id', (int) $collection->id)
-            ->where('workflow_status', 'published')
-            ->groupStart()
-                ->where('published_at IS NULL')
-                ->orWhere('published_at <=', $now)
-            ->groupEnd()
-            ->groupStart()
-                ->where('scheduled_at IS NULL')
-                ->orWhere('scheduled_at <=', $now)
-            ->groupEnd()
-            ->first();
+            ->where('collection_id', (int) $collection->id);
+
+        if (!$preview) {
+            $query->where('workflow_status', 'published')
+                ->groupStart()
+                    ->where('published_at IS NULL')
+                    ->orWhere('published_at <=', $now)
+                ->groupEnd()
+                ->groupStart()
+                    ->where('scheduled_at IS NULL')
+                    ->orWhere('scheduled_at <=', $now)
+                ->groupEnd();
+        }
+
+        $entry = $query->first();
 
         if (!$entry instanceof EntryEntity) {
             throw new NotFoundException(lang('Entries.not_found'));

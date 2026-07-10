@@ -26,9 +26,13 @@ class SlugRouter
      * @param string $langCode Language code (e.g., 'es')
      * @param string $type Resource type (e.g., 'page')
      * @param string $slugPath Full slug path (e.g., 'nosotros/vision')
+     * @param bool $includeUnpublished When true, resolve draft/unpublished pages too.
+     *        Only PublicPageController sets this, and only after independently
+     *        verifying a signed preview token for this exact lang+slug — slug
+     *        resolution has no other access control of its own.
      * @return int|null Resolved ID or null if not found
      */
-    public function resolve(string $langCode, string $type, string $slugPath): ?int
+    public function resolve(string $langCode, string $type, string $slugPath, bool $includeUnpublished = false): ?int
     {
         if ($type !== 'page') {
             return null;
@@ -48,12 +52,14 @@ class SlugRouter
         // Clean slug path
         $slugPath = trim($slugPath, '/');
         if ($slugPath === '' || $slugPath === 'home') {
-            $result = $this->db->table('cms_pages')
+            $builder = $this->db->table('cms_pages')
                 ->select('id')
                 ->where('page_type', 'home')
-                ->where('status', 'published')
-                ->where('deleted_at IS NULL')
-                ->get();
+                ->where('deleted_at IS NULL');
+            if (!$includeUnpublished) {
+                $builder->where('status', 'published');
+            }
+            $result = $builder->get();
             if ($result !== false) {
                 $homePage = $result->getRow();
                 if ($homePage) {
@@ -70,11 +76,11 @@ class SlugRouter
         $currentParentId = null;
 
         foreach ($segments as $segment) {
-            $pageId = $this->findPageBySlugAndParent($segment, $currentParentId, $langId);
+            $pageId = $this->findPageBySlugAndParent($segment, $currentParentId, $langId, $includeUnpublished);
 
             // If not found in target language, check in default language as fallback
             if ($pageId === null && $defaultLangId !== null && $langId !== $defaultLangId) {
-                $pageId = $this->findPageBySlugAndParent($segment, $currentParentId, $defaultLangId);
+                $pageId = $this->findPageBySlugAndParent($segment, $currentParentId, $defaultLangId, $includeUnpublished);
             }
 
             if ($pageId === null) {
@@ -156,15 +162,17 @@ class SlugRouter
     /**
      * Find a page ID by its slug and parent_id for a given language.
      */
-    private function findPageBySlugAndParent(string $slug, ?int $parentId, int $langId): ?int
+    private function findPageBySlugAndParent(string $slug, ?int $parentId, int $langId, bool $includeUnpublished = false): ?int
     {
         $builder = $this->db->table('cms_pages p')
             ->select('p.id')
             ->join('cms_page_translations pt', 'p.id = pt.page_id')
             ->where('pt.slug', $slug)
             ->where('pt.language_id', $langId)
-            ->where('p.status', 'published')
             ->where('p.deleted_at IS NULL');
+        if (!$includeUnpublished) {
+            $builder->where('p.status', 'published');
+        }
 
         if ($parentId === null) {
             $builder->where('p.parent_id IS NULL');
