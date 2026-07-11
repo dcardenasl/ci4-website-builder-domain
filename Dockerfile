@@ -77,8 +77,11 @@ HEALTHCHECK --interval=30s --timeout=3s --start-period=40s --retries=3 \
 # Expose port 80
 EXPOSE 80
 
+COPY --chmod=755 docker/entrypoint.sh /usr/local/bin/ci4-domain-entrypoint
+
 # Switch to www-data user
 USER www-data
 
 # Start Apache
+ENTRYPOINT ["ci4-domain-entrypoint"]
 CMD ["apache2-foreground"]
