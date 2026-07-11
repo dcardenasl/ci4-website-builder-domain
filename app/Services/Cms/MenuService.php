@@ -96,6 +96,12 @@ class MenuService extends BaseCrudService implements MenuServiceInterface
         $this->tempTranslations = null;
     }
 
+    protected function afterDelete(object $entity, ?SecurityContext $context): void
+    {
+        parent::afterDelete($entity, $context);
+        $this->cacheInvalidator->invalidate(['menus']);
+    }
+
     protected function enrichEntities(array $entities): array
     {
         if (empty($entities)) {

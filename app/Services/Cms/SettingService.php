@@ -94,6 +94,12 @@ class SettingService extends BaseCrudService implements SettingServiceInterface
         $this->tempTranslations = null;
     }
 
+    protected function afterDelete(object $entity, ?SecurityContext $context): void
+    {
+        parent::afterDelete($entity, $context);
+        $this->cacheInvalidator->invalidate(['settings']);
+    }
+
     protected function enrichEntities(array $entities): array
     {
         if (empty($entities)) {

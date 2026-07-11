@@ -207,6 +207,12 @@ class EntryService extends BaseCrudService implements EntryServiceInterface
         $this->tempTranslations = null;
     }
 
+    protected function afterDelete(object $entity, ?SecurityContext $context): void
+    {
+        parent::afterDelete($entity, $context);
+        $this->cacheInvalidator->invalidate(['entries']);
+    }
+
     protected function enrichEntities(array $entities): array
     {
         if (empty($entities)) {

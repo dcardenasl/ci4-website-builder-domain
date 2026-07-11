@@ -130,6 +130,12 @@ class PageService extends BaseCrudService implements PageServiceInterface
         $this->tempTranslations = null;
     }
 
+    protected function afterDelete(object $entity, ?SecurityContext $context): void
+    {
+        parent::afterDelete($entity, $context);
+        $this->cacheInvalidator->invalidate(['pages', 'collections']);
+    }
+
     protected function enrichEntities(array $entities): array
     {
         if (empty($entities)) {

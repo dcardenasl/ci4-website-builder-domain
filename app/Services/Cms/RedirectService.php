@@ -41,4 +41,10 @@ class RedirectService extends BaseCrudService implements RedirectServiceInterfac
         parent::afterUpdate($entity, $context);
         $this->cacheInvalidator->invalidate(['redirects']);
     }
+
+    protected function afterDelete(object $entity, ?SecurityContext $context): void
+    {
+        parent::afterDelete($entity, $context);
+        $this->cacheInvalidator->invalidate(['redirects']);
+    }
 }

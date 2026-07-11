@@ -75,6 +75,12 @@ class TagService extends BaseCrudService implements TagServiceInterface
         $this->tempTranslations = null;
     }
 
+    protected function afterDelete(object $entity, ?SecurityContext $context): void
+    {
+        parent::afterDelete($entity, $context);
+        $this->cacheInvalidator->invalidate(['taxonomies', 'entries']);
+    }
+
     protected function enrichEntities(array $entities): array
     {
         if (empty($entities)) {

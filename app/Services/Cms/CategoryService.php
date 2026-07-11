@@ -77,6 +77,12 @@ class CategoryService extends BaseCrudService implements CategoryServiceInterfac
         $this->tempTranslations = null;
     }
 
+    protected function afterDelete(object $entity, ?SecurityContext $context): void
+    {
+        parent::afterDelete($entity, $context);
+        $this->cacheInvalidator->invalidate(['taxonomies', 'entries']);
+    }
+
     protected function enrichEntities(array $entities): array
     {
         if (empty($entities)) {

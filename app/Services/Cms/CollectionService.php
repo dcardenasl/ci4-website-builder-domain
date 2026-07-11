@@ -107,6 +107,12 @@ class CollectionService extends BaseCrudService implements CollectionServiceInte
         $this->tempTranslations = null;
     }
 
+    protected function afterDelete(object $entity, ?SecurityContext $context): void
+    {
+        parent::afterDelete($entity, $context);
+        $this->cacheInvalidator->invalidate(['collections', 'entries']);
+    }
+
     protected function beforeDelete(int $id, ?SecurityContext $context): void
     {
         /** @var \App\Models\EntryModel $entryModel */
