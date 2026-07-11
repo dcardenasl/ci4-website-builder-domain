@@ -8,6 +8,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- **Form field option labels translation** — migrated form field option labels to `form_field_translations` table, enabling multilingual label rendering for select, checkbox, and radio field options; `FormService` now resolves language-specific labels with fallback to field values
 - **Expanded form field types** — migration `2026-07-10-000001_ExpandCmsFormFieldTypesAndOptions` extends form field schema with new type options; updated DTOs, entities, models, and service layer to handle enriched field validation and configuration; form submission notification job now processes expanded field metadata
 - **Component and media page types** — migration `2026-07-09-000001_AddComponentsAndMediaPageTypesToCmsPages` introduces two new page types (`component` and `media`) for modular page composition; adds `SiteComponentsPageSeeder` and `SiteMediaPageSeeder` to bootstrap example pages with full block coverage validation tests
 - **Map embed block extraction** — migration `2026-07-06-110001_ExtractMapEmbedAndNormalizeGenericBlocks` separates embedded maps from `contact_info` block into independent `map_embed` block for better modularity; automatically migrates existing `contact_info` instances that include map URLs to the new dedicated block type
