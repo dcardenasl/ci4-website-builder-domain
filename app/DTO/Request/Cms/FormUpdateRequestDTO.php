@@ -16,6 +16,9 @@ readonly class FormUpdateRequestDTO extends BaseRequestDTO
     /** @var array<int|string, mixed> */
     public array   $translations;
 
+    /** @var array<string, bool> */
+    private array $providedFields;
+
     /**
      * @return array<string, string>
      */
@@ -39,6 +42,11 @@ readonly class FormUpdateRequestDTO extends BaseRequestDTO
             ? ($data['autoreply_email_field'] !== '' && $data['autoreply_email_field'] !== null ? (string) $data['autoreply_email_field'] : null)
             : null;
         $this->translations          = is_array($data['translations'] ?? null) ? $data['translations'] : [];
+
+        $this->providedFields = [
+            'notify_email'          => array_key_exists('notify_email', $data),
+            'autoreply_email_field' => array_key_exists('autoreply_email_field', $data),
+        ];
     }
 
     /**
@@ -53,13 +61,13 @@ readonly class FormUpdateRequestDTO extends BaseRequestDTO
         if ($this->has_captcha !== null) {
             $data['has_captcha'] = $this->has_captcha;
         }
-        if ($this->notify_email !== null || array_key_exists('notify_email', $data)) {
+        if ($this->notify_email !== null || $this->providedFields['notify_email']) {
             $data['notify_email'] = $this->notify_email;
         }
         if ($this->autoreply_enabled !== null) {
             $data['autoreply_enabled'] = $this->autoreply_enabled;
         }
-        if ($this->autoreply_email_field !== null || array_key_exists('autoreply_email_field', $data)) {
+        if ($this->autoreply_email_field !== null || $this->providedFields['autoreply_email_field']) {
             $data['autoreply_email_field'] = $this->autoreply_email_field;
         }
         return $data;

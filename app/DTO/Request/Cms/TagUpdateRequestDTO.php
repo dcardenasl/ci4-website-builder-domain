@@ -13,6 +13,7 @@ readonly class TagUpdateRequestDTO extends BaseRequestDTO
     #[OA\Property(description: 'is_active', type: 'boolean', nullable: true)]
     public ?bool $is_active;
 
+    /** @var list<array<string, mixed>>|null */
     #[OA\Property(description: 'translations', type: 'array', items: new OA\Items(type: 'object'))]
     public ?array $translations;
 

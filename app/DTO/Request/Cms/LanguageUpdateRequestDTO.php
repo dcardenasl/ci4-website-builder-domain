@@ -25,6 +25,7 @@ readonly class LanguageUpdateRequestDTO extends BaseRequestDTO
     #[OA\Property(description: 'sort_order', type: 'integer')]
     public ?int $sortOrder;
 
+    /** @var array<string, mixed> */
     private array $mappedFields;
 
     public function rules(): array

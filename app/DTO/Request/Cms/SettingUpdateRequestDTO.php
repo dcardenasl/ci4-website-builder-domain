@@ -43,6 +43,7 @@ readonly class SettingUpdateRequestDTO extends BaseRequestDTO
     #[OA\Property(description: 'translations', type: 'array', items: new OA\Items(type: 'object'), nullable: true)]
     public ?array $translations;
 
+    /** @var array<string, mixed> */
     private array $mappedFields;
 
     public function rules(): array

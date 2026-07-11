@@ -24,6 +24,7 @@ readonly class BlockInstanceCreateRequestDTO extends BaseRequestDTO
     public ?int $column_index;
     #[OA\Property(description: 'is_active', type: 'boolean')]
     public bool $is_active;
+    /** @var array<string, mixed>|null */
     #[OA\Property(description: 'block_config', type: 'object', nullable: true)]
     public ?array $block_config;
 

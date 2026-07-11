@@ -172,7 +172,7 @@ class SyncPermissions extends BaseCommand
         /** @var HubConfig $hubConfig */
         $hubConfig = config(HubConfig::class);
 
-        return $hubConfig->adminToken ?? '';
+        return $hubConfig->adminToken;
     }
 
     private function findHubEnvPath(): ?string
@@ -190,7 +190,10 @@ class SyncPermissions extends BaseCommand
             $realPath = realpath($path);
             if ($realPath && is_file($realPath)) {
                 $content = file_get_contents($realPath);
-                if (str_contains($content, 'JWT_SECRET_KEY') && str_contains($content, 'database.default.database')) {
+                if ($content !== false
+                    && str_contains($content, 'JWT_SECRET_KEY')
+                    && str_contains($content, 'database.default.database')
+                ) {
                     return $realPath;
                 }
             }
@@ -211,6 +214,9 @@ class SyncPermissions extends BaseCommand
         }
 
         $lines = file($envPath, FILE_IGNORE_NEW_LINES | FILE_SKIP_EMPTY_LINES);
+        if ($lines === false) {
+            return null;
+        }
         $hubEnv = [];
         foreach ($lines as $line) {
             $trimmed = trim($line);
@@ -242,12 +248,13 @@ class SyncPermissions extends BaseCommand
         try {
             $db = \Config\Database::connect($dbConfig, false);
 
-            $row = $db->table('user_roles ur')
+            $result = $db->table('user_roles ur')
                 ->select('ur.user_id')
                 ->join('roles r', 'r.id = ur.role_id')
                 ->where('r.code', 'superadmin')
                 ->limit(1)
-                ->get()?->getRowArray();
+                ->get();
+            $row    = $result === false ? null : $result->getRowArray();
 
             if ($row === null) {
                 return null;
@@ -326,6 +333,9 @@ class SyncPermissions extends BaseCommand
         return ($sparkPath !== false && is_file($sparkPath)) ? $sparkPath : null;
     }
 
+    /**
+     * @param list<string> $permissions
+     */
     private function mintToken(string $secret, int $userId, array $permissions): string
     {
         $header = json_encode(['typ' => 'JWT', 'alg' => 'HS256']);
@@ -338,6 +348,10 @@ class SyncPermissions extends BaseCommand
             'uid' => $userId,
             'scope' => $permissions
         ]);
+
+        if ($header === false || $payload === false) {
+            throw new \RuntimeException('Failed to JSON-encode JWT header/payload.');
+        }
 
         $base64UrlHeader = str_replace(['+', '/', '='], ['-', '_', ''], base64_encode($header));
         $base64UrlPayload = str_replace(['+', '/', '='], ['-', '_', ''], base64_encode($payload));

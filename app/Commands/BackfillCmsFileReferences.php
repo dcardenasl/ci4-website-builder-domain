@@ -37,7 +37,7 @@ class BackfillCmsFileReferences extends BaseCommand
     {
         $dryRun = in_array('--dry-run', $params, true);
         $db = Database::connect();
-        $resolver = $this->resolver ?? new FileUrlResolver($db);
+        $resolver = $this->resolver ?? new FileUrlResolver();
         $synchronizer = $this->synchronizer ?? new FileReferenceSynchronizer($db, $resolver);
 
         $summary = [
@@ -73,10 +73,14 @@ class BackfillCmsFileReferences extends BaseCommand
         );
     }
 
+    /**
+     * @param \CodeIgniter\Database\BaseConnection<object, object> $db
+     */
     private function normalizeEntryTranslations(\CodeIgniter\Database\BaseConnection $db, FileUrlResolver $resolver, bool $dryRun): int
     {
         $updated = 0;
-        $rows = $db->table('cms_entry_translations')->get()->getResultArray();
+        $result  = $db->table('cms_entry_translations')->get();
+        $rows    = $result === false ? [] : $result->getResultArray();
 
         foreach ($rows as $row) {
             $fileId = $resolver->resolveFileIdFromValue($row['featured_file_id'] ?? null, $row['featured_image_url'] ?? null);
@@ -103,13 +107,16 @@ class BackfillCmsFileReferences extends BaseCommand
         return $updated;
     }
 
+    /**
+     * @param \CodeIgniter\Database\BaseConnection<object, object> $db
+     */
     private function normalizeBlockTranslations(\CodeIgniter\Database\BaseConnection $db, FileUrlResolver $resolver, bool $dryRun): int
     {
         $updated = 0;
-        $instances = $db->table('cms_block_instances')
+        $instancesResult = $db->table('cms_block_instances')
             ->select('id, block_id')
-            ->get()
-            ->getResultArray();
+            ->get();
+        $instances       = $instancesResult === false ? [] : $instancesResult->getResultArray();
 
         foreach ($instances as $instance) {
             $schemaFields = $this->schemaFields($db, (int) ($instance['block_id'] ?? 0));
@@ -117,10 +124,10 @@ class BackfillCmsFileReferences extends BaseCommand
                 continue;
             }
 
-            $translations = $db->table('cms_block_instance_translations')
+            $translationsResult = $db->table('cms_block_instance_translations')
                 ->where('instance_id', (int) $instance['id'])
-                ->get()
-                ->getResultArray();
+                ->get();
+            $translations       = $translationsResult === false ? [] : $translationsResult->getResultArray();
 
             foreach ($translations as $translation) {
                 $blockData = $this->decodeJsonArray($translation['block_data'] ?? null);
@@ -148,6 +155,7 @@ class BackfillCmsFileReferences extends BaseCommand
     }
 
     /**
+     * @param \CodeIgniter\Database\BaseConnection<object, object> $db
      * @return array<string, array<string, mixed>>
      */
     private function schemaFields(\CodeIgniter\Database\BaseConnection $db, int $blockId): array
@@ -156,11 +164,11 @@ class BackfillCmsFileReferences extends BaseCommand
             return [];
         }
 
-        $row = $db->table('cms_content_blocks')
+        $result = $db->table('cms_content_blocks')
             ->select('schema_definition')
             ->where('id', $blockId)
-            ->get()
-            ->getRowArray();
+            ->get();
+        $row    = $result === false ? null : $result->getRowArray();
 
         if (! is_array($row) || ! isset($row['schema_definition'])) {
             return [];

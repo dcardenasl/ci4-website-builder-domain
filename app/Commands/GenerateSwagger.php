@@ -31,14 +31,20 @@ class GenerateSwagger extends BaseCommand
                     $appPath . 'DTO/',
                 ]);
 
+            if ($openapi === null) {
+                CLI::error('OpenAPI generator returned no result (no annotations found?).');
+                return EXIT_ERROR;
+            }
+
             // Write to file
             file_put_contents($outputPath, $openapi->toJson());
 
-            // Calculate statistics (components properties may be UNDEFINED sentinel when empty)
-            $paths = $openapi->paths ?? [];
-            $schemas = is_array($openapi->components->schemas ?? null) ? $openapi->components->schemas : [];
-            $responses = is_array($openapi->components->responses ?? null) ? $openapi->components->responses : [];
-            $requestBodies = is_array($openapi->components->requestBodies ?? null) ? $openapi->components->requestBodies : [];
+            // Calculate statistics (components properties may be the UNDEFINED
+            // sentinel object when empty, not null — is_array() catches that).
+            $paths = $openapi->paths;
+            $schemas = is_array($openapi->components->schemas) ? $openapi->components->schemas : [];
+            $responses = is_array($openapi->components->responses) ? $openapi->components->responses : [];
+            $requestBodies = is_array($openapi->components->requestBodies) ? $openapi->components->requestBodies : [];
             $endpointCount = count($paths);
             $schemaCount = count($schemas);
             $responseCount = count($responses);

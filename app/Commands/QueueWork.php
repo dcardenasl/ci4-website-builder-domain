@@ -79,7 +79,7 @@ class QueueWork extends BaseCommand
         $queueManager = Services::queueManager(false);
         $processedJobs = 0;
 
-        if (! method_exists($queueManager, 'process')) {
+        if (! method_exists($queueManager, 'process') || ! method_exists($queueManager, 'getStats')) {
             CLI::write('Queue worker not required for the current queue driver.', 'yellow');
             return;
         }

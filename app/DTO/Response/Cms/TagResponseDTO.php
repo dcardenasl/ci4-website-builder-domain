@@ -14,6 +14,9 @@ use OpenApi\Attributes as OA;
 )]
 final readonly class TagResponseDTO implements DataTransferObjectInterface
 {
+    /**
+     * @param list<array<string, mixed>> $translations
+     */
     public function __construct(
         #[OA\Property(description: 'Unique identifier', example: 1)]
         public int $id,

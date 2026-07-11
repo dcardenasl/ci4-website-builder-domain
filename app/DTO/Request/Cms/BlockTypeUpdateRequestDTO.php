@@ -20,6 +20,7 @@ readonly class BlockTypeUpdateRequestDTO extends BaseRequestDTO
     public ?string $category;
     #[OA\Property(description: 'icon', type: 'string', nullable: true)]
     public ?string $icon;
+    /** @var array<string, mixed>|null */
     #[OA\Property(description: 'schema_definition', type: 'object', nullable: true)]
     public ?array $schema_definition;
     #[OA\Property(description: 'supports_pages', type: 'boolean', nullable: true)]
