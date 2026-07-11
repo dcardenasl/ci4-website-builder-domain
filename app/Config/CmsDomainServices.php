@@ -182,6 +182,13 @@ trait CmsDomainServices
         }
         return new \App\Services\Cms\BlockTypeService(new \dcardenasl\Ci4ApiCore\Repositories\GenericRepository(model(\App\Models\BlockTypeModel::class)), static::blockTypeResponseMapper());
     }
+    public static function blockTemplateCatalog(bool $getShared = true): \App\Libraries\Cms\BlockTemplateCatalog
+    {
+        if ($getShared) {
+            return static::getSharedInstance('blockTemplateCatalog');
+        }
+        return new \App\Libraries\Cms\BlockTemplateCatalog(new \dcardenasl\Ci4ApiCore\Repositories\GenericRepository(model(\App\Models\BlockTypeModel::class)));
+    }
     public static function blockInstanceResponseMapper(bool $getShared = true): \dcardenasl\Ci4ApiCore\Mappers\ResponseMapperInterface
     {
         if ($getShared) {
@@ -298,7 +305,35 @@ trait CmsDomainServices
             return static::getSharedInstance('translationAuditService');
         }
 
-        return new \App\Services\Cms\TranslationAuditService();
+        $support = new \App\Libraries\Cms\TranslationAuditSupport();
+        $repo = static fn (string $modelClass): \dcardenasl\Ci4ApiCore\Repositories\RepositoryInterface
+            => new \dcardenasl\Ci4ApiCore\Repositories\GenericRepository(model($modelClass));
+
+        return new \App\Services\Cms\TranslationAuditService(
+            $repo(\App\Models\LanguageModel::class),
+            $repo(\App\Models\PageModel::class),
+            $repo(\App\Models\PageTranslationModel::class),
+            $repo(\App\Models\MenuModel::class),
+            $repo(\App\Models\MenuTranslationModel::class),
+            $repo(\App\Models\MenuItemModel::class),
+            $repo(\App\Models\MenuItemTranslationModel::class),
+            $repo(\App\Models\SettingModel::class),
+            $repo(\App\Models\SettingTranslationModel::class),
+            $repo(\App\Models\CollectionModel::class),
+            $repo(\App\Models\CollectionTranslationModel::class),
+            $repo(\App\Models\CategoryModel::class),
+            $repo(\App\Models\CategoryTranslationModel::class),
+            $repo(\App\Models\TagModel::class),
+            $repo(\App\Models\TagTranslationModel::class),
+            $repo(\App\Models\EntryModel::class),
+            $repo(\App\Models\EntryTranslationModel::class),
+            $repo(\App\Models\FormModel::class),
+            $repo(\App\Models\FormTranslationModel::class),
+            $repo(\App\Models\FormFieldModel::class),
+            $repo(\App\Models\FormFieldTranslationModel::class),
+            $support,
+            new \App\Services\Cms\BlockInstanceTranslationAuditor($support),
+        );
     }
 
     public static function cacheInvalidationClient(bool $getShared = true): \App\Libraries\Cms\CacheInvalidationClient
