@@ -20,6 +20,7 @@ class FormFieldTranslationModel extends Model
         'label',
         'placeholder',
         'help_text',
+        'option_labels',
         'error_required',
         'error_invalid',
     ];
