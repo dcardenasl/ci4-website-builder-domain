@@ -8,6 +8,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- **Environment variable support for container deployments** — `App`, `Database`, and `Hub` configuration classes now support UPPERCASE environment variables as alternatives to dotted keys (`APP_BASE_URL`, `DB_HOST`, `DB_PORT`, `MYSQL_DATABASE`, `MYSQL_USER`, `MYSQL_PASSWORD`, `HUB_URL`, `HUB_API_KEY`, `HUB_APP_CODE`); improves portability across Docker, Kubernetes, and cloud environments where dotted variable names are unreliable; `docker/entrypoint.sh` waits for database availability and runs migrations on container startup.
 - **Form field option labels translation** — migrated form field option labels to `form_field_translations` table, enabling multilingual label rendering for select, checkbox, and radio field options; `FormService` now resolves language-specific labels with fallback to field values
 - **Expanded form field types** — migration `2026-07-10-000001_ExpandCmsFormFieldTypesAndOptions` extends form field schema with new type options; updated DTOs, entities, models, and service layer to handle enriched field validation and configuration; form submission notification job now processes expanded field metadata
 - **Component and media page types** — migration `2026-07-09-000001_AddComponentsAndMediaPageTypesToCmsPages` introduces two new page types (`component` and `media`) for modular page composition; adds `SiteComponentsPageSeeder` and `SiteMediaPageSeeder` to bootstrap example pages with full block coverage validation tests
