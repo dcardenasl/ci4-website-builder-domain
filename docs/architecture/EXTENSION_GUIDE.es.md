@@ -24,7 +24,7 @@ Proceso completo paso a paso:
 
 Ver el [`../../README.es.md`](../../README.es.md) raíz § "Inicio rápido" y § "Añadir un nuevo módulo CRUD" para un recorrido completo con ejemplos de código.
 
-El repo incluye un módulo de ejemplo (`DemoProduct` en el dominio `Catalog`). Revisa su estructura (DTOs, controladores, servicios y tests) para entender cómo lucen los artefactos generados y usa `php spark module:check <Resource> --domain <Domain>` para validar tus propios módulos.
+Como referencia mantenida y cercana a producción, revisa el recurso `Page` bajo `app/DTO/*/Cms`, `app/Controllers/Api/V1/Cms`, `app/Services/Cms` y `tests`. Usa `php spark module:check <Resource> --domain <Domain>` para validar tus propios módulos.
 
 El comando `make:crud` genera archivos de migración, entity/model/interface/service/controller/DTOs/docs/i18n/tests, utilizando un esquema único para asegurar la sincronización en todas las capas.
 
