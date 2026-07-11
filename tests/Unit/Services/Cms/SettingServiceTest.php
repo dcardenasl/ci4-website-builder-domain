@@ -4,25 +4,24 @@ declare(strict_types=1);
 
 namespace Tests\Unit\Services\Cms;
 
-use App\Interfaces\Cms\RedirectServiceInterface;
+use App\Interfaces\Cms\SettingServiceInterface;
 use CodeIgniter\Test\CIUnitTestCase;
 use Config\Services;
 use dcardenasl\Ci4ApiCore\Mappers\ResponseMapperInterface;
 use dcardenasl\Ci4ApiCore\Repositories\RepositoryInterface;
 
 /**
- * Smoke tests for RedirectService. Extend with domain-specific assertions
- * as business rules accumulate in the service.
+ * Smoke tests for SettingService.
  *
  * @internal
  */
-final class RedirectServiceTest extends CIUnitTestCase
+final class SettingServiceTest extends CIUnitTestCase
 {
     public function testServiceImplementsItsInterface(): void
     {
-        $service = Services::redirectService(false);
+        $service = Services::settingService(false);
 
-        $this->assertInstanceOf(RedirectServiceInterface::class, $service);
+        $this->assertInstanceOf(SettingServiceInterface::class, $service);
     }
 
     public function testDestroyInvalidatesCache(): void
@@ -44,9 +43,9 @@ final class RedirectServiceTest extends CIUnitTestCase
         $cacheMock = $this->createMock(\App\Libraries\Cms\CacheInvalidationClient::class);
         $cacheMock->expects($this->once())
             ->method('invalidate')
-            ->with(['redirects']);
+            ->with(['settings']);
 
-        $service = new \App\Services\Cms\RedirectService($repository, $responseMapper, $cacheMock);
+        $service = new \App\Services\Cms\SettingService($repository, $responseMapper, $cacheMock);
         $result = $service->destroy(10, null);
 
         $this->assertTrue($result);

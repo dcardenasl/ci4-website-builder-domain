@@ -9,6 +9,8 @@ use CodeIgniter\Test\CIUnitTestCase;
 use CodeIgniter\Test\DatabaseTestTrait;
 use Config\Database;
 use Config\Services;
+use dcardenasl\Ci4ApiCore\Mappers\ResponseMapperInterface;
+use dcardenasl\Ci4ApiCore\Repositories\RepositoryInterface;
 
 /**
  * Smoke tests for EntryService. Extend with domain-specific assertions
@@ -99,5 +101,32 @@ final class EntryServiceTest extends CIUnitTestCase
         $db->table('cms_collections')->insert($payload);
 
         return (int) $db->insertID();
+    }
+
+    public function testDestroyInvalidatesCache(): void
+    {
+        $repository = $this->createMock(RepositoryInterface::class);
+        $repository->expects($this->once())
+            ->method('find')
+            ->with(10)
+            ->willReturn((object) ['id' => 10]);
+        $repository->expects($this->once())
+            ->method('setEntityContext')
+            ->with(10, $this->isInstanceOf(\stdClass::class));
+        $repository->expects($this->once())
+            ->method('delete')
+            ->with(10)
+            ->willReturn(true);
+
+        $responseMapper = $this->createMock(ResponseMapperInterface::class);
+        $cacheMock = $this->createMock(\App\Libraries\Cms\CacheInvalidationClient::class);
+        $cacheMock->expects($this->once())
+            ->method('invalidate')
+            ->with(['entries']);
+
+        $service = new \App\Services\Cms\EntryService($repository, $responseMapper, null, $cacheMock);
+        $result = $service->destroy(10, null);
+
+        $this->assertTrue($result);
     }
 }
