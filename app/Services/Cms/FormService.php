@@ -230,6 +230,7 @@ class FormService
         $fieldId = (int) $this->fieldModel->getInsertID();
 
         $this->saveFieldTranslations($fieldId, $dto->translations);
+        $this->pruneOptionLabels($fieldId);
 
         $db->transComplete();
 
@@ -262,6 +263,12 @@ class FormService
         if ($dto->translations !== []) {
             $this->saveFieldTranslations($fieldId, $dto->translations);
         }
+
+        // Every save re-derives valid labels from the field's CURRENT options,
+        // dropping any option_labels entries for values that no longer exist
+        // (removed options, or a value edited/regenerated to something else).
+        // Otherwise those orphaned entries accumulate silently forever.
+        $this->pruneOptionLabels($fieldId);
 
         $db->transComplete();
 
@@ -334,10 +341,21 @@ class FormService
             $fieldData   = $field->toArray();
             $fieldTrans  = $this->resolveFieldTranslation((int) $fieldData['id'], $lang);
 
+            // Options are stored as stable, language-independent values on the
+            // field; their display labels are per-language, in this locale's
+            // translation row. Combine them here — form_embed.php on the web
+            // side only ever sees the resolved {value,label} shape.
+            $optionValues = is_array($fieldData['options'] ?? null) ? $fieldData['options'] : [];
+            $optionLabels = $this->decodeOptionLabels($fieldTrans['option_labels'] ?? null);
+            $resolvedOptions = array_map(
+                static fn (string $value): array => ['value' => $value, 'label' => $optionLabels[$value] ?? $value],
+                $optionValues
+            );
+
             return [
                 'field_key'     => $fieldData['field_key'],
                 'field_type'    => $fieldData['field_type'],
-                'options'       => is_array($fieldData['options'] ?? null) ? $fieldData['options'] : [],
+                'options'       => $resolvedOptions,
                 'is_required'   => (bool) $fieldData['is_required'],
                 'display_order' => (int) $fieldData['display_order'],
                 'label'         => $fieldTrans['label'] ?? $fieldData['field_key'],
@@ -398,7 +416,13 @@ class FormService
             ->where('form_field_id', $fieldData['id'])
             ->findAll();
 
-        $fieldData['translations'] = $this->normalizeRows($translations);
+        $normalized = $this->normalizeRows($translations);
+        foreach ($normalized as &$row) {
+            $row['option_labels'] = $this->decodeOptionLabels($row['option_labels'] ?? null);
+        }
+        unset($row);
+
+        $fieldData['translations'] = $normalized;
 
         return $fieldData;
     }
@@ -486,10 +510,15 @@ class FormService
                 ->where('language_id', $languageId)
                 ->first();
 
+            $optionLabels = isset($trans['option_labels']) && is_array($trans['option_labels'])
+                ? $this->sanitizeOptionLabels($trans['option_labels'])
+                : [];
+
             $payload = [
                 'label'          => (string) ($trans['label'] ?? ''),
                 'placeholder'    => isset($trans['placeholder']) && $trans['placeholder'] !== '' ? (string) $trans['placeholder'] : null,
                 'help_text'      => isset($trans['help_text']) && $trans['help_text'] !== '' ? (string) $trans['help_text'] : null,
+                'option_labels'  => $optionLabels !== [] ? json_encode($optionLabels, JSON_UNESCAPED_UNICODE) : null,
                 'error_required' => isset($trans['error_required']) && $trans['error_required'] !== '' ? (string) $trans['error_required'] : null,
                 'error_invalid'  => isset($trans['error_invalid']) && $trans['error_invalid'] !== '' ? (string) $trans['error_invalid'] : null,
             ];
@@ -504,6 +533,83 @@ class FormService
                 $this->fieldTranslationModel->insert(array_merge(['form_field_id' => $fieldId, 'language_id' => $languageId], $payload));
             }
         }
+    }
+
+    /**
+     * Drops option_labels entries for values that no longer exist on the
+     * field — e.g. an option was removed or its value edited/regenerated to
+     * something else. Runs after every field save so stale entries never
+     * accumulate.
+     */
+    private function pruneOptionLabels(int $fieldId): void
+    {
+        /** @var FormFieldEntity|null $field */
+        $field = $this->fieldModel->find($fieldId);
+        if ($field === null) {
+            return;
+        }
+
+        $fieldData   = $field->toArray();
+        $validValues = is_array($fieldData['options'] ?? null) ? $fieldData['options'] : [];
+        $validLookup = array_flip($validValues);
+
+        $translations = $this->fieldTranslationModel->where('form_field_id', $fieldId)->findAll();
+        foreach ($translations as $trans) {
+            if (! is_array($trans)) {
+                continue;
+            }
+
+            $decoded = $this->decodeOptionLabels($trans['option_labels'] ?? null);
+            if ($decoded === []) {
+                continue;
+            }
+
+            $pruned = array_intersect_key($decoded, $validLookup);
+            if ($pruned === $decoded) {
+                continue;
+            }
+
+            $this->fieldTranslationModel
+                ->where('id', is_scalar($trans['id'] ?? null) ? (int) $trans['id'] : 0)
+                ->set('option_labels', $pruned !== [] ? json_encode($pruned, JSON_UNESCAPED_UNICODE) : null)
+                ->update();
+        }
+    }
+
+    /**
+     * @param array<int|string, mixed> $raw
+     * @return array<string, string>
+     */
+    private function sanitizeOptionLabels(array $raw): array
+    {
+        $clean = [];
+        foreach ($raw as $value => $label) {
+            $value = trim((string) $value);
+            $label = trim((string) $label);
+            if ($value === '' || $label === '') {
+                continue;
+            }
+            $clean[$value] = $label;
+        }
+
+        return $clean;
+    }
+
+    /**
+     * @return array<string, string>
+     */
+    private function decodeOptionLabels(mixed $raw): array
+    {
+        if (is_array($raw)) {
+            return $raw;
+        }
+
+        if (is_string($raw) && $raw !== '') {
+            $decoded = json_decode($raw, true);
+            return is_array($decoded) ? $decoded : [];
+        }
+
+        return [];
     }
 
     /**
@@ -524,8 +630,15 @@ class FormService
             return ['name' => '', 'submit_label' => 'Enviar'];
         }
 
+        // (array) $entity does NOT call Entity::toArray() — it exposes the
+        // object's raw properties with PHP's mangled protected/private-property
+        // keys (e.g. "\0*\0attributes"), never a plain 'id' key. That silently
+        // made $languageId always 0 below, so the language_id lookup never
+        // matched and every call fell through to "first translation for this
+        // row" — which is why every locale rendered the same (first-created)
+        // language regardless of what was requested.
         /** @var array<string, mixed> $langArr */
-        $langArr    = is_array($language) ? $language : (array) $language;
+        $langArr    = is_array($language) ? $language : $language->toArray();
         $languageId = (int) ($langArr['id'] ?? 0);
 
         /** @var array<string, mixed>|null $trans */
@@ -560,8 +673,9 @@ class FormService
             return [];
         }
 
+        // See resolveFormTranslation() above — (array) $entity doesn't work here.
         /** @var array<string, mixed> $langArr */
-        $langArr    = is_array($language) ? $language : (array) $language;
+        $langArr    = is_array($language) ? $language : $language->toArray();
         $languageId = (int) ($langArr['id'] ?? 0);
 
         /** @var array<string, mixed>|null $trans */

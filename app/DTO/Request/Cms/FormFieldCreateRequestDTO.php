@@ -16,7 +16,13 @@ readonly class FormFieldCreateRequestDTO extends BaseRequestDTO
     public int    $display_order;
     public bool   $is_required;
     public bool   $is_active;
-    /** @var list<array{value: string, label: string}>|null */
+    /**
+     * Stable, language-independent option values (e.g. "1-hora") — what a
+     * submission actually stores. Display labels are per-language and live in
+     * translations[*].option_labels, never here.
+     *
+     * @var list<string>|null
+     */
     public ?array $options;
     /** @var array<int|string, mixed> */
     public array  $translations;
@@ -70,9 +76,9 @@ readonly class FormFieldCreateRequestDTO extends BaseRequestDTO
     }
 
     /**
-     * Keep only well-formed {value,label} pairs with a non-empty value.
+     * Keep only non-empty, de-duplicated option values, in submitted order.
      *
-     * @return list<array{value: string, label: string}>|null
+     * @return list<string>|null
      */
     public static function normalizeOptions(mixed $raw): ?array
     {
@@ -82,15 +88,11 @@ readonly class FormFieldCreateRequestDTO extends BaseRequestDTO
 
         $normalized = [];
         foreach ($raw as $option) {
-            if (! is_array($option)) {
+            $value = trim(is_array($option) ? (string) ($option['value'] ?? '') : (string) $option);
+            if ($value === '' || in_array($value, $normalized, true)) {
                 continue;
             }
-            $value = trim((string) ($option['value'] ?? ''));
-            if ($value === '') {
-                continue;
-            }
-            $label = trim((string) ($option['label'] ?? ''));
-            $normalized[] = ['value' => $value, 'label' => $label !== '' ? $label : $value];
+            $normalized[] = $value;
         }
 
         return $normalized;

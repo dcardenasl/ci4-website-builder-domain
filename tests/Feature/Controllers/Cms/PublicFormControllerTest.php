@@ -103,4 +103,88 @@ final class PublicFormControllerTest extends CIUnitTestCase
         $result = $this->get('/api/v1/public/es/forms/no-exists');
         $result->assertStatus(404);
     }
+
+    /**
+     * Regression test: resolveFormTranslation()/resolveFieldTranslation() used
+     * to (array)-cast the LanguageEntity instead of calling toArray(), which
+     * always resolved $languageId to 0. The language_id lookup then silently
+     * fell through to "first translation for this row" — invisible with only
+     * one language seeded (the original testGetPublicFormDefinitionSuccess
+     * above), because that fallback happened to match by coincidence. With two
+     * languages present, every locale rendered identically until fixed.
+     *
+     * Also covers the select field's translatable option labels: the stable
+     * value list on cms_form_fields.options combined with the per-language
+     * option_labels map on cms_form_field_translations must resolve to the
+     * requested locale's labels, not the other language's.
+     */
+    public function testGetPublicFormDefinitionResolvesRequestedLocaleNotJustTheFirstOne(): void
+    {
+        $langEnId = $this->db->table('cms_languages')->insert([
+            'code'       => 'en',
+            'name'       => 'English',
+            'is_default' => 0,
+            'is_active'  => 1,
+        ]) ? $this->db->insertID() : 0;
+
+        $this->db->table('cms_forms')->insert([
+            'form_key'   => 'contact',
+            'is_active'  => 1,
+            'has_captcha' => 0,
+        ]);
+        $formId = $this->db->insertID();
+
+        $this->db->table('cms_form_translations')->insert([
+            'form_id'      => $formId,
+            'language_id'  => $this->langEsId,
+            'name'         => 'Formulario de Contacto',
+            'submit_label' => 'Enviar mensaje',
+        ]);
+        $this->db->table('cms_form_translations')->insert([
+            'form_id'      => $formId,
+            'language_id'  => $langEnId,
+            'name'         => 'Contact Form',
+            'submit_label' => 'Send message',
+        ]);
+
+        $this->db->table('cms_form_fields')->insert([
+            'form_id'       => $formId,
+            'field_key'     => 'hours',
+            'field_type'    => 'select',
+            'options'       => json_encode(['1-hora', '2-horas'], JSON_UNESCAPED_UNICODE),
+            'display_order' => 10,
+            'is_required'   => 1,
+            'is_active'     => 1,
+        ]);
+        $fieldId = $this->db->insertID();
+
+        $this->db->table('cms_form_field_translations')->insert([
+            'form_field_id' => $fieldId,
+            'language_id'   => $this->langEsId,
+            'label'         => 'Cantidad de Horas',
+            'option_labels' => json_encode(['1-hora' => '1 Hora', '2-horas' => '2 Horas'], JSON_UNESCAPED_UNICODE),
+        ]);
+        $this->db->table('cms_form_field_translations')->insert([
+            'form_field_id' => $fieldId,
+            'language_id'   => $langEnId,
+            'label'         => 'Number of Hours',
+            'option_labels' => json_encode(['1-hora' => '1 Hour', '2-horas' => '2 Hours'], JSON_UNESCAPED_UNICODE),
+        ]);
+
+        $es = json_decode($this->get('/api/v1/public/es/forms/contact')->getJSON(), true);
+        $en = json_decode($this->get('/api/v1/public/en/forms/contact')->getJSON(), true);
+
+        $this->assertSame('Formulario de Contacto', $es['data']['name']);
+        $this->assertSame('Contact Form', $en['data']['name']);
+        $this->assertSame('Cantidad de Horas', $es['data']['fields'][0]['label']);
+        $this->assertSame('Number of Hours', $en['data']['fields'][0]['label']);
+        $this->assertSame(
+            [['value' => '1-hora', 'label' => '1 Hora'], ['value' => '2-horas', 'label' => '2 Horas']],
+            $es['data']['fields'][0]['options']
+        );
+        $this->assertSame(
+            [['value' => '1-hora', 'label' => '1 Hour'], ['value' => '2-horas', 'label' => '2 Hours']],
+            $en['data']['fields'][0]['options']
+        );
+    }
 }

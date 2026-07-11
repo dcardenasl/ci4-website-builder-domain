@@ -12,7 +12,7 @@ readonly class FormFieldUpdateRequestDTO extends BaseRequestDTO
     public ?int    $display_order;
     public ?bool   $is_required;
     public ?bool   $is_active;
-    /** @var list<array{value: string, label: string}>|null */
+    /** @var list<string>|null */
     public ?array  $options;
     /** @var array<int|string, mixed> */
     public array   $translations;

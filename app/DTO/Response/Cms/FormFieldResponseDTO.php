@@ -10,12 +10,17 @@ final readonly class FormFieldResponseDTO implements DataTransferObjectInterface
 {
     /** @var list<array<string, mixed>> */
     public array $translations;
-    /** @var list<array{value: string, label: string}> */
+    /**
+     * Stable, language-independent option values. Display labels live per-
+     * language inside each translations[] entry's `option_labels` map.
+     *
+     * @var list<string>
+     */
     public array $options;
 
     /**
-     * @param list<array<string, mixed>>            $translations
-     * @param list<array{value: string, label: string}>|null $options
+     * @param list<array<string, mixed>> $translations
+     * @param list<string>|null          $options
      */
     public function __construct(
         public int    $id,
