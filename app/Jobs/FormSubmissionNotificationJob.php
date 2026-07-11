@@ -19,8 +19,8 @@ class FormSubmissionNotificationJob extends Job
 {
     public function handle(): void
     {
-        $submissionId = (int) ($this->payload['submission_id'] ?? 0);
-        $formId       = (int) ($this->payload['form_id'] ?? 0);
+        $submissionId = (int) ($this->data['submission_id'] ?? 0);
+        $formId       = (int) ($this->data['form_id'] ?? 0);
 
         if ($submissionId === 0 || $formId === 0) {
             log_message('error', '[FormSubmissionNotificationJob] Invalid payload: submission_id or form_id missing.');

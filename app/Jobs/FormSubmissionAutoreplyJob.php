@@ -18,9 +18,9 @@ class FormSubmissionAutoreplyJob extends Job
 {
     public function handle(): void
     {
-        $submissionId = (int) ($this->payload['submission_id'] ?? 0);
-        $formId       = (int) ($this->payload['form_id'] ?? 0);
-        $userEmail    = (string) ($this->payload['user_email'] ?? '');
+        $submissionId = (int) ($this->data['submission_id'] ?? 0);
+        $formId       = (int) ($this->data['form_id'] ?? 0);
+        $userEmail    = (string) ($this->data['user_email'] ?? '');
 
         if ($submissionId === 0 || $formId === 0 || $userEmail === '') {
             log_message('error', '[FormSubmissionAutoreplyJob] Invalid payload.');
