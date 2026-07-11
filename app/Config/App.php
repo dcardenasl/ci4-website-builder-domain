@@ -184,6 +184,14 @@ class App extends BaseConfig
     {
         parent::__construct();
 
+        // Environment variables containing dots are not propagated reliably
+        // through every Apache/PHP runtime. Keep the standard CI4 key, but
+        // support an explicit container-friendly alias as well.
+        $baseUrl = trim((string) (env('APP_BASE_URL', '') ?? ''));
+        if ($baseUrl !== '') {
+            $this->baseURL = rtrim($baseUrl, '/') . '/';
+        }
+
         // Allow comma-separated `cidr=header` pairs in .env so deployments
         // behind ALB / nginx / Cloudflare can whitelist their proxy without
         // touching this Config class.

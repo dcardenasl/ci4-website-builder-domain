@@ -10,7 +10,13 @@ services:
       - "${DOMAIN_HOST_PORT:-8086}:80"
     environment:
       - CI_ENVIRONMENT=${CI_ENVIRONMENT:-development}
+      - APP_BASE_URL=${APP_BASE_URL:-http://localhost:8086}
       - app.baseURL=${APP_BASE_URL:-http://localhost:8086}
+      - DB_HOST=db
+      - DB_PORT=3306
+      - MYSQL_DATABASE=${MYSQL_DATABASE:-ci4_website_builder_domain}
+      - MYSQL_USER=${MYSQL_USER:-ci4_user}
+      - MYSQL_PASSWORD=${MYSQL_PASSWORD:-ci4_domain_dev_password}
       - database.default.hostname=db
       - database.default.database=${MYSQL_DATABASE:-ci4_website_builder_domain}
       - database.default.username=${MYSQL_USER:-ci4_user}
@@ -20,6 +26,9 @@ services:
       - hub.url=${HUB_URL:-http://host.docker.internal:8080}
       - hub.appCode=${HUB_APP_CODE:-example-website-builder}
       - hub.apiKey=${HUB_API_KEY:-apk_local_development_only}
+      - HUB_URL=${HUB_URL:-http://host.docker.internal:8080}
+      - HUB_APP_CODE=${HUB_APP_CODE:-example-website-builder}
+      - HUB_API_KEY=${HUB_API_KEY:-apk_local_development_only}
     volumes:
       # Mount writable directories for logs and cache
       - ./writable:/var/www/html/writable

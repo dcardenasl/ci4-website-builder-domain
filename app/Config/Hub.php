@@ -74,7 +74,7 @@ class Hub extends BaseConfig
         parent::__construct();
 
         // Hub URL is required for JWT introspection
-        $url = env('hub.url');
+        $url = env('HUB_URL') ?: env('hub.url');
         if (! is_string($url) || trim($url) === '') {
             throw new \LogicException(
                 'Missing hub.url in .env. '
@@ -86,7 +86,7 @@ class Hub extends BaseConfig
         $this->url = $url;
 
         // API key for hub calls (X-App-Key header)
-        $apiKey = env('hub.apiKey');
+        $apiKey = env('HUB_API_KEY') ?: env('hub.apiKey');
         if (! is_string($apiKey) || trim($apiKey) === '') {
             throw new \LogicException(
                 'Missing hub.apiKey in .env. '
@@ -98,7 +98,7 @@ class Hub extends BaseConfig
         $this->apiKey = $apiKey;
 
         // App code as registered in hub
-        $appCode = env('hub.appCode');
+        $appCode = env('HUB_APP_CODE') ?: env('hub.appCode');
         if (! is_string($appCode) || trim($appCode) === '') {
             throw new \LogicException(
                 'Missing hub.appCode in .env. '
