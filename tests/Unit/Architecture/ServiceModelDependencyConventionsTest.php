@@ -7,26 +7,68 @@ namespace Tests\Unit\Architecture;
 use CodeIgniter\Test\CIUnitTestCase;
 
 /**
- * Guardrail to avoid growing direct Model coupling in service layer.
+ * Guardrail against growing direct Model/DB coupling in the service layer
+ * (ADR-0002, ADR-005 — Repository/DI pattern; plan maestro H-011, ARCH-01/02).
+ *
+ * Detects three ways a Service can bypass the Repository/DI seam:
+ *   - use_model:   `use App\Models\...;`                    (imported Model class)
+ *   - model_call:  `model(\App\Models\X::class)` / `model('App\Models\X')` (inline FQCN resolution)
+ *   - db_connect:  `Database::connect()`                      (direct DB connection)
+ *
+ * This is a ratchet, not a wall (plan maestro ARCH-02: "inventariar violaciones
+ * existentes sin permitir ninguna nueva"). BASELINE below pins every currently
+ * known violation with its exact per-pattern occurrence count so the test stays
+ * green today. It fails if:
+ *   - a Service not in BASELINE starts using any of the three patterns, or
+ *   - a Service already in BASELINE increases its count for a pattern.
+ *
+ * It does NOT fail if a count drops or a file stops violating entirely — fixing
+ * violations should always be safe. When you fix one, shrink/remove its entry
+ * here to keep the ratchet tight.
  */
 class ServiceModelDependencyConventionsTest extends CIUnitTestCase
 {
-    public function testServicesUsingModelsAreExplicitlyWhitelisted(): void
+    /**
+     * Known violations as of 2026-07-11. Do not add entries without a matching
+     * architecture decision — prefer extending the repository/service DI pattern.
+     *
+     * @var array<string, array<string, int>>
+     */
+    private const BASELINE = [
+        'app/Services/Cms/AnalyticsService.php' => ['use_model' => 1],
+        'app/Services/Cms/BlockInstanceService.php' => ['model_call' => 4],
+        'app/Services/Cms/BlockInstanceTranslationAuditor.php' => ['model_call' => 1, 'db_connect' => 2],
+        'app/Services/Cms/BlockTypeService.php' => ['db_connect' => 1],
+        'app/Services/Cms/CategoryService.php' => ['model_call' => 5],
+        'app/Services/Cms/CollectionService.php' => ['model_call' => 4],
+        'app/Services/Cms/EntryBlockTemplateInitializer.php' => ['model_call' => 5, 'db_connect' => 1],
+        'app/Services/Cms/EntryService.php' => ['model_call' => 11, 'db_connect' => 3],
+        'app/Services/Cms/FileUsageService.php' => ['use_model' => 3, 'db_connect' => 1],
+        'app/Services/Cms/FormService.php' => ['use_model' => 4, 'model_call' => 2, 'db_connect' => 6],
+        'app/Services/Cms/FormSubmissionService.php' => ['use_model' => 1, 'model_call' => 3, 'db_connect' => 1],
+        'app/Services/Cms/LanguageService.php' => ['model_call' => 2],
+        'app/Services/Cms/MenuItemService.php' => ['model_call' => 6, 'db_connect' => 1],
+        'app/Services/Cms/MenuService.php' => ['model_call' => 2],
+        'app/Services/Cms/PageService.php' => ['model_call' => 8],
+        'app/Services/Cms/PublicEntryReader.php' => ['model_call' => 10, 'db_connect' => 2],
+        'app/Services/Cms/SettingService.php' => ['model_call' => 2],
+        'app/Services/Cms/TagService.php' => ['model_call' => 4],
+    ];
+
+    /** @var array<string, string> */
+    private const PATTERNS = [
+        'use_model' => '/^use\s+App\\\\Models\\\\/m',
+        'model_call' => '/\bmodel\s*\(/',
+        'db_connect' => '/\bDatabase\s*::\s*connect\s*\(/',
+    ];
+
+    public function testServicesDoNotGrowDirectModelOrDbCoupling(): void
     {
         $root = rtrim((string) ROOTPATH, DIRECTORY_SEPARATOR);
         $serviceDir = $root . DIRECTORY_SEPARATOR . 'app/Services';
 
-        // Justified exceptions: services that use complex aggregation queries
-        // not expressible via the GenericRepository CRUD pattern.
-        $allowed = [
-            'app/Services/Cms/AnalyticsService.php',      // time-series aggregations, GROUP BY, percentages
-            'app/Services/Cms/FileUsageService.php',       // cross-entity usage aggregation across multiple models
-            'app/Services/Cms/FormService.php',            // complex nested Form/Field/Translation CRUD operations
-            'app/Services/Cms/FormSubmissionService.php',  // countByStatus() aggregation
-        ];
-        sort($allowed);
-
-        $found = [];
+        /** @var array<string, array<string, int>> $actual */
+        $actual = [];
         $iterator = new \RecursiveIteratorIterator(new \RecursiveDirectoryIterator($serviceDir));
         foreach ($iterator as $file) {
             if (!$file instanceof \SplFileInfo || !$file->isFile() || !str_ends_with($file->getFilename(), '.php')) {
@@ -39,20 +81,55 @@ class ServiceModelDependencyConventionsTest extends CIUnitTestCase
                 continue;
             }
 
-            if (preg_match('/^use\s+App\\\\Models\\\\/m', $source) !== 1) {
-                continue;
+            // Strip comments and string literals so text inside them can't trigger
+            // a false positive, while preserving line breaks for multi-line regexes.
+            $code = '';
+            foreach (token_get_all($source) as $token) {
+                if (is_array($token) && in_array($token[0], [T_COMMENT, T_DOC_COMMENT, T_CONSTANT_ENCAPSED_STRING], true)) {
+                    $code .= str_repeat("\n", substr_count($token[1], "\n"));
+                    continue;
+                }
+                $code .= is_array($token) ? $token[1] : $token;
             }
 
             $relative = str_replace('\\', '/', ltrim(str_replace($root, '', $path), DIRECTORY_SEPARATOR));
-            $found[] = $relative;
+
+            foreach (self::PATTERNS as $name => $pattern) {
+                $count = preg_match_all($pattern, $code);
+                if ($count > 0) {
+                    $actual[$relative][$name] = $count;
+                }
+            }
         }
 
-        sort($found);
+        ksort($actual);
+
+        $violations = [];
+        foreach ($actual as $relative => $byPattern) {
+            $baselineForFile = self::BASELINE[$relative] ?? null;
+            if ($baselineForFile === null) {
+                $violations[] = sprintf(
+                    '%s: NEW file not in baseline (%s)',
+                    $relative,
+                    implode(', ', array_map(static fn (string $p, int $c): string => "{$p}={$c}", array_keys($byPattern), $byPattern))
+                );
+                continue;
+            }
+
+            foreach ($byPattern as $pattern => $count) {
+                $allowed = $baselineForFile[$pattern] ?? 0;
+                if ($count > $allowed) {
+                    $violations[] = "{$relative}: {$pattern} count {$count} exceeds baseline {$allowed}";
+                }
+            }
+        }
+
         $this->assertSame(
-            $allowed,
-            $found,
-            "Services with direct Model imports changed.\n" .
-            'Prefer repositories/interfaces and update this whitelist only for justified exceptions.'
+            [],
+            $violations,
+            "Service layer Model/DB coupling grew beyond the pinned baseline:\n- " . implode("\n- ", $violations) . "\n\n" .
+            'Prefer repositories/interfaces (ADR-0002, ADR-005). If this is a justified exception, ' .
+            'update ServiceModelDependencyConventionsTest::BASELINE deliberately — do not raise counts silently.'
         );
     }
 }
