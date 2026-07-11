@@ -7,58 +7,99 @@ namespace App\Services\Cms;
 use App\Interfaces\Cms\TranslationAuditServiceInterface;
 use App\Libraries\Cms\TranslationAuditSupport;
 use App\Libraries\Cms\TranslationResourceCatalog;
+use dcardenasl\Ci4ApiCore\Repositories\RepositoryInterface;
 
+/**
+ * Audits translation completeness across every translatable CMS resource.
+ *
+ * Nine of the eleven audited resource types (all but `setting` and
+ * `block_instance`, which have genuinely different rules — a default-language
+ * fallback and a schema-driven field set, respectively) share the exact same
+ * shape: find all rows of a resource, group its translation rows by resource
+ * id, and compare against `TranslationResourceCatalog`. `buildSimpleResourceDescriptors()`
+ * is the single catalog of that per-resource wiring (repository, translation
+ * repository, foreign key, human-readable reference, optional extra context)
+ * that `getMissingTranslationsReport()`, `auditResource()` and
+ * `countAuditableResources()` all read from, instead of nine near-identical
+ * private methods and a nine-case switch (H-011,
+ * docs/audits/2026-07-10-auditoria-profunda-robustez.md).
+ *
+ * Every collaborator is constructor-injected through `RepositoryInterface`
+ * (the same Repository/DI seam BlockTypeService and friends use — ADR-0002,
+ * ADR-005), not a concrete `App\Models\*` class: this class used to `model()`
+ * 20 Models directly inside its own constructor, which is exactly the
+ * coupling those ADRs forbid. Wiring lives in
+ * Config\CmsDomainServices::translationAuditService(). Query needs beyond
+ * `find()`/`findAll()` (a `where()` filter, a join) go through
+ * `RepositoryInterface::getModel()` — the same escape hatch BlockTypeService
+ * uses for its own raw queries — rather than re-introducing a Model
+ * dependency.
+ */
 class TranslationAuditService implements TranslationAuditServiceInterface
 {
-    protected \App\Models\LanguageModel $languageModel;
-    protected \App\Models\PageModel $pageModel;
-    protected \App\Models\PageTranslationModel $pageTranslationModel;
-    protected \App\Models\MenuModel $menuModel;
-    protected \App\Models\MenuTranslationModel $menuTranslationModel;
-    protected \App\Models\MenuItemModel $menuItemModel;
-    protected \App\Models\MenuItemTranslationModel $menuItemTranslationModel;
-    protected \App\Models\SettingModel $settingModel;
-    protected \App\Models\SettingTranslationModel $settingTranslationModel;
-    protected \App\Models\CollectionModel $collectionModel;
-    protected \App\Models\CollectionTranslationModel $collectionTranslationModel;
-    protected \App\Models\CategoryModel $categoryModel;
-    protected \App\Models\CategoryTranslationModel $categoryTranslationModel;
-    protected \App\Models\TagModel $tagModel;
-    protected \App\Models\TagTranslationModel $tagTranslationModel;
-    protected \App\Models\EntryModel $entryModel;
-    protected \App\Models\EntryTranslationModel $entryTranslationModel;
-    protected \App\Models\FormModel $formModel;
-    protected \App\Models\FormTranslationModel $formTranslationModel;
-    protected \App\Models\FormFieldModel $formFieldModel;
-    protected \App\Models\FormFieldTranslationModel $formFieldTranslationModel;
-    protected TranslationAuditSupport $support;
-    protected BlockInstanceTranslationAuditor $blockAuditor;
+    /**
+     * @var list<array{
+     *   type: string,
+     *   repository: RepositoryInterface<object>,
+     *   translationRepository: RepositoryInterface<object>,
+     *   fk: string,
+     *   reference: callable(array<string, mixed>): string,
+     *   extra: null|callable(array<string, mixed>): array<string, mixed>,
+     *   fetch: callable(): list<mixed>,
+     *   count: callable(): int,
+     * }>
+     */
+    private array $simpleResources;
 
-    public function __construct()
-    {
-        $this->languageModel = model(\App\Models\LanguageModel::class);
-        $this->pageModel = model(\App\Models\PageModel::class);
-        $this->pageTranslationModel = model(\App\Models\PageTranslationModel::class);
-        $this->menuModel = model(\App\Models\MenuModel::class);
-        $this->menuTranslationModel = model(\App\Models\MenuTranslationModel::class);
-        $this->menuItemModel = model(\App\Models\MenuItemModel::class);
-        $this->menuItemTranslationModel = model(\App\Models\MenuItemTranslationModel::class);
-        $this->settingModel = model(\App\Models\SettingModel::class);
-        $this->settingTranslationModel = model(\App\Models\SettingTranslationModel::class);
-        $this->collectionModel = model(\App\Models\CollectionModel::class);
-        $this->collectionTranslationModel = model(\App\Models\CollectionTranslationModel::class);
-        $this->categoryModel = model(\App\Models\CategoryModel::class);
-        $this->categoryTranslationModel = model(\App\Models\CategoryTranslationModel::class);
-        $this->tagModel = model(\App\Models\TagModel::class);
-        $this->tagTranslationModel = model(\App\Models\TagTranslationModel::class);
-        $this->entryModel = model(\App\Models\EntryModel::class);
-        $this->entryTranslationModel = model(\App\Models\EntryTranslationModel::class);
-        $this->formModel = model(\App\Models\FormModel::class);
-        $this->formTranslationModel = model(\App\Models\FormTranslationModel::class);
-        $this->formFieldModel = model(\App\Models\FormFieldModel::class);
-        $this->formFieldTranslationModel = model(\App\Models\FormFieldTranslationModel::class);
-        $this->support = new TranslationAuditSupport();
-        $this->blockAuditor = new BlockInstanceTranslationAuditor($this->support);
+    /**
+     * @param RepositoryInterface<object> $languageRepository
+     * @param RepositoryInterface<object> $pageRepository
+     * @param RepositoryInterface<object> $pageTranslationRepository
+     * @param RepositoryInterface<object> $menuRepository
+     * @param RepositoryInterface<object> $menuTranslationRepository
+     * @param RepositoryInterface<object> $menuItemRepository
+     * @param RepositoryInterface<object> $menuItemTranslationRepository
+     * @param RepositoryInterface<object> $settingRepository
+     * @param RepositoryInterface<object> $settingTranslationRepository
+     * @param RepositoryInterface<object> $collectionRepository
+     * @param RepositoryInterface<object> $collectionTranslationRepository
+     * @param RepositoryInterface<object> $categoryRepository
+     * @param RepositoryInterface<object> $categoryTranslationRepository
+     * @param RepositoryInterface<object> $tagRepository
+     * @param RepositoryInterface<object> $tagTranslationRepository
+     * @param RepositoryInterface<object> $entryRepository
+     * @param RepositoryInterface<object> $entryTranslationRepository
+     * @param RepositoryInterface<object> $formRepository
+     * @param RepositoryInterface<object> $formTranslationRepository
+     * @param RepositoryInterface<object> $formFieldRepository
+     * @param RepositoryInterface<object> $formFieldTranslationRepository
+     */
+    public function __construct(
+        private readonly RepositoryInterface $languageRepository,
+        private readonly RepositoryInterface $pageRepository,
+        private readonly RepositoryInterface $pageTranslationRepository,
+        private readonly RepositoryInterface $menuRepository,
+        private readonly RepositoryInterface $menuTranslationRepository,
+        private readonly RepositoryInterface $menuItemRepository,
+        private readonly RepositoryInterface $menuItemTranslationRepository,
+        private readonly RepositoryInterface $settingRepository,
+        private readonly RepositoryInterface $settingTranslationRepository,
+        private readonly RepositoryInterface $collectionRepository,
+        private readonly RepositoryInterface $collectionTranslationRepository,
+        private readonly RepositoryInterface $categoryRepository,
+        private readonly RepositoryInterface $categoryTranslationRepository,
+        private readonly RepositoryInterface $tagRepository,
+        private readonly RepositoryInterface $tagTranslationRepository,
+        private readonly RepositoryInterface $entryRepository,
+        private readonly RepositoryInterface $entryTranslationRepository,
+        private readonly RepositoryInterface $formRepository,
+        private readonly RepositoryInterface $formTranslationRepository,
+        private readonly RepositoryInterface $formFieldRepository,
+        private readonly RepositoryInterface $formFieldTranslationRepository,
+        private readonly TranslationAuditSupport $support,
+        private readonly BlockInstanceTranslationAuditor $blockAuditor,
+    ) {
+        $this->simpleResources = $this->buildSimpleResourceDescriptors();
     }
 
     /**
@@ -114,16 +155,10 @@ class TranslationAuditService implements TranslationAuditServiceInterface
         }
 
         $issues = [];
-        $issues = array_merge($issues, $this->auditPageTranslations($activeLanguages, $filters));
-        $issues = array_merge($issues, $this->auditMenuTranslations($activeLanguages, $filters));
-        $issues = array_merge($issues, $this->auditMenuItemTranslations($activeLanguages, $filters));
+        foreach ($this->simpleResources as $descriptor) {
+            $issues = array_merge($issues, $this->auditSimpleResources($descriptor, $activeLanguages, $filters));
+        }
         $issues = array_merge($issues, $this->auditSettingTranslations($activeLanguages, $filters));
-        $issues = array_merge($issues, $this->auditCollectionTranslations($activeLanguages, $filters));
-        $issues = array_merge($issues, $this->auditCategoryTranslations($activeLanguages, $filters));
-        $issues = array_merge($issues, $this->auditTagTranslations($activeLanguages, $filters));
-        $issues = array_merge($issues, $this->auditEntryTranslations($activeLanguages, $filters));
-        $issues = array_merge($issues, $this->auditFormTranslations($activeLanguages, $filters));
-        $issues = array_merge($issues, $this->auditFormFieldTranslations($activeLanguages, $filters));
         $issues = array_merge($issues, $this->blockAuditor->audit($activeLanguages, $filters));
 
         return $issues;
@@ -140,160 +175,53 @@ class TranslationAuditService implements TranslationAuditServiceInterface
         $valueResolver = static function (array $row, string $fieldKey, array $fieldDefinition): mixed {
             return $row[$fieldKey] ?? null;
         };
+        $defaultLanguageId = null;
+        $resourceRow = [];
 
-        switch ($resourceType) {
-            case 'page':
-                $resource = $this->pageModel->find($resourceId);
-                if ($resource === null) {
-                    return [];
-                }
+        $descriptor = $this->findSimpleResourceDescriptor($resourceType);
 
-                $translations = $this->support->groupTranslationsByResource(
-                    $this->pageTranslationModel->where('page_id', $resourceId)->findAll(),
-                    'page_id'
-                )[$resourceId] ?? [];
-                $fieldDefinitions = TranslationResourceCatalog::fields('page');
-                break;
-
-            case 'menu':
-                $resource = $this->menuModel->find($resourceId);
-                if ($resource === null) {
-                    return [];
-                }
-
-                $translations = $this->support->groupTranslationsByResource(
-                    $this->menuTranslationModel->where('menu_id', $resourceId)->findAll(),
-                    'menu_id'
-                )[$resourceId] ?? [];
-                $fieldDefinitions = TranslationResourceCatalog::fields('menu');
-                break;
-
-            case 'menu_item':
-                $resource = $this->menuItemModel->find($resourceId);
-                if ($resource === null) {
-                    return [];
-                }
-
-                $translations = $this->support->groupTranslationsByResource(
-                    $this->menuItemTranslationModel->where('menu_item_id', $resourceId)->findAll(),
-                    'menu_item_id'
-                )[$resourceId] ?? [];
-                $fieldDefinitions = TranslationResourceCatalog::fields('menu_item');
-                break;
-
-            case 'setting':
-                $resource = $this->settingModel->where('is_translatable', 1)->find($resourceId);
-                if ($resource === null) {
-                    return [];
-                }
-
-                $translations = $this->support->groupTranslationsByResource(
-                    $this->settingTranslationModel->where('setting_id', $resourceId)->findAll(),
-                    'setting_id'
-                )[$resourceId] ?? [];
-                $fieldDefinitions = TranslationResourceCatalog::fields('setting');
-                $defaultLanguageId = $this->getDefaultLanguageId();
-                $resourceRow = $this->support->toArray($resource);
-                if ($defaultLanguageId !== null) {
-                    $translations[$defaultLanguageId] = ['setting_value' => $resourceRow['setting_value'] ?? null];
-                }
-                break;
-
-            case 'collection':
-                $resource = $this->collectionModel->find($resourceId);
-                if ($resource === null) {
-                    return [];
-                }
-
-                $translations = $this->support->groupTranslationsByResource(
-                    $this->collectionTranslationModel->where('collection_id', $resourceId)->findAll(),
-                    'collection_id'
-                )[$resourceId] ?? [];
-                $fieldDefinitions = TranslationResourceCatalog::fields('collection');
-                break;
-
-            case 'category':
-                $resource = $this->categoryModel->find($resourceId);
-                if ($resource === null) {
-                    return [];
-                }
-
-                $translations = $this->support->groupTranslationsByResource(
-                    $this->categoryTranslationModel->where('category_id', $resourceId)->findAll(),
-                    'category_id'
-                )[$resourceId] ?? [];
-                $fieldDefinitions = TranslationResourceCatalog::fields('category');
-                break;
-
-            case 'tag':
-                $resource = $this->tagModel->find($resourceId);
-                if ($resource === null) {
-                    return [];
-                }
-
-                $translations = $this->support->groupTranslationsByResource(
-                    $this->tagTranslationModel->where('tag_id', $resourceId)->findAll(),
-                    'tag_id'
-                )[$resourceId] ?? [];
-                $fieldDefinitions = TranslationResourceCatalog::fields('tag');
-                break;
-
-            case 'entry':
-                $resource = $this->entryModel->find($resourceId);
-                if ($resource === null) {
-                    return [];
-                }
-
-                $translations = $this->support->groupTranslationsByResource(
-                    $this->entryTranslationModel->where('entry_id', $resourceId)->findAll(),
-                    'entry_id'
-                )[$resourceId] ?? [];
-                $fieldDefinitions = TranslationResourceCatalog::fields('entry');
-                break;
-
-            case 'form':
-                $resource = $this->formModel->find($resourceId);
-                if ($resource === null) {
-                    return [];
-                }
-
-                $translations = $this->support->groupTranslationsByResource(
-                    $this->formTranslationModel->where('form_id', $resourceId)->findAll(),
-                    'form_id'
-                )[$resourceId] ?? [];
-                $fieldDefinitions = TranslationResourceCatalog::fields('form');
-                break;
-
-            case 'form_field':
-                $resource = $this->formFieldModel->find($resourceId);
-                if ($resource === null) {
-                    return [];
-                }
-
-                $translations = $this->support->groupTranslationsByResource(
-                    $this->formFieldTranslationModel->where('form_field_id', $resourceId)->findAll(),
-                    'form_field_id'
-                )[$resourceId] ?? [];
-                $fieldDefinitions = TranslationResourceCatalog::fields('form_field');
-                break;
-
-            case 'block_instance':
-                $resolved = $this->blockAuditor->resolveForResource($resourceId);
-                if ($resolved === null) {
-                    return [];
-                }
-
-                [$resource, $fieldDefinitions, $translations, $valueResolver] = $resolved;
-                break;
-
-            default:
+        if ($descriptor !== null) {
+            $resource = $descriptor['repository']->find($resourceId);
+            if ($resource === null) {
                 return [];
+            }
+
+            $translations = $this->support->groupTranslationsByResource(
+                $descriptor['translationRepository']->getModel()->where($descriptor['fk'], $resourceId)->findAll(),
+                $descriptor['fk']
+            )[$resourceId] ?? [];
+            $fieldDefinitions = TranslationResourceCatalog::fields($resourceType);
+        } elseif ($resourceType === 'setting') {
+            $resource = $this->settingRepository->getModel()->where('is_translatable', 1)->find($resourceId);
+            if ($resource === null) {
+                return [];
+            }
+
+            $translations = $this->support->groupTranslationsByResource(
+                $this->settingTranslationRepository->getModel()->where('setting_id', $resourceId)->findAll(),
+                'setting_id'
+            )[$resourceId] ?? [];
+            $fieldDefinitions = TranslationResourceCatalog::fields('setting');
+            $defaultLanguageId = $this->getDefaultLanguageId();
+            $resourceRow = $this->support->toArray($resource);
+            if ($defaultLanguageId !== null) {
+                $translations[$defaultLanguageId] = ['setting_value' => $resourceRow['setting_value'] ?? null];
+            }
+        } elseif ($resourceType === 'block_instance') {
+            $resolved = $this->blockAuditor->resolveForResource($resourceId);
+            if ($resolved === null) {
+                return [];
+            }
+
+            [$resource, $fieldDefinitions, $translations, $valueResolver] = $resolved;
+        } else {
+            return [];
         }
 
         $report = [];
         foreach ($activeLanguages as $lang) {
             $langId = (int) $lang->id;
-            if ($resourceType === 'setting' && isset($defaultLanguageId) && $defaultLanguageId === $langId) {
+            if ($resourceType === 'setting' && $defaultLanguageId === $langId) {
                 $translation = ['setting_value' => $resourceRow['setting_value'] ?? null];
             } else {
                 $translation = $translations[$langId] ?? null;
@@ -321,88 +249,221 @@ class TranslationAuditService implements TranslationAuditServiceInterface
      */
     private function getActiveLanguages(): array
     {
-        return $this->languageModel->where('is_active', 1)->findAll();
+        return $this->languageRepository->getModel()->where('is_active', 1)->findAll();
     }
 
     /**
-     * @return list<array<string, mixed>>
+     * The nine resource types that share the exact same audit shape: find
+     * all rows, group translations by foreign key, compare against
+     * TranslationResourceCatalog. `setting` (default-language fallback) and
+     * `block_instance` (schema-driven fields) stay outside this catalog
+     * because their rules genuinely differ, not because of oversight.
+     *
+     * @return list<array{
+     *   type: string,
+     *   repository: RepositoryInterface<object>,
+     *   translationRepository: RepositoryInterface<object>,
+     *   fk: string,
+     *   reference: callable(array<string, mixed>): string,
+     *   extra: null|callable(array<string, mixed>): array<string, mixed>,
+     *   fetch: callable(): list<mixed>,
+     *   count: callable(): int,
+     * }>
      */
-    private function auditPageTranslations(array $activeLanguages, array $filters): array
+    private function buildSimpleResourceDescriptors(): array
     {
-        $pages = $this->pageModel->findAll();
-        $translationsByPage = $this->support->groupTranslationsByResource(
-            $this->pageTranslationModel->findAll(),
-            'page_id'
-        );
-
-        return $this->auditSimpleResources(
-            'page',
-            $pages,
-            $translationsByPage,
-            $activeLanguages,
-            ['title', 'slug'],
-            static function (array $resource): string {
-                return 'Page #' . (int) ($resource['id'] ?? 0) . ' (Type: ' . (string) ($resource['page_type'] ?? 'generic') . ')';
-            },
-            null,
-            $filters
-        );
+        return [
+            [
+                'type' => 'page',
+                'repository' => $this->pageRepository,
+                'translationRepository' => $this->pageTranslationRepository,
+                'fk' => 'page_id',
+                'reference' => static fn (array $r): string => 'Page #' . (int) ($r['id'] ?? 0) . ' (Type: ' . (string) ($r['page_type'] ?? 'generic') . ')',
+                'extra' => null,
+                'fetch' => fn (): array => $this->pageRepository->getModel()->findAll(),
+                'count' => fn (): int => (int) $this->pageRepository->getModel()->countAllResults(),
+            ],
+            [
+                'type' => 'menu',
+                'repository' => $this->menuRepository,
+                'translationRepository' => $this->menuTranslationRepository,
+                'fk' => 'menu_id',
+                'reference' => static fn (array $r): string => 'Menu #' . (int) ($r['id'] ?? 0) . ' (' . (string) ($r['menu_key'] ?? '') . ')',
+                'extra' => null,
+                'fetch' => fn (): array => $this->menuRepository->getModel()->findAll(),
+                'count' => fn (): int => (int) $this->menuRepository->getModel()->countAllResults(),
+            ],
+            [
+                'type' => 'menu_item',
+                'repository' => $this->menuItemRepository,
+                'translationRepository' => $this->menuItemTranslationRepository,
+                'fk' => 'menu_item_id',
+                'reference' => static fn (array $r): string => 'Menu Item #' . (int) ($r['id'] ?? 0),
+                'extra' => static fn (array $r): array => ['menu_id' => (int) ($r['menu_id'] ?? 0)],
+                'fetch' => fn (): array => $this->menuItemRepository->getModel()
+                    ->join('cms_menus m', 'm.id = cms_menu_items.menu_id')
+                    ->where('m.deleted_at IS NULL')
+                    ->select('cms_menu_items.*')
+                    ->findAll(),
+                'count' => fn (): int => (int) $this->menuItemRepository->getModel()
+                    ->join('cms_menus m', 'm.id = cms_menu_items.menu_id')
+                    ->where('m.deleted_at IS NULL')
+                    ->countAllResults(),
+            ],
+            [
+                'type' => 'collection',
+                'repository' => $this->collectionRepository,
+                'translationRepository' => $this->collectionTranslationRepository,
+                'fk' => 'collection_id',
+                'reference' => static fn (array $r): string => 'Collection #' . (int) ($r['id'] ?? 0) . ' (' . (string) ($r['collection_key'] ?? '') . ')',
+                'extra' => null,
+                'fetch' => fn (): array => $this->collectionRepository->getModel()->findAll(),
+                'count' => fn (): int => (int) $this->collectionRepository->getModel()->countAllResults(),
+            ],
+            [
+                'type' => 'category',
+                'repository' => $this->categoryRepository,
+                'translationRepository' => $this->categoryTranslationRepository,
+                'fk' => 'category_id',
+                'reference' => static fn (array $r): string => 'Category #' . (int) ($r['id'] ?? 0),
+                'extra' => null,
+                'fetch' => fn (): array => $this->categoryRepository->getModel()->findAll(),
+                'count' => fn (): int => (int) $this->categoryRepository->getModel()->countAllResults(),
+            ],
+            [
+                'type' => 'tag',
+                'repository' => $this->tagRepository,
+                'translationRepository' => $this->tagTranslationRepository,
+                'fk' => 'tag_id',
+                'reference' => static fn (array $r): string => 'Tag #' . (int) ($r['id'] ?? 0),
+                'extra' => null,
+                'fetch' => fn (): array => $this->tagRepository->getModel()->findAll(),
+                'count' => fn (): int => (int) $this->tagRepository->getModel()->countAllResults(),
+            ],
+            [
+                'type' => 'entry',
+                'repository' => $this->entryRepository,
+                'translationRepository' => $this->entryTranslationRepository,
+                'fk' => 'entry_id',
+                'reference' => static fn (array $r): string => 'Entry #' . (int) ($r['id'] ?? 0),
+                'extra' => static fn (array $r): array => ['collection_id' => (int) ($r['collection_id'] ?? 0)],
+                'fetch' => fn (): array => $this->entryRepository->getModel()->findAll(),
+                'count' => fn (): int => (int) $this->entryRepository->getModel()->countAllResults(),
+            ],
+            [
+                'type' => 'form',
+                'repository' => $this->formRepository,
+                'translationRepository' => $this->formTranslationRepository,
+                'fk' => 'form_id',
+                'reference' => static fn (array $r): string => 'Form #' . (int) ($r['id'] ?? 0) . ' (' . (string) ($r['form_key'] ?? '') . ')',
+                'extra' => null,
+                'fetch' => fn (): array => $this->formRepository->getModel()->findAll(),
+                'count' => fn (): int => (int) $this->formRepository->getModel()->countAllResults(),
+            ],
+            [
+                'type' => 'form_field',
+                'repository' => $this->formFieldRepository,
+                'translationRepository' => $this->formFieldTranslationRepository,
+                'fk' => 'form_field_id',
+                'reference' => static fn (array $r): string => 'Form Field #' . (int) ($r['id'] ?? 0) . ' (' . (string) ($r['field_key'] ?? '') . ')',
+                'extra' => static fn (array $r): array => ['form_id' => (int) ($r['form_id'] ?? 0)],
+                'fetch' => fn (): array => $this->formFieldRepository->getModel()->findAll(),
+                'count' => fn (): int => (int) $this->formFieldRepository->getModel()->countAllResults(),
+            ],
+        ];
     }
 
     /**
-     * @return list<array<string, mixed>>
+     * @return array{
+     *   type: string,
+     *   repository: RepositoryInterface<object>,
+     *   translationRepository: RepositoryInterface<object>,
+     *   fk: string,
+     *   reference: callable(array<string, mixed>): string,
+     *   extra: null|callable(array<string, mixed>): array<string, mixed>,
+     *   fetch: callable(): list<mixed>,
+     *   count: callable(): int,
+     * }|null
      */
-    private function auditMenuTranslations(array $activeLanguages, array $filters): array
+    private function findSimpleResourceDescriptor(string $resourceType): ?array
     {
-        $menus = $this->menuModel->findAll();
-        $translationsByMenu = $this->support->groupTranslationsByResource(
-            $this->menuTranslationModel->findAll(),
-            'menu_id'
-        );
+        foreach ($this->simpleResources as $descriptor) {
+            if ($descriptor['type'] === $resourceType) {
+                return $descriptor;
+            }
+        }
 
-        return $this->auditSimpleResources(
-            'menu',
-            $menus,
-            $translationsByMenu,
-            $activeLanguages,
-            ['name'],
-            static function (array $resource): string {
-                return 'Menu #' . (int) ($resource['id'] ?? 0) . ' (' . (string) ($resource['menu_key'] ?? '') . ')';
-            },
-            null,
-            $filters
-        );
+        return null;
     }
 
     /**
+     * @param array{
+     *   type: string,
+     *   repository: RepositoryInterface<object>,
+     *   translationRepository: RepositoryInterface<object>,
+     *   fk: string,
+     *   reference: callable(array<string, mixed>): string,
+     *   extra: null|callable(array<string, mixed>): array<string, mixed>,
+     *   fetch: callable(): list<mixed>,
+     *   count: callable(): int,
+     * } $descriptor
+     * @param list<object> $activeLanguages
+     * @param array<string, mixed> $filters
      * @return list<array<string, mixed>>
      */
-    private function auditMenuItemTranslations(array $activeLanguages, array $filters): array
+    private function auditSimpleResources(array $descriptor, array $activeLanguages, array $filters): array
     {
-        $menuItems = $this->menuItemModel
-            ->join('cms_menus m', 'm.id = cms_menu_items.menu_id')
-            ->where('m.deleted_at IS NULL')
-            ->select('cms_menu_items.*')
-            ->findAll();
-        $translationsByItem = $this->support->groupTranslationsByResource(
-            $this->menuItemTranslationModel->findAll(),
-            'menu_item_id'
+        $resources = ($descriptor['fetch'])();
+        $translationsByResource = $this->support->groupTranslationsByResource(
+            $descriptor['translationRepository']->getModel()->findAll(),
+            $descriptor['fk']
         );
+        $fieldDefinitions = TranslationResourceCatalog::fields($descriptor['type']);
+        $valueResolver = static function (array $row, string $fieldKey, array $fieldDefinition): mixed {
+            return $row[$fieldKey] ?? null;
+        };
 
-        return $this->auditSimpleResources(
-            'menu_item',
-            $menuItems,
-            $translationsByItem,
-            $activeLanguages,
-            ['label'],
-            static function (array $resource): string {
-                return 'Menu Item #' . (int) ($resource['id'] ?? 0);
-            },
-            static function (array $resource): array {
-                return ['menu_id' => (int) ($resource['menu_id'] ?? 0)];
-            },
-            $filters
-        );
+        $issues = [];
+        foreach ($resources as $resource) {
+            $resourceRow = $this->support->toArray($resource);
+            $resourceId = (int) ($resourceRow['id'] ?? 0);
+            if ($resourceId <= 0) {
+                continue;
+            }
+
+            $translations = $translationsByResource[$resourceId] ?? [];
+            foreach ($activeLanguages as $lang) {
+                $langId = (int) $lang->id;
+                if (! $this->support->languageFilterAllows($filters, $langId)) {
+                    continue;
+                }
+
+                $translation = $translations[$langId] ?? null;
+                [$status, $detail] = $this->support->evaluateTranslationState(
+                    $translation,
+                    $translations,
+                    $fieldDefinitions,
+                    $langId,
+                    $valueResolver
+                );
+                if ($status === 'complete') {
+                    continue;
+                }
+
+                $issues[] = $this->support->buildIssue(
+                    $descriptor['type'],
+                    $resourceId,
+                    ($descriptor['reference'])($resourceRow),
+                    $langId,
+                    (string) ($lang->code ?? ''),
+                    $status,
+                    $detail,
+                    $descriptor['extra'] !== null ? ($descriptor['extra'])($resourceRow) : []
+                );
+            }
+        }
+
+        return $issues;
     }
 
     /**
@@ -410,9 +471,9 @@ class TranslationAuditService implements TranslationAuditServiceInterface
      */
     private function auditSettingTranslations(array $activeLanguages, array $filters): array
     {
-        $settings = $this->settingModel->where('is_translatable', 1)->findAll();
+        $settings = $this->settingRepository->getModel()->where('is_translatable', 1)->findAll();
         $translationsBySetting = $this->support->groupTranslationsByResource(
-            $this->settingTranslationModel->findAll(),
+            $this->settingTranslationRepository->getModel()->findAll(),
             'setting_id'
         );
         $defaultLanguageId = $this->getDefaultLanguageId();
@@ -470,237 +531,9 @@ class TranslationAuditService implements TranslationAuditServiceInterface
         return $issues;
     }
 
-    /**
-     * @return list<array<string, mixed>>
-     */
-    private function auditCollectionTranslations(array $activeLanguages, array $filters): array
-    {
-        $collections = $this->collectionModel->findAll();
-        $translationsByCollection = $this->support->groupTranslationsByResource(
-            $this->collectionTranslationModel->findAll(),
-            'collection_id'
-        );
-
-        return $this->auditSimpleResources(
-            'collection',
-            $collections,
-            $translationsByCollection,
-            $activeLanguages,
-            ['name', 'slug'],
-            static function (array $resource): string {
-                return 'Collection #' . (int) ($resource['id'] ?? 0) . ' (' . (string) ($resource['collection_key'] ?? '') . ')';
-            },
-            null,
-            $filters
-        );
-    }
-
-    /**
-     * @return list<array<string, mixed>>
-     */
-    private function auditCategoryTranslations(array $activeLanguages, array $filters): array
-    {
-        $categories = $this->categoryModel->findAll();
-        $translationsByCategory = $this->support->groupTranslationsByResource(
-            $this->categoryTranslationModel->findAll(),
-            'category_id'
-        );
-
-        return $this->auditSimpleResources(
-            'category',
-            $categories,
-            $translationsByCategory,
-            $activeLanguages,
-            ['name', 'slug'],
-            static function (array $resource): string {
-                return 'Category #' . (int) ($resource['id'] ?? 0);
-            },
-            null,
-            $filters
-        );
-    }
-
-    /**
-     * @return list<array<string, mixed>>
-     */
-    private function auditTagTranslations(array $activeLanguages, array $filters): array
-    {
-        $tags = $this->tagModel->findAll();
-        $translationsByTag = $this->support->groupTranslationsByResource(
-            $this->tagTranslationModel->findAll(),
-            'tag_id'
-        );
-
-        return $this->auditSimpleResources(
-            'tag',
-            $tags,
-            $translationsByTag,
-            $activeLanguages,
-            ['name', 'slug'],
-            static function (array $resource): string {
-                return 'Tag #' . (int) ($resource['id'] ?? 0);
-            },
-            null,
-            $filters
-        );
-    }
-
-    /**
-     * @param list<object> $activeLanguages
-     * @param array<string, mixed> $filters
-     * @return list<array<string, mixed>>
-     */
-    private function auditEntryTranslations(array $activeLanguages, array $filters): array
-    {
-        $entries = $this->entryModel->findAll();
-        $translationsByEntry = $this->support->groupTranslationsByResource(
-            $this->entryTranslationModel->findAll(),
-            'entry_id'
-        );
-
-        return $this->auditSimpleResources(
-            'entry',
-            $entries,
-            $translationsByEntry,
-            $activeLanguages,
-            ['title', 'slug'],
-            static function (array $resource): string {
-                return 'Entry #' . (int) ($resource['id'] ?? 0);
-            },
-            static function (array $resource): array {
-                return ['collection_id' => (int) ($resource['collection_id'] ?? 0)];
-            },
-            $filters
-        );
-    }
-
-    /**
-     * @param list<object> $activeLanguages
-     * @param array<string, mixed> $filters
-     * @return list<array<string, mixed>>
-     */
-    private function auditFormTranslations(array $activeLanguages, array $filters): array
-    {
-        $forms = $this->formModel->findAll();
-        $translationsByForm = $this->support->groupTranslationsByResource(
-            $this->formTranslationModel->findAll(),
-            'form_id'
-        );
-
-        return $this->auditSimpleResources(
-            'form',
-            $forms,
-            $translationsByForm,
-            $activeLanguages,
-            ['name', 'submit_label'],
-            static function (array $resource): string {
-                return 'Form #' . (int) ($resource['id'] ?? 0) . ' (' . (string) ($resource['form_key'] ?? '') . ')';
-            },
-            null,
-            $filters
-        );
-    }
-
-    /**
-     * @param list<object> $activeLanguages
-     * @param array<string, mixed> $filters
-     * @return list<array<string, mixed>>
-     */
-    private function auditFormFieldTranslations(array $activeLanguages, array $filters): array
-    {
-        $fields = $this->formFieldModel->findAll();
-        $translationsByField = $this->support->groupTranslationsByResource(
-            $this->formFieldTranslationModel->findAll(),
-            'form_field_id'
-        );
-
-        return $this->auditSimpleResources(
-            'form_field',
-            $fields,
-            $translationsByField,
-            $activeLanguages,
-            ['label'],
-            static function (array $resource): string {
-                return 'Form Field #' . (int) ($resource['id'] ?? 0) . ' (' . (string) ($resource['field_key'] ?? '') . ')';
-            },
-            static function (array $resource): array {
-                return ['form_id' => (int) ($resource['form_id'] ?? 0)];
-            },
-            $filters
-        );
-    }
-
-    /**
-     * @param list<object|array<string, mixed>> $resources
-     * @param array<int, array<int, array<string, mixed>>> $translationsByResource
-     * @param list<object> $activeLanguages
-     * @param list<string> $requiredFields
-     * @param callable(array<string, mixed>): string $referenceBuilder
-     * @param null|callable(array<string, mixed>): array<string, mixed> $extraDataBuilder
-     * @param array<string, mixed> $filters
-     * @return list<array<string, mixed>>
-     */
-    private function auditSimpleResources(
-        string $resourceType,
-        array $resources,
-        array $translationsByResource,
-        array $activeLanguages,
-        array $requiredFields,
-        callable $referenceBuilder,
-        ?callable $extraDataBuilder,
-        array $filters
-    ): array {
-        $issues = [];
-        $fieldDefinitions = TranslationResourceCatalog::fields($resourceType);
-        $valueResolver = static function (array $row, string $fieldKey, array $fieldDefinition): mixed {
-            return $row[$fieldKey] ?? null;
-        };
-
-        foreach ($resources as $resource) {
-            $resourceRow = $this->support->toArray($resource);
-            $resourceId = (int) ($resourceRow['id'] ?? 0);
-            if ($resourceId <= 0) {
-                continue;
-            }
-
-            $translations = $translationsByResource[$resourceId] ?? [];
-            foreach ($activeLanguages as $lang) {
-                $langId = (int) $lang->id;
-                if (! $this->support->languageFilterAllows($filters, $langId)) {
-                    continue;
-                }
-
-                $translation = $translations[$langId] ?? null;
-                [$status, $detail] = $this->support->evaluateTranslationState(
-                    $translation,
-                    $translations,
-                    $fieldDefinitions,
-                    $langId,
-                    $valueResolver
-                );
-                if ($status === 'complete') {
-                    continue;
-                }
-
-                $issues[] = $this->support->buildIssue(
-                    $resourceType,
-                    $resourceId,
-                    $referenceBuilder($resourceRow),
-                    $langId,
-                    (string) ($lang->code ?? ''),
-                    $status,
-                    $detail,
-                    $extraDataBuilder !== null ? $extraDataBuilder($resourceRow) : []
-                );
-            }
-        }
-
-        return $issues;
-    }
-
     private function getDefaultLanguageId(): ?int
     {
-        $language = $this->languageModel
+        $language = $this->languageRepository->getModel()
             ->where('is_default', 1)
             ->where('is_active', 1)
             ->first();
@@ -712,24 +545,15 @@ class TranslationAuditService implements TranslationAuditServiceInterface
         return (int) ($language->id ?? 0);
     }
 
-    /**
-     * @return int
-     */
     private function countAuditableResources(): int
     {
-        return (int) $this->pageModel->countAllResults()
-            + (int) $this->menuModel->countAllResults()
-            + (int) $this->menuItemModel
-                ->join('cms_menus m', 'm.id = cms_menu_items.menu_id')
-                ->where('m.deleted_at IS NULL')
-                ->countAllResults()
-            + (int) $this->settingModel->where('is_translatable', 1)->countAllResults()
-            + (int) $this->collectionModel->countAllResults()
-            + (int) $this->categoryModel->countAllResults()
-            + (int) $this->tagModel->countAllResults()
-            + (int) $this->entryModel->countAllResults()
-            + (int) $this->formModel->countAllResults()
-            + (int) $this->formFieldModel->countAllResults()
+        $total = 0;
+        foreach ($this->simpleResources as $descriptor) {
+            $total += ($descriptor['count'])();
+        }
+
+        return $total
+            + (int) $this->settingRepository->getModel()->where('is_translatable', 1)->countAllResults()
             + $this->blockAuditor->countAuditable();
     }
 }
