@@ -57,6 +57,7 @@ class SiteHistoryPageSeeder extends Seeder
             'page_header', 'rich_text', 'image',
             'metrics_grid', 'metric_item',
             'accordion', 'accordion_item',
+            'timeline', 'timeline_item',
             'cta',
         ]);
 
@@ -258,12 +259,80 @@ class SiteHistoryPageSeeder extends Seeder
             }
         }
 
-        // ── 7. cta ────────────────────────────────────────────────────────────
+        // ── 7. timeline ───────────────────────────────────────────────────────
+        $timelineInstanceId = $this->upsertBlock(
+            $historyPageId,
+            $blockIds,
+            'timeline',
+            7,
+            ['layout' => 'alternating', 'css_class' => 'bg-slate-50/50'],
+            [
+                'es' => [
+                    'section_title' => 'Nuestra Trayectoria en Detalle',
+                    'description'   => 'Un repaso cronológico de los momentos clave que definieron nuestro camino.',
+                ],
+                'en' => [
+                    'section_title' => 'Our Journey in Detail',
+                    'description'   => 'A chronological review of the key moments that defined our path.',
+                ],
+            ],
+            $langIds
+        );
+
+        $timelineItems = [
+            [
+                'sort_order' => 1,
+                'es' => [
+                    'date_label'  => '2018',
+                    'title'       => 'El Nacimiento del Proyecto',
+                    'description' => '<p>Comenzamos en un pequeño garaje con solo 3 personas llenas de ilusión. Nuestro primer objetivo fue crear una base tecnológica sólida.</p>',
+                    'link_url'    => '/contacto',
+                    'link_label'  => 'Contactar fundadores',
+                ],
+                'en' => [
+                    'date_label'  => '2018',
+                    'title'       => 'The Birth of the Project',
+                    'description' => '<p>We started in a small garage with only 3 passionate people. Our primary goal was to build a strong technological baseline.</p>',
+                    'link_url'    => '/contact',
+                    'link_label'  => 'Contact founders',
+                ],
+            ],
+            [
+                'sort_order' => 2,
+                'es' => [
+                    'date_label'  => '2021',
+                    'title'       => 'Expansión Regional',
+                    'description' => '<p>Logramos presencia en 4 países de Latinoamérica, aumentando nuestro impacto y adaptando nuestras soluciones a diferentes mercados.</p>',
+                ],
+                'en' => [
+                    'date_label'  => '2021',
+                    'title'       => 'Regional Expansion',
+                    'description' => '<p>We achieved presence in 4 Latin American countries, increasing our impact and tailoring our solutions to different markets.</p>',
+                ],
+            ],
+            [
+                'sort_order' => 3,
+                'es' => [
+                    'date_label'  => '2025',
+                    'title'       => 'Digitalización Completa',
+                    'description' => '<p>Lanzamos nuestra plataforma cloud descentralizada, logrando automatizar el 95% de los procesos editoriales para todos nuestros clientes.</p>',
+                ],
+                'en' => [
+                    'date_label'  => '2025',
+                    'title'       => 'Full Digitalization',
+                    'description' => '<p>We launched our decentralized cloud platform, successfully automating 95% of content publishing processes for our users.</p>',
+                ],
+            ],
+        ];
+
+        $this->seedChildBlocks($historyPageId, $timelineInstanceId, 'timeline_item', $timelineItems, $blockIds, $langIds);
+
+        // ── 8. cta ────────────────────────────────────────────────────────────
         $this->upsertBlock(
             $historyPageId,
             $blockIds,
             'cta',
-            7,
+            8,
             ['variant' => 'blue', 'css_class' => ''],
             [
                 'es' => [

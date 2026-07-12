@@ -32,6 +32,7 @@ class SiteBootstrapSeeder extends Seeder
         $this->call(SitePortfolioPageSeeder::class);
         $this->call(SiteComponentsPageSeeder::class);
         $this->call(SiteMediaPageSeeder::class);
+        $this->call(SiteLandingPageSeeder::class);
         $this->call(SiteMenuSeeder::class);
     }
 }

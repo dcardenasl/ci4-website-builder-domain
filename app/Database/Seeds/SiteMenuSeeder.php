@@ -45,6 +45,7 @@ class SiteMenuSeeder extends Seeder
         $portfolioPageId       = $portfolioCollectionId !== null ? $this->pageIdByCollectionId($portfolioCollectionId) : null;
         $componentsPageId      = $this->pageIdBySlug(['bloques', 'components']);
         $mediaPageId           = $this->pageIdBySlug(['multimedia', 'media']);
+        $landingPageId         = $this->pageIdBySlug(['landing']);
         $contactPageId         = $this->pageIdByType('contact');
         $newsCollectionId      = $this->collectionIdByKey('noticias');
 
@@ -105,24 +106,41 @@ class SiteMenuSeeder extends Seeder
             ], ['es' => 'Portafolio', 'en' => 'Portfolio'], $langIds);
         }
 
-        if ($componentsPageId !== null) {
-            $mainMenuItemIds[] = $this->upsertMenuItem($mainMenuId, 'page', [
-                'page_id'       => $componentsPageId,
-                'entry_id'      => null,
-                'collection_id' => null,
-                'parent_id'     => null,
-                'sort_order'    => 4,
-            ], ['es' => 'Bloques', 'en' => 'Components'], $langIds);
-        }
-
         if ($mediaPageId !== null) {
             $mainMenuItemIds[] = $this->upsertMenuItem($mainMenuId, 'page', [
                 'page_id'       => $mediaPageId,
                 'entry_id'      => null,
                 'collection_id' => null,
                 'parent_id'     => null,
-                'sort_order'    => 5,
+                'sort_order'    => 4,
             ], ['es' => 'Multimedia', 'en' => 'Media'], $langIds);
+        }
+
+        // "Ejemplos" dropdown label
+        $examplesItemId = $this->upsertMenuItemNoLink($mainMenuId, [
+            'parent_id'  => null,
+            'sort_order' => 5,
+        ], ['es' => 'Ejemplos', 'en' => 'Examples'], $langIds);
+        $mainMenuItemIds[] = $examplesItemId;
+
+        if ($landingPageId !== null) {
+            $mainMenuItemIds[] = $this->upsertMenuItem($mainMenuId, 'page', [
+                'page_id'       => $landingPageId,
+                'entry_id'      => null,
+                'collection_id' => null,
+                'parent_id'     => $examplesItemId,
+                'sort_order'    => 1,
+            ], ['es' => 'Landing Page', 'en' => 'Landing Page'], $langIds);
+        }
+
+        if ($componentsPageId !== null) {
+            $mainMenuItemIds[] = $this->upsertMenuItem($mainMenuId, 'page', [
+                'page_id'       => $componentsPageId,
+                'entry_id'      => null,
+                'collection_id' => null,
+                'parent_id'     => $examplesItemId,
+                'sort_order'    => 2,
+            ], ['es' => 'Bloques', 'en' => 'Components'], $langIds);
         }
 
         $mainMenuItemIds[] = $this->upsertMenuItem($mainMenuId, 'collection_listing', [
@@ -216,12 +234,22 @@ class SiteMenuSeeder extends Seeder
             'sort_order'    => 7,
         ], ['es' => 'Noticias', 'en' => 'News'], $langIds);
 
+        if ($landingPageId !== null) {
+            $footerMenuItemIds[] = $this->upsertMenuItem($footerMenuId, 'page', [
+                'page_id'       => $landingPageId,
+                'entry_id'      => null,
+                'collection_id' => null,
+                'parent_id'     => null,
+                'sort_order'    => 8,
+            ], ['es' => 'Landing Page', 'en' => 'Landing Page'], $langIds);
+        }
+
         $footerMenuItemIds[] = $this->upsertMenuItem($footerMenuId, 'page', [
             'page_id'       => $contactPageId,
             'entry_id'      => null,
             'collection_id' => null,
             'parent_id'     => null,
-            'sort_order'    => 8,
+            'sort_order'    => 9,
         ], ['es' => 'Contacto', 'en' => 'Contact'], $langIds);
 
         $this->pruneMenuItems($footerMenuId, $footerMenuItemIds);

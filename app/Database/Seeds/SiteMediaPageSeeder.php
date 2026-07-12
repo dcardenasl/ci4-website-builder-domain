@@ -58,6 +58,9 @@ class SiteMediaPageSeeder extends Seeder
             'gallery',
             'gallery_item',
             'video_player',
+            'document_gallery',
+            'pdf_viewer',
+            'external_links',
             'alert',
             'cta',
         ]);
@@ -344,11 +347,146 @@ class SiteMediaPageSeeder extends Seeder
             $langIds
         );
 
+        // ── 10. document_gallery ─────────────────────────────────────────────
+        $this->upsertBlock(
+            $pageId,
+            $blockIds,
+            'document_gallery',
+            10,
+            ['layout' => 'grid_cards', 'show_file_meta' => true, 'open_in_new_tab' => true, 'css_class' => 'my-12'],
+            [
+                'es' => [
+                    'title'       => 'Repositorio de Documentos',
+                    'description' => 'Listado de descargas con iconos adaptativos según extensión de archivo (PDF, Word, ZIP, Excel).',
+                    'documents'   => [
+                        [
+                            'file_url'    => 'https://www.w3.org/WAI/ER/tests/xhtml/testfiles/resources/pdf/dummy.pdf',
+                            'title'       => 'Manual de Políticas Generales',
+                            'description' => 'Documento PDF que describe los lineamientos y políticas fundamentales.',
+                        ],
+                        [
+                            'file_url'    => 'https://calibre-ebook.com/downloads/demos/demo.docx',
+                            'title'       => 'Formulario de Afiliación',
+                            'description' => 'Plantilla de Word editable para completar tus datos.',
+                        ],
+                        [
+                            'file_url'    => 'https://www.learningcontainer.com/wp-content/uploads/2020/05/sample-zip-file.zip',
+                            'title'       => 'Paquete de Recursos Gráficos',
+                            'description' => 'Archivo ZIP comprimido con logos oficiales, manual de marca e iconos.',
+                        ],
+                    ],
+                ],
+                'en' => [
+                    'title'       => 'Document Repository',
+                    'description' => 'Download list with adaptive icons matching file extensions (PDF, Word, ZIP, Excel).',
+                    'documents'   => [
+                        [
+                            'file_url'    => 'https://www.w3.org/WAI/ER/tests/xhtml/testfiles/resources/pdf/dummy.pdf',
+                            'title'       => 'General Policies Handbook',
+                            'description' => 'PDF document covering the core guidelines and company rules.',
+                        ],
+                        [
+                            'file_url'    => 'https://calibre-ebook.com/downloads/demos/demo.docx',
+                            'title'       => 'Affiliation Form',
+                            'description' => 'Editable Word document template to fill in your personal data.',
+                        ],
+                        [
+                            'file_url'    => 'https://www.learningcontainer.com/wp-content/uploads/2020/05/sample-zip-file.zip',
+                            'title'       => 'Brand Asset Bundle',
+                            'description' => 'ZIP compressed package containing official logos, styleguides, and icons.',
+                        ],
+                    ],
+                ],
+            ],
+            $langIds
+        );
+
+        // ── 11. pdf_viewer ───────────────────────────────────────────────────
+        $this->upsertBlock(
+            $pageId,
+            $blockIds,
+            'pdf_viewer',
+            11,
+            ['height' => '600px', 'allow_download' => true, 'css_class' => 'my-12'],
+            [
+                'es' => [
+                    'heading'  => 'Previsualización del Manual de Políticas',
+                    'pdf_file' => 'https://www.w3.org/WAI/ER/tests/xhtml/testfiles/resources/pdf/dummy.pdf',
+                ],
+                'en' => [
+                    'heading'  => 'Policies Handbook Preview',
+                    'pdf_file' => 'https://www.w3.org/WAI/ER/tests/xhtml/testfiles/resources/pdf/dummy.pdf',
+                ],
+            ],
+            $langIds
+        );
+
+        // ── 12. external_links ───────────────────────────────────────────────
+        $this->upsertBlock(
+            $pageId,
+            $blockIds,
+            'external_links',
+            12,
+            ['layout_columns' => '3', 'open_in_new_tab' => true, 'css_class' => 'my-12'],
+            [
+                'es' => [
+                    'title'       => 'Directorio de Sitios Recomendados',
+                    'description' => 'Enlaces útiles a recursos externos y portales oficiales del ecosistema.',
+                    'links'       => [
+                        [
+                            'label'       => 'Documentación Oficial',
+                            'url'         => 'https://codeigniter.com',
+                            'description' => 'Sitio web principal y manuales técnicos de CodeIgniter 4.',
+                            'icon_name'   => 'book-open',
+                        ],
+                        [
+                            'label'       => 'Repositorio GitHub',
+                            'url'         => 'https://github.com',
+                            'description' => 'Acceso al código fuente, incidencias y control de versiones.',
+                            'icon_name'   => 'github',
+                        ],
+                        [
+                            'label'       => 'Canal de Soporte',
+                            'url'         => 'https://slack.com',
+                            'description' => 'Comunidad y salas de chat en vivo para soporte técnico.',
+                            'icon_name'   => 'message-square',
+                        ],
+                    ],
+                ],
+                'en' => [
+                    'title'       => 'Recommended Sites Directory',
+                    'description' => 'Useful links to external resources and official ecosystem portals.',
+                    'links'       => [
+                        [
+                            'label'       => 'Official Documentation',
+                            'url'         => 'https://codeigniter.com',
+                            'description' => 'Main website and technical user guides for CodeIgniter 4.',
+                            'icon_name'   => 'book-open',
+                        ],
+                        [
+                            'label'       => 'GitHub Repository',
+                            'url'         => 'https://github.com',
+                            'description' => 'Access to source code, issue tracking, and version history.',
+                            'icon_name'   => 'github',
+                        ],
+                        [
+                            'label'       => 'Support Chat Channel',
+                            'url'         => 'https://slack.com',
+                            'description' => 'Community chatrooms for live technical support and discussion.',
+                            'icon_name'   => 'message-square',
+                        ],
+                    ],
+                ],
+            ],
+            $langIds
+        );
+
+        // ── 13. cta ──────────────────────────────────────────────────────────
         $this->upsertBlock(
             $pageId,
             $blockIds,
             'cta',
-            10,
+            13,
             ['variant' => 'blue', 'css_class' => ''],
             [
                 'es' => [

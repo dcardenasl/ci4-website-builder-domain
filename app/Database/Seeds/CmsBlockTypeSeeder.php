@@ -306,7 +306,7 @@ class CmsBlockTypeSeeder extends Seeder
                             'required' => false,
                         ],
                     ],
-                    'allowed_children' => ['rich_text', 'image', 'cta', 'video_player', 'form_embed', 'contact_info', 'map_embed', 'social_links', 'hero_banner', 'accordion', 'cards_grid', 'cards_slider', 'asset_showcase', 'metrics_grid', 'tabs', 'alert', 'gallery', 'collection_grid', 'collection_listing'],
+                    'allowed_children' => ['rich_text', 'image', 'cta', 'video_player', 'form_embed', 'contact_info', 'map_embed', 'social_links', 'hero_banner', 'accordion', 'cards_grid', 'cards_slider', 'asset_showcase', 'metrics_grid', 'tabs', 'alert', 'gallery', 'collection_grid', 'collection_listing', 'document_download', 'timeline', 'external_links', 'video_gallery', 'document_gallery', 'pdf_viewer', 'faq_accordion', 'pricing_grid', 'features_grid', 'anchor_nav', 'process_steps', 'team_grid'],
                 ]),
                 'supports_pages'   => 1,
                 'supports_entries' => 0,
@@ -947,6 +947,451 @@ class CmsBlockTypeSeeder extends Seeder
                 'is_container'     => 0,
                 'is_active'        => 1,
                 'sort_order'       => 141,
+            ],
+            // ── document_download ────────────────────────────────────────────────
+            [
+                'block_key'         => 'document_download',
+                'name'              => 'Descarga de Documento',
+                'description'       => 'Muestra un documento adjunto (PDF, Word, Excel, ZIP) en una tarjeta premium con detalles y botón de descarga.',
+                'category'          => 'media',
+                'icon'              => 'file-text',
+                'schema_definition' => json_encode([
+                    'fields' => [
+                        'document'     => ['type' => 'file',     'label' => 'Documento',         'required' => true, 'accept' => 'document'],
+                        'title'        => ['type' => 'string',   'label' => 'Título',            'required' => true],
+                        'description'  => ['type' => 'textarea', 'label' => 'Descripción',       'required' => false],
+                        'button_label' => ['type' => 'string',   'label' => 'Texto del botón',   'required' => false, 'default' => 'Descargar'],
+                    ],
+                    'config_fields' => [
+                        'open_in_new_tab' => ['type' => 'boolean', 'label' => 'Abrir en nueva pestaña', 'required' => false, 'default' => true],
+                        'css_class'       => ['type' => 'string',  'label' => 'Clases CSS adicionales', 'required' => false],
+                    ],
+                ]),
+                'supports_pages'   => 1,
+                'supports_entries' => 1,
+                'is_container'     => 0,
+                'is_active'        => 1,
+                'sort_order'       => 150,
+            ],
+            // ── timeline ─────────────────────────────────────────────────────────
+            [
+                'block_key'         => 'timeline',
+                'name'              => 'Línea de Tiempo (Contenedor)',
+                'description'       => 'Contenedor para hitos históricos o procesos cronológicos interactivos. Agrega bloques de tipo "Hito de Línea de Tiempo" como hijos.',
+                'category'          => 'layout',
+                'icon'              => 'git-commit',
+                'schema_definition' => json_encode([
+                    'fields' => [
+                        'section_title' => ['type' => 'string', 'label' => 'Título de Sección', 'required' => false],
+                        'description'   => ['type' => 'textarea', 'label' => 'Descripción', 'required' => false],
+                    ],
+                    'config_fields' => [
+                        'layout' => [
+                            'type'     => 'select',
+                            'label'    => 'Distribución',
+                            'options'  => ['alternating', 'left_aligned'],
+                            'default'  => 'alternating',
+                            'required' => false,
+                        ],
+                        'css_class' => ['type' => 'string', 'label' => 'Clase CSS adicional', 'required' => false, 'default' => ''],
+                    ],
+                    'allowed_children' => ['timeline_item'],
+                ]),
+                'supports_pages'   => 1,
+                'supports_entries' => 0,
+                'is_container'     => 1,
+                'is_active'        => 1,
+                'sort_order'       => 160,
+            ],
+            // ── timeline_item ────────────────────────────────────────────────────
+            [
+                'block_key'         => 'timeline_item',
+                'name'              => 'Hito de Línea de Tiempo',
+                'description'       => 'Hito o evento cronológico. Debe usarse como hijo de una "Línea de Tiempo".',
+                'category'          => 'content',
+                'icon'              => 'circle',
+                'schema_definition' => json_encode([
+                    'fields' => [
+                        'date_label'  => ['type' => 'string',   'label' => 'Fecha / Año / Hito (Ej: 2026)', 'required' => true],
+                        'title'       => ['type' => 'string',   'label' => 'Título',                       'required' => true],
+                        'description' => ['type' => 'richtext', 'label' => 'Descripción del evento',       'required' => true],
+                        'image'       => ['type' => 'file',     'label' => 'Imagen',                       'required' => false, 'accept' => 'image'],
+                        'link_url'    => ['type' => 'url',      'label' => 'URL del botón',                'required' => false],
+                        'link_label'  => ['type' => 'string',   'label' => 'Texto del botón',              'required' => false],
+                    ],
+                    'config_fields' => [],
+                ]),
+                'supports_pages'   => 1,
+                'supports_entries' => 0,
+                'is_container'     => 0,
+                'is_active'        => 1,
+                'sort_order'       => 161,
+            ],
+            // ── external_links ───────────────────────────────────────────────────
+            [
+                'block_key'         => 'external_links',
+                'name'              => 'Enlaces Recomendados',
+                'description'       => 'Muestra un listado de enlaces externos con descripción e icono personalizado en una grilla.',
+                'category'          => 'content',
+                'icon'              => 'external-link',
+                'schema_definition' => json_encode([
+                    'fields' => [
+                        'title'       => ['type' => 'string',   'label' => 'Título del bloque', 'required' => false],
+                        'description' => ['type' => 'textarea', 'label' => 'Descripción',       'required' => false],
+                        'links' => [
+                            'type'        => 'repeater',
+                            'label'       => 'Lista de enlaces',
+                            'item_fields' => [
+                                'label'       => ['type' => 'string', 'label' => 'Texto del enlace', 'required' => true],
+                                'url'         => ['type' => 'url',    'label' => 'URL Externa',      'required' => true],
+                                'description' => ['type' => 'string', 'label' => 'Descripción corta', 'required' => false],
+                                'icon_name'   => ['type' => 'string', 'label' => 'Icono Lucide (Ej: globe, link)', 'required' => false],
+                            ],
+                        ],
+                    ],
+                    'config_fields' => [
+                        'layout_columns' => [
+                            'type'     => 'select',
+                            'label'    => 'Columnas en Desktop',
+                            'options'  => ['1', '2', '3'],
+                            'default'  => '2',
+                            'required' => false,
+                        ],
+                        'open_in_new_tab' => ['type' => 'boolean', 'label' => 'Abrir en pestaña nueva', 'required' => false, 'default' => true],
+                        'css_class'       => ['type' => 'string',  'label' => 'Clase CSS adicional',   'required' => false],
+                    ],
+                ]),
+                'supports_pages'   => 1,
+                'supports_entries' => 1,
+                'is_container'     => 0,
+                'is_active'        => 1,
+                'sort_order'       => 170,
+            ],
+            // ── video_gallery ────────────────────────────────────────────────────
+            [
+                'block_key'         => 'video_gallery',
+                'name'              => 'Galería de Videos',
+                'description'       => 'Grilla de videos externos (YouTube / Vimeo) que se reproducen en un popup lightbox interactivo.',
+                'category'          => 'media',
+                'icon'              => 'video',
+                'schema_definition' => json_encode([
+                    'fields' => [
+                        'title'    => ['type' => 'string', 'label' => 'Título de Galería', 'required' => false],
+                        'subtitle' => ['type' => 'string', 'label' => 'Subtítulo',          'required' => false],
+                        'videos' => [
+                            'type'        => 'repeater',
+                            'label'       => 'Videos',
+                            'item_fields' => [
+                                'video_url'   => ['type' => 'url',  'label' => 'URL del video',              'required' => true],
+                                'title'       => ['type' => 'string', 'label' => 'Título',                    'required' => true],
+                                'description' => ['type' => 'string', 'label' => 'Descripción corta',         'required' => false],
+                                'poster'      => ['type' => 'file',   'label' => 'Portada (Opcional)',        'accept' => 'image', 'required' => false],
+                            ],
+                        ],
+                    ],
+                    'config_fields' => [
+                        'columns' => [
+                            'type'     => 'select',
+                            'label'    => 'Columnas en Desktop',
+                            'options'  => ['2', '3', '4'],
+                            'default'  => '3',
+                            'required' => false,
+                        ],
+                        'css_class' => ['type' => 'string', 'label' => 'Clase CSS adicional', 'required' => false],
+                    ],
+                ]),
+                'supports_pages'   => 1,
+                'supports_entries' => 0,
+                'is_container'     => 0,
+                'is_active'        => 1,
+                'sort_order'       => 180,
+            ],
+            // ── document_gallery ─────────────────────────────────────────────────
+            [
+                'block_key'         => 'document_gallery',
+                'name'              => 'Galería de Documentos',
+                'description'       => 'Muestra múltiples archivos descargables en formato grilla o lista, con iconos dinámicos según extensión.',
+                'category'          => 'media',
+                'icon'              => 'files',
+                'schema_definition' => json_encode([
+                    'fields' => [
+                        'title'       => ['type' => 'string',   'label' => 'Título de la Sección', 'required' => false],
+                        'description' => ['type' => 'textarea', 'label' => 'Descripción corta',    'required' => false],
+                        'documents' => [
+                            'type'        => 'repeater',
+                            'label'       => 'Documentos',
+                            'item_fields' => [
+                                'file'        => ['type' => 'file',   'label' => 'Archivo',           'accept' => 'document', 'required' => true],
+                                'title'       => ['type' => 'string', 'label' => 'Título del archivo', 'required' => true],
+                                'description' => ['type' => 'string', 'label' => 'Detalle',            'required' => false],
+                            ],
+                        ],
+                    ],
+                    'config_fields' => [
+                        'layout' => [
+                            'type'     => 'select',
+                            'label'    => 'Diseño',
+                            'options'  => ['grid_cards', 'simple_list'],
+                            'default'  => 'grid_cards',
+                            'required' => false,
+                        ],
+                        'show_file_meta'  => ['type' => 'boolean', 'label' => 'Mostrar metadata del archivo', 'required' => false, 'default' => true],
+                        'open_in_new_tab' => ['type' => 'boolean', 'label' => 'Abrir en nueva pestaña',       'required' => false, 'default' => true],
+                        'css_class'       => ['type' => 'string',  'label' => 'Clase CSS adicional',          'required' => false],
+                    ],
+                ]),
+                'supports_pages'   => 1,
+                'supports_entries' => 1,
+                'is_container'     => 0,
+                'is_active'        => 1,
+                'sort_order'       => 190,
+            ],
+            // ── pdf_viewer ────────────────────────────────────────────────────────
+            [
+                'block_key'         => 'pdf_viewer',
+                'name'              => 'Visualizador de PDF',
+                'description'       => 'Muestra un documento PDF embebido de forma nativa e interactiva directamente en la página.',
+                'category'          => 'media',
+                'icon'              => 'file-digit',
+                'schema_definition' => json_encode([
+                    'fields' => [
+                        'heading'  => ['type' => 'string', 'label' => 'Título superior', 'required' => false],
+                        'pdf_file' => ['type' => 'file',   'label' => 'Archivo PDF',     'accept' => 'document', 'required' => true],
+                    ],
+                    'config_fields' => [
+                        'height' => [
+                            'type'     => 'select',
+                            'label'    => 'Altura',
+                            'options'  => ['400px', '600px', '800px'],
+                            'default'  => '600px',
+                            'required' => false,
+                        ],
+                        'allow_download' => ['type' => 'boolean', 'label' => 'Mostrar botón de descarga', 'required' => false, 'default' => true],
+                        'css_class'      => ['type' => 'string',  'label' => 'Clase CSS adicional',       'required' => false],
+                    ],
+                ]),
+                'supports_pages'   => 1,
+                'supports_entries' => 0,
+                'is_container'     => 0,
+                'is_active'        => 1,
+                'sort_order'       => 200,
+            ],
+            // ── faq_accordion ────────────────────────────────────────────────────
+            [
+                'block_key'         => 'faq_accordion',
+                'name'              => 'Preguntas Frecuentes (FAQ + SEO)',
+                'description'       => 'Acordeón de preguntas frecuentes que genera automáticamente marcado estructurado JSON-LD FAQPage para Google.',
+                'category'          => 'content',
+                'icon'              => 'help-circle',
+                'schema_definition' => json_encode([
+                    'fields' => [
+                        'title'       => ['type' => 'string',   'label' => 'Título de sección', 'required' => false],
+                        'description' => ['type' => 'textarea', 'label' => 'Descripción',       'required' => false],
+                        'faqs' => [
+                            'type'        => 'repeater',
+                            'label'       => 'Preguntas y Respuestas',
+                            'item_fields' => [
+                                'question' => ['type' => 'string',   'label' => 'Pregunta',  'required' => true],
+                                'answer'   => ['type' => 'richtext', 'label' => 'Respuesta', 'required' => true],
+                            ],
+                        ],
+                    ],
+                    'config_fields' => [
+                        'css_class' => ['type' => 'string', 'label' => 'Clase CSS adicional', 'required' => false],
+                    ],
+                ]),
+                'supports_pages'   => 1,
+                'supports_entries' => 1,
+                'is_container'     => 0,
+                'is_active'        => 1,
+                'sort_order'       => 210,
+            ],
+            // ── pricing_grid ─────────────────────────────────────────────────────
+            [
+                'block_key'         => 'pricing_grid',
+                'name'              => 'Tabla de Precios (Contenedor)',
+                'description'       => 'Contenedor para tarjetas de planes comparativos de precios. Agrega bloques "Plan de Precios" como hijos.',
+                'category'          => 'layout',
+                'icon'              => 'award',
+                'schema_definition' => json_encode([
+                    'fields' => [
+                        'title'       => ['type' => 'string',   'label' => 'Título',       'required' => false],
+                        'description' => ['type' => 'textarea', 'label' => 'Descripción',  'required' => false],
+                    ],
+                    'config_fields' => [
+                        'css_class' => ['type' => 'string', 'label' => 'Clase CSS adicional', 'required' => false],
+                    ],
+                    'allowed_children' => ['pricing_plan'],
+                ]),
+                'supports_pages'   => 1,
+                'supports_entries' => 0,
+                'is_container'     => 1,
+                'is_active'        => 1,
+                'sort_order'       => 220,
+            ],
+            // ── pricing_plan ─────────────────────────────────────────────────────
+            [
+                'block_key'         => 'pricing_plan',
+                'name'              => 'Plan de Precios',
+                'description'       => 'Tarjeta de plan de precios individual. Debe usarse como hijo de "Tabla de Precios".',
+                'category'          => 'content',
+                'icon'              => 'credit-card',
+                'schema_definition' => json_encode([
+                    'fields' => [
+                        'name'        => ['type' => 'string',   'label' => 'Nombre del plan',       'required' => true],
+                        'price'       => ['type' => 'string',   'label' => 'Precio (Ej: $29)',       'required' => true],
+                        'period'      => ['type' => 'string',   'label' => 'Periodo (Ej: / mes)',    'required' => false],
+                        'description' => ['type' => 'string',   'label' => 'Descripción corta',      'required' => false],
+                        'features'    => ['type' => 'richtext', 'label' => 'Beneficios (Lista HTML)', 'required' => true],
+                        'cta_label'   => ['type' => 'string',   'label' => 'Texto del botón',        'required' => false],
+                        'cta_url'     => ['type' => 'url',      'label' => 'URL de compra / CTA',    'required' => false],
+                    ],
+                    'config_fields' => [
+                        'featured' => ['type' => 'boolean', 'label' => 'Plan Destacado', 'required' => false, 'default' => false],
+                    ],
+                ]),
+                'supports_pages'   => 1,
+                'supports_entries' => 0,
+                'is_container'     => 0,
+                'is_active'        => 1,
+                'sort_order'       => 221,
+            ],
+            // ── features_grid ────────────────────────────────────────────────────
+            [
+                'block_key'         => 'features_grid',
+                'name'              => 'Características con Iconos',
+                'description'       => 'Muestra una grilla responsiva de características con iconos Lucide y textos breves.',
+                'category'          => 'content',
+                'icon'              => 'grid',
+                'schema_definition' => json_encode([
+                    'fields' => [
+                        'title'       => ['type' => 'string',   'label' => 'Título de sección', 'required' => false],
+                        'description' => ['type' => 'textarea', 'label' => 'Descripción',       'required' => false],
+                        'features' => [
+                            'type'        => 'repeater',
+                            'label'       => 'Características',
+                            'item_fields' => [
+                                'icon_name'   => ['type' => 'string', 'label' => 'Icono Lucide (Ej: check, star, shield)', 'required' => true],
+                                'title'       => ['type' => 'string', 'label' => 'Título',                                  'required' => true],
+                                'description' => ['type' => 'string', 'label' => 'Descripción',                               'required' => true],
+                            ],
+                        ],
+                    ],
+                    'config_fields' => [
+                        'columns' => [
+                            'type'     => 'select',
+                            'label'    => 'Columnas en Desktop',
+                            'options'  => ['2', '3', '4'],
+                            'default'  => '3',
+                            'required' => false,
+                        ],
+                        'css_class' => ['type' => 'string', 'label' => 'Clase CSS adicional', 'required' => false],
+                    ],
+                ]),
+                'supports_pages'   => 1,
+                'supports_entries' => 1,
+                'is_container'     => 0,
+                'is_active'        => 1,
+                'sort_order'       => 230,
+            ],
+            // ── anchor_nav ───────────────────────────────────────────────────────
+            [
+                'block_key'         => 'anchor_nav',
+                'name'              => 'Navegación por Anclas',
+                'description'       => 'Barra de navegación horizontal sticky que sigue la pantalla y permite saltar a secciones específicas de la página.',
+                'category'          => 'navigation',
+                'icon'              => 'navigation',
+                'schema_definition' => json_encode([
+                    'fields' => [
+                        'anchors' => [
+                            'type'        => 'repeater',
+                            'label'       => 'Enlaces de anclaje',
+                            'item_fields' => [
+                                'label'     => ['type' => 'string', 'label' => 'Etiqueta (Ej: Historia)', 'required' => true],
+                                'anchor_id' => ['type' => 'string', 'label' => 'ID de sección (Ej: historia)', 'required' => true],
+                            ],
+                        ],
+                    ],
+                    'config_fields' => [
+                        'css_class' => ['type' => 'string', 'label' => 'Clase CSS adicional', 'required' => false],
+                    ],
+                ]),
+                'supports_pages'   => 1,
+                'supports_entries' => 0,
+                'is_container'     => 0,
+                'is_active'        => 1,
+                'sort_order'       => 240,
+            ],
+            // ── process_steps ────────────────────────────────────────────────────
+            [
+                'block_key'         => 'process_steps',
+                'name'              => 'Proceso en Pasos',
+                'description'       => 'Muestra una secuencia ordenada de pasos, fases o flujo de trabajo (Paso 1, 2, 3...) de forma responsiva.',
+                'category'          => 'content',
+                'icon'              => 'arrow-right-circle',
+                'schema_definition' => json_encode([
+                    'fields' => [
+                        'title'       => ['type' => 'string',   'label' => 'Título de sección', 'required' => false],
+                        'description' => ['type' => 'textarea', 'label' => 'Descripción',       'required' => false],
+                        'steps' => [
+                            'type'        => 'repeater',
+                            'label'       => 'Pasos',
+                            'item_fields' => [
+                                'step_number' => ['type' => 'string', 'label' => 'Número/Identificador (Ej: 01)', 'required' => true],
+                                'title'       => ['type' => 'string', 'label' => 'Título',                       'required' => true],
+                                'description' => ['type' => 'string', 'label' => 'Detalle',                      'required' => true],
+                            ],
+                        ],
+                    ],
+                    'config_fields' => [
+                        'css_class' => ['type' => 'string', 'label' => 'Clase CSS adicional', 'required' => false],
+                    ],
+                ]),
+                'supports_pages'   => 1,
+                'supports_entries' => 0,
+                'is_container'     => 0,
+                'is_active'        => 1,
+                'sort_order'       => 250,
+            ],
+            // ── team_grid ────────────────────────────────────────────────────────
+            [
+                'block_key'         => 'team_grid',
+                'name'              => 'Equipo de Trabajo',
+                'description'       => 'Muestra una cuadrícula de integrantes con foto, nombre, puesto, breve biografía y enlace a LinkedIn.',
+                'category'          => 'content',
+                'icon'              => 'users',
+                'schema_definition' => json_encode([
+                    'fields' => [
+                        'title'       => ['type' => 'string',   'label' => 'Título de sección', 'required' => false],
+                        'description' => ['type' => 'textarea', 'label' => 'Descripción',       'required' => false],
+                        'members' => [
+                            'type'        => 'repeater',
+                            'label'       => 'Miembros del equipo',
+                            'item_fields' => [
+                                'photo'        => ['type' => 'file',   'label' => 'Foto de Perfil',           'accept' => 'image', 'required' => false],
+                                'name'         => ['type' => 'string', 'label' => 'Nombre completo',          'required' => true],
+                                'position'     => ['type' => 'string', 'label' => 'Puesto / Rol',             'required' => true],
+                                'bio'          => ['type' => 'string', 'label' => 'Biografía corta',          'required' => false],
+                                'linkedin_url' => ['type' => 'url',    'label' => 'URL perfil de LinkedIn',   'required' => false],
+                            ],
+                        ],
+                    ],
+                    'config_fields' => [
+                        'columns' => [
+                            'type'     => 'select',
+                            'label'    => 'Miembros por Fila',
+                            'options'  => ['2', '3', '4'],
+                            'default'  => '3',
+                            'required' => false,
+                        ],
+                        'css_class' => ['type' => 'string', 'label' => 'Clase CSS adicional', 'required' => false],
+                    ],
+                ]),
+                'supports_pages'   => 1,
+                'supports_entries' => 0,
+                'is_container'     => 0,
+                'is_active'        => 1,
+                'sort_order'       => 260,
             ],
         ];
 

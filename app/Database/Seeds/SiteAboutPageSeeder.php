@@ -65,6 +65,7 @@ class SiteAboutPageSeeder extends Seeder
             'gallery', 'gallery_item',
             'accordion', 'accordion_item',
             'video_player',
+            'team_grid',
         ]);
 
         // ── 1. page_header ────────────────────────────────────────────────────
@@ -456,6 +457,72 @@ class SiteAboutPageSeeder extends Seeder
             [
                 'es' => ['heading' => 'Conoce nuestra misión'],
                 'en' => ['heading' => 'Learn about our mission'],
+            ],
+            $langIds
+        );
+
+        // ── 11. team_grid ─────────────────────────────────────────────────────
+        $this->upsertBlock(
+            $aboutPageId,
+            $blockIds,
+            'team_grid',
+            11,
+            ['columns' => '3', 'css_class' => 'my-12'],
+            [
+                'es' => [
+                    'title'       => 'Nuestro Equipo Directivo',
+                    'description' => 'Profesionales apasionados dedicados a llevar tu experiencia digital al siguiente nivel.',
+                    'members'     => [
+                        [
+                            'name'         => 'Ana Martínez',
+                            'position'     => 'Directora de Tecnología (CTO)',
+                            'bio'          => 'Ingeniera de software con más de 12 años de experiencia liderando arquitecturas complejas en PHP.',
+                            'linkedin_url' => 'https://linkedin.com/in/ana-martinez',
+                            'photo_url'    => 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=150&auto=format&fit=crop&q=60',
+                        ],
+                        [
+                            'name'         => 'Carlos Ruiz',
+                            'position'     => 'Director Creativo',
+                            'bio'          => 'Apasionado de la tipografía y el diseño modular. Diseñador del sistema visual del CMS.',
+                            'linkedin_url' => 'https://linkedin.com/in/carlos-ruiz',
+                            'photo_url'    => 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150&auto=format&fit=crop&q=60',
+                        ],
+                        [
+                            'name'         => 'Laura Gómez',
+                            'position'     => 'Especialista SEO',
+                            'bio'          => 'Experta en indexación semántica y optimización de Core Web Vitals para grandes portales.',
+                            'linkedin_url' => 'https://linkedin.com/in/laura-gomez',
+                            'photo_url'    => 'https://images.unsplash.com/photo-1438761681033-6461ffad8d80?w=150&auto=format&fit=crop&q=60',
+                        ],
+                    ],
+                ],
+                'en' => [
+                    'title'       => 'Our Leadership Team',
+                    'description' => 'Passionate professionals dedicated to taking your digital experience to the next level.',
+                    'members'     => [
+                        [
+                            'name'         => 'Ana Martinez',
+                            'position'     => 'Chief Technology Officer (CTO)',
+                            'bio'          => 'Software engineer with over 12 years of experience leading complex PHP architectures.',
+                            'linkedin_url' => 'https://linkedin.com/in/ana-martinez',
+                            'photo_url'    => 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=150&auto=format&fit=crop&q=60',
+                        ],
+                        [
+                            'name'         => 'Carlos Ruiz',
+                            'position'     => 'Creative Director',
+                            'bio'          => 'Passionate about typography and modular web layout. Designer of the CMS visual system.',
+                            'linkedin_url' => 'https://linkedin.com/in/carlos-ruiz',
+                            'photo_url'    => 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150&auto=format&fit=crop&q=60',
+                        ],
+                        [
+                            'name'         => 'Laura Gomez',
+                            'position'     => 'SEO Specialist',
+                            'bio'          => 'Expert in semantic indexing and Core Web Vitals optimization for high-traffic websites.',
+                            'linkedin_url' => 'https://linkedin.com/in/laura-gomez',
+                            'photo_url'    => 'https://images.unsplash.com/photo-1438761681033-6461ffad8d80?w=150&auto=format&fit=crop&q=60',
+                        ],
+                    ],
+                ],
             ],
             $langIds
         );
