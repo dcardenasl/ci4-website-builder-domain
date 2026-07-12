@@ -425,7 +425,7 @@ class CmsBlockTypeSeeder extends Seeder
             [
                 'block_key'         => 'social_links',
                 'name'              => 'Redes Sociales',
-                'description'       => 'Bloque con enlaces y handles de redes sociales: Facebook, Instagram, Twitter/X y YouTube.',
+                'description'       => 'Contenedor para agrupar y ordenar dinámicamente enlaces a distintas redes sociales.',
                 'category'          => 'social',
                 'icon'              => 'share-2',
                 'schema_definition' => json_encode([
@@ -433,20 +433,47 @@ class CmsBlockTypeSeeder extends Seeder
                         'heading' => ['type' => 'string', 'label' => 'Título de sección', 'required' => false],
                     ],
                     'config_fields' => [
-                        'facebook_url'     => ['type' => 'url',    'label' => 'URL Facebook',     'required' => false, 'default' => ''],
-                        'facebook_handle'  => ['type' => 'string', 'label' => 'Handle Facebook',  'required' => false, 'default' => ''],
-                        'instagram_url'    => ['type' => 'url',    'label' => 'URL Instagram',    'required' => false, 'default' => ''],
-                        'instagram_handle' => ['type' => 'string', 'label' => 'Handle Instagram', 'required' => false, 'default' => ''],
-                        'twitter_url'      => ['type' => 'url',    'label' => 'URL Twitter/X',    'required' => false, 'default' => ''],
-                        'youtube_url'      => ['type' => 'url',    'label' => 'URL YouTube',      'required' => false, 'default' => ''],
-                        'css_class'        => ['type' => 'string', 'label' => 'Clase CSS',        'required' => false, 'default' => ''],
+                        'css_class' => ['type' => 'string', 'label' => 'Clase CSS', 'required' => false, 'default' => ''],
+                    ],
+                    'allowed_children' => ['social_link_item'],
+                ]),
+                'supports_pages'   => 1,
+                'supports_entries' => 0,
+                'is_container'     => 1,
+                'is_active'        => 1,
+                'sort_order'       => 70,
+            ],
+
+            // ── social_link_item ──────────────────────────────────────────────────
+            [
+                'block_key'         => 'social_link_item',
+                'name'              => 'Enlace de Red Social',
+                'description'       => 'Enlace individual a una red social específica dentro de un contenedor.',
+                'category'          => 'social',
+                'icon'              => 'link',
+                'schema_definition' => json_encode([
+                    'fields' => [
+                        'handle'       => ['type' => 'string', 'label' => 'Handle / Nombre de usuario', 'required' => false],
+                        'custom_label' => ['type' => 'string', 'label' => 'Etiqueta personalizada (para opción Personalizada)', 'required' => false],
+                        'custom_color' => ['type' => 'string', 'label' => 'Color personalizado CSS/Tailwind (ej. bg-blue-500)', 'required' => false],
+                        'custom_svg'   => ['type' => 'text',   'label' => 'SVG personalizado (código path/svg)', 'required' => false],
+                    ],
+                    'config_fields' => [
+                        'network' => [
+                            'type'     => 'select',
+                            'label'    => 'Red Social',
+                            'options'  => ['facebook', 'instagram', 'twitter', 'youtube', 'linkedin', 'tiktok', 'pinterest', 'whatsapp', 'github', 'custom'],
+                            'default'  => 'facebook',
+                            'required' => true,
+                        ],
+                        'url' => ['type' => 'url', 'label' => 'URL del perfil', 'required' => true],
                     ],
                 ]),
                 'supports_pages'   => 1,
                 'supports_entries' => 0,
                 'is_container'     => 0,
                 'is_active'        => 1,
-                'sort_order'       => 70,
+                'sort_order'       => 71,
             ],
 
             // ── accordion ─────────────────────────────────────────────────────

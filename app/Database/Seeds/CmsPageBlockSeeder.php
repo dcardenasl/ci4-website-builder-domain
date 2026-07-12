@@ -215,15 +215,7 @@ class CmsPageBlockSeeder extends Seeder
                 'block_key' => 'social_links',
                 'sort_order' => 5,
                 'config'    => [
-                    'facebook_url'     => '',
-                    'facebook_handle'  => '',
-                    'instagram_url'    => '',
-                    'instagram_handle' => '',
-                    'twitter_url'      => '',
-                    'twitter_handle'   => '',
-                    'youtube_url'      => '',
-                    'youtube_handle'   => '',
-                    'css_class'        => '',
+                    'css_class' => '',
                 ],
                 'data'      => [
                     'es' => [
