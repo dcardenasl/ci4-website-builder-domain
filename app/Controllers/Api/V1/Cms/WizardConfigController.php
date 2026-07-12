@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Controllers\Api\V1\Cms;
 
 use App\Libraries\Cms\BlockSchemaIntrospector;
+use App\Libraries\Cms\CmsEnums;
 use App\Libraries\Cms\FieldPrimitiveRegistry;
 use App\Models\BlockTypeModel;
 use App\Models\CollectionModel;
@@ -258,6 +259,7 @@ class WizardConfigController extends ApiController
                     'pages'          => $pagesData,
                     'menus'          => $menusData,
                     'block_types'    => $blockTypesMap,
+                    'non_translatable_types' => CmsEnums::NON_TRANSLATABLE_TYPES,
                     'field_primitives' => $fieldRegistry->supported(),
                     'block_capabilities' => $blockCapabilities,
                     'setup_state' => [
