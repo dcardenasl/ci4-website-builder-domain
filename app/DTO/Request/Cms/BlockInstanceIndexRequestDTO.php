@@ -22,7 +22,7 @@ readonly class BlockInstanceIndexRequestDTO extends BaseRequestDTO
     {
         return [
             'page'      => 'permit_empty|is_natural_no_zero',
-            'per_page'  => 'permit_empty|is_natural_no_zero|less_than[101]',
+            'per_page'  => 'permit_empty|is_natural_no_zero|less_than[10001]',
             'search'    => 'permit_empty|string|max_length[100]',
             'sort'      => 'permit_empty|max_length[100]',
         ];
@@ -34,7 +34,7 @@ readonly class BlockInstanceIndexRequestDTO extends BaseRequestDTO
     protected function map(array $data): void
     {
         $this->page = isset($data['page']) ? (int) $data['page'] : 1;
-        $this->per_page = isset($data['per_page']) ? (int) $data['per_page'] : 20;
+        $this->per_page = isset($data['per_page']) ? (int) $data['per_page'] : 1000;
         $this->search = $data['search'] ?? null;
         $this->sort = (string) ($data['sort'] ?? '');
     }
