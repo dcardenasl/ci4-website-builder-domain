@@ -304,6 +304,17 @@ class BlockInstanceService extends BaseCrudService implements BlockInstanceServi
         return is_array($fields) ? $fields : [];
     }
 
+    protected function applyQueryOptions(array $criteria): array
+    {
+        $criteria = parent::applyQueryOptions($criteria);
+
+        if (empty($criteria['sort'])) {
+            $criteria['sort'] = 'sort_order';
+        }
+
+        return $criteria;
+    }
+
     protected function applyBaseCriteria(object $builder): void
     {
         if ($this->filterOwnerType !== null && $this->filterOwnerId !== null) {

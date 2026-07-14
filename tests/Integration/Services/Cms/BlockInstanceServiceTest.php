@@ -71,6 +71,69 @@ final class BlockInstanceServiceTest extends CIUnitTestCase
         $this->assertSame(['theme' => 'dark'], json_decode((string) $stored, true));
     }
 
+    public function testIndexDefaultsToSortOrderBySortOrderAsc(): void
+    {
+        $db = Database::connect();
+
+        $db->query('SET FOREIGN_KEY_CHECKS = 0');
+        $db->query("DELETE FROM `cms_block_instance_translations`");
+        $db->query("DELETE FROM `cms_block_instances`");
+        $db->query("DELETE FROM `cms_content_blocks`");
+        $db->query('SET FOREIGN_KEY_CHECKS = 1');
+
+        $db->table('cms_content_blocks')->insert([
+            'id' => 5,
+            'block_key' => 'hero',
+            'name' => 'Hero',
+            'schema_definition' => json_encode(['fields' => []]),
+            'supports_pages' => 1,
+            'supports_entries' => 1,
+            'is_container' => 0,
+            'is_active' => 1,
+            'sort_order' => 1,
+        ]);
+
+        $db->table('cms_block_instances')->insertBatch([
+            [
+                'id' => 10,
+                'block_id' => 5,
+                'owner_type' => 'page',
+                'owner_id' => 21,
+                'sort_order' => 3,
+                'is_active' => 1,
+            ],
+            [
+                'id' => 11,
+                'block_id' => 5,
+                'owner_type' => 'page',
+                'owner_id' => 21,
+                'sort_order' => 1,
+                'is_active' => 1,
+            ],
+            [
+                'id' => 12,
+                'block_id' => 5,
+                'owner_type' => 'page',
+                'owner_id' => 21,
+                'sort_order' => 2,
+                'is_active' => 1,
+            ],
+        ]);
+
+        $service = Services::blockInstanceService(false);
+        $service->setOwnerContext('page', 21);
+
+        $dto = $this->hydrateDto(\App\DTO\Request\Cms\BlockInstanceIndexRequestDTO::class, []);
+
+        $result = $service->index($dto, null);
+        $items = $result->toArray()['data'];
+
+        $this->assertCount(3, $items);
+        $this->assertSame(11, $items[0]->id);
+        $this->assertSame(12, $items[1]->id);
+        $this->assertSame(10, $items[2]->id);
+    }
+
     /**
      * @template T of object
      * @param class-string<T> $class

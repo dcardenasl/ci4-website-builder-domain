@@ -29,7 +29,7 @@ class BlockInstanceModel extends BaseAuditableModel
     protected array $filterableFields = ['id', 'owner_type', 'owner_id'];
 
     /** @var array<int, string> */
-    protected array $sortableFields = ['id', 'created_at', 'owner_type', 'owner_id'];
+    protected array $sortableFields = ['id', 'created_at', 'owner_type', 'owner_id', 'sort_order', 'column_index'];
 
     protected $validationRules = [
         'block_id' => 'required|is_natural_no_zero|is_not_unique[cms_content_blocks.id]',
