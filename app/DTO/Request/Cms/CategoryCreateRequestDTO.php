@@ -31,7 +31,7 @@ readonly class CategoryCreateRequestDTO extends BaseRequestDTO
         return [
             'collection_id' => 'required|integer',
             'parent_id' => 'permit_empty|integer',
-            'sort_order' => 'required|integer',
+            'sort_order' => 'permit_empty|integer',
             'is_active' => 'permit_empty|boolean_like',
             'translations' => 'permit_empty',
         ];
