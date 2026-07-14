@@ -228,6 +228,68 @@ final class MenuItemServiceTest extends CIUnitTestCase
         $this->assertNull($url);
     }
 
+    public function testResolveLinkForCollectionWithIndexPage(): void
+    {
+        // Create an index page for the collection
+        $this->db->table('cms_pages')->insert([
+            'page_type'     => 'collection_index',
+            'collection_id' => $this->collectionId,
+            'status'        => 'published',
+            'sort_order'    => 1,
+        ]);
+        $pageId = $this->db->insertID();
+
+        // Add translation with a custom slug
+        $this->db->table('cms_page_translations')->insert([
+            'page_id'     => $pageId,
+            'language_id' => $this->langEsId,
+            'title'       => 'Artículos',
+            'slug'        => 'articulos-custom',
+        ]);
+
+        $item = new MenuItemEntity([
+            'id'            => 100,
+            'link_type'     => 'collection_listing',
+            'collection_id' => $this->collectionId,
+        ]);
+
+        $url = $this->service->resolveLink($item, 'es');
+
+        // Should resolve to the custom slug of the index page, not 'blog' (the collection slug)
+        $this->assertSame('/articulos-custom', $url);
+    }
+
+    public function testResolveLinkForEntryWithIndexPage(): void
+    {
+        // Create an index page for the collection
+        $this->db->table('cms_pages')->insert([
+            'page_type'     => 'collection_index',
+            'collection_id' => $this->collectionId,
+            'status'        => 'published',
+            'sort_order'    => 1,
+        ]);
+        $pageId = $this->db->insertID();
+
+        // Add translation with a custom slug
+        $this->db->table('cms_page_translations')->insert([
+            'page_id'     => $pageId,
+            'language_id' => $this->langEsId,
+            'title'       => 'Artículos',
+            'slug'        => 'articulos-custom',
+        ]);
+
+        $item = new MenuItemEntity([
+            'id'       => 101,
+            'link_type' => 'entry',
+            'entry_id' => $this->entryId,
+        ]);
+
+        $url = $this->service->resolveLink($item, 'es');
+
+        // Should resolve to /articulos-custom/first-post, not /blog/first-post
+        $this->assertSame('/articulos-custom/first-post', $url);
+    }
+
     public function testDestroyInvalidatesCache(): void
     {
         $repository = $this->createMock(RepositoryInterface::class);
