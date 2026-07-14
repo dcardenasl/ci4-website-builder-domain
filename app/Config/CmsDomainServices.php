@@ -110,6 +110,15 @@ trait CmsDomainServices
 
         return new \App\Libraries\Cms\BlockInstanceSerializer(static::fileUrlResolver());
     }
+
+    public static function entryListingContentResolver(bool $getShared = true): \App\Libraries\Cms\EntryListingContentResolver
+    {
+        if ($getShared) {
+            return static::getSharedInstance('entryListingContentResolver');
+        }
+
+        return new \App\Libraries\Cms\EntryListingContentResolver(static::blockInstanceSerializer());
+    }
     public static function pageResponseMapper(bool $getShared = true): \dcardenasl\Ci4ApiCore\Mappers\ResponseMapperInterface
     {
         if ($getShared) {

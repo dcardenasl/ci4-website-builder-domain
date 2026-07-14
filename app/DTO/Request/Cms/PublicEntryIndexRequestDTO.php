@@ -17,6 +17,7 @@ readonly class PublicEntryIndexRequestDTO extends BaseRequestDTO
     public ?string $q;
     public string $order_by;
     public string $order_direction;
+    public bool $include_listing_content;
 
     /** @return array<string, string> */
     public function rules(): array
@@ -32,6 +33,7 @@ readonly class PublicEntryIndexRequestDTO extends BaseRequestDTO
             'q'              => 'permit_empty|string|max_length[255]',
             'order_by'       => 'permit_empty|in_list[published_at,sort_order,created_at,title]',
             'order_direction' => 'permit_empty|in_list[asc,desc,ASC,DESC]',
+            'include'         => 'permit_empty|in_list[listing_content]',
         ];
     }
 
@@ -49,6 +51,7 @@ readonly class PublicEntryIndexRequestDTO extends BaseRequestDTO
         $this->order_by       = (string) ($data['order_by'] ?? 'sort_order');
         $direction            = strtoupper((string) ($data['order_direction'] ?? 'ASC'));
         $this->order_direction = $direction === 'DESC' ? 'DESC' : 'ASC';
+        $this->include_listing_content = (string) ($data['include'] ?? '') === 'listing_content';
     }
 
     /** @return array<string, mixed> */
@@ -64,6 +67,7 @@ readonly class PublicEntryIndexRequestDTO extends BaseRequestDTO
             'q'              => $this->q,
             'order_by'       => $this->order_by,
             'order_direction' => $this->order_direction,
+            'include'         => $this->include_listing_content ? 'listing_content' : null,
         ];
     }
 }

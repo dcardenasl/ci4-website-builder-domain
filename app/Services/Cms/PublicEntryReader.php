@@ -169,6 +169,22 @@ class PublicEntryReader
             $data[] = $item;
         }
 
+        if ($dto->include_listing_content) {
+            /** @var \App\Libraries\Cms\EntryListingContentResolver $listingContentResolver */
+            $listingContentResolver = service('entryListingContentResolver');
+            $listingContentByEntry = $listingContentResolver->resolveBatch($data, $dto->lang);
+
+            foreach ($data as &$item) {
+                $entryId = (int) ($item['id'] ?? 0);
+                $item['listing_content'] = $listingContentByEntry[$entryId] ?? [
+                    'rich_text' => '',
+                    'image' => null,
+                    'secondary_action' => null,
+                ];
+            }
+            unset($item);
+        }
+
         return PaginatedResponseDTO::fromArray([
             'data'     => $data,
             'total'    => (int) $total,

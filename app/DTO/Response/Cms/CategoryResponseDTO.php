@@ -36,7 +36,10 @@ final readonly class CategoryResponseDTO implements DataTransferObjectInterface
         #[OA\Property(description: 'name', type: 'string', nullable: true)]
         public ?string $name = null,
         #[OA\Property(description: 'slug', type: 'string', nullable: true)]
-        public ?string $slug = null
+        public ?string $slug = null,
+        /** @var array<string, mixed>|null */
+        #[OA\Property(description: 'translations', type: 'array', items: new OA\Items(type: 'object'), nullable: true)]
+        public ?array $translations = null
     ) {
     }
 
@@ -57,6 +60,7 @@ final readonly class CategoryResponseDTO implements DataTransferObjectInterface
             updatedAt: DateValue::toString($data['updated_at'] ?? null),
             name: $data['name'] ?? null,
             slug: $data['slug'] ?? null,
+            translations: $data['translations'] ?? null,
         );
     }
 
@@ -71,6 +75,7 @@ final readonly class CategoryResponseDTO implements DataTransferObjectInterface
             'collection_name' => $this->collection_name,
             'name' => $this->name,
             'slug' => $this->slug,
+            'translations' => $this->translations,
             'parent_id' => $this->parent_id,
             'parent_label' => $this->parent_label,
             'sort_order' => $this->sort_order,

@@ -120,6 +120,44 @@ final class PublicEntryControllerTest extends CIUnitTestCase
         $this->assertIsArray($body['data']['blocks']);
     }
 
+    public function testListingContentIsOptInAndUsesSchemaData(): void
+    {
+        $this->db->table('cms_entries')->insert([
+            'collection_id' => $this->collectionId,
+            'workflow_status' => 'published',
+            'sort_order' => 1,
+            'is_in_sitemap' => 1,
+        ]);
+        $entryId = $this->db->insertID();
+
+        $this->db->table('cms_entry_translations')->insert([
+            'entry_id' => $entryId,
+            'language_id' => $this->langEsId,
+            'slug' => 'con-contenido-listado',
+            'title' => 'Con contenido de listado',
+            'excerpt' => 'Extracto',
+            'schema_data' => json_encode([
+                'listing' => [
+                    'rich_text' => '<p>Contenido adicional</p>',
+                    'image' => ['url' => '/uploads/extra.jpg', 'alt' => 'Imagen adicional'],
+                    'secondary_action' => ['label' => 'Explorar', 'url' => '/explorar'],
+                ],
+            ]),
+        ]);
+
+        $normal = $this->get('/api/v1/public/es/entries/blog');
+        $normalBody = json_decode($normal->getJSON(), true);
+        $this->assertArrayNotHasKey('listing_content', $normalBody['data'][0]);
+
+        $result = $this->get('/api/v1/public/es/entries/blog?include=listing_content');
+        $result->assertStatus(200);
+        $body = json_decode($result->getJSON(), true);
+
+        $this->assertSame('<p>Contenido adicional</p>', $body['data'][0]['listing_content']['rich_text']);
+        $this->assertSame('/uploads/extra.jpg', $body['data'][0]['listing_content']['image']['url']);
+        $this->assertSame('Explorar', $body['data'][0]['listing_content']['secondary_action']['label']);
+    }
+
     public function testGetPublicEntryNotFound(): void
     {
         $result = $this->get('/api/v1/public/es/entries/blog/no-existe');

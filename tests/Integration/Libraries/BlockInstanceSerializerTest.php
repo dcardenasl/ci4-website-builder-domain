@@ -390,4 +390,30 @@ final class BlockInstanceSerializerTest extends CIUnitTestCase
         $this->assertEquals('Hello World', $blocks[0]['block_data']['content']);
         $this->assertEquals('English Alt Text', $blocks[1]['block_data']['image_alt_text']);
     }
+
+    public function testForOwnersBatchGroupsTopLevelBlocksByOwner(): void
+    {
+        $db = Database::connect();
+        $db->table('cms_block_instances')->insert([
+            'id' => 105,
+            'block_id' => 1,
+            'owner_type' => 'page',
+            'owner_id' => 11,
+            'sort_order' => 1,
+            'is_active' => 1,
+            'block_config' => '{}',
+        ]);
+        $db->table('cms_block_instance_translations')->insert([
+            'instance_id' => 105,
+            'language_id' => 2,
+            'block_data' => json_encode(['content' => 'Segundo dueño']),
+            'is_published' => 1,
+        ]);
+
+        $blocksByOwner = $this->serializer->forOwnersBatch('page', [10, 11, 12], 'es');
+
+        $this->assertCount(4, $blocksByOwner[10]);
+        $this->assertSame('Segundo dueño', $blocksByOwner[11][0]['block_data']['content']);
+        $this->assertSame([], $blocksByOwner[12]);
+    }
 }

@@ -25,13 +25,39 @@ class BlockInstanceSerializer
      */
     public function forContent(string $ownerType, int $ownerId, string $langCode): array
     {
+        $blocksByOwner = $this->forOwnersBatch($ownerType, [$ownerId], $langCode);
+
+        return $blocksByOwner[$ownerId] ?? [];
+    }
+
+    /**
+     * Resolve and serialize block instances for multiple owners without a query
+     * per owner. The result deliberately remains grouped by owner ID so callers
+     * can enrich a listing without exposing this loading detail to consumers.
+     *
+     * @param string    $ownerType Type of owner ('page', 'entry')
+     * @param list<int> $ownerIds  IDs of the owners
+     * @param string    $langCode  Target language code
+     * @return array<int, list<array<string, mixed>>> Top-level blocks by owner ID
+     */
+    public function forOwnersBatch(string $ownerType, array $ownerIds, string $langCode): array
+    {
+        $ownerIds = array_values(array_unique(array_filter(
+            array_map(static fn (mixed $ownerId): int => (int) $ownerId, $ownerIds),
+            static fn (int $ownerId): bool => $ownerId > 0
+        )));
+
+        if ($ownerIds === []) {
+            return [];
+        }
+
         $db = \Config\Database::connect();
 
         $query = $db->table('cms_block_instances i')
             ->select('i.*, b.block_key, b.name as block_type_name, b.schema_definition')
             ->join('cms_content_blocks b', 'b.id = i.block_id')
             ->where('i.owner_type', $ownerType)
-            ->where('i.owner_id', $ownerId)
+            ->whereIn('i.owner_id', $ownerIds)
             ->where('i.is_active', 1)
             ->orderBy('i.sort_order', 'ASC')
             ->get();
@@ -67,6 +93,7 @@ class BlockInstanceSerializer
 
         // Serialize ALL instances (top-level and children alike) into a map keyed by id
         $serializedMap = [];
+        $ownerByInstanceId = [];
 
         foreach ($instances as $instance) {
             $instanceId  = (int) $instance['id'];
@@ -107,6 +134,7 @@ class BlockInstanceSerializer
             );
 
             $serializedMap[$instanceId] = $blockPayload;
+            $ownerByInstanceId[$instanceId] = (int) $instance['owner_id'];
         }
 
         // Build tree: attach children to their parent's 'children' array, return only top-level
@@ -118,15 +146,23 @@ class BlockInstanceSerializer
             }
         }
 
-        $topLevel = [];
+        $topLevelByOwner = array_fill_keys($ownerIds, []);
         foreach ($serializedMap as $instanceId => $block) {
             if ($block['parent_instance_id'] === null) {
                 $block['children'] = $this->buildChildren($instanceId, $serializedMap, $childrenByParent);
-                $topLevel[] = $block;
+                $ownerId = $ownerByInstanceId[$instanceId] ?? 0;
+                if (isset($topLevelByOwner[$ownerId])) {
+                    $topLevelByOwner[$ownerId][] = $block;
+                }
             }
         }
 
-        return $topLevel;
+        foreach ($topLevelByOwner as &$blocks) {
+            usort($blocks, static fn (array $a, array $b): int => $a['sort_order'] <=> $b['sort_order']);
+        }
+        unset($blocks);
+
+        return $topLevelByOwner;
     }
 
     // ─── Private helpers ────────────────────────────────────────────────────────
