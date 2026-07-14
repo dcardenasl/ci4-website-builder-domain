@@ -1364,17 +1364,6 @@ class CmsBlockTypeSeeder extends Seeder
                     'fields' => [
                         'title'       => ['type' => 'string',   'label' => 'Título de sección', 'required' => false],
                         'description' => ['type' => 'textarea', 'label' => 'Descripción',       'required' => false],
-                        'members' => [
-                            'type'        => 'repeater',
-                            'label'       => 'Miembros del equipo',
-                            'item_fields' => [
-                                'photo'        => ['type' => 'file',   'label' => 'Foto de Perfil',           'accept' => 'image', 'required' => false],
-                                'name'         => ['type' => 'string', 'label' => 'Nombre completo',          'required' => true],
-                                'position'     => ['type' => 'string', 'label' => 'Puesto / Rol',             'required' => true],
-                                'bio'          => ['type' => 'string', 'label' => 'Biografía corta',          'required' => false],
-                                'linkedin_url' => ['type' => 'url',    'label' => 'URL perfil de LinkedIn',   'required' => false],
-                            ],
-                        ],
                     ],
                     'config_fields' => [
                         'columns' => [
@@ -1386,12 +1375,36 @@ class CmsBlockTypeSeeder extends Seeder
                         ],
                         'css_class' => ['type' => 'string', 'label' => 'Clase CSS adicional', 'required' => false],
                     ],
+                    'allowed_children' => ['team_member'],
+                ]),
+                'supports_pages'   => 1,
+                'supports_entries' => 0,
+                'is_container'     => 1,
+                'is_active'        => 1,
+                'sort_order'       => 260,
+            ],
+            // ── team_member ──────────────────────────────────────────────────────
+            [
+                'block_key'         => 'team_member',
+                'name'              => 'Miembro del Equipo',
+                'description'       => 'Miembro individual del equipo para usar dentro de un bloque Equipo de Trabajo.',
+                'category'          => 'content',
+                'icon'              => 'user',
+                'schema_definition' => json_encode([
+                    'fields' => [
+                        'photo'        => ['type' => 'file',   'label' => 'Foto de Perfil',           'accept' => 'image', 'required' => false],
+                        'name'         => ['type' => 'string', 'label' => 'Nombre completo',          'required' => true],
+                        'position'     => ['type' => 'string', 'label' => 'Puesto / Rol',             'required' => true],
+                        'bio'          => ['type' => 'string', 'label' => 'Biografía corta',          'required' => false],
+                        'linkedin_url' => ['type' => 'url',    'label' => 'URL perfil de LinkedIn',   'required' => false],
+                    ],
+                    'config_fields' => [],
                 ]),
                 'supports_pages'   => 1,
                 'supports_entries' => 0,
                 'is_container'     => 0,
                 'is_active'        => 1,
-                'sort_order'       => 260,
+                'sort_order'       => 261,
             ],
         ];
 
