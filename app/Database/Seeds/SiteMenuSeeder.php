@@ -96,11 +96,11 @@ class SiteMenuSeeder extends Seeder
             ], ['es' => 'Historia', 'en' => 'History'], $langIds);
         }
 
-        if ($portfolioPageId !== null) {
-            $mainMenuItemIds[] = $this->upsertMenuItem($mainMenuId, 'page', [
-                'page_id'       => $portfolioPageId,
+        if ($portfolioCollectionId !== null) {
+            $mainMenuItemIds[] = $this->upsertMenuItem($mainMenuId, 'collection_listing', [
+                'page_id'       => null,
                 'entry_id'      => null,
-                'collection_id' => null,
+                'collection_id' => $portfolioCollectionId,
                 'parent_id'     => null,
                 'sort_order'    => 3,
             ], ['es' => 'Portafolio', 'en' => 'Portfolio'], $langIds);
@@ -196,11 +196,11 @@ class SiteMenuSeeder extends Seeder
             ], ['es' => 'Historia', 'en' => 'History'], $langIds);
         }
 
-        if ($portfolioPageId !== null) {
-            $footerMenuItemIds[] = $this->upsertMenuItem($footerMenuId, 'page', [
-                'page_id'       => $portfolioPageId,
+        if ($portfolioCollectionId !== null) {
+            $footerMenuItemIds[] = $this->upsertMenuItem($footerMenuId, 'collection_listing', [
+                'page_id'       => null,
                 'entry_id'      => null,
-                'collection_id' => null,
+                'collection_id' => $portfolioCollectionId,
                 'parent_id'     => null,
                 'sort_order'    => 4,
             ], ['es' => 'Portafolio', 'en' => 'Portfolio'], $langIds);
