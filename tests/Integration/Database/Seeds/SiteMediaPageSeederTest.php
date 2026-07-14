@@ -65,7 +65,7 @@ final class SiteMediaPageSeederTest extends CIUnitTestCase
             ->get()
             ->getResultArray();
 
-        $this->assertSame(['page_header', 'rich_text', 'alert', 'gallery', 'rich_text', 'gallery', 'rich_text', 'gallery', 'video_player', 'cta'], array_column($blocks, 'block_key'));
+        $this->assertSame(['page_header', 'rich_text', 'alert', 'gallery', 'rich_text', 'gallery', 'rich_text', 'gallery', 'video_player', 'document_gallery', 'pdf_viewer', 'external_links', 'cta'], array_column($blocks, 'block_key'));
 
         $gridGallery = $this->galleryBySortOrder((int) $page['id'], 4);
         $inlineGallery = $this->galleryBySortOrder((int) $page['id'], 6);

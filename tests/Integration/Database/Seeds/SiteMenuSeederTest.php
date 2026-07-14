@@ -73,7 +73,7 @@ final class SiteMenuSeederTest extends CIUnitTestCase
 
         $mainLabels = $this->menuLabels((int) $mainMenu['id'], 'es', null);
         $this->assertSame(
-            ['Inicio', 'Nosotros', 'Portafolio', 'Bloques', 'Multimedia', 'Noticias', 'Contacto'],
+            ['Inicio', 'Nosotros', 'Portafolio', 'Multimedia', 'Ejemplos', 'Noticias', 'Contacto'],
             $mainLabels
         );
 
@@ -86,7 +86,7 @@ final class SiteMenuSeederTest extends CIUnitTestCase
 
         $footerLabels = $this->menuLabels((int) $footerMenu['id'], 'es', null);
         $this->assertSame(
-            ['Inicio', 'Quiénes Somos', 'Historia', 'Portafolio', 'Bloques', 'Multimedia', 'Noticias', 'Contacto'],
+            ['Inicio', 'Quiénes Somos', 'Historia', 'Portafolio', 'Bloques', 'Multimedia', 'Noticias', 'Landing Page', 'Contacto'],
             $footerLabels
         );
     }
