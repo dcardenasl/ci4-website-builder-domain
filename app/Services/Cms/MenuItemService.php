@@ -249,8 +249,7 @@ class MenuItemService extends BaseCrudService implements MenuItemServiceInterfac
 
             case 'collection_listing':
                 if ($item->collection_id !== null) {
-                    $resolvedCollection = $translationResolver->resolve('collection', (int) $item->collection_id, $lang);
-                    $prefix = trim((string) ($resolvedCollection['slug'] ?? ''), '/');
+                    $prefix = $this->getCollectionPrefix((int) $item->collection_id, $lang, $translationResolver);
                     if ($prefix !== '') {
                         $customUrl = '/' . $prefix;
                     }
@@ -308,8 +307,7 @@ class MenuItemService extends BaseCrudService implements MenuItemServiceInterfac
             return null;
         }
 
-        $resolvedCollection = $translationResolver->resolve('collection', (int) $collectionId, $lang);
-        $prefix = trim((string) ($resolvedCollection['slug'] ?? ''), '/');
+        $prefix = $this->getCollectionPrefix((int) $collectionId, $lang, $translationResolver);
 
         // Get language ID for entry slug
         $db = \Config\Database::connect();
@@ -330,6 +328,36 @@ class MenuItemService extends BaseCrudService implements MenuItemServiceInterfac
         }
 
         return $prefix !== '' ? '/' . $prefix . '/' . $slug : '/' . $slug;
+    }
+
+    /**
+     * Resolve the public prefix for a collection, prioritizing its published collection index page slug.
+     * Fallback to the collection translation slug if not available.
+     *
+     * @param int $collectionId
+     * @param string $lang
+     * @param \App\Libraries\Cms\TranslationResolver $translationResolver
+     * @return string
+     */
+    private function getCollectionPrefix(int $collectionId, string $lang, \App\Libraries\Cms\TranslationResolver $translationResolver): string
+    {
+        $pageModel = model(\App\Models\PageModel::class);
+        $indexPage = $pageModel->where('collection_id', $collectionId)
+            ->where('page_type', 'collection_index')
+            ->where('status', 'published')
+            ->where('deleted_at IS NULL')
+            ->first();
+
+        if ($indexPage !== null) {
+            $slugRouter = service('slugRouter');
+            $pageSlug = $slugRouter->resolveSlug($lang, 'page', (int) $indexPage->id);
+            if ($pageSlug !== null) {
+                return trim($pageSlug, '/');
+            }
+        }
+
+        $resolvedCollection = $translationResolver->resolve('collection', $collectionId, $lang);
+        return trim((string) ($resolvedCollection['slug'] ?? ''), '/');
     }
 
     /**
