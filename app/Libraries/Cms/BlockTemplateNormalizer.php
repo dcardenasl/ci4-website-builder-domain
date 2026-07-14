@@ -55,6 +55,26 @@ final class BlockTemplateNormalizer
             throw new BlockTemplateValidationException('blocks must be an array');
         }
 
+        if (isset($template['version']) && $template['version'] !== '1.0') {
+            throw new BlockTemplateValidationException('version must be "1.0"');
+        }
+
+        $inputSortOrders = [];
+        foreach ($blocks as $index => $block) {
+            if (is_array($block) && isset($block['sort_order'])) {
+                $so = $block['sort_order'];
+                if (is_numeric($so)) {
+                    $so = (int) $so;
+                }
+                if (is_int($so)) {
+                    if (in_array($so, $inputSortOrders, true)) {
+                        throw new BlockTemplateValidationException("Duplicate sort_order {$so}: each block must have a unique sort_order");
+                    }
+                    $inputSortOrders[] = $so;
+                }
+            }
+        }
+
         $normalizedBlocks = [];
         foreach (array_values($blocks) as $index => $block) {
             if (! is_array($block)) {
