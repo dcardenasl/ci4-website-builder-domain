@@ -61,8 +61,14 @@ final class EntryListingContentResolver
         if (is_string($schemaData)) {
             $schemaData = json_decode($schemaData, true);
         }
+        if (is_object($schemaData)) {
+            $schemaData = (array) $schemaData;
+        }
 
         $listing = is_array($schemaData) ? ($schemaData['listing'] ?? []) : [];
+        if (is_object($listing)) {
+            $listing = (array) $listing;
+        }
 
         return is_array($listing) ? $listing : [];
     }
@@ -130,6 +136,9 @@ final class EntryListingContentResolver
         if (is_string($value)) {
             $value = ['url' => $value];
         }
+        if (is_object($value)) {
+            $value = (array) $value;
+        }
         if (!is_array($value)) {
             return null;
         }
@@ -145,6 +154,9 @@ final class EntryListingContentResolver
     /** @return array{label: string, url: string}|null */
     private function actionFromSchema(mixed $value): ?array
     {
+        if (is_object($value)) {
+            $value = (array) $value;
+        }
         if (!is_array($value)) {
             return null;
         }

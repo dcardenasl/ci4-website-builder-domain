@@ -6,6 +6,7 @@ namespace App\Services\Cms;
 
 use App\DTO\Request\Cms\EntrySetCategoriesRequestDTO;
 use App\DTO\Request\Cms\EntrySetTagsRequestDTO;
+use App\DTO\Request\Cms\EntrySyncTaxonomyRequestDTO;
 use App\DTO\Request\Cms\PublicEntryIndexRequestDTO;
 use App\DTO\Request\Cms\PublicEntryShowRequestDTO;
 use App\Entities\EntryEntity;
@@ -219,7 +220,10 @@ class EntryService extends BaseCrudService implements EntryServiceInterface
             return $entities;
         }
 
-        $entryIds = array_map(fn ($entity) => (int) $entity->id, $entities);
+        $entryIds = array_values(array_map(
+            static fn ($entity) => (int) $entity->id,
+            $entities
+        ));
 
         /** @var \App\Models\EntryTranslationModel $translationModel */
         $translationModel = model(\App\Models\EntryTranslationModel::class);
@@ -263,15 +267,110 @@ class EntryService extends BaseCrudService implements EntryServiceInterface
             }
         }
 
+        $categoryMap = $this->batchResolveEntryCategories($entryIds);
+        $tagMap      = $this->batchResolveEntryTags($entryIds);
+
         foreach ($entities as $entity) {
             $entityTranslations = $translationsGrouped[$entity->id] ?? [];
             $entity->translations = $entityTranslations;
             $entity->title = $entityTranslations[0]['title'] ?? null;
             $entity->slug = $entityTranslations[0]['slug'] ?? null;
             $entity->collection_key = $collectionKeyMap[(int) $entity->collection_id] ?? null;
+            $entity->categories = $categoryMap[(int) $entity->id] ?? [];
+            $entity->tags = $tagMap[(int) $entity->id] ?? [];
         }
 
         return $entities;
+    }
+
+    protected function mapToResponse(object $entity): DataTransferObjectInterface
+    {
+        if ($entity instanceof EntryEntity) {
+            $payload = $entity->toArray();
+            $payload['categories'] = is_array($entity->categories ?? null) ? $entity->categories : [];
+            $payload['tags'] = is_array($entity->tags ?? null) ? $entity->tags : [];
+
+            return $this->responseMapper->map($payload);
+        }
+
+        return parent::mapToResponse($entity);
+    }
+
+    /**
+     * @param list<int> $entryIds
+     * @return array<int, list<array{id: int, sort_order: int}>>
+     */
+    private function batchResolveEntryCategories(array $entryIds): array
+    {
+        if ($entryIds === []) {
+            return [];
+        }
+
+        $placeholders = implode(',', array_fill(0, count($entryIds), '?'));
+        $sql = "
+            SELECT entry_id, category_id, sort_order
+            FROM cms_entry_categories
+            WHERE entry_id IN ({$placeholders})
+            ORDER BY entry_id ASC, sort_order ASC, category_id ASC
+        ";
+
+        $result = \Config\Database::connect()->query($sql, $entryIds);
+        if (! $result instanceof \CodeIgniter\Database\BaseResult) {
+            return [];
+        }
+
+        $map = [];
+        foreach ($result->getResultArray() as $row) {
+            $entryId = (int) ($row['entry_id'] ?? 0);
+            if ($entryId <= 0) {
+                continue;
+            }
+
+            $map[$entryId][] = [
+                'id' => (int) ($row['category_id'] ?? 0),
+                'sort_order' => (int) ($row['sort_order'] ?? 0),
+            ];
+        }
+
+        return $map;
+    }
+
+    /**
+     * @param list<int> $entryIds
+     * @return array<int, list<array{id: int}>>
+     */
+    private function batchResolveEntryTags(array $entryIds): array
+    {
+        if ($entryIds === []) {
+            return [];
+        }
+
+        $placeholders = implode(',', array_fill(0, count($entryIds), '?'));
+        $sql = "
+            SELECT entry_id, tag_id
+            FROM cms_entry_tags
+            WHERE entry_id IN ({$placeholders})
+            ORDER BY entry_id ASC, tag_id ASC
+        ";
+
+        $result = \Config\Database::connect()->query($sql, $entryIds);
+        if (! $result instanceof \CodeIgniter\Database\BaseResult) {
+            return [];
+        }
+
+        $map = [];
+        foreach ($result->getResultArray() as $row) {
+            $entryId = (int) ($row['entry_id'] ?? 0);
+            if ($entryId <= 0) {
+                continue;
+            }
+
+            $map[$entryId][] = [
+                'id' => (int) ($row['tag_id'] ?? 0),
+            ];
+        }
+
+        return $map;
     }
 
     /**
@@ -385,11 +484,12 @@ class EntryService extends BaseCrudService implements EntryServiceInterface
         EntrySetCategoriesRequestDTO $dto,
         ?SecurityContext $context = null
     ): DataTransferObjectInterface {
-        if (!$this->repository->find($entryId)) {
+        $entry = $this->repository->find($entryId);
+        if (! $entry) {
             throw new NotFoundException(lang('Api.resourceNotFound'));
         }
 
-        return $this->wrapInTransaction(function () use ($entryId, $dto): DataTransferObjectInterface {
+        return $this->wrapInTransaction(function () use ($entryId, $dto, $entry): DataTransferObjectInterface {
             $categoryIds = $dto->category_ids;
 
             if (!empty($categoryIds)) {
@@ -401,6 +501,16 @@ class EntryService extends BaseCrudService implements EntryServiceInterface
                         lang('Entries.invalid_categories'),
                         ['category_ids' => lang('Entries.some_categories_not_found')]
                     );
+                }
+
+                $entryCollectionId = (int) ($entry->collection_id ?? 0);
+                foreach ($found as $category) {
+                    if ((int) ($category->collection_id ?? 0) !== $entryCollectionId) {
+                        throw new ValidationException(
+                            lang('Entries.invalid_categories'),
+                            ['category_ids' => lang('Entries.some_categories_not_found')]
+                        );
+                    }
                 }
             }
 
@@ -431,7 +541,7 @@ class EntryService extends BaseCrudService implements EntryServiceInterface
         EntrySetTagsRequestDTO $dto,
         ?SecurityContext $context = null
     ): DataTransferObjectInterface {
-        if (!$this->repository->find($entryId)) {
+        if (! $this->repository->find($entryId)) {
             throw new NotFoundException(lang('Api.resourceNotFound'));
         }
 
@@ -467,6 +577,86 @@ class EntryService extends BaseCrudService implements EntryServiceInterface
             return PayloadResponseDTO::fromArray([
                 'entry_id' => $entryId,
                 'tag_ids'  => $tagIds,
+            ]);
+        });
+    }
+
+    public function syncTaxonomy(
+        int $entryId,
+        EntrySyncTaxonomyRequestDTO $dto,
+        ?SecurityContext $context = null
+    ): DataTransferObjectInterface {
+        $entry = $this->repository->find($entryId);
+        if (! $entry) {
+            throw new NotFoundException(lang('Api.resourceNotFound'));
+        }
+
+        return $this->wrapInTransaction(function () use ($entryId, $dto, $entry): DataTransferObjectInterface {
+            $categoryIds = $dto->category_ids;
+            $tagIds = $dto->tag_ids;
+
+            if (! empty($categoryIds)) {
+                /** @var \App\Models\CategoryModel $categoryModel */
+                $categoryModel = model(\App\Models\CategoryModel::class);
+                $foundCategories = $categoryModel->whereIn('id', $categoryIds)->findAll();
+                if (count($foundCategories) !== count($categoryIds)) {
+                    throw new ValidationException(
+                        lang('Entries.invalid_categories'),
+                        ['category_ids' => lang('Entries.some_categories_not_found')]
+                    );
+                }
+
+                $entryCollectionId = (int) ($entry->collection_id ?? 0);
+                foreach ($foundCategories as $category) {
+                    if ((int) ($category->collection_id ?? 0) !== $entryCollectionId) {
+                        throw new ValidationException(
+                            lang('Entries.invalid_categories'),
+                            ['category_ids' => lang('Entries.some_categories_not_found')]
+                        );
+                    }
+                }
+            }
+
+            if (! empty($tagIds)) {
+                /** @var \App\Models\TagModel $tagModel */
+                $tagModel = model(\App\Models\TagModel::class);
+                $foundTags = $tagModel->whereIn('id', $tagIds)->findAll();
+                if (count($foundTags) !== count($tagIds)) {
+                    throw new ValidationException(
+                        lang('Entries.invalid_tags'),
+                        ['tag_ids' => lang('Entries.some_tags_not_found')]
+                    );
+                }
+            }
+
+            $db = \Config\Database::connect();
+            $db->table('cms_entry_categories')->where('entry_id', $entryId)->delete();
+            $db->table('cms_entry_tags')->where('entry_id', $entryId)->delete();
+
+            if (! empty($categoryIds)) {
+                $categoryRows = [];
+                foreach ($categoryIds as $order => $categoryId) {
+                    $categoryRows[] = [
+                        'entry_id' => $entryId,
+                        'category_id' => $categoryId,
+                        'sort_order' => $order,
+                    ];
+                }
+                $db->table('cms_entry_categories')->insertBatch($categoryRows);
+            }
+
+            if (! empty($tagIds)) {
+                $tagRows = [];
+                foreach ($tagIds as $tagId) {
+                    $tagRows[] = ['entry_id' => $entryId, 'tag_id' => $tagId];
+                }
+                $db->table('cms_entry_tags')->insertBatch($tagRows);
+            }
+
+            return PayloadResponseDTO::fromArray([
+                'entry_id' => $entryId,
+                'category_ids' => $categoryIds,
+                'tag_ids' => $tagIds,
             ]);
         });
     }

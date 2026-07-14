@@ -16,6 +16,8 @@ final readonly class EntryResponseDTO implements DataTransferObjectInterface
 {
     /**
      * @param array<mixed>|null $translations
+     * @param list<array<string, mixed>>|null $categories
+     * @param list<array<string, mixed>>|null $tags
      */
     public function __construct(
         #[OA\Property(description: 'Unique identifier', example: 1)]
@@ -48,6 +50,10 @@ final readonly class EntryResponseDTO implements DataTransferObjectInterface
         public ?string $updatedAt = null,
         #[OA\Property(property: 'translations', type: 'array', items: new OA\Items(type: 'object'), nullable: true)]
         public ?array $translations = null,
+        #[OA\Property(property: 'categories', type: 'array', items: new OA\Items(type: 'object'), nullable: true)]
+        public ?array $categories = null,
+        #[OA\Property(property: 'tags', type: 'array', items: new OA\Items(type: 'object'), nullable: true)]
+        public ?array $tags = null,
         #[OA\Property(description: 'title', type: 'string', nullable: true)]
         public ?string $title = null,
         #[OA\Property(description: 'slug', type: 'string', nullable: true)]
@@ -78,6 +84,8 @@ final readonly class EntryResponseDTO implements DataTransferObjectInterface
             createdAt: DateValue::toString($data['created_at'] ?? null),
             updatedAt: DateValue::toString($data['updated_at'] ?? null),
             translations: $data['translations'] ?? null,
+            categories: $data['categories'] ?? null,
+            tags: $data['tags'] ?? null,
             title: $data['title'] ?? null,
             slug: $data['slug'] ?? null,
             collection_key: $data['collection_key'] ?? null,
@@ -114,6 +122,14 @@ final readonly class EntryResponseDTO implements DataTransferObjectInterface
 
         if ($this->translations !== null) {
             $res['translations'] = $this->translations;
+        }
+
+        if ($this->categories !== null) {
+            $res['categories'] = $this->categories;
+        }
+
+        if ($this->tags !== null) {
+            $res['tags'] = $this->tags;
         }
 
         return $res;

@@ -113,6 +113,7 @@ $routes->group('cms', ['namespace' => '\App\Controllers\Api\V1\Cms'], function (
         $routes->delete('redirects/(:num)', 'RedirectController::delete/$1', ['filter' => 'permission:cms.redirects.admin']);
 
         // Entry Pivot relations
+        $routes->post('entries/(:num)/taxonomy', 'EntryController::syncTaxonomy/$1', ['filter' => 'permission:cms.entries.write']);
         $routes->post('entries/(:num)/categories', 'EntryController::setCategories/$1', ['filter' => 'permission:cms.entries.write']);
         $routes->post('entries/(:num)/tags', 'EntryController::setTags/$1', ['filter' => 'permission:cms.entries.write']);
 

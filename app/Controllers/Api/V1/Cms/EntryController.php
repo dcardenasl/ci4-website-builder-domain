@@ -8,6 +8,7 @@ use App\DTO\Request\Cms\EntryCreateRequestDTO;
 use App\DTO\Request\Cms\EntryIndexRequestDTO;
 use App\DTO\Request\Cms\EntrySetCategoriesRequestDTO;
 use App\DTO\Request\Cms\EntrySetTagsRequestDTO;
+use App\DTO\Request\Cms\EntrySyncTaxonomyRequestDTO;
 use App\DTO\Request\Cms\EntryUpdateRequestDTO;
 use App\Interfaces\Cms\EntryServiceInterface;
 use App\Models\EntryTranslationModel;
@@ -117,6 +118,20 @@ class EntryController extends ApiController
                 return $this->entryService->syncTags($id, $dto, $context);
             },
             EntrySetTagsRequestDTO::class
+        );
+    }
+
+    public function syncTaxonomy(int $id): ResponseInterface
+    {
+        return $this->handleRequest(
+            function (EntrySyncTaxonomyRequestDTO $dto, SecurityContext $context) use ($id): mixed {
+                if (! $context->hasPermission('cms.entries.write')) {
+                    throw new \dcardenasl\Ci4ApiCore\Exceptions\AuthorizationException(lang('Api.forbidden'));
+                }
+
+                return $this->entryService->syncTaxonomy($id, $dto, $context);
+            },
+            EntrySyncTaxonomyRequestDTO::class
         );
     }
 

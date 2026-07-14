@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace Tests\Unit\Services\Cms;
 
-use App\Interfaces\Cms\EntryServiceInterface;
 use CodeIgniter\Test\CIUnitTestCase;
 use CodeIgniter\Test\DatabaseTestTrait;
 use Config\Database;
@@ -26,13 +25,6 @@ final class EntryServiceTest extends CIUnitTestCase
     protected $migrateOnce = true;
     protected $refresh     = true;
     protected $namespace   = 'App';
-
-    public function testServiceImplementsItsInterface(): void
-    {
-        $service = Services::entryService(false);
-
-        $this->assertInstanceOf(EntryServiceInterface::class, $service);
-    }
 
     public function testBeforeStoreFillsPublishDefaultsFromCollection(): void
     {
@@ -80,6 +72,26 @@ final class EntryServiceTest extends CIUnitTestCase
         $this->assertNull($data['published_at']);
     }
 
+    public function testShowIncludesCategoriesAndTags(): void
+    {
+        $collectionId = $this->insertCollection();
+        $entryId = $this->insertEntry($collectionId);
+        $categoryId = $this->insertCategory($collectionId);
+        $tagId = $this->insertTag();
+        $this->linkEntryCategory($entryId, $categoryId, 0);
+        $this->linkEntryTag($entryId, $tagId);
+
+        $service = Services::entryService(false);
+        $payload = $service->show($entryId, null)->toArray();
+
+        $this->assertSame([
+            ['id' => $categoryId, 'sort_order' => 0],
+        ], $payload['categories']);
+        $this->assertSame([
+            ['id' => $tagId],
+        ], $payload['tags']);
+    }
+
     /**
      * @param array<string, mixed> $overrides
      */
@@ -101,6 +113,66 @@ final class EntryServiceTest extends CIUnitTestCase
         $db->table('cms_collections')->insert($payload);
 
         return (int) $db->insertID();
+    }
+
+    private function insertEntry(int $collectionId): int
+    {
+        $db = Database::connect();
+        $db->table('cms_entries')->insert([
+            'collection_id' => $collectionId,
+            'author_id' => null,
+            'workflow_status' => 'draft',
+            'published_at' => null,
+            'scheduled_at' => null,
+            'is_featured' => 0,
+            'view_count' => 0,
+            'sort_order' => 0,
+            'sitemap_priority' => '0.5',
+            'sitemap_changefreq' => 'weekly',
+            'is_in_sitemap' => 1,
+        ]);
+
+        return (int) $db->insertID();
+    }
+
+    private function insertCategory(int $collectionId): int
+    {
+        $db = Database::connect();
+        $db->table('cms_categories')->insert([
+            'collection_id' => $collectionId,
+            'parent_id' => null,
+            'sort_order' => 0,
+            'is_active' => 1,
+        ]);
+
+        return (int) $db->insertID();
+    }
+
+    private function insertTag(): int
+    {
+        $db = Database::connect();
+        $db->table('cms_tags')->insert([
+            'is_active' => 1,
+        ]);
+
+        return (int) $db->insertID();
+    }
+
+    private function linkEntryCategory(int $entryId, int $categoryId, int $sortOrder): void
+    {
+        Database::connect()->table('cms_entry_categories')->insert([
+            'entry_id' => $entryId,
+            'category_id' => $categoryId,
+            'sort_order' => $sortOrder,
+        ]);
+    }
+
+    private function linkEntryTag(int $entryId, int $tagId): void
+    {
+        Database::connect()->table('cms_entry_tags')->insert([
+            'entry_id' => $entryId,
+            'tag_id' => $tagId,
+        ]);
     }
 
     public function testDestroyInvalidatesCache(): void

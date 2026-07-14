@@ -8,20 +8,23 @@ use App\DTO\Request\Cms\Support\NormalizesTaxonomyIds;
 use dcardenasl\Ci4ApiCore\Dto\BaseRequestDTO;
 use OpenApi\Attributes as OA;
 
-#[OA\Schema(schema: 'EntrySetCategoriesRequest')]
-readonly class EntrySetCategoriesRequestDTO extends BaseRequestDTO
+#[OA\Schema(schema: 'EntrySyncTaxonomyRequest')]
+readonly class EntrySyncTaxonomyRequestDTO extends BaseRequestDTO
 {
     use NormalizesTaxonomyIds;
 
     /** @var list<int> */
     public array $category_ids;
 
+    /** @var list<int> */
+    public array $tag_ids;
+
     /** @return array<string, string> */
     public function rules(): array
     {
         return [
-            // An empty list deliberately clears all category assignments.
             'category_ids' => 'permit_empty|is_list',
+            'tag_ids' => 'permit_empty|is_list',
         ];
     }
 
@@ -34,11 +37,20 @@ readonly class EntrySetCategoriesRequestDTO extends BaseRequestDTO
             'Entries.invalid_categories',
             'Entries.some_categories_not_found',
         );
+        $this->tag_ids = $this->normalizeTaxonomyIds(
+            $data['tag_ids'] ?? [],
+            'tag_ids',
+            'Entries.invalid_tags',
+            'Entries.some_tags_not_found',
+        );
     }
 
     /** @return array<string, mixed> */
     public function toArray(): array
     {
-        return ['category_ids' => $this->category_ids];
+        return [
+            'category_ids' => $this->category_ids,
+            'tag_ids' => $this->tag_ids,
+        ];
     }
 }

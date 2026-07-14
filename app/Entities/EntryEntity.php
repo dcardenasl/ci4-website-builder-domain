@@ -28,6 +28,8 @@ class EntryEntity extends Entity
         'is_in_sitemap' => 'bool',
         'wizard_extra'  => 'json',
         'translations' => 'array',
+        'categories' => 'array',
+        'tags' => 'array',
     ];
 
     protected $dates = ['created_at', 'updated_at'];

@@ -4,12 +4,15 @@ declare(strict_types=1);
 
 namespace App\DTO\Request\Cms;
 
+use App\DTO\Request\Cms\Support\NormalizesTaxonomyIds;
 use dcardenasl\Ci4ApiCore\Dto\BaseRequestDTO;
 use OpenApi\Attributes as OA;
 
 #[OA\Schema(schema: 'EntrySetTagsRequest')]
 readonly class EntrySetTagsRequestDTO extends BaseRequestDTO
 {
+    use NormalizesTaxonomyIds;
+
     /** @var list<int> */
     public array $tag_ids;
 
@@ -17,16 +20,20 @@ readonly class EntrySetTagsRequestDTO extends BaseRequestDTO
     public function rules(): array
     {
         return [
-            'tag_ids'   => 'required|is_list',
-            'tag_ids.*' => 'required|is_natural_no_zero',
+            // An empty list deliberately clears all tag assignments.
+            'tag_ids' => 'permit_empty|is_list',
         ];
     }
 
     /** @param array<string, mixed> $data */
     protected function map(array $data): void
     {
-        $raw = $data['tag_ids'] ?? [];
-        $this->tag_ids = array_values(array_map('intval', is_array($raw) ? $raw : []));
+        $this->tag_ids = $this->normalizeTaxonomyIds(
+            $data['tag_ids'] ?? [],
+            'tag_ids',
+            'Entries.invalid_tags',
+            'Entries.some_tags_not_found',
+        );
     }
 
     /** @return array<string, mixed> */
