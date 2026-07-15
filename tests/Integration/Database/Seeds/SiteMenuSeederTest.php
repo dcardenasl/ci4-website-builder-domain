@@ -89,6 +89,19 @@ final class SiteMenuSeederTest extends CIUnitTestCase
             ['Inicio', 'Quiénes Somos', 'Historia', 'Portafolio', 'Bloques', 'Multimedia', 'Noticias', 'Landing Page', 'Contacto'],
             $footerLabels
         );
+
+        $legalMenu = $this->db->table('cms_menus')
+            ->where('menu_key', 'legal')
+            ->get()
+            ->getRowArray();
+
+        $this->assertNotNull($legalMenu);
+
+        $legalLabels = $this->menuLabels((int) $legalMenu['id'], 'es', null);
+        $this->assertSame(
+            ['Aviso Legal', 'Política de Privacidad', 'Política de Cookies', 'Derechos de Datos', 'Términos de Servicio', 'Transparencia', 'Accesibilidad'],
+            $legalLabels
+        );
     }
 
     /**

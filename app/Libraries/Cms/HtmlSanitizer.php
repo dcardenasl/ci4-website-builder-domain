@@ -40,16 +40,20 @@ class HtmlSanitizer
         }
         $config->set('Cache.SerializerPath', $cacheDir);
 
+        // Enable ID attribute support
+        $config->set('Attr.EnableID', true);
+
         // Allowed elements (rich text subset — no script/style/form/input)
         // Keep this list aligned with the editor toolbar and HTMLPurifier support.
         $config->set('HTML.Allowed', implode(',', [
-            'p', 'br',
+            'div[id|class]',
+            'p[id|class]', 'br',
             'b', 'strong', 'i', 'em', 'u', 's', 'small',
-            'ul', 'ol', 'li',
+            'ul[id|class]', 'ol[id|class]', 'li[id|class]',
             'blockquote', 'pre', 'code',
-            'h2', 'h3', 'h4',
-            'a[href|title|target|rel]',
-            'img[src|alt|width|height]',
+            'h2[id|class]', 'h3[id|class]', 'h4[id|class]',
+            'a[href|title|target|rel|id|class]',
+            'img[src|alt|width|height|id|class]',
             'hr',
         ]));
 

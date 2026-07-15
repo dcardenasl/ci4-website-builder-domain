@@ -84,6 +84,105 @@ class SitePagesSeeder extends Seeder
             'robots'           => 'index, follow',
             'schema_data'      => null,
         ]);
+
+        // ── 404 Page ────────────────────────────────────────────────────────
+        $notFoundId = $this->upsertPage('404', [
+            'page_type'          => '404',
+            'status'             => 'published',
+            'published_at'       => $now,
+            'scheduled_at'       => null,
+            'sort_order'         => 900,
+            'sitemap_priority'   => '0.1',
+            'sitemap_changefreq' => 'never',
+            'is_in_sitemap'      => 0,
+        ]);
+
+        $this->upsertPageTranslation($notFoundId, $langIds['es'], [
+            'slug'             => '404',
+            'title'            => 'Página no encontrada',
+            'excerpt'          => 'La página que buscas no existe o ha sido movida.',
+            'meta_title'       => 'Página no encontrada | Mi Sitio',
+            'meta_description' => 'La página solicitada no está disponible.',
+            'canonical_url'    => null,
+            'robots'           => 'noindex, nofollow',
+            'schema_data'      => null,
+        ]);
+        $this->upsertPageTranslation($notFoundId, $langIds['en'], [
+            'slug'             => '404',
+            'title'            => 'Page Not Found',
+            'excerpt'          => 'The page you are looking for does not exist or has been moved.',
+            'meta_title'       => 'Page Not Found | My Site',
+            'meta_description' => 'The requested page is not available.',
+            'canonical_url'    => null,
+            'robots'           => 'noindex, nofollow',
+            'schema_data'      => null,
+        ]);
+
+        // ── 500 Page ────────────────────────────────────────────────────────
+        $internalErrorId = $this->upsertPage('500', [
+            'page_type'          => '500',
+            'status'             => 'published',
+            'published_at'       => $now,
+            'scheduled_at'       => null,
+            'sort_order'         => 910,
+            'sitemap_priority'   => '0.1',
+            'sitemap_changefreq' => 'never',
+            'is_in_sitemap'      => 0,
+        ]);
+
+        $this->upsertPageTranslation($internalErrorId, $langIds['es'], [
+            'slug'             => '500',
+            'title'            => 'Error interno del servidor',
+            'excerpt'          => 'Ha ocurrido un error inesperado. Estamos trabajando para solucionarlo.',
+            'meta_title'       => 'Error interno | Mi Sitio',
+            'meta_description' => 'Error interno en el servidor.',
+            'canonical_url'    => null,
+            'robots'           => 'noindex, nofollow',
+            'schema_data'      => null,
+        ]);
+        $this->upsertPageTranslation($internalErrorId, $langIds['en'], [
+            'slug'             => '500',
+            'title'            => 'Internal Server Error',
+            'excerpt'          => 'An unexpected error has occurred. We are working to fix it.',
+            'meta_title'       => 'Internal Server Error | My Site',
+            'meta_description' => 'Internal server error occurred.',
+            'canonical_url'    => null,
+            'robots'           => 'noindex, nofollow',
+            'schema_data'      => null,
+        ]);
+
+        // ── Maintenance Page ────────────────────────────────────────────────
+        $maintenanceId = $this->upsertPage('maintenance', [
+            'page_type'          => 'maintenance',
+            'status'             => 'published',
+            'published_at'       => $now,
+            'scheduled_at'       => null,
+            'sort_order'         => 920,
+            'sitemap_priority'   => '0.1',
+            'sitemap_changefreq' => 'never',
+            'is_in_sitemap'      => 0,
+        ]);
+
+        $this->upsertPageTranslation($maintenanceId, $langIds['es'], [
+            'slug'             => 'mantenimiento',
+            'title'            => 'Sitio en mantenimiento',
+            'excerpt'          => 'Estamos realizando tareas de mantenimiento programado. Volveremos pronto.',
+            'meta_title'       => 'Mantenimiento | Mi Sitio',
+            'meta_description' => 'El sitio web se encuentra en mantenimiento temporal.',
+            'canonical_url'    => null,
+            'robots'           => 'noindex, nofollow',
+            'schema_data'      => null,
+        ]);
+        $this->upsertPageTranslation($maintenanceId, $langIds['en'], [
+            'slug'             => 'maintenance',
+            'title'            => 'Site Under Maintenance',
+            'excerpt'          => 'We are currently undergoing scheduled maintenance. We will be back shortly.',
+            'meta_title'       => 'Maintenance | My Site',
+            'meta_description' => 'The website is temporarily offline for maintenance.',
+            'canonical_url'    => null,
+            'robots'           => 'noindex, nofollow',
+            'schema_data'      => null,
+        ]);
     }
 
     /**

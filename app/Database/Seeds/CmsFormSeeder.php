@@ -16,6 +16,7 @@ class CmsFormSeeder extends Seeder
     use IdempotentSeederSupport;
 
     private const CONTACT_FORM_KEY = 'contact';
+    private const GDPR_FORM_KEY    = 'gdpr_rights';
 
     public function run(): void
     {
@@ -26,7 +27,8 @@ class CmsFormSeeder extends Seeder
             return;
         }
 
-        $formId = $this->upsertForm([
+        // ── 1. Contact Form ───────────────────────────────────────────────────
+        $contactFormId = $this->upsertForm([
             'form_key'              => self::CONTACT_FORM_KEY,
             'is_active'             => 1,
             'has_captcha'           => 0,
@@ -35,7 +37,7 @@ class CmsFormSeeder extends Seeder
             'autoreply_email_field' => 'email',
         ]);
 
-        $translations = [
+        $contactTranslations = [
             'es' => [
                 'name'            => 'Formulario de Contacto',
                 'description'     => null,
@@ -52,15 +54,15 @@ class CmsFormSeeder extends Seeder
             ],
         ];
 
-        foreach ($translations as $code => $trans) {
+        foreach ($contactTranslations as $code => $trans) {
             $langId = $langIds[$code] ?? null;
             if ($langId === null) {
                 continue;
             }
-            $this->upsertFormTranslation($formId, $langId, $trans);
+            $this->upsertFormTranslation($contactFormId, $langId, $trans);
         }
 
-        $fields = [
+        $contactFields = [
             [
                 'field_key'    => 'name',
                 'field_type'   => 'text',
@@ -93,8 +95,8 @@ class CmsFormSeeder extends Seeder
             ],
         ];
 
-        foreach ($fields as $fieldDef) {
-            $fieldId = $this->upsertFormField($formId, $fieldDef);
+        foreach ($contactFields as $fieldDef) {
+            $fieldId = $this->upsertFormField($contactFormId, $fieldDef);
 
             foreach ($fieldDef['translations'] as $code => $trans) {
                 $langId = $langIds[$code] ?? null;
@@ -105,7 +107,126 @@ class CmsFormSeeder extends Seeder
             }
         }
 
-        echo "CmsFormSeeder: contact form seeded (form_id={$formId}, form_key=" . self::CONTACT_FORM_KEY . ").\n";
+        echo "CmsFormSeeder: contact form seeded.\n";
+
+        // ── 2. GDPR/ARCO Rights Form ──────────────────────────────────────────
+        $gdprFormId = $this->upsertForm([
+            'form_key'              => self::GDPR_FORM_KEY,
+            'is_active'             => 1,
+            'has_captcha'           => 0,
+            'notify_email'          => null,
+            'autoreply_enabled'     => 1,
+            'autoreply_email_field' => 'email',
+        ]);
+
+        $gdprTranslations = [
+            'es' => [
+                'name'            => 'Solicitud de Derechos de Datos (ARCO)',
+                'description'     => 'Utilice este formulario para ejercer sus derechos de protección de datos personales de acuerdo con el RGPD.',
+                'submit_label'    => 'Enviar solicitud',
+                'success_message' => '¡Su solicitud ha sido recibida! Responderemos a su requerimiento en el plazo legal.',
+                'error_message'   => 'Ocurrió un error al enviar su solicitud. Por favor inténtelo de nuevo.',
+            ],
+            'en' => [
+                'name'            => 'Data Subject Rights Request (GDPR)',
+                'description'     => 'Use this form to exercise your personal data protection rights in accordance with GDPR.',
+                'submit_label'    => 'Submit request',
+                'success_message' => 'Your request has been received! We will respond within the legally required timeframe.',
+                'error_message'   => 'There was an error submitting your request. Please try again.',
+            ],
+        ];
+
+        foreach ($gdprTranslations as $code => $trans) {
+            $langId = $langIds[$code] ?? null;
+            if ($langId === null) {
+                continue;
+            }
+            $this->upsertFormTranslation($gdprFormId, $langId, $trans);
+        }
+
+        $gdprFields = [
+            [
+                'field_key'     => 'fullname',
+                'field_type'    => 'text',
+                'display_order' => 10,
+                'is_required'   => 1,
+                'translations'  => [
+                    'es' => ['label' => 'Nombre completo', 'placeholder' => 'Su nombre y apellidos', 'help_text' => null, 'error_required' => 'Por favor ingrese su nombre.', 'error_invalid' => null],
+                    'en' => ['label' => 'Full name', 'placeholder' => 'Your first and last name', 'help_text' => null, 'error_required' => 'Please enter your full name.', 'error_invalid' => null],
+                ],
+            ],
+            [
+                'field_key'     => 'email',
+                'field_type'    => 'email',
+                'display_order' => 20,
+                'is_required'   => 1,
+                'translations'  => [
+                    'es' => ['label' => 'Correo electrónico', 'placeholder' => 'correo@ejemplo.com', 'help_text' => null, 'error_required' => 'Por favor ingrese su email.', 'error_invalid' => 'Ingrese un correo electrónico válido.'],
+                    'en' => ['label' => 'Email address', 'placeholder' => 'you@example.com', 'help_text' => null, 'error_required' => 'Please enter your email.', 'error_invalid' => 'Enter a valid email address.'],
+                ],
+            ],
+            [
+                'field_key'     => 'right_type',
+                'field_type'    => 'select',
+                'display_order' => 30,
+                'is_required'   => 1,
+                'options'       => ['access', 'rectification', 'erasure', 'objection', 'portability'],
+                'translations'  => [
+                    'es' => [
+                        'label'          => 'Derecho a ejercer',
+                        'placeholder'    => 'Seleccione una opción',
+                        'help_text'      => 'Seleccione el derecho que desea ejercitar sobre sus datos.',
+                        'error_required' => 'Por favor seleccione una opción.',
+                        'error_invalid'  => null,
+                        'option_labels'  => [
+                            'access'        => 'Acceso (Conocer qué datos tenemos)',
+                            'rectification' => 'Rectificación (Corregir datos incorrectos)',
+                            'erasure'       => 'Supresión / Olvido (Eliminar mis datos)',
+                            'objection'     => 'Oposición (Rechazar ciertos tratamientos)',
+                            'portability'   => 'Portabilidad (Recibir mis datos en formato estructurado)',
+                        ],
+                    ],
+                    'en' => [
+                        'label'          => 'Right to exercise',
+                        'placeholder'    => 'Select an option',
+                        'help_text'      => 'Select the right you wish to exercise over your data.',
+                        'error_required' => 'Please select an option.',
+                        'error_invalid'  => null,
+                        'option_labels'  => [
+                            'access'        => 'Access (Know what data we have)',
+                            'rectification' => 'Rectification (Correct incorrect data)',
+                            'erasure'       => 'Erasure (Delete my data)',
+                            'objection'     => 'Objection (Object to certain treatments)',
+                            'portability'   => 'Portability (Receive my data in structured format)',
+                        ],
+                    ],
+                ],
+            ],
+            [
+                'field_key'     => 'details',
+                'field_type'    => 'textarea',
+                'display_order' => 40,
+                'is_required'   => 1,
+                'translations'  => [
+                    'es' => ['label' => 'Detalles de la solicitud', 'placeholder' => 'Describa detalladamente su petición...', 'help_text' => 'Especifique la información afectada o el cambio requerido.', 'error_required' => 'Por favor especifique los detalles.', 'error_invalid' => null],
+                    'en' => ['label' => 'Details of the request', 'placeholder' => 'Describe your request in detail...', 'help_text' => 'Specify the affected information or the required change.', 'error_required' => 'Please specify request details.', 'error_invalid' => null],
+                ],
+            ],
+        ];
+
+        foreach ($gdprFields as $fieldDef) {
+            $fieldId = $this->upsertFormField($gdprFormId, $fieldDef);
+
+            foreach ($fieldDef['translations'] as $code => $trans) {
+                $langId = $langIds[$code] ?? null;
+                if ($langId === null) {
+                    continue;
+                }
+                $this->upsertFormFieldTranslation($fieldId, $langId, $trans);
+            }
+        }
+
+        echo "CmsFormSeeder: GDPR/ARCO rights form seeded.\n";
     }
 
     // ── Helpers ──────────────────────────────────────────────────────────────
@@ -166,6 +287,7 @@ class CmsFormSeeder extends Seeder
             'display_order' => $data['display_order'],
             'is_required'   => $data['is_required'],
             'is_active'     => 1,
+            'options'       => isset($data['options']) ? json_encode($data['options'], JSON_UNESCAPED_UNICODE) : null,
         ]);
 
         if ($fieldId === null) {
@@ -184,6 +306,13 @@ class CmsFormSeeder extends Seeder
         $this->upsertRecord('cms_form_field_translations', [
             'form_field_id' => $fieldId,
             'language_id'   => $languageId,
-        ], $data);
+        ], [
+            'label'          => $data['label'] ?? null,
+            'placeholder'    => $data['placeholder'] ?? null,
+            'help_text'      => $data['help_text'] ?? null,
+            'error_required' => $data['error_required'] ?? null,
+            'error_invalid'  => $data['error_invalid'] ?? null,
+            'option_labels'  => isset($data['option_labels']) ? json_encode($data['option_labels'], JSON_UNESCAPED_UNICODE) : null,
+        ]);
     }
 }

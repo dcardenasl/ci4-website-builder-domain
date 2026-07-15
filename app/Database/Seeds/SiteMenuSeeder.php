@@ -47,6 +47,13 @@ class SiteMenuSeeder extends Seeder
         $mediaPageId           = $this->pageIdBySlug(['multimedia', 'media']);
         $landingPageId         = $this->pageIdBySlug(['landing']);
         $contactPageId         = $this->pageIdByType('contact');
+        $legalNoticePageId     = $this->pageIdBySlug(['aviso-legal', 'legal-notice']);
+        $privacyPageId         = $this->pageIdBySlug(['politica-privacidad', 'privacy-policy']);
+        $cookiesPageId         = $this->pageIdBySlug(['politica-cookies', 'cookie-policy']);
+        $dataRightsPageId      = $this->pageIdBySlug(['derechos-datos', 'data-rights']);
+        $termsPageId           = $this->pageIdBySlug(['terminos-servicio', 'terms-of-service']);
+        $transparencyPageId    = $this->pageIdBySlug(['transparencia', 'transparency']);
+        $accessibilityPageId   = $this->pageIdBySlug(['accesibilidad', 'accessibility']);
         $newsCollectionId      = $this->collectionIdByKey('noticias');
 
         if ($homePageId === null || $contactPageId === null || $newsCollectionId === null) {
@@ -253,6 +260,85 @@ class SiteMenuSeeder extends Seeder
         ], ['es' => 'Contacto', 'en' => 'Contact'], $langIds);
 
         $this->pruneMenuItems($footerMenuId, $footerMenuItemIds);
+
+        // ── Legal secondary menu (flat) ───────────────────────────────────────
+        $legalMenuId = $this->upsertMenu('legal', 'footer_secondary', [
+            'es' => 'Enlaces legales',
+            'en' => 'Legal links',
+        ]);
+        $legalMenuItemIds = [];
+
+        if ($legalNoticePageId !== null) {
+            $legalMenuItemIds[] = $this->upsertMenuItem($legalMenuId, 'page', [
+                'page_id'       => $legalNoticePageId,
+                'entry_id'      => null,
+                'collection_id' => null,
+                'parent_id'     => null,
+                'sort_order'    => 1,
+            ], ['es' => 'Aviso Legal', 'en' => 'Legal Notice'], $langIds);
+        }
+
+        if ($privacyPageId !== null) {
+            $legalMenuItemIds[] = $this->upsertMenuItem($legalMenuId, 'page', [
+                'page_id'       => $privacyPageId,
+                'entry_id'      => null,
+                'collection_id' => null,
+                'parent_id'     => null,
+                'sort_order'    => 2,
+            ], ['es' => 'Política de Privacidad', 'en' => 'Privacy Policy'], $langIds);
+        }
+
+        if ($cookiesPageId !== null) {
+            $legalMenuItemIds[] = $this->upsertMenuItem($legalMenuId, 'page', [
+                'page_id'       => $cookiesPageId,
+                'entry_id'      => null,
+                'collection_id' => null,
+                'parent_id'     => null,
+                'sort_order'    => 3,
+            ], ['es' => 'Política de Cookies', 'en' => 'Cookie Policy'], $langIds);
+        }
+
+        if ($dataRightsPageId !== null) {
+            $legalMenuItemIds[] = $this->upsertMenuItem($legalMenuId, 'page', [
+                'page_id'       => $dataRightsPageId,
+                'entry_id'      => null,
+                'collection_id' => null,
+                'parent_id'     => null,
+                'sort_order'    => 4,
+            ], ['es' => 'Derechos de Datos', 'en' => 'Data Rights'], $langIds);
+        }
+
+        if ($termsPageId !== null) {
+            $legalMenuItemIds[] = $this->upsertMenuItem($legalMenuId, 'page', [
+                'page_id'       => $termsPageId,
+                'entry_id'      => null,
+                'collection_id' => null,
+                'parent_id'     => null,
+                'sort_order'    => 5,
+            ], ['es' => 'Términos de Servicio', 'en' => 'Terms of Service'], $langIds);
+        }
+
+        if ($transparencyPageId !== null) {
+            $legalMenuItemIds[] = $this->upsertMenuItem($legalMenuId, 'page', [
+                'page_id'       => $transparencyPageId,
+                'entry_id'      => null,
+                'collection_id' => null,
+                'parent_id'     => null,
+                'sort_order'    => 6,
+            ], ['es' => 'Transparencia', 'en' => 'Transparency'], $langIds);
+        }
+
+        if ($accessibilityPageId !== null) {
+            $legalMenuItemIds[] = $this->upsertMenuItem($legalMenuId, 'page', [
+                'page_id'       => $accessibilityPageId,
+                'entry_id'      => null,
+                'collection_id' => null,
+                'parent_id'     => null,
+                'sort_order'    => 7,
+            ], ['es' => 'Accesibilidad', 'en' => 'Accessibility'], $langIds);
+        }
+
+        $this->pruneMenuItems($legalMenuId, $legalMenuItemIds);
     }
 
     // ── Private helpers ───────────────────────────────────────────────────────
@@ -297,14 +383,39 @@ class SiteMenuSeeder extends Seeder
     }
 
     /**
-     * @param list<string> $slugs
+     * Find page by slug(s). Prioritizes Spanish slug (first in array) over English.
+     *
+     * @param list<string> $slugs Spanish slug first, then English slug
      */
     private function pageIdBySlug(array $slugs): ?int
     {
-        if ($slugs === []) {
+        if ($slugs === [] || count($slugs) === 0) {
             return null;
         }
 
+        // Get language IDs for Spanish
+        $langIds = $this->langIds(['es', 'en']);
+        $spanishLangId = $langIds['es'] ?? null;
+
+        // If we have a Spanish slug, prefer pages with Spanish translations
+        if (!empty($slugs[0]) && $spanishLangId !== null) {
+            $spanishSlug = $slugs[0];
+            $row = $this->db->table('cms_pages')
+                ->select('cms_pages.id')
+                ->join('cms_page_translations', 'cms_page_translations.page_id = cms_pages.id')
+                ->where('cms_pages.deleted_at IS NULL', null, false)
+                ->where('cms_page_translations.slug', $spanishSlug)
+                ->where('cms_page_translations.language_id', $spanishLangId)
+                ->orderBy('cms_pages.id', 'ASC')
+                ->get()
+                ->getRow();
+
+            if ($row !== null) {
+                return (int) $row->id;
+            }
+        }
+
+        // Fallback: search all provided slugs (including English)
         $row = $this->db->table('cms_pages')
             ->select('cms_pages.id')
             ->join('cms_page_translations', 'cms_page_translations.page_id = cms_pages.id')
@@ -312,9 +423,9 @@ class SiteMenuSeeder extends Seeder
             ->whereIn('cms_page_translations.slug', $slugs)
             ->orderBy('cms_pages.id', 'ASC')
             ->get()
-            ->getRowArray();
+            ->getRow();
 
-        return $row !== null ? (int) $row['id'] : null;
+        return $row !== null ? (int) $row->id : null;
     }
 
     private function collectionIdByKey(string $collectionKey): ?int

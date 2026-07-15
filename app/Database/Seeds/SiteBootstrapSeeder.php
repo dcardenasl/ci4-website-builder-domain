@@ -22,6 +22,7 @@ class SiteBootstrapSeeder extends Seeder
         $this->call(CmsBlockTypeSeeder::class);
         $this->call(SitePagesSeeder::class);
         $this->call(NewsCollectionSeeder::class);
+        $this->call(SiteNewsPageSeeder::class);
         $this->call(WizardConfigSeeder::class);
         $this->call(CmsPageBlockSeeder::class);
         $this->call(CmsHeroSliderChildrenSeeder::class);
@@ -33,6 +34,9 @@ class SiteBootstrapSeeder extends Seeder
         $this->call(SiteComponentsPageSeeder::class);
         $this->call(SiteMediaPageSeeder::class);
         $this->call(SiteLandingPageSeeder::class);
+        $this->call(SiteLegalPagesSeederChile::class);
+        $this->call(SiteLegalMenuSeeder::class);
+        $this->call(FixCollectionIndexPages::class);
         $this->call(SiteMenuSeeder::class);
     }
 }

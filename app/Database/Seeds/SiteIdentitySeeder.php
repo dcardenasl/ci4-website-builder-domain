@@ -123,6 +123,32 @@ class SiteIdentitySeeder extends Seeder
                     'en' => '© ' . date('Y') . ' My Site. All rights reserved.',
                 ],
             ],
+            [
+                'setting_key'     => 'footer_menu_layout',
+                'setting_value'   => 'vertical',
+                'setting_type'    => 'string',
+                'input_type'      => 'select',
+                'setting_group'   => 'identity',
+                'is_translatable' => 0,
+                'is_public'       => 1,
+                'is_active'       => 1,
+                'sort_order'      => 55,
+                'description'     => 'Diseño del menú de navegación del pie de página (horizontal o vertical)',
+                'setting_meta'    => json_encode(['options' => ['horizontal', 'vertical']], JSON_UNESCAPED_UNICODE),
+            ],
+            [
+                'setting_key'     => 'footer_legal_menu_layout',
+                'setting_value'   => 'horizontal',
+                'setting_type'    => 'string',
+                'input_type'      => 'select',
+                'setting_group'   => 'identity',
+                'is_translatable' => 0,
+                'is_public'       => 1,
+                'is_active'       => 1,
+                'sort_order'      => 60,
+                'description'     => 'Diseño del menú legal del pie de página (horizontal o vertical)',
+                'setting_meta'    => json_encode(['options' => ['horizontal', 'vertical']], JSON_UNESCAPED_UNICODE),
+            ],
         ];
 
         foreach ($settings as $setting) {
