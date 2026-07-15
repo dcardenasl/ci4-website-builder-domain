@@ -1,6 +1,6 @@
 {
     "name": "ci4/website-builder",
-    "description": "CodeIgniter 4 Website Builder starter \u2014 delegates auth to a hub via /auth/introspect.",
+    "description": "CodeIgniter 4 Website Builder starter — delegates auth to a hub via /auth/introspect.",
     "type": "project",
     "license": "MIT",
     "require": {
@@ -88,7 +88,10 @@
             "@i18n-check",
             "@docs-i18n-check",
             "@test"
-        ]
+        ],
+        "format": "@cs-fix",
+        "format:check": "@cs-check",
+        "analyse": "@phpstan"
     },
     "config": {
         "optimize-autoloader": true,
