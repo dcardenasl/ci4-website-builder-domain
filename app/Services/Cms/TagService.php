@@ -6,7 +6,7 @@ namespace App\Services\Cms;
 
 use App\Entities\TagEntity;
 use App\Interfaces\Cms\TagServiceInterface;
-use dcardenasl\Ci4ApiCore\Dto\SecurityContext;
+use App\Traits\Services\HasTranslatableTaxonomyLifecycle;
 use dcardenasl\Ci4ApiCore\Mappers\ResponseMapperInterface;
 use dcardenasl\Ci4ApiCore\Repositories\RepositoryInterface;
 use dcardenasl\Ci4ApiCore\Services\BaseCrudService;
@@ -16,10 +16,8 @@ use dcardenasl\Ci4ApiCore\Services\BaseCrudService;
  */
 class TagService extends BaseCrudService implements TagServiceInterface
 {
-    /** @var array<array{language_id: int, slug: string, name: string}>|null */
-    private ?array $tempTranslations = null;
+    use HasTranslatableTaxonomyLifecycle;
 
-    private \App\Libraries\Cms\CacheInvalidationClient $cacheInvalidator;
     private \App\Libraries\Cms\TranslationResolver $translationResolver;
 
     /**
@@ -33,52 +31,6 @@ class TagService extends BaseCrudService implements TagServiceInterface
         parent::__construct($tagRepository, $responseMapper);
         $this->cacheInvalidator = $cacheInvalidator ?? service('cacheInvalidationClient');
         $this->translationResolver = service('translationResolver');
-    }
-
-    protected function beforeStore(array $data, ?SecurityContext $context): array
-    {
-        $data = parent::beforeStore($data, $context);
-        $this->tempTranslations = $data['translations'] ?? null;
-        unset($data['translations']);
-        return $data;
-    }
-
-    protected function afterStore(object $entity, ?SecurityContext $context): void
-    {
-        parent::afterStore($entity, $context);
-        if ($this->tempTranslations !== null) {
-            $this->saveTranslations((int) $entity->id, $this->tempTranslations);
-        }
-        $this->cacheInvalidator->invalidate(['taxonomies', 'entries']);
-        $this->tempTranslations = null;
-    }
-
-    protected function beforeUpdate(int $id, array $data, ?SecurityContext $context): array
-    {
-        $data = parent::beforeUpdate($id, $data, $context);
-        if (array_key_exists('translations', $data)) {
-            $this->tempTranslations = $data['translations'];
-            unset($data['translations']);
-        } else {
-            $this->tempTranslations = null;
-        }
-        return $data;
-    }
-
-    protected function afterUpdate(object $entity, ?SecurityContext $context): void
-    {
-        parent::afterUpdate($entity, $context);
-        if ($this->tempTranslations !== null) {
-            $this->saveTranslations((int) $entity->id, $this->tempTranslations);
-        }
-        $this->cacheInvalidator->invalidate(['taxonomies', 'entries']);
-        $this->tempTranslations = null;
-    }
-
-    protected function afterDelete(object $entity, ?SecurityContext $context): void
-    {
-        parent::afterDelete($entity, $context);
-        $this->cacheInvalidator->invalidate(['taxonomies', 'entries']);
     }
 
     protected function enrichEntities(array $entities): array
@@ -163,7 +115,7 @@ class TagService extends BaseCrudService implements TagServiceInterface
     /**
      * @param array<array{language_id: int, slug: string, name: string}> $translations
      */
-    private function saveTranslations(int $tagId, array $translations): void
+    protected function saveTranslations(int $tagId, array $translations): void
     {
         /** @var \App\Models\TagTranslationModel $translationModel */
         $translationModel = model(\App\Models\TagTranslationModel::class);
