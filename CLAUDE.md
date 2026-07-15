@@ -52,6 +52,10 @@ Browser/SPA → Website Builder (here)    → Database (this app's tables)
 php spark serve --port 8090
 
 # Tests
+# Prefer `composer test*` (passes --no-coverage). Bare `vendor/bin/phpunit` triggers a
+# harmless XDEBUG_MODE=coverage warning (phpunit.xml declares a <coverage> block for
+# test:coverage but xdebug isn't active by default) and returns a non-zero exit code on
+# an otherwise-passing run — add --no-coverage yourself if running it directly.
 vendor/bin/phpunit
 vendor/bin/phpunit tests/Unit
 vendor/bin/phpunit tests/Integration

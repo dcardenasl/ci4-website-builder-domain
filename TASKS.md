@@ -2,7 +2,7 @@
 
 > Fuente de verdad **local** para trabajo en este repo.
 > Para tareas globales del proyecto, ver: [../TASKS.md](../TASKS.md)
-> Plan detallado de Form Submissions: [../../docs/form_submissions_plan.md](../../docs/form_submissions_plan.md)
+> Plan detallado de Form Submissions: [../docs/form_submissions_plan.md](../docs/form_submissions_plan.md)
 > Última actualización: 2026-06-23 (CMS-012 completado, CMS-013-016 en TASKS.md raíz)
 
 ---
