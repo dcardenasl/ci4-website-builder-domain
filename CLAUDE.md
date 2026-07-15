@@ -169,8 +169,8 @@ You can re-run `domain:sync-permissions` at any time — it is idempotent.
 
 PHPStan runs at level 8 with a `phpstan-baseline.neon` that tracks historical type-debt.
 **Rule:** the baseline entry count can only decrease. New code must not introduce new errors.
-Current count: **36 baselined entries** (covering 74 suppressed errors). This is
-type-debt still to drain — not a clean slate. New code must not add to it.
+Current count: **0 baselined entries** (drained on 2026-07-15 — clean slate). Keep it
+that way: new code must ship with zero PHPStan errors and no new baseline entries.
 
 Run before pushing:
 
