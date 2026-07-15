@@ -97,4 +97,23 @@ final class PublicCollectionControllerTest extends CIUnitTestCase
         $this->assertSame('news', $body['data'][0]['localized_slugs']['en']);
         $this->assertArrayNotHasKey('url_prefix', $body['data'][0]);
     }
+
+    public function testGetPublicCollectionsFallsBackToNameWhenListingTitleIsEmpty(): void
+    {
+        $this->db->table('cms_collection_translations')
+            ->where('collection_id', $this->collectionId)
+            ->where('language_id', $this->langEsId)
+            ->update([
+                'slug'          => 'festivales',
+                'name'          => 'Festivales',
+                'listing_title' => '',
+            ]);
+
+        $result = $this->get('/api/v1/public/es/collections');
+
+        $result->assertStatus(200);
+        $body = json_decode($result->getJSON(), true);
+
+        $this->assertSame('Festivales', $body['data'][0]['listing_title']);
+    }
 }

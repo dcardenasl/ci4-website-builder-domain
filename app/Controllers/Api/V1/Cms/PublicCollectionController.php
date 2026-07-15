@@ -53,7 +53,7 @@ class PublicCollectionController extends ApiController
                             }
                         }
 
-                        $resolvedCollections[] = array_merge($collection->toArray(), [
+                        $collectionPayload = array_merge($collection->toArray(), [
                             'slug'                     => $resolved['slug'] ?? null,
                             'name'                     => $resolved['name'] ?? '',
                             'description'              => $resolved['description'] ?? null,
@@ -65,6 +65,11 @@ class PublicCollectionController extends ApiController
                             'is_fallback'              => $resolved['is_fallback'] ?? false,
                             'index_page'               => $indexPageData,
                         ]);
+
+                        $collectionPayload['listing_title'] = collection_display_title($collectionPayload);
+                        $collectionPayload['listing_intro'] = collection_display_intro($collectionPayload);
+
+                        $resolvedCollections[] = $collectionPayload;
                     }
                 }
 

@@ -6,6 +6,7 @@ parameters:
     bootstrapFiles:
         - phpstan-bootstrap.php
     paths:
+        - app/Common.php
         - app/Controllers
         - app/Services
         - app/Models
