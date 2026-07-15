@@ -182,4 +182,28 @@ trait IdempotentSeederSupport
             'collection_id' => $collectionId,
         ], $data);
     }
+
+    /**
+     * Delete every block instance (and its translations) owned by a page, so
+     * a re-run of the seeder can insert a clean set instead of accumulating
+     * duplicates. Extracted from 8 page seeders that each carried a
+     * byte-identical copy (2026-07-15 hygiene cleanup, DEBT-001).
+     */
+    protected function resetPageBlocks(int $pageId): void
+    {
+        $instanceIds = $this->db->table('cms_block_instances')
+            ->select('id')
+            ->where('owner_type', 'page')
+            ->where('owner_id', $pageId)
+            ->get()
+            ->getResultArray();
+
+        if ($instanceIds === []) {
+            return;
+        }
+
+        $ids = array_map(static fn (array $row): int => (int) $row['id'], $instanceIds);
+        $this->db->table('cms_block_instance_translations')->whereIn('instance_id', $ids)->delete();
+        $this->db->table('cms_block_instances')->whereIn('id', $ids)->delete();
+    }
 }
