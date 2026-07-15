@@ -459,24 +459,6 @@ class SiteLandingPageSeeder extends Seeder
         );
     }
 
-    private function resetPageBlocks(int $pageId): void
-    {
-        $instanceIds = $this->db->table('cms_block_instances')
-            ->select('id')
-            ->where('owner_type', 'page')
-            ->where('owner_id', $pageId)
-            ->get()
-            ->getResultArray();
-
-        if ($instanceIds === []) {
-            return;
-        }
-
-        $ids = array_map(static fn (array $row): int => (int) $row['id'], $instanceIds);
-        $this->db->table('cms_block_instance_translations')->whereIn('instance_id', $ids)->delete();
-        $this->db->table('cms_block_instances')->whereIn('id', $ids)->delete();
-    }
-
     private function upsertPage(): int
     {
         $existing = $this->db->table('cms_pages')
