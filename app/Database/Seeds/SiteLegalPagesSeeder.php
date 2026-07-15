@@ -17,6 +17,9 @@ class SiteLegalPagesSeeder extends Seeder
 
     public function run(): void
     {
+        // PHASE 0: Auto-migrate old legal page slugs if they exist (from prior runs)
+        $this->migrateOldLegalPages();
+
         $langIds = $this->langIds(['es', 'en']);
         if (! isset($langIds['es'], $langIds['en'])) {
             echo "SiteLegalPagesSeeder: missing languages. Seed CmsLanguageSeeder first.\n";
@@ -594,5 +597,82 @@ class SiteLegalPagesSeeder extends Seeder
         }
 
         return $map;
+    }
+
+    /**
+     * Automatically migrate old legal page slugs to new ones.
+     * This ensures the seeder is fully idempotent even if page slugs change between runs.
+     * If old pages exist and new pages don't, renames old→new.
+     * If both exist, deletes the old to avoid duplicates.
+     */
+    private function migrateOldLegalPages(): void
+    {
+        // Legacy slug → current slug mapping (from prior naming conventions)
+        $slugMappings = [
+            'legal-notice' => 'aviso-legal',
+            'privacy-policy' => 'politica-privacidad',
+            'cookie-policy' => 'politica-cookies',
+            'data-rights' => 'derechos-datos',
+            'terms-of-service' => 'terminos-servicio',
+            'transparency' => 'transparencia',
+            'accessibility' => 'accesibilidad',
+        ];
+
+        foreach ($slugMappings as $oldSlug => $newSlug) {
+            $oldPage = $this->db->table('cms_page_translations')
+                ->where('slug', $oldSlug)
+                ->get()
+                ->getRowArray();
+
+            if ($oldPage === null) {
+                continue; // Old page doesn't exist, nothing to migrate
+            }
+
+            $oldPageId = (int) $oldPage['page_id'];
+
+            // Check if new page already exists
+            $newPage = $this->db->table('cms_page_translations')
+                ->where('slug', $newSlug)
+                ->get()
+                ->getRowArray();
+
+            if ($newPage !== null) {
+                // New page exists → delete old to avoid duplicates
+                $this->deletePageAndReferences($oldPageId);
+                echo "SiteLegalPagesSeeder: deleted duplicate old page with slug '{$oldSlug}'.\n";
+                continue;
+            }
+
+            // New page doesn't exist → rename old to new
+            $this->db->table('cms_page_translations')
+                ->where('page_id', $oldPageId)
+                ->update(['slug' => $newSlug]);
+            echo "SiteLegalPagesSeeder: migrated slug '{$oldSlug}' → '{$newSlug}'.\n";
+        }
+    }
+
+    /**
+     * Delete a page and all its references (blocks, translations, menu items).
+     * Performs soft delete on the page itself (deleted_at timestamp).
+     */
+    private function deletePageAndReferences(int $pageId): void
+    {
+        // Clean up block instances and their translations
+        $this->resetPageBlocks($pageId);
+
+        // Delete page translations
+        $this->db->table('cms_page_translations')
+            ->where('page_id', $pageId)
+            ->delete();
+
+        // Soft delete the page
+        $this->db->table('cms_pages')
+            ->where('id', $pageId)
+            ->update(['deleted_at' => date('Y-m-d H:i:s')]);
+
+        // Clean up menu items that referenced this page
+        $this->db->table('cms_menu_items')
+            ->where('page_id', $pageId)
+            ->update(['page_id' => null]);
     }
 }
