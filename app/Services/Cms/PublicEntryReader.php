@@ -23,15 +23,91 @@ use dcardenasl\Ci4ApiCore\Exceptions\NotFoundException;
  */
 class PublicEntryReader
 {
+    private ?\App\Models\CollectionModel $collectionModel = null;
+
+    private ?\App\Models\EntryModel $entryModel = null;
+
+    private ?\App\Models\CategoryTranslationModel $categoryTranslationModel = null;
+
+    private ?\App\Models\TagTranslationModel $tagTranslationModel = null;
+
+    private ?\App\Models\EntryTranslationModel $entryTranslationModel = null;
+
+    private ?\App\Models\LanguageModel $languageModel = null;
+
     public function __construct(private FileUrlResolver $fileUrlResolver)
     {
     }
 
+    private function collectionModel(): \App\Models\CollectionModel
+    {
+        if ($this->collectionModel === null) {
+            /** @var \App\Models\CollectionModel $resolved */
+            $resolved = model(\App\Models\CollectionModel::class);
+            $this->collectionModel = $resolved;
+        }
+
+        return $this->collectionModel;
+    }
+
+    private function entryModel(): \App\Models\EntryModel
+    {
+        if ($this->entryModel === null) {
+            /** @var \App\Models\EntryModel $resolved */
+            $resolved = model(\App\Models\EntryModel::class);
+            $this->entryModel = $resolved;
+        }
+
+        return $this->entryModel;
+    }
+
+    private function categoryTranslationModel(): \App\Models\CategoryTranslationModel
+    {
+        if ($this->categoryTranslationModel === null) {
+            /** @var \App\Models\CategoryTranslationModel $resolved */
+            $resolved = model(\App\Models\CategoryTranslationModel::class);
+            $this->categoryTranslationModel = $resolved;
+        }
+
+        return $this->categoryTranslationModel;
+    }
+
+    private function tagTranslationModel(): \App\Models\TagTranslationModel
+    {
+        if ($this->tagTranslationModel === null) {
+            /** @var \App\Models\TagTranslationModel $resolved */
+            $resolved = model(\App\Models\TagTranslationModel::class);
+            $this->tagTranslationModel = $resolved;
+        }
+
+        return $this->tagTranslationModel;
+    }
+
+    private function entryTranslationModel(): \App\Models\EntryTranslationModel
+    {
+        if ($this->entryTranslationModel === null) {
+            /** @var \App\Models\EntryTranslationModel $resolved */
+            $resolved = model(\App\Models\EntryTranslationModel::class);
+            $this->entryTranslationModel = $resolved;
+        }
+
+        return $this->entryTranslationModel;
+    }
+
+    private function languageModel(): \App\Models\LanguageModel
+    {
+        if ($this->languageModel === null) {
+            /** @var \App\Models\LanguageModel $resolved */
+            $resolved = model(\App\Models\LanguageModel::class);
+            $this->languageModel = $resolved;
+        }
+
+        return $this->languageModel;
+    }
+
     public function listPublic(PublicEntryIndexRequestDTO $dto): DataTransferObjectInterface
     {
-        /** @var \App\Models\CollectionModel $collectionModel */
-        $collectionModel = model(\App\Models\CollectionModel::class);
-        $collection = $collectionModel
+        $collection = $this->collectionModel()
             ->where('collection_key', $dto->collection_key)
             ->where('is_active', 1)
             ->first();
@@ -42,13 +118,10 @@ class PublicEntryReader
 
         ['langId' => $langId, 'defaultLangId' => $defaultLangId] = $this->resolveLanguageIds($dto->lang);
 
-        /** @var \App\Models\EntryModel $entryModel */
-        $entryModel = model(\App\Models\EntryModel::class);
+        $entryModel = $this->entryModel();
 
         if ($dto->category !== null) {
-            /** @var \App\Models\CategoryTranslationModel $catTransModel */
-            $catTransModel = model(\App\Models\CategoryTranslationModel::class);
-            $catTrans = $catTransModel->where('slug', $dto->category)->first();
+            $catTrans = $this->categoryTranslationModel()->where('slug', $dto->category)->first();
             if (!$catTrans instanceof \App\Entities\CategoryTranslationEntity) {
                 return PaginatedResponseDTO::fromArray([
                     'data'     => [],
@@ -62,9 +135,7 @@ class PublicEntryReader
         }
 
         if ($dto->tag !== null) {
-            /** @var \App\Models\TagTranslationModel $tagTransModel */
-            $tagTransModel = model(\App\Models\TagTranslationModel::class);
-            $tagTrans = $tagTransModel->where('slug', $dto->tag)->first();
+            $tagTrans = $this->tagTranslationModel()->where('slug', $dto->tag)->first();
             if (!$tagTrans instanceof \App\Entities\TagTranslationEntity) {
                 return PaginatedResponseDTO::fromArray([
                     'data'     => [],
@@ -195,9 +266,7 @@ class PublicEntryReader
 
     public function showPublic(PublicEntryShowRequestDTO $dto): DataTransferObjectInterface
     {
-        /** @var \App\Models\CollectionModel $collectionModel */
-        $collectionModel = model(\App\Models\CollectionModel::class);
-        $collection = $collectionModel
+        $collection = $this->collectionModel()
             ->where('collection_key', $dto->collection_key)
             ->where('is_active', 1)
             ->first();
@@ -208,12 +277,23 @@ class PublicEntryReader
 
         ['langId' => $langId, 'defaultLangId' => $defaultLangId] = $this->resolveLanguageIds($dto->lang);
 
-        /** @var \App\Models\EntryTranslationModel $translationModel */
-        $translationModel = model(\App\Models\EntryTranslationModel::class);
-        $entryTranslation = $translationModel
-            ->where('slug', $dto->slug)
-            ->where('language_id', $langId)
-            ->first();
+        $translationModel = $this->entryTranslationModel();
+        $langModel = $this->languageModel();
+        $activeLanguages = $langModel->where('is_active', 1)->findAll();
+        $activeLanguageIds = [];
+        foreach ($activeLanguages as $activeLanguage) {
+            if ($activeLanguage instanceof \App\Entities\LanguageEntity) {
+                $activeLanguageIds[] = (int) $activeLanguage->id;
+            }
+        }
+
+        $entryTranslation = null;
+        if ($activeLanguageIds !== []) {
+            $entryTranslation = $translationModel
+                ->where('slug', $dto->slug)
+                ->whereIn('language_id', $activeLanguageIds)
+                ->first();
+        }
 
         if (!$entryTranslation instanceof \App\Entities\EntryTranslationEntity
             && $defaultLangId !== $langId
@@ -233,9 +313,7 @@ class PublicEntryReader
             && PreviewToken::verify('entry', (string) $entryId, $dto->preview_expires, $dto->preview_sig);
 
         $now    = date('Y-m-d H:i:s');
-        /** @var \App\Models\EntryModel $entryModel */
-        $entryModel = model(\App\Models\EntryModel::class);
-        $query = $entryModel
+        $query = $this->entryModel()
             ->where('id', $entryId)
             ->where('collection_id', (int) $collection->id);
 
@@ -275,8 +353,6 @@ class PublicEntryReader
         // Get all translations of this entry to construct localized slugs
         /** @var list<\App\Entities\EntryTranslationEntity> $allTranslations */
         $allTranslations = $translationModel->where('entry_id', $entryId)->findAll();
-        /** @var \App\Models\LanguageModel $langModel */
-        $langModel = model(\App\Models\LanguageModel::class);
         /** @var list<\App\Entities\LanguageEntity> $activeLanguages */
         $activeLanguages = $langModel->where('is_active', 1)->findAll();
         $langCodeMap = [];
@@ -287,8 +363,9 @@ class PublicEntryReader
         $localizedSlugs = [];
         foreach ($allTranslations as $at) {
             $code = $langCodeMap[$at->language_id] ?? null;
-            if ($code !== null) {
-                $localizedSlugs[$code] = $at->slug;
+            $slug = trim((string) $at->slug);
+            if ($code !== null && $slug !== '') {
+                $localizedSlugs[$code] = $slug;
             }
         }
         $data['localized_slugs'] = $localizedSlugs;
@@ -303,10 +380,7 @@ class PublicEntryReader
      */
     private function resolveLanguageIds(string $langCode): array
     {
-        /** @var \App\Models\LanguageModel $langModel */
-        $langModel = model(\App\Models\LanguageModel::class);
-
-        $rows = $langModel
+        $rows = $this->languageModel()
             ->groupStart()
                 ->where('code', $langCode)
                 ->orWhere('is_default', 1)
@@ -349,37 +423,100 @@ class PublicEntryReader
             return [];
         }
 
-        /** @var \App\Models\EntryTranslationModel $model */
-        $model = model(\App\Models\EntryTranslationModel::class);
-        $rows  = $model
-            ->whereIn('entry_id', $entryIds)
-            ->whereIn('language_id', array_unique([$langId, $defaultLangId]))
-            ->findAll();
+        /** @var list<\App\Entities\LanguageEntity> $activeLanguages */
+        $activeLanguages = $this->languageModel()->where('is_active', 1)->findAll();
 
-        $map = [];
-        foreach ($rows as $row) {
-            if (!$row instanceof \App\Entities\EntryTranslationEntity) {
+        $activeLanguageIds = [];
+        $activeLanguageCodes = [];
+        foreach ($activeLanguages as $activeLanguage) {
+            if (! $activeLanguage instanceof \App\Entities\LanguageEntity) {
                 continue;
             }
-            $eid = (int) $row->entry_id;
-            $lid = (int) $row->language_id;
-            if (!isset($map[$eid]) || $lid === $langId) {
-                $map[$eid] = [
-                    'slug'             => $row->slug,
-                    'title'            => $row->title,
-                    'excerpt'          => $row->excerpt,
-                    'featured_file_id' => $row->featured_file_id,
-                    'featured_image_url' => $row->featured_image_url,
-                    'meta_title'       => $row->meta_title,
-                    'meta_description' => $row->meta_description,
-                    'og_image_file_id' => $row->og_image_file_id,
-                    'og_type'          => $row->og_type,
-                    'canonical_url'    => $row->canonical_url,
-                    'robots'           => $row->robots,
-                    'schema_data'      => $row->schema_data,
-                    'is_fallback'      => $lid !== $langId,
-                ];
+
+            $activeLanguageIds[] = (int) $activeLanguage->id;
+            $activeLanguageCodes[(int) $activeLanguage->id] = (string) $activeLanguage->code;
+        }
+
+        if ($activeLanguageIds === []) {
+            return [];
+        }
+
+        $rows = $this->entryTranslationModel()
+            ->whereIn('entry_id', $entryIds)
+            ->whereIn('language_id', $activeLanguageIds)
+            ->findAll();
+
+        $grouped = [];
+        foreach ($rows as $row) {
+            if (! $row instanceof \App\Entities\EntryTranslationEntity) {
+                continue;
             }
+
+            $entryId = (int) $row->entry_id;
+            $languageId = (int) $row->language_id;
+            $slug = trim((string) $row->slug);
+
+            $grouped[$entryId]['translations'][$languageId] = [
+                'slug'               => $slug,
+                'title'              => $row->title,
+                'excerpt'            => $row->excerpt,
+                'featured_file_id'   => $row->featured_file_id,
+                'featured_image_url' => $row->featured_image_url,
+                'meta_title'         => $row->meta_title,
+                'meta_description'   => $row->meta_description,
+                'og_image_file_id'   => $row->og_image_file_id,
+                'og_type'            => $row->og_type,
+                'canonical_url'      => $row->canonical_url,
+                'robots'             => $row->robots,
+                'schema_data'        => $row->schema_data,
+            ];
+
+            if ($slug !== '' && isset($activeLanguageCodes[$languageId])) {
+                $grouped[$entryId]['localized_slugs'][$activeLanguageCodes[$languageId]] = $slug;
+            }
+        }
+
+        $map = [];
+        foreach ($grouped as $entryId => $bundle) {
+            $translations   = $bundle['translations'];
+            $localizedSlugs = $bundle['localized_slugs'] ?? [];
+
+            if (isset($translations[$langId])) {
+                $selectedLanguageId = $langId;
+            } elseif (isset($translations[$defaultLangId])) {
+                $selectedLanguageId = $defaultLangId;
+            } else {
+                // Neither the requested nor the default language exists:
+                // prefer the first translation with a usable slug.
+                $selectedLanguageId = (int) array_key_first($translations);
+                foreach ($translations as $languageId => $candidate) {
+                    if ($candidate['slug'] !== '') {
+                        $selectedLanguageId = (int) $languageId;
+                        break;
+                    }
+                }
+            }
+
+            $selected = $translations[$selectedLanguageId];
+
+            if ($selected['slug'] === '') {
+                // Borrow a slug from the default language first, then any translation.
+                if (isset($translations[$defaultLangId]) && $translations[$defaultLangId]['slug'] !== '') {
+                    $selected['slug'] = $translations[$defaultLangId]['slug'];
+                } else {
+                    foreach ($translations as $candidate) {
+                        if ($candidate['slug'] !== '') {
+                            $selected['slug'] = $candidate['slug'];
+                            break;
+                        }
+                    }
+                }
+            }
+
+            $map[$entryId] = $selected + [
+                'is_fallback'     => $selectedLanguageId !== $langId,
+                'localized_slugs' => $localizedSlugs,
+            ];
         }
 
         return $map;
