@@ -6,6 +6,7 @@ namespace App\Services\Cms;
 
 use App\Entities\BlockInstanceEntity;
 use App\Interfaces\Cms\BlockInstanceServiceInterface;
+use App\Libraries\Cms\BlockTextPayload;
 use App\Libraries\Cms\FileReferenceSynchronizer;
 use App\Libraries\Cms\FileUrlResolver;
 use App\Libraries\Cms\HtmlSanitizer;
@@ -176,7 +177,7 @@ class BlockInstanceService extends BaseCrudService implements BlockInstanceServi
                 $blockData = [];
             } else {
                 $blockData = $this->sanitizeBlockData($blockData);
-                $blockData = $this->normalizeBlockTextPayload($blockData);
+                $blockData = BlockTextPayload::normalize($blockData);
                 if ($blockSchemaFields !== []) {
                     $blockData = $this->fileUrlResolver->normalizeBlockData($blockData, $blockSchemaFields);
                 }
@@ -243,32 +244,6 @@ class BlockInstanceService extends BaseCrudService implements BlockInstanceServi
             } elseif (is_array($value)) {
                 $data[$key] = $this->sanitizeBlockData($value);
             }
-        }
-
-        return $data;
-    }
-
-    /**
-     * Normalize legacy rich-text payload keys to the canonical `content` key.
-     *
-     * @param array<string, mixed> $data
-     * @return array<string, mixed>
-     */
-    private function normalizeBlockTextPayload(array $data): array
-    {
-        $content = trim((string) ($data['content'] ?? ''));
-        if ($content !== '') {
-            return $data;
-        }
-
-        foreach (['body', 'html', 'text'] as $legacyKey) {
-            $legacyValue = $data[$legacyKey] ?? '';
-            if (! is_string($legacyValue) || trim($legacyValue) === '') {
-                continue;
-            }
-
-            $data['content'] = $legacyValue;
-            break;
         }
 
         return $data;

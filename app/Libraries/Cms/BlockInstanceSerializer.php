@@ -103,7 +103,7 @@ class BlockInstanceSerializer
             $blockData    = is_string($rawBlockData)
                 ? (json_decode($rawBlockData, true) ?? [])
                 : (array) $rawBlockData;
-            $blockData = $this->normalizeBlockTextPayload($blockData);
+            $blockData = BlockTextPayload::normalize($blockData);
 
             $blockConfig = [];
             if (!empty($instance['block_config'])) {
@@ -267,32 +267,6 @@ class BlockInstanceSerializer
         }
 
         return $blockData;
-    }
-
-    /**
-     * Normalize legacy rich-text payload keys to the canonical `content` key.
-     *
-     * @param array<string, mixed> $data
-     * @return array<string, mixed>
-     */
-    private function normalizeBlockTextPayload(array $data): array
-    {
-        $content = trim((string) ($data['content'] ?? ''));
-        if ($content !== '') {
-            return $data;
-        }
-
-        foreach (['body', 'html', 'text'] as $legacyKey) {
-            $legacyValue = $data[$legacyKey] ?? '';
-            if (! is_string($legacyValue) || trim($legacyValue) === '') {
-                continue;
-            }
-
-            $data['content'] = $legacyValue;
-            break;
-        }
-
-        return $data;
     }
 
     /**
