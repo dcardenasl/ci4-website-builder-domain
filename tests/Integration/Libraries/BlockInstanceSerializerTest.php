@@ -193,6 +193,10 @@ final class BlockInstanceSerializerTest extends CIUnitTestCase
                     'cta_label' => ['type' => 'string', 'label' => 'CTA'],
                     'cta_url'   => ['type' => 'url', 'label' => 'URL'],
                 ],
+                'config_fields' => [
+                    'text_color' => ['type' => 'color', 'label' => 'Color', 'default' => '#ffffff'],
+                    'overlay_color' => ['type' => 'color', 'label' => 'Overlay', 'default' => 'rgba(15, 23, 42, 0.4)'],
+                ],
             ]),
             'supports_pages'    => 1,
             'supports_entries'  => 0,
@@ -379,6 +383,8 @@ final class BlockInstanceSerializerTest extends CIUnitTestCase
         $this->assertCount(1, $blocks[3]['children']);
         $this->assertEquals(104, $blocks[3]['children'][0]['id']);
         $this->assertEquals('slide_banner', $blocks[3]['children'][0]['block_key']);
+        $this->assertSame('#ffffff', $blocks[3]['children'][0]['block_config']['text_color']);
+        $this->assertSame('rgba(15, 23, 42, 0.4)', $blocks[3]['children'][0]['block_config']['overlay_color']);
         $this->assertSame('http://localhost:8180/uploads/posts/feature_lg.png', $blocks[3]['children'][0]['block_data']['image_url']);
     }
 

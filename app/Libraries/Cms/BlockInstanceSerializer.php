@@ -79,7 +79,8 @@ class BlockInstanceSerializer
             $rawData         = $translationData['block_data'] ?? null;
             $blockData       = is_string($rawData) ? (json_decode($rawData, true) ?? []) : (array) $rawData;
 
-            $schemaFields = $this->parseSchemaFields((string) ($instance['schema_definition'] ?? ''));
+            $schemaDefinition = $this->parseSchemaDefinition((string) ($instance['schema_definition'] ?? ''));
+            $schemaFields = (array) ($schemaDefinition['fields'] ?? []);
             $allFileIds = array_merge($allFileIds, $this->fileUrlResolver->collectBlockFileIds($blockData, $schemaFields));
         }
 
@@ -112,6 +113,12 @@ class BlockInstanceSerializer
                     : (array) $instance['block_config'];
             }
 
+            $schemaDefinition = $this->parseSchemaDefinition((string) ($instance['schema_definition'] ?? ''));
+            $schemaFields = (array) ($schemaDefinition['fields'] ?? []);
+
+            $blockConfig = SchemaDefaults::applyConfigDefaults($schemaDefinition, $blockConfig);
+            $blockData = SchemaDefaults::apply($blockData, $schemaFields);
+
             $blockPayload = [
                 'id'                 => $instanceId,
                 'block_key'          => $instance['block_key'],
@@ -125,7 +132,6 @@ class BlockInstanceSerializer
             ];
 
             // Resolve file-type fields and expand file IDs inside repeater items
-            $schemaFields = $this->parseSchemaFields((string) ($instance['schema_definition'] ?? ''));
             $blockPayload['block_data'] = $this->mergeFileMetadata(
                 $blockPayload['block_data'],
                 $schemaFields,
@@ -202,7 +208,7 @@ class BlockInstanceSerializer
      *
      * @return array<string, array<string, mixed>>
      */
-    private function parseSchemaFields(string $schemaDef): array
+    private function parseSchemaDefinition(string $schemaDef): array
     {
         if ($schemaDef === '') {
             return [];
@@ -211,8 +217,8 @@ class BlockInstanceSerializer
         if (!is_array($schema)) {
             return [];
         }
-        $fields = $schema['fields'] ?? [];
-        return is_array($fields) ? $fields : [];
+
+        return $schema;
     }
 
     /**

@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace App\Libraries\Cms;
 
+require_once dirname(__DIR__, 4) . '/shared/cms_preview_samples.php';
+
 use App\Entities\BlockTypeEntity;
 use dcardenasl\Ci4ApiCore\Repositories\RepositoryInterface;
 
@@ -29,107 +31,6 @@ use dcardenasl\Ci4ApiCore\Repositories\RepositoryInterface;
  */
 final class BlockTemplateCatalog
 {
-    /**
-     * Curated presentation samples for the "preview before saving" designer
-     * action, keyed by block_key. Purely cosmetic — safe to leave a key
-     * un-curated (it just renders without a filled example).
-     *
-     * @var array<string, array<string, mixed>>
-     */
-    private const PREVIEW_SAMPLES = [
-        'hero_banner' => [
-            'alt' => 'Imagen de fondo del hero',
-            'heading' => 'Bienvenido a nuestro sitio',
-            'subheading' => 'Descubre todo lo que tenemos para ofrecerte',
-            'cta_label' => 'Conoce más',
-            'cta_url' => '#',
-        ],
-        'rich_text' => [
-            'content' => '<h2>Título de ejemplo</h2><p>Este es un párrafo de texto enriquecido. Puedes incluir <strong>negritas</strong>, <em>cursivas</em>, listas y más.</p><ul><li>Elemento uno</li><li>Elemento dos</li></ul>',
-        ],
-        'cta' => [
-            'heading' => '¿Listo para comenzar?',
-            'text' => 'Únete a miles de clientes satisfechos y empieza hoy mismo.',
-            'label' => 'Comenzar ahora',
-            'url' => '#',
-        ],
-        'slide_banner' => [
-            'heading' => 'Temporada 2026',
-            'subtitle' => 'Programación destacada y actividades especiales.',
-            'cta_label' => 'Ver programación',
-            'cta_url' => '/featured',
-        ],
-        'image' => [
-            'alt' => 'Imagen de ejemplo',
-            'caption' => 'Pie de foto de ejemplo',
-        ],
-        'collection_grid' => [
-            'section_title' => 'Contenido destacado',
-            'section_subtitle' => 'Últimas publicaciones de la colección seleccionada.',
-            'view_all_label' => 'Ver todo',
-            'view_all_url' => '/coleccion',
-            'empty_message' => 'No hay contenido publicado por el momento.',
-        ],
-        'collection_listing' => [
-            'intro_title' => 'Listado completo',
-            'intro_text' => '<p>Usa este bloque para mostrar el índice público de una colección.</p>',
-            'empty_message' => 'No hay contenido disponible.',
-        ],
-        'page_header' => [
-            'heading' => 'Contact Us',
-            'subheading' => 'We\'d love to hear from you',
-            'breadcrumb_label' => 'Home',
-            'breadcrumb_url' => '/',
-        ],
-        'contact_info' => [
-            'section_title' => 'Contacto',
-            'section_description' => 'Canales oficiales para escribirnos o visitarnos.',
-            'address_label' => 'Address',
-            'address' => '123 Main Street, Your City, Country',
-            'phone_label' => 'Phone',
-            'phone' => '+1 (555) 000-0000',
-            'email_label' => 'Email',
-            'email' => 'hola@example.com',
-            'hours_label' => 'Office Hours',
-            'hours' => "Monday to Friday: 9:00 - 18:00\nSaturday: 10:00 - 14:00",
-        ],
-        'map_embed' => [
-            'title' => 'Dónde estamos',
-            'caption' => 'Encuentra nuestra ubicación principal.',
-        ],
-        'social_links' => [
-            'heading' => 'Síguenos',
-        ],
-        'metrics_grid' => [
-            'section_title' => 'Métricas destacadas',
-            'section_subtitle' => 'Indicadores clave del proyecto.',
-        ],
-        'metric_item' => [
-            'prefix' => '',
-            'number' => '120',
-            'suffix' => '+',
-            'label' => 'Proyectos',
-            'description' => 'Proyectos gestionados desde el CMS.',
-            'source_label' => 'Registro institucional',
-            'source_url' => '',
-            'icon' => 'sparkles',
-        ],
-        'cards_slider' => [
-            'section_title' => 'Historias destacadas',
-            'section_subtitle' => 'Tarjetas configurables para distintos usos.',
-        ],
-        'slide_card' => [
-            'eyebrow' => 'Caso destacado',
-            'title' => 'Una tarjeta flexible',
-            'body' => 'Contenido adaptable para testimonios, pasos, historias o beneficios.',
-            'meta_title' => 'Equipo editorial',
-            'meta_description' => 'Contenido CMS',
-            'rating' => '0',
-            'link_url' => '#',
-            'link_label' => 'Ver más',
-        ],
-    ];
-
     /**
      * @param RepositoryInterface<BlockTypeEntity> $blockTypeRepository
      */
@@ -242,7 +143,7 @@ final class BlockTemplateCatalog
      */
     private function previewSample(string $key, array $fields): array
     {
-        $curated = self::PREVIEW_SAMPLES[$key] ?? [];
+        $curated = cms_block_preview_sample($key);
 
         // Only keep curated keys that still exist in the persisted schema —
         // this is what makes the sample self-healing instead of re-drifting.

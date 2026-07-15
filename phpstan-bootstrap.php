@@ -185,3 +185,23 @@ if (! function_exists('csrf_meta')) {
         return '';
     }
 }
+
+if (! function_exists('cms_block_preview_samples')) {
+    /**
+     * @return array<string, array<string, mixed>>
+     */
+    function cms_block_preview_samples(): array
+    {
+        return [];
+    }
+}
+
+if (! function_exists('cms_block_preview_sample')) {
+    /**
+     * @return array<string, mixed>
+     */
+    function cms_block_preview_sample(string $blockKey): array
+    {
+        return [];
+    }
+}
