@@ -22,6 +22,7 @@ final class PublicEntryControllerTest extends CIUnitTestCase
     protected $namespace   = 'App';
 
     private int $langEsId;
+    private int $langEnId;
     private int $collectionId;
 
     protected function setUp(): void
@@ -35,7 +36,7 @@ final class PublicEntryControllerTest extends CIUnitTestCase
         $this->db->query("DELETE FROM `cms_languages`");
         $this->db->enableForeignKeyChecks();
 
-        // Seed language
+        // Seed default language first so the test mirrors the live Spanish site.
         $this->db->table('cms_languages')->insert([
             'code'       => 'es',
             'name'       => 'Spanish',
@@ -43,6 +44,15 @@ final class PublicEntryControllerTest extends CIUnitTestCase
             'is_active'  => 1,
         ]);
         $this->langEsId = $this->db->insertID();
+
+        // Seed secondary language
+        $this->db->table('cms_languages')->insert([
+            'code'       => 'en',
+            'name'       => 'English',
+            'is_default' => 0,
+            'is_active'  => 1,
+        ]);
+        $this->langEnId = $this->db->insertID();
 
         // Seed collection
         $this->db->table('cms_collections')->insert([
@@ -118,6 +128,45 @@ final class PublicEntryControllerTest extends CIUnitTestCase
         $this->assertSame('primer-post', $body['data']['slug']);
         $this->assertSame('Primer Post', $body['data']['title']);
         $this->assertIsArray($body['data']['blocks']);
+    }
+
+    public function testPublicEntriesFallbackToAnotherLocaleWhenCurrentSlugIsEmpty(): void
+    {
+        $this->db->table('cms_entries')->insert([
+            'collection_id' => $this->collectionId,
+            'workflow_status' => 'published',
+            'is_featured' => 0,
+            'view_count' => 0,
+            'sort_order' => 1,
+            'is_in_sitemap' => 1,
+        ]);
+        $entryId = $this->db->insertID();
+
+        $this->db->table('cms_entry_translations')->insert([
+            'entry_id'           => $entryId,
+            'language_id'        => $this->langEsId,
+            'slug'               => '',
+            'title'              => 'Festival en español',
+            'excerpt'            => 'Entrada visible en español, pero sin slug local.',
+            'featured_image_url' => 'http://localhost:8180/uploads/festival-es.png',
+        ]);
+
+        $this->db->table('cms_entry_translations')->insert([
+            'entry_id'           => $entryId,
+            'language_id'        => $this->langEnId,
+            'slug'               => 'festival-en',
+            'title'              => 'Festival in English',
+            'excerpt'            => 'Fallback slug.',
+            'featured_image_url' => 'http://localhost:8180/uploads/festival-en.png',
+        ]);
+
+        $result = $this->get('/api/v1/public/es/entries/blog');
+
+        $result->assertStatus(200);
+        $body = json_decode($result->getJSON(), true);
+
+        $this->assertSame('festival-en', $body['data'][0]['slug']);
+        $this->assertSame('Festival en español', $body['data'][0]['title']);
     }
 
     public function testListingContentIsOptInAndUsesSchemaData(): void

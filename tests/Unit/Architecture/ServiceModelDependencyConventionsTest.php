@@ -50,7 +50,7 @@ class ServiceModelDependencyConventionsTest extends CIUnitTestCase
         'app/Services/Cms/MenuItemService.php' => ['model_call' => 7, 'db_connect' => 1],
         'app/Services/Cms/MenuService.php' => ['model_call' => 2],
         'app/Services/Cms/PageService.php' => ['model_call' => 8],
-        'app/Services/Cms/PublicEntryReader.php' => ['model_call' => 10, 'db_connect' => 2],
+        'app/Services/Cms/PublicEntryReader.php' => ['model_call' => 6, 'db_connect' => 2],
         'app/Services/Cms/SettingService.php' => ['model_call' => 2],
         'app/Services/Cms/TagService.php' => ['model_call' => 4],
     ];
