@@ -125,7 +125,6 @@ class TranslationAuditService implements TranslationAuditServiceInterface
 
         $report = [];
         foreach ($activeLanguages as $lang) {
-            /** @var \App\Models\LanguageModel $lang */
             $langId = (int) $lang->id;
             $completedElements = max(0, $totalElements - ($missingCounts[$langId] ?? 0));
             $percentage = $totalElements > 0 ? round(($completedElements / $totalElements) * 100) : 100;
@@ -245,11 +244,16 @@ class TranslationAuditService implements TranslationAuditServiceInterface
     }
 
     /**
-     * @return list<object>
+     * @return list<\App\Entities\LanguageEntity>
      */
     private function getActiveLanguages(): array
     {
-        return $this->languageRepository->getModel()->where('is_active', 1)->findAll();
+        $rows = $this->languageRepository->getModel()->where('is_active', 1)->findAll();
+
+        return array_values(array_filter(
+            $rows,
+            static fn ($row): bool => $row instanceof \App\Entities\LanguageEntity
+        ));
     }
 
     /**
@@ -407,7 +411,7 @@ class TranslationAuditService implements TranslationAuditServiceInterface
      *   fetch: callable(): list<mixed>,
      *   count: callable(): int,
      * } $descriptor
-     * @param list<object> $activeLanguages
+     * @param list<\App\Entities\LanguageEntity> $activeLanguages
      * @param array<string, mixed> $filters
      * @return list<array<string, mixed>>
      */
@@ -467,6 +471,8 @@ class TranslationAuditService implements TranslationAuditServiceInterface
     }
 
     /**
+     * @param list<\App\Entities\LanguageEntity> $activeLanguages
+     * @param array<string, mixed> $filters
      * @return list<array<string, mixed>>
      */
     private function auditSettingTranslations(array $activeLanguages, array $filters): array
