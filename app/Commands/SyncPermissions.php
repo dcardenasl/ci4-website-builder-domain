@@ -162,130 +162,10 @@ class SyncPermissions extends BaseCommand
             return $flag;
         }
 
-        // Try local development auto-generation first
-        $localToken = $this->autoMintLocalToken();
-        if ($localToken !== null) {
-            $this->writeLine('Auto-generated temporary Superadmin token from local Hub database.', 'green');
-            return $localToken;
-        }
-
         /** @var HubConfig $hubConfig */
         $hubConfig = config(HubConfig::class);
 
         return $hubConfig->adminToken;
-    }
-
-    private function findHubEnvPath(): ?string
-    {
-        $searchPaths = [
-            __DIR__ . '/../../../../ci4-multi-subscription-api/.env',
-            __DIR__ . '/../../../../ci4-api-starter/.env',
-            __DIR__ . '/../../../ci4-multi-subscription-api/.env',
-            __DIR__ . '/../../../ci4-api-starter/.env',
-            __DIR__ . '/../../ci4-multi-subscription-api/.env',
-            __DIR__ . '/../../ci4-api-starter/.env',
-        ];
-
-        foreach ($searchPaths as $path) {
-            $realPath = realpath($path);
-            if ($realPath && is_file($realPath)) {
-                $content = file_get_contents($realPath);
-                if ($content !== false
-                    && str_contains($content, 'JWT_SECRET_KEY')
-                    && str_contains($content, 'database.default.database')
-                ) {
-                    return $realPath;
-                }
-            }
-        }
-
-        return null;
-    }
-
-    private function autoMintLocalToken(): ?string
-    {
-        if (ENVIRONMENT !== 'development') {
-            return null;
-        }
-
-        $envPath = $this->findHubEnvPath();
-        if (!$envPath) {
-            return null;
-        }
-
-        $lines = file($envPath, FILE_IGNORE_NEW_LINES | FILE_SKIP_EMPTY_LINES);
-        if ($lines === false) {
-            return null;
-        }
-        $hubEnv = [];
-        foreach ($lines as $line) {
-            $trimmed = trim($line);
-            if ($trimmed === '' || str_starts_with($trimmed, '#')) {
-                continue;
-            }
-            if (str_contains($line, '=')) {
-                [$key, $val] = explode('=', $line, 2);
-                $hubEnv[trim($key)] = trim(trim($val), '"\'');
-            }
-        }
-
-        $secret = $hubEnv['JWT_SECRET_KEY'] ?? null;
-        if (!$secret) {
-            return null;
-        }
-
-        $dbConfig = [
-            'hostname' => $hubEnv['database.default.hostname'] ?? '127.0.0.1',
-            'username' => $hubEnv['database.default.username'] ?? 'root',
-            'password' => $hubEnv['database.default.password'] ?? 'root',
-            'database' => $hubEnv['database.default.database'] ?? 'ci4_multi_subscription_hub',
-            'DBDriver' => 'MySQLi',
-            'port'     => (int) ($hubEnv['database.default.port'] ?? 3306),
-            'charset'  => 'utf8mb4',
-            'DBCollat' => 'utf8mb4_general_ci',
-        ];
-
-        try {
-            $db = \Config\Database::connect($dbConfig, false);
-
-            $result = $db->table('user_roles ur')
-                ->select('ur.user_id')
-                ->join('roles r', 'r.id = ur.role_id')
-                ->where('r.code', 'superadmin')
-                ->limit(1)
-                ->get();
-            $row    = $result === false ? null : $result->getRowArray();
-
-            if ($row === null) {
-                return null;
-            }
-
-            $userId = (int) $row['user_id'];
-
-            $permsQuery = $db->table('user_roles ur')
-                ->select('p.code')
-                ->distinct()
-                ->join('role_permissions rp', 'rp.role_id = ur.role_id')
-                ->join('permissions p', 'p.id = rp.permission_id')
-                ->where('ur.user_id', $userId)
-                ->where('p.application_id', 1)
-                ->get();
-
-            $permissions = [];
-            if ($permsQuery !== false) {
-                foreach ($permsQuery->getResultArray() as $pRow) {
-                    $permissions[] = (string) $pRow['code'];
-                }
-            }
-
-            if (!in_array('iam.superadmin-access', $permissions, true)) {
-                $permissions[] = 'iam.superadmin-access';
-            }
-
-            return $this->mintToken($secret, $userId, $permissions);
-        } catch (\Throwable $e) {
-            return null;
-        }
     }
 
     protected function clearDevelopmentCaches(): void
@@ -295,29 +175,6 @@ class SyncPermissions extends BaseCommand
         $localSpark = $this->localSparkPath();
         if ($localSpark !== null) {
             $this->runSparkCacheClear($localSpark);
-        }
-
-        $envPath = $this->findHubEnvPath();
-        if (!$envPath) {
-            return;
-        }
-
-        $hubDir = dirname($envPath);
-        if (is_file($hubDir . '/spark')) {
-            $this->runSparkCacheClear($hubDir . '/spark');
-            $this->writeLine('  Hub cache cleared.', 'green');
-        }
-
-        $siblings = [
-            $hubDir . '/../ci4-multi-subscription-admin',
-            $hubDir . '/../ci4-admin-starter',
-        ];
-        foreach ($siblings as $sib) {
-            $sib = realpath($sib);
-            if ($sib && is_file($sib . '/spark')) {
-                $this->runSparkCacheClear($sib . '/spark');
-                $this->writeLine('  Admin cache cleared.', 'green');
-            }
         }
     }
 
@@ -331,35 +188,6 @@ class SyncPermissions extends BaseCommand
         $sparkPath = realpath(__DIR__ . '/../../spark');
 
         return ($sparkPath !== false && is_file($sparkPath)) ? $sparkPath : null;
-    }
-
-    /**
-     * @param list<string> $permissions
-     */
-    private function mintToken(string $secret, int $userId, array $permissions): string
-    {
-        $header = json_encode(['typ' => 'JWT', 'alg' => 'HS256']);
-        $payload = json_encode([
-            'iss' => 'http://localhost:8080',
-            'iat' => time(),
-            'nbf' => time(),
-            'exp' => time() + 3600,
-            'jti' => bin2hex(random_bytes(16)),
-            'uid' => $userId,
-            'scope' => $permissions
-        ]);
-
-        if ($header === false || $payload === false) {
-            throw new \RuntimeException('Failed to JSON-encode JWT header/payload.');
-        }
-
-        $base64UrlHeader = str_replace(['+', '/', '='], ['-', '_', ''], base64_encode($header));
-        $base64UrlPayload = str_replace(['+', '/', '='], ['-', '_', ''], base64_encode($payload));
-
-        $signature = hash_hmac('sha256', $base64UrlHeader . "." . $base64UrlPayload, $secret, true);
-        $base64UrlSignature = str_replace(['+', '/', '='], ['-', '_', ''], base64_encode($signature));
-
-        return $base64UrlHeader . "." . $base64UrlPayload . "." . $base64UrlSignature;
     }
 
     protected function shouldMirrorToSelf(): bool
