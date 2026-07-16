@@ -57,11 +57,12 @@ final class BlockSchemaIntrospector
         }
 
         $primitives = array_column($normalizedFields, 'primitive');
+        $containsMediaReference = in_array('media_reference', $primitives, true);
 
         return [
             'contains_richtext' => in_array('richtext', $primitives, true),
-            'contains_image' => in_array('image', $primitives, true),
-            'contains_file' => in_array('file', $primitives, true) || in_array('image', $primitives, true),
+            'contains_image' => in_array('image', $primitives, true) || $containsMediaReference,
+            'contains_file' => in_array('file', $primitives, true) || in_array('image', $primitives, true) || $containsMediaReference,
             'required_fields' => $required,
             'translatable_fields' => $translatable,
             'unsupported_fields' => $unsupported,

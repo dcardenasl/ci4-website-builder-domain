@@ -189,7 +189,7 @@ class PublicEntryReader
         $orderColumn = match ($dto->order_by) {
             'published_at' => 'cms_entries.published_at',
             'created_at'   => 'cms_entries.created_at',
-            'title'        => 'title_trans.title',
+            'title'        => 'entry_title_order',
             default        => 'cms_entries.sort_order',
         };
 
@@ -198,7 +198,9 @@ class PublicEntryReader
                 'cms_entry_translations title_trans',
                 'title_trans.entry_id = cms_entries.id AND title_trans.language_id = ' . (int) $langId,
                 'left'
-            );
+            )
+                ->select('cms_entries.*')
+                ->select('title_trans.title AS entry_title_order', false);
         }
 
         $entries = $builder
@@ -235,8 +237,9 @@ class PublicEntryReader
             $item    = array_merge($entry->toArray(), $entryTransMap[$entryId] ?? []);
             $item['categories'] = $categoriesMap[$entryId] ?? [];
             $item['tags']       = $tagsMap[$entryId] ?? [];
-            // Enrich with featured_image_url
-            $item = $this->enrichWithFeaturedImageUrl($item);
+            unset($item['entry_title_order']);
+            // Normalize featured/OG images into canonical nested objects.
+            $item = $this->normalizeEntryMedia($item);
             $data[] = $item;
         }
 
@@ -347,8 +350,8 @@ class PublicEntryReader
         $data['tags']       = $tagsMap[$entryId] ?? [];
         $data['blocks']     = $blocks;
 
-        // Enrich with featured_image_url
-        $data = $this->enrichWithFeaturedImageUrl($data);
+        // Normalize featured/OG images into canonical nested objects.
+        $data = $this->normalizeEntryMedia($data);
 
         // Get all translations of this entry to construct localized slugs
         /** @var list<\App\Entities\EntryTranslationEntity> $allTranslations */
@@ -456,15 +459,21 @@ class PublicEntryReader
             $languageId = (int) $row->language_id;
             $slug = trim((string) $row->slug);
 
+            $normalizedMedia = $this->fileUrlResolver->normalizeEntryTranslation([
+                'featured_file_id' => $row->featured_file_id !== null ? (int) $row->featured_file_id : null,
+                'featured_image_url' => $row->featured_image_url,
+                'og_image_file_id' => $row->og_image_file_id !== null ? (int) $row->og_image_file_id : null,
+                'og_image_url' => $row->og_image_url ?? null,
+            ]);
+
             $grouped[$entryId]['translations'][$languageId] = [
                 'slug'               => $slug,
                 'title'              => $row->title,
                 'excerpt'            => $row->excerpt,
-                'featured_file_id'   => $row->featured_file_id,
-                'featured_image_url' => $row->featured_image_url,
+                'featured_image'     => $normalizedMedia['featured_image'] ?? null,
                 'meta_title'         => $row->meta_title,
                 'meta_description'   => $row->meta_description,
-                'og_image_file_id'   => $row->og_image_file_id,
+                'og_image'           => $normalizedMedia['og_image'] ?? null,
                 'og_type'            => $row->og_type,
                 'canonical_url'      => $row->canonical_url,
                 'robots'             => $row->robots,
@@ -646,24 +655,41 @@ class PublicEntryReader
     }
 
     /**
-     * Enrich an entry array with featured_image_url if featured_file_id is present.
+     * Normalize entry-level media references into canonical nested objects.
      *
      * @param array<string, mixed> $item
      * @return array<string, mixed>
      */
-    private function enrichWithFeaturedImageUrl(array $item): array
+    private function normalizeEntryMedia(array $item): array
     {
-        $item['featured_image_url'] = $this->fileUrlResolver->resolveUrlValue(
-            $item['featured_file_id'] ?? null,
-            isset($item['featured_image_url']) ? (string) $item['featured_image_url'] : null
-        );
+        $featuredImage = $item['featured_image'] ?? null;
+        if (!is_array($featuredImage) || $featuredImage === []) {
+            $normalized = $this->fileUrlResolver->normalizeEntryTranslation([
+                'featured_file_id' => $item['featured_file_id'] ?? null,
+                'featured_image_url' => $item['featured_image_url'] ?? null,
+            ]);
 
-        if (! isset($item['og_image_url'])) {
-            $item['og_image_url'] = $this->fileUrlResolver->resolveUrlValue(
-                $item['og_image_file_id'] ?? null,
-                isset($item['og_image_url']) ? (string) $item['og_image_url'] : null
-            );
+            $featuredImage = $normalized['featured_image'] ?? null;
         }
+
+        $ogImage = $item['og_image'] ?? null;
+        if (!is_array($ogImage) || $ogImage === []) {
+            $normalized = $this->fileUrlResolver->normalizeEntryTranslation([
+                'og_image_file_id' => $item['og_image_file_id'] ?? null,
+                'og_image_url' => $item['og_image_url'] ?? null,
+            ]);
+
+            $ogImage = $normalized['og_image'] ?? null;
+        }
+
+        $item['featured_image'] = $featuredImage;
+        $item['og_image'] = $ogImage;
+        unset(
+            $item['featured_file_id'],
+            $item['featured_image_url'],
+            $item['og_image_file_id'],
+            $item['og_image_url']
+        );
 
         return $item;
     }

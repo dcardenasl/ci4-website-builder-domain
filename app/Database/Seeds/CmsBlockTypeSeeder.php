@@ -78,13 +78,13 @@ class CmsBlockTypeSeeder extends Seeder
                 'icon'              => 'image',
                 'schema_definition' => json_encode([
                     'fields' => [
-                        'image'     => ['type' => 'file',   'label' => 'Imagen',           'required' => true,  'accept' => 'image'],
                         'heading'   => ['type' => 'string', 'label' => 'Título',           'required' => true],
                         'subtitle'  => ['type' => 'string', 'label' => 'Subtítulo',        'required' => false],
                         'cta_label' => ['type' => 'string', 'label' => 'Texto del botón',  'required' => false],
                         'cta_url'   => ['type' => 'url',    'label' => 'URL del botón',    'required' => false],
                     ],
                     'config_fields' => [
+                        'image' => ['type' => 'media_reference', 'label' => 'Imagen', 'required' => true, 'accept' => 'image'],
                         'text_color' => ['type' => 'color', 'label' => 'Color del texto', 'required' => false, 'default' => '#ffffff'],
                         'overlay_color' => ['type' => 'color', 'label' => 'Filtro de fondo', 'required' => false, 'default' => 'rgba(15, 23, 42, 0.4)'],
                     ],
@@ -107,7 +107,6 @@ class CmsBlockTypeSeeder extends Seeder
                 'icon'              => 'layout',
                 'schema_definition' => json_encode([
                     'fields' => [
-                        'image'      => ['type' => 'file',   'label' => 'Imagen de fondo',    'required' => true,  'accept' => 'image'],
                         'alt'        => ['type' => 'string', 'label' => 'Texto Alt (fallback)', 'required' => false],
                         'heading'    => ['type' => 'string', 'label' => 'Título Principal',   'required' => true],
                         'subheading' => ['type' => 'string', 'label' => 'Subtítulo',          'required' => false],
@@ -115,6 +114,7 @@ class CmsBlockTypeSeeder extends Seeder
                         'cta_url'    => ['type' => 'url',    'label' => 'URL del Botón CTA',  'required' => false],
                     ],
                     'config_fields' => [
+                        'image' => ['type' => 'media_reference', 'label' => 'Imagen de fondo', 'required' => true, 'accept' => 'image'],
                         'css_class' => ['type' => 'string', 'label' => 'Clase CSS', 'required' => false, 'default' => ''],
                         'text_color' => ['type' => 'color', 'label' => 'Color del texto', 'required' => false, 'default' => '#ffffff'],
                         'overlay_color' => ['type' => 'color', 'label' => 'Filtro de fondo', 'required' => false, 'default' => 'rgba(15, 23, 42, 0.4)'],
@@ -150,7 +150,8 @@ class CmsBlockTypeSeeder extends Seeder
             ],
 
             // ── image ────────────────────────────────────────────────────────────
-            // Mantiene el esquema actual (file_id + url separados) por compatibilidad.
+            // La imagen es configuración del bloque; alt y caption siguen siendo
+            // contenido traducible.
             [
                 'block_key'         => 'image',
                 'name'              => 'Imagen',
@@ -159,11 +160,11 @@ class CmsBlockTypeSeeder extends Seeder
                 'icon'              => 'image',
                 'schema_definition' => json_encode([
                     'fields' => [
-                        'image'   => ['type' => 'file',   'label' => 'Imagen',          'required' => false, 'accept' => 'image'],
                         'alt'     => ['type' => 'string', 'label' => 'Texto Alternativo', 'required' => false],
                         'caption' => ['type' => 'string', 'label' => 'Pie de Foto',      'required' => false],
                     ],
                     'config_fields' => [
+                        'image'       => ['type' => 'media_reference', 'label' => 'Imagen', 'required' => false, 'accept' => 'image'],
                         'css_class'    => ['type' => 'string', 'label' => 'Clase CSS', 'required' => false, 'default' => ''],
                         'aspect_ratio' => [
                             'type'     => 'select',
@@ -571,13 +572,14 @@ class CmsBlockTypeSeeder extends Seeder
                 'icon'              => 'credit-card',
                 'schema_definition' => json_encode([
                     'fields' => [
-                        'image'       => ['type' => 'file',   'label' => 'Icono o Imagen',      'required' => false, 'accept' => 'image'],
                         'title'       => ['type' => 'string', 'label' => 'Título',              'required' => true],
                         'description' => ['type' => 'text',   'label' => 'Descripción',         'required' => false],
                         'link_url'    => ['type' => 'url',    'label' => 'URL del Enlace',      'required' => false],
                         'link_label'  => ['type' => 'string', 'label' => 'Etiqueta del Enlace', 'required' => false],
                     ],
-                    'config_fields' => [],
+                    'config_fields' => [
+                        'image' => ['type' => 'media_reference', 'label' => 'Icono o Imagen', 'required' => false, 'accept' => 'image'],
+                    ],
                 ]),
                 'supports_pages'   => 1,
                 'supports_entries' => 0,
@@ -644,7 +646,6 @@ class CmsBlockTypeSeeder extends Seeder
                         'body'             => ['type' => 'text',   'label' => 'Texto',                   'required' => false],
                         'meta_title'       => ['type' => 'string', 'label' => 'Autor / Nombre / Fuente', 'required' => false],
                         'meta_description' => ['type' => 'string', 'label' => 'Rol / Metadata',          'required' => false],
-                        'image'            => ['type' => 'file',   'label' => 'Imagen',                  'required' => false, 'accept' => 'image'],
                         'rating' => [
                             'type'     => 'select',
                             'label'    => 'Calificación (Estrellas)',
@@ -655,7 +656,9 @@ class CmsBlockTypeSeeder extends Seeder
                         'link_url'   => ['type' => 'url',    'label' => 'URL del Enlace',      'required' => false],
                         'link_label' => ['type' => 'string', 'label' => 'Etiqueta del Enlace', 'required' => false],
                     ],
-                    'config_fields' => [],
+                    'config_fields' => [
+                        'image' => ['type' => 'media_reference', 'label' => 'Imagen', 'required' => false, 'accept' => 'image'],
+                    ],
                 ]),
                 'supports_pages'   => 1,
                 'supports_entries' => 0,
@@ -709,11 +712,12 @@ class CmsBlockTypeSeeder extends Seeder
                 'icon'              => 'image',
                 'schema_definition' => json_encode([
                     'fields' => [
-                        'logo'     => ['type' => 'file',   'label' => 'Imagen del Logo', 'required' => false, 'accept' => 'image'],
                         'name'     => ['type' => 'string', 'label' => 'Nombre',            'required' => true],
                         'link_url' => ['type' => 'url',    'label' => 'URL Sitio Web',     'required' => false],
                     ],
-                    'config_fields' => [],
+                    'config_fields' => [
+                        'logo' => ['type' => 'media_reference', 'label' => 'Imagen del Logo', 'required' => false, 'accept' => 'image'],
+                    ],
                 ]),
                 'supports_pages'   => 1,
                 'supports_entries' => 0,
@@ -787,10 +791,10 @@ class CmsBlockTypeSeeder extends Seeder
                 'schema_definition' => json_encode([
                     'fields' => [
                         'video_url' => ['type' => 'url',    'label' => 'URL del Video',     'required' => true],
-                        'poster'    => ['type' => 'file',   'label' => 'Imagen de Portada', 'required' => false, 'accept' => 'image'],
                         'heading'   => ['type' => 'string', 'label' => 'Título',            'required' => false],
                     ],
                     'config_fields' => [
+                        'poster'   => ['type' => 'media_reference', 'label' => 'Imagen de Portada', 'required' => false, 'accept' => 'image'],
                         'autoplay' => ['type' => 'boolean', 'label' => 'Reproducción Automática', 'required' => false, 'default' => false],
                         'mute'     => ['type' => 'boolean', 'label' => 'Silenciado',             'required' => false, 'default' => false],
                         'loop'     => ['type' => 'boolean', 'label' => 'Bucle continuo',          'required' => false, 'default' => false],
@@ -941,13 +945,14 @@ class CmsBlockTypeSeeder extends Seeder
                 'icon'              => 'image',
                 'schema_definition' => json_encode([
                     'fields' => [
-                        'image'   => ['type' => 'file',   'label' => 'Imagen',          'required' => true, 'accept' => 'image'],
                         'alt'     => ['type' => 'string', 'label' => 'Texto Alt (SEO)', 'required' => false],
                         'caption' => ['type' => 'string', 'label' => 'Leyenda/Título',  'required' => false],
                         'link_url'   => ['type' => 'url',    'label' => 'URL de destino', 'required' => false],
                         'link_label' => ['type' => 'string', 'label' => 'Texto del enlace', 'required' => false],
                     ],
-                    'config_fields' => [],
+                    'config_fields' => [
+                        'image' => ['type' => 'media_reference', 'label' => 'Imagen', 'required' => true, 'accept' => 'image'],
+                    ],
                 ]),
                 'supports_pages'   => 1,
                 'supports_entries' => 0,
@@ -964,12 +969,12 @@ class CmsBlockTypeSeeder extends Seeder
                 'icon'              => 'file-text',
                 'schema_definition' => json_encode([
                     'fields' => [
-                        'document'     => ['type' => 'file',     'label' => 'Documento',         'required' => true, 'accept' => 'document'],
                         'title'        => ['type' => 'string',   'label' => 'Título',            'required' => true],
                         'description'  => ['type' => 'textarea', 'label' => 'Descripción',       'required' => false],
                         'button_label' => ['type' => 'string',   'label' => 'Texto del botón',   'required' => false, 'default' => 'Descargar'],
                     ],
                     'config_fields' => [
+                        'document' => ['type' => 'media_reference', 'label' => 'Documento', 'required' => true, 'accept' => 'document'],
                         'open_in_new_tab' => ['type' => 'boolean', 'label' => 'Abrir en nueva pestaña', 'required' => false, 'default' => true],
                         'css_class'       => ['type' => 'string',  'label' => 'Clases CSS adicionales', 'required' => false],
                     ],
@@ -1022,11 +1027,12 @@ class CmsBlockTypeSeeder extends Seeder
                         'date_label'  => ['type' => 'string',   'label' => 'Fecha / Año / Hito (Ej: 2026)', 'required' => true],
                         'title'       => ['type' => 'string',   'label' => 'Título',                       'required' => true],
                         'description' => ['type' => 'richtext', 'label' => 'Descripción del evento',       'required' => true],
-                        'image'       => ['type' => 'file',     'label' => 'Imagen',                       'required' => false, 'accept' => 'image'],
                         'link_url'    => ['type' => 'url',      'label' => 'URL del botón',                'required' => false],
                         'link_label'  => ['type' => 'string',   'label' => 'Texto del botón',              'required' => false],
                     ],
-                    'config_fields' => [],
+                    'config_fields' => [
+                        'image' => ['type' => 'media_reference', 'label' => 'Imagen', 'required' => false, 'accept' => 'image'],
+                    ],
                 ]),
                 'supports_pages'   => 1,
                 'supports_entries' => 0,
@@ -1092,7 +1098,7 @@ class CmsBlockTypeSeeder extends Seeder
                                 'video_url'   => ['type' => 'url',  'label' => 'URL del video',              'required' => true],
                                 'title'       => ['type' => 'string', 'label' => 'Título',                    'required' => true],
                                 'description' => ['type' => 'string', 'label' => 'Descripción corta',         'required' => false],
-                                'poster'      => ['type' => 'file',   'label' => 'Portada (Opcional)',        'accept' => 'image', 'required' => false],
+                                'poster'      => ['type' => 'media_reference', 'label' => 'Portada (Opcional)', 'accept' => 'image', 'required' => false],
                             ],
                         ],
                     ],
@@ -1128,7 +1134,7 @@ class CmsBlockTypeSeeder extends Seeder
                             'type'        => 'repeater',
                             'label'       => 'Documentos',
                             'item_fields' => [
-                                'file'        => ['type' => 'file',   'label' => 'Archivo',           'accept' => 'document', 'required' => true],
+                                'file'        => ['type' => 'media_reference', 'label' => 'Archivo', 'accept' => 'document', 'required' => true],
                                 'title'       => ['type' => 'string', 'label' => 'Título del archivo', 'required' => true],
                                 'description' => ['type' => 'string', 'label' => 'Detalle',            'required' => false],
                             ],
@@ -1163,9 +1169,9 @@ class CmsBlockTypeSeeder extends Seeder
                 'schema_definition' => json_encode([
                     'fields' => [
                         'heading'  => ['type' => 'string', 'label' => 'Título superior', 'required' => false],
-                        'pdf_file' => ['type' => 'file',   'label' => 'Archivo PDF',     'accept' => 'document', 'required' => true],
                     ],
                     'config_fields' => [
+                        'pdf_file' => ['type' => 'media_reference', 'label' => 'Archivo PDF', 'accept' => 'document', 'required' => true],
                         'height' => [
                             'type'     => 'select',
                             'label'    => 'Altura',
@@ -1399,13 +1405,14 @@ class CmsBlockTypeSeeder extends Seeder
                 'icon'              => 'user',
                 'schema_definition' => json_encode([
                     'fields' => [
-                        'photo'        => ['type' => 'file',   'label' => 'Foto de Perfil',           'accept' => 'image', 'required' => false],
                         'name'         => ['type' => 'string', 'label' => 'Nombre completo',          'required' => true],
                         'position'     => ['type' => 'string', 'label' => 'Puesto / Rol',             'required' => true],
                         'bio'          => ['type' => 'string', 'label' => 'Biografía corta',          'required' => false],
                         'linkedin_url' => ['type' => 'url',    'label' => 'URL perfil de LinkedIn',   'required' => false],
                     ],
-                    'config_fields' => [],
+                    'config_fields' => [
+                        'photo' => ['type' => 'media_reference', 'label' => 'Foto de Perfil', 'accept' => 'image', 'required' => false],
+                    ],
                 ]),
                 'supports_pages'   => 1,
                 'supports_entries' => 0,

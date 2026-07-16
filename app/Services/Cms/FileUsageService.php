@@ -49,7 +49,7 @@ class FileUsageService
             $this->entryOgImageUsages($hubFileId),
             $this->pageOgImageUsages($hubFileId),
             $this->settingFileUsages($hubFileId),
-            $this->blockDataFileUsages($hubFileId),
+            $this->blockReferenceUsages($hubFileId),
         ));
     }
 
@@ -131,19 +131,58 @@ class FileUsageService
     }
 
     /**
-     * Scan cms_block_instance_translations.block_data for any {field}_file_id
-     * matching the given Hub file ID, using each block type's schema_definition
-     * to know which fields are of type 'file'.
-     *
-     * Strategy: join block types to get schema, extract all 'file' field keys,
-     * then use MySQL JSON_EXTRACT per field key to find matches. One query per
-     * unique (field_key) across all active block types.
+     * Reads block usages from the canonical file_references table when it is
+     * available, and falls back to scanning block JSON only if the reference
+     * table is absent (for bootstrap or partial-schema environments).
      *
      * @return list<UsageItem>
      */
-    private function blockDataFileUsages(int $hubFileId): array
+    private function blockReferenceUsages(int $hubFileId): array
     {
-        // Step 1: load all block types with their schema to know which JSON keys to probe
+        if ($this->db->tableExists('file_references')) {
+            $result = $this->db->table('file_references fr')
+                ->select('fr.resource_id, fr.role, fr.label, bi.owner_type, bi.owner_id, bt.block_key, bt.name as block_name')
+                ->join('cms_block_instances bi', 'bi.id = fr.resource_id', 'left')
+                ->join('cms_content_blocks bt', 'bt.id = bi.block_id', 'left')
+                ->where('fr.file_id', $hubFileId)
+                ->where('fr.resource_type', 'block_instance')
+                ->get();
+            $rows = $result ? $result->getResultArray() : [];
+
+            return array_values(array_map(static function (array $row) use ($hubFileId): array {
+                return [
+                    'source'      => 'domain',
+                    'resource'    => 'block_instances',
+                    'resource_id' => (int) ($row['resource_id'] ?? 0),
+                    'role'        => (string) ($row['role'] ?? 'block_instance'),
+                    'label'       => isset($row['label']) && trim((string) $row['label']) !== ''
+                        ? (string) $row['label']
+                        : null,
+                    'context'     => [
+                        'owner_type' => (string) ($row['owner_type'] ?? ''),
+                        'owner_id'   => (int) ($row['owner_id'] ?? 0),
+                        'file_id'    => $hubFileId,
+                        'block_key'  => (string) ($row['block_key'] ?? ''),
+                        'block_name' => (string) ($row['block_name'] ?? ''),
+                    ],
+                ];
+            }, $rows));
+        }
+
+        return array_values(array_merge(
+            $this->legacyBlockDataFileUsages($hubFileId),
+            $this->legacyBlockConfigFileUsages($hubFileId),
+        ));
+    }
+
+    /**
+     * Legacy fallback for environments that do not have the canonical
+     * file_references table yet.
+     *
+     * @return list<UsageItem>
+     */
+    private function legacyBlockDataFileUsages(int $hubFileId): array
+    {
         $blockTypeResult = $this->db->table('cms_content_blocks')
             ->select('id, block_key, name, schema_definition')
             ->where('is_active', 1)
@@ -154,7 +193,6 @@ class FileUsageService
             return [];
         }
 
-        // Build map: block_type_id → list of file field keys (including nested in repeaters)
         /** @var array<int, list<string>> $fileFieldsByType */
         $fileFieldsByType = [];
         foreach ($blockTypeRows as $bt) {
@@ -168,9 +206,8 @@ class FileUsageService
             return [];
         }
 
-        // Step 2: for each (block_type_id, field_key) pair, query for matching block instances
         $usages = [];
-        $seen   = [];  // deduplicate by instance_id + field_key
+        $seen   = [];
 
         foreach ($fileFieldsByType as $blockTypeId => $fieldKeys) {
             foreach ($fieldKeys as $fieldKey) {
@@ -217,6 +254,91 @@ class FileUsageService
     }
 
     /**
+     * Legacy fallback for media reference config fields when the canonical
+     * `file_references` table is unavailable.
+     *
+     * @return list<UsageItem>
+     */
+    private function legacyBlockConfigFileUsages(int $hubFileId): array
+    {
+        $blockTypeResult = $this->db->table('cms_content_blocks')
+            ->select('id, block_key, name, schema_definition')
+            ->where('is_active', 1)
+            ->get();
+        $blockTypeRows = $blockTypeResult ? $blockTypeResult->getResultArray() : [];
+
+        if (empty($blockTypeRows) || ! $this->db->tableExists('cms_block_instances')) {
+            return [];
+        }
+
+        /** @var array<int, list<array{path: string, type: string}>> $pathsByType */
+        $pathsByType = [];
+        foreach ($blockTypeRows as $bt) {
+            $paths = $this->extractConfigReferencePaths((string) ($bt['schema_definition'] ?? ''));
+            if ($paths !== []) {
+                $pathsByType[(int) $bt['id']] = $paths;
+            }
+        }
+
+        if ($pathsByType === []) {
+            return [];
+        }
+
+        $usages = [];
+        $seen = [];
+
+        foreach ($pathsByType as $blockTypeId => $paths) {
+            foreach ($paths as $pathInfo) {
+                $path = (string) ($pathInfo['path'] ?? '');
+                $type = (string) ($pathInfo['type'] ?? '');
+                if ($path === '' || ! in_array($type, ['file', 'media_reference'], true)) {
+                    continue;
+                }
+
+                $jsonPath = $type === 'file'
+                    ? '$.' . $path . '_file_id'
+                    : '$.' . $path . '.file_id';
+
+                $blockResult = $this->db->table('cms_block_instances bi')
+                    ->select('bi.id as instance_id, bi.owner_type, bi.owner_id, bt.block_key, bt.name as block_name')
+                    ->join('cms_content_blocks bt', 'bt.id = bi.block_id')
+                    ->where('bi.block_id', $blockTypeId)
+                    ->where("JSON_EXTRACT(bi.block_config, '{$jsonPath}') = {$hubFileId}")
+                    ->get();
+                $rows = $blockResult ? $blockResult->getResultArray() : [];
+
+                foreach ($rows as $row) {
+                    $key = $row['instance_id'] . '|' . $path;
+                    if (isset($seen[$key])) {
+                        continue;
+                    }
+                    $seen[$key] = true;
+
+                    $label = $this->buildBlockLabel(
+                        (string) $row['block_name'],
+                        (string) $row['owner_type'],
+                        (int) $row['owner_id']
+                    );
+
+                    $usages[] = [
+                        'source'      => 'domain',
+                        'resource'    => 'block_instances',
+                        'resource_id' => (int) $row['instance_id'],
+                        'role'        => 'config.' . $path,
+                        'label'       => $label,
+                        'context'     => [
+                            'owner_type' => $row['owner_type'],
+                            'owner_id'   => (int) $row['owner_id'],
+                        ],
+                    ];
+                }
+            }
+        }
+
+        return $usages;
+    }
+
+    /**
      * Recursively extract all field keys of type 'file' from a schema_definition JSON.
      * Handles top-level fields and items within repeaters.
      *
@@ -239,6 +361,28 @@ class FileUsageService
         }
 
         return $this->collectFileKeysFromFields($fields, $prefix);
+    }
+
+    /**
+     * @return list<array{path: string, type: string}>
+     */
+    private function extractConfigReferencePaths(string $schemaDef, string $prefix = ''): array
+    {
+        if ($schemaDef === '') {
+            return [];
+        }
+
+        $schema = json_decode($schemaDef, true);
+        if (! is_array($schema)) {
+            return [];
+        }
+
+        $fields = $schema['config_fields'] ?? [];
+        if (! is_array($fields)) {
+            return [];
+        }
+
+        return $this->collectConfigReferencePaths($fields, $prefix);
     }
 
     /**
@@ -276,6 +420,51 @@ class FileUsageService
         }
 
         return $keys;
+    }
+
+    /**
+     * @param array<string, array<string, mixed>> $fields
+     * @return list<array{path: string, type: string}>
+     */
+    private function collectConfigReferencePaths(array $fields, string $prefix = ''): array
+    {
+        $paths = [];
+
+        foreach ($fields as $fieldKey => $fieldDef) {
+            $type = strtolower((string) ($fieldDef['type'] ?? 'string'));
+            $qualifiedKey = $prefix !== '' ? $prefix . '.' . $fieldKey : (string) $fieldKey;
+
+            if (in_array($type, ['file', 'media_reference'], true)) {
+                $paths[] = [
+                    'path' => $qualifiedKey,
+                    'type' => $type,
+                ];
+                continue;
+            }
+
+            if ($type === 'repeater') {
+                $itemFields = $fieldDef['item_fields'] ?? [];
+                if (is_array($itemFields) && ! empty($itemFields)) {
+                    $paths = array_merge(
+                        $paths,
+                        $this->collectConfigReferencePaths($itemFields, $qualifiedKey . '[*]')
+                    );
+                }
+                continue;
+            }
+
+            if (in_array($type, ['group', 'fieldset'], true)) {
+                $nestedFields = $fieldDef['fields'] ?? [];
+                if (is_array($nestedFields)) {
+                    $paths = array_merge(
+                        $paths,
+                        $this->collectConfigReferencePaths($nestedFields, $qualifiedKey)
+                    );
+                }
+            }
+        }
+
+        return $paths;
     }
 
     private function buildBlockLabel(string $blockName, string $ownerType, int $ownerId): string

@@ -124,7 +124,8 @@ class FileReferenceSynchronizer
         }
 
         $schemaFields = $this->schemaFields((string) ($instance['schema_definition'] ?? ''));
-        if ($schemaFields === []) {
+        $schemaConfigFields = $this->schemaConfigFields((string) ($instance['schema_definition'] ?? ''));
+        if ($schemaFields === [] && $schemaConfigFields === []) {
             $this->replaceReferences('block_instance', $instanceId, []);
             return;
         }
@@ -137,6 +138,8 @@ class FileReferenceSynchronizer
         $references = [];
         $blockLabel  = $this->blockLabel($instance);
 
+        $blockConfig = $this->decodeJsonArray($instance['block_config'] ?? null);
+
         foreach ($translations as $translation) {
             $languageCode = $this->languageCode((int) ($translation['language_id'] ?? 0));
             $blockData    = $this->decodeJsonArray($translation['block_data'] ?? null);
@@ -147,6 +150,21 @@ class FileReferenceSynchronizer
             $references = array_merge(
                 $references,
                 $this->collectBlockReferences($blockData, $schemaFields, $instanceId, $languageCode, $blockLabel)
+            );
+
+        }
+
+        if ($schemaConfigFields !== [] && $blockConfig !== []) {
+            $references = array_merge(
+                $references,
+                $this->collectBlockReferences(
+                    $blockConfig,
+                    $schemaConfigFields,
+                    $instanceId,
+                    '',
+                    $blockLabel,
+                    'config'
+                )
             );
         }
 
@@ -219,6 +237,22 @@ class FileReferenceSynchronizer
                     $blockData[$fieldKey . '_file_id'] ?? null,
                     isset($blockData[$fieldKey . '_url']) ? (string) $blockData[$fieldKey . '_url'] : null
                 );
+                if ($fileId === null) {
+                    continue;
+                }
+
+                $references[] = $this->referenceRow(
+                    $fileId,
+                    'block_instance',
+                    $instanceId,
+                    $this->buildRole($fieldPath, $languageCode),
+                    $blockLabel . ' - ' . $this->humanizeFieldLabel((string) ($fieldDef['label'] ?? $fieldKey), $fieldPath)
+                );
+                continue;
+            }
+
+            if ($type === 'media_reference') {
+                $fileId = $this->urlResolver->resolveMediaReferenceFileId($blockData[$fieldKey] ?? null);
                 if ($fileId === null) {
                     continue;
                 }
@@ -369,6 +403,10 @@ class FileReferenceSynchronizer
 
     private function buildRole(string $path, string $languageCode): string
     {
+        if (trim($languageCode) === '') {
+            return $path;
+        }
+
         $suffix = '.' . $languageCode;
         $role   = $path . $suffix;
 
@@ -397,6 +435,24 @@ class FileReferenceSynchronizer
         }
 
         $fields = $decoded['fields'] ?? [];
+        return is_array($fields) ? $fields : [];
+    }
+
+    /**
+     * @return array<string, array<string, mixed>>
+     */
+    private function schemaConfigFields(string $schemaDefinition): array
+    {
+        if ($schemaDefinition === '') {
+            return [];
+        }
+
+        $decoded = json_decode($schemaDefinition, true);
+        if (! is_array($decoded)) {
+            return [];
+        }
+
+        $fields = $decoded['config_fields'] ?? [];
         return is_array($fields) ? $fields : [];
     }
 

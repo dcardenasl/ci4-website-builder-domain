@@ -81,7 +81,17 @@ class BlockInstanceSerializer
 
             $schemaDefinition = $this->parseSchemaDefinition((string) ($instance['schema_definition'] ?? ''));
             $schemaFields = (array) ($schemaDefinition['fields'] ?? []);
+            $schemaConfigFields = (array) ($schemaDefinition['config_fields'] ?? []);
+
             $allFileIds = array_merge($allFileIds, $this->fileUrlResolver->collectBlockFileIds($blockData, $schemaFields));
+
+            $blockConfig = [];
+            if (!empty($instance['block_config'])) {
+                $blockConfig = is_string($instance['block_config'])
+                    ? (json_decode($instance['block_config'], true) ?? [])
+                    : (array) $instance['block_config'];
+            }
+            $allFileIds = array_merge($allFileIds, $this->fileUrlResolver->collectSchemaFileIds($blockConfig, $schemaConfigFields));
         }
 
         $allFileIds        = array_values(array_unique($allFileIds));
@@ -115,8 +125,12 @@ class BlockInstanceSerializer
 
             $schemaDefinition = $this->parseSchemaDefinition((string) ($instance['schema_definition'] ?? ''));
             $schemaFields = (array) ($schemaDefinition['fields'] ?? []);
+            $schemaConfigFields = (array) ($schemaDefinition['config_fields'] ?? []);
 
             $blockConfig = SchemaDefaults::applyConfigDefaults($schemaDefinition, $blockConfig);
+            if ($schemaConfigFields !== []) {
+                $blockConfig = $this->fileUrlResolver->normalizeBlockConfig($blockConfig, $schemaConfigFields);
+            }
             $blockData = SchemaDefaults::apply($blockData, $schemaFields);
 
             $blockPayload = [
@@ -248,6 +262,8 @@ class BlockInstanceSerializer
                     $fileTransMap,
                     $fileUrlMap
                 );
+            } elseif ($type === 'media_reference') {
+                $this->mergeMediaReferenceField($blockData, $fieldKey);
             } elseif ($type === 'repeater') {
                 $items      = $blockData[$fieldKey] ?? [];
                 $itemFields = $fieldDef['item_fields'] ?? [];
@@ -261,14 +277,15 @@ class BlockInstanceSerializer
                         $enriched[] = $item;
                         continue;
                     }
-                    foreach ($itemFields as $subKey => $subDef) {
-                        if (($subDef['type'] ?? '') === 'file') {
-                            $this->mergeSingleFileField($item, $subKey, $fileTransMap, $fileUrlMap);
-                        }
-                    }
-                    $enriched[] = $item;
+                    $enriched[] = $this->mergeFileMetadata($item, $itemFields, $fileTransMap, $fileUrlMap);
                 }
                 $blockData[$fieldKey] = $enriched;
+            } elseif (in_array($type, ['group', 'fieldset'], true)) {
+                $nestedFields = $fieldDef['fields'] ?? [];
+                $nestedData   = $blockData[$fieldKey] ?? [];
+                if (is_array($nestedData) && is_array($nestedFields)) {
+                    $blockData[$fieldKey] = $this->mergeFileMetadata($nestedData, $nestedFields, $fileTransMap, $fileUrlMap);
+                }
             }
         }
 
@@ -308,6 +325,20 @@ class BlockInstanceSerializer
             $fileId,
             isset($blockData[$urlKey]) ? (string) $blockData[$urlKey] : null
         );
+    }
+
+    /**
+     * Normalize a media_reference field into the canonical nested payload.
+     *
+     * @param array<string, mixed> $blockData
+     */
+    private function mergeMediaReferenceField(array &$blockData, string $fieldKey): void
+    {
+        $reference = is_array($blockData[$fieldKey] ?? null) ? $blockData[$fieldKey] : [];
+
+        $normalized = $this->fileUrlResolver->normalizeMediaReference($reference);
+
+        $blockData[$fieldKey] = $normalized;
     }
 
     /**

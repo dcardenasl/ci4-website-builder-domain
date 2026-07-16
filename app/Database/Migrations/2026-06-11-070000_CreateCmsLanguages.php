@@ -10,6 +10,10 @@ class CreateCmsLanguages extends Migration
 {
     public function up(): void
     {
+        if ($this->db->tableExists('cms_languages')) {
+            return;
+        }
+
         $this->forge->addField([
             'id'                   => ['type' => 'INT', 'constraint' => 10, 'unsigned' => true, 'auto_increment' => true],
             'code'                 => ['type' => 'VARCHAR', 'constraint' => 10],
@@ -33,6 +37,10 @@ class CreateCmsLanguages extends Migration
 
     public function down(): void
     {
+        if (! $this->db->tableExists('cms_languages')) {
+            return;
+        }
+
         $this->db->disableForeignKeyChecks();
         $this->forge->dropTable('cms_languages', true);
         $this->db->enableForeignKeyChecks();

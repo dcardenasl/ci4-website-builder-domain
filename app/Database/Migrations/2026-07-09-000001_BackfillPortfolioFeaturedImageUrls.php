@@ -10,6 +10,10 @@ class BackfillPortfolioFeaturedImageUrls extends Migration
 {
     public function up(): void
     {
+        // See 2026-06-27-180000_AddFeaturedImageUrlToCmsEntryTranslations —
+        // fieldExists() needs a fresh schema read within a multi-migration run.
+        $this->db->resetDataCache();
+
         if (
             ! $this->db->tableExists('cms_collections')
             || ! $this->db->tableExists('cms_entries')
@@ -17,6 +21,7 @@ class BackfillPortfolioFeaturedImageUrls extends Migration
             || ! $this->db->tableExists('cms_block_instances')
             || ! $this->db->tableExists('cms_block_instance_translations')
             || ! $this->db->tableExists('cms_content_blocks')
+            || ! $this->db->fieldExists('featured_image_url', 'cms_entry_translations')
         ) {
             return;
         }

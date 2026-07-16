@@ -236,6 +236,7 @@ class EntryService extends BaseCrudService implements EntryServiceInterface
                 'featured_file_id' => $translation->featured_file_id !== null ? (int) $translation->featured_file_id : null,
                 'featured_image_url' => $translation->featured_image_url,
                 'og_image_file_id' => $translation->og_image_file_id !== null ? (int) $translation->og_image_file_id : null,
+                'og_image_url' => $translation->og_image_url ?? null,
             ]);
 
             $translationsGrouped[$translation->entry_id][] = [
@@ -243,12 +244,10 @@ class EntryService extends BaseCrudService implements EntryServiceInterface
                 'slug'             => $translation->slug,
                 'title'            => $translation->title,
                 'excerpt'          => $translation->excerpt,
-                'featured_file_id' => $translation->featured_file_id !== null ? (int) $translation->featured_file_id : null,
-                'featured_image_url' => $resolvedTranslation['featured_image_url'] ?? null,
+                'featured_image'   => $resolvedTranslation['featured_image'] ?? null,
                 'meta_title'       => $translation->meta_title,
                 'meta_description' => $translation->meta_description,
-                'og_image_file_id' => $translation->og_image_file_id !== null ? (int) $translation->og_image_file_id : null,
-                'og_image_url'     => $resolvedTranslation['og_image_url'] ?? null,
+                'og_image'         => $resolvedTranslation['og_image'] ?? null,
                 'og_type'          => $translation->og_type,
                 'canonical_url'    => $translation->canonical_url,
                 'robots'           => $translation->robots,
@@ -450,11 +449,14 @@ class EntryService extends BaseCrudService implements EntryServiceInterface
 
         $rows = [];
         foreach ($translations as $translation) {
-            $normalizedTranslation = $this->fileUrlResolver->normalizeEntryTranslation([
-                'featured_file_id' => $translation['featured_file_id'] ?? null,
-                'featured_image_url' => $translation['featured_image_url'] ?? null,
-                'og_image_file_id' => $translation['og_image_file_id'] ?? null,
-            ]);
+            $featuredImageUrl = $this->fileUrlResolver->resolveUrlValue(
+                $translation['featured_file_id'] ?? null,
+                isset($translation['featured_image_url']) ? (string) $translation['featured_image_url'] : null
+            );
+            $ogImageUrl = $this->fileUrlResolver->resolveUrlValue(
+                $translation['og_image_file_id'] ?? null,
+                isset($translation['og_image_url']) ? (string) $translation['og_image_url'] : null
+            );
 
             $rows[] = [
                 'entry_id'         => $entryId,
@@ -463,11 +465,11 @@ class EntryService extends BaseCrudService implements EntryServiceInterface
                 'title'            => $translation['title'],
                 'excerpt'          => $translation['excerpt'] ?? null,
                 'featured_file_id' => isset($translation['featured_file_id']) && $translation['featured_file_id'] !== '' ? (int) $translation['featured_file_id'] : null,
-                'featured_image_url' => $normalizedTranslation['featured_image_url'] ?? null,
+                'featured_image_url' => $featuredImageUrl,
                 'meta_title'       => $translation['meta_title'] ?? null,
                 'meta_description' => $translation['meta_description'] ?? null,
                 'og_image_file_id' => isset($translation['og_image_file_id']) && $translation['og_image_file_id'] !== '' ? (int) $translation['og_image_file_id'] : null,
-                'og_image_url'     => $normalizedTranslation['og_image_url'] ?? null,
+                'og_image_url'     => $ogImageUrl,
                 'og_type'          => $translation['og_type'] ?? 'article',
                 'canonical_url'    => $translation['canonical_url'] ?? null,
                 'robots'           => $translation['robots'] ?? null,

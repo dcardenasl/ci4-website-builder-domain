@@ -102,21 +102,31 @@ class FileUrlResolver
     }
 
     /**
+     * Normalize entry translation media into canonical nested objects.
+     *
+     * This intentionally drops the legacy flat URL/file-id view from the
+     * returned payload so readers/services can expose a single contract.
+     *
      * @param  array<string, mixed> $translation
      * @return array<string, mixed>
      */
     public function normalizeEntryTranslation(array $translation, string $context = 'public'): array
     {
-        $translation['featured_image_url'] = $this->resolveUrlValue(
-            $translation['featured_file_id'] ?? null,
-            isset($translation['featured_image_url']) ? (string) $translation['featured_image_url'] : null,
-            $context
-        );
+        $translation['featured_image'] = $this->normalizeMediaReference([
+            'file_id' => $translation['featured_file_id'] ?? null,
+            'url'     => isset($translation['featured_image_url']) ? (string) $translation['featured_image_url'] : null,
+        ], $context);
 
-        $translation['og_image_url'] = $this->resolveUrlValue(
-            $translation['og_image_file_id'] ?? null,
-            isset($translation['og_image_url']) ? (string) $translation['og_image_url'] : null,
-            $context
+        $translation['og_image'] = $this->normalizeMediaReference([
+            'file_id' => $translation['og_image_file_id'] ?? null,
+            'url'     => isset($translation['og_image_url']) ? (string) $translation['og_image_url'] : null,
+        ], $context);
+
+        unset(
+            $translation['featured_file_id'],
+            $translation['featured_image_url'],
+            $translation['og_image_file_id'],
+            $translation['og_image_url']
         );
 
         return $translation;
@@ -146,48 +156,21 @@ class FileUrlResolver
      */
     public function normalizeBlockData(array $blockData, array $schemaFields, string $context = 'public'): array
     {
-        foreach ($schemaFields as $fieldKey => $fieldDef) {
-            $type = strtolower((string) ($fieldDef['type'] ?? 'string'));
+        return $this->normalizeSchemaPayload($blockData, $schemaFields, $context);
+    }
 
-            if ($type === 'file') {
-                $fileIdKey          = $fieldKey . '_file_id';
-                $urlKey             = $fieldKey . '_url';
-                $blockData[$urlKey] = $this->resolveUrlValue(
-                    $blockData[$fileIdKey] ?? null,
-                    isset($blockData[$urlKey]) ? (string) $blockData[$urlKey] : null,
-                    $context
-                );
-                continue;
-            }
-
-            if ($type === 'repeater') {
-                $items = $blockData[$fieldKey] ?? [];
-                if (! is_array($items)) {
-                    continue;
-                }
-
-                $itemFields = is_array($fieldDef['item_fields'] ?? null) ? (array) $fieldDef['item_fields'] : [];
-                $normalized = [];
-                foreach ($items as $item) {
-                    $normalized[] = is_array($item)
-                        ? $this->normalizeBlockData($item, $itemFields, $context)
-                        : $item;
-                }
-
-                $blockData[$fieldKey] = $normalized;
-                continue;
-            }
-
-            if (in_array($type, ['group', 'fieldset'], true)) {
-                $nestedFields = is_array($fieldDef['fields'] ?? null) ? (array) $fieldDef['fields'] : [];
-                $nestedData   = $blockData[$fieldKey] ?? null;
-                if (is_array($nestedData) && $nestedFields !== []) {
-                    $blockData[$fieldKey] = $this->normalizeBlockData($nestedData, $nestedFields, $context);
-                }
-            }
-        }
-
-        return $blockData;
+    /**
+     * Normalize a block_config payload with the same schema-driven rules used
+     * for block_data. Media reference config fields share the same canonical
+     * shape as legacy file fields, only nested under the config field key.
+     *
+     * @param  array<string, mixed>                $blockConfig
+     * @param  array<string, array<string, mixed>> $schemaFields
+     * @return array<string, mixed>
+     */
+    public function normalizeBlockConfig(array $blockConfig, array $schemaFields, string $context = 'public'): array
+    {
+        return $this->normalizeSchemaPayload($blockConfig, $schemaFields, $context);
     }
 
     /**
@@ -199,6 +182,19 @@ class FileUrlResolver
      */
     public function collectBlockFileIds(array $blockData, array $schemaFields): array
     {
+        return $this->collectSchemaFileIds($blockData, $schemaFields);
+    }
+
+    /**
+     * Collect file IDs from any schema-driven payload, including nested media
+     * reference config fields.
+     *
+     * @param  array<string, mixed>               $payload
+     * @param  array<string, array<string, mixed>> $schemaFields
+     * @return list<int>
+     */
+    public function collectSchemaFileIds(array $payload, array $schemaFields): array
+    {
         $fileIds = [];
 
         foreach ($schemaFields as $fieldKey => $fieldDef) {
@@ -206,14 +202,20 @@ class FileUrlResolver
 
             if ($type === 'file') {
                 $fileIds[] = $this->resolveFileIdFromValue(
-                    $blockData[$fieldKey . '_file_id'] ?? null,
-                    isset($blockData[$fieldKey . '_url']) ? (string) $blockData[$fieldKey . '_url'] : null
+                    $payload[$fieldKey . '_file_id'] ?? null,
+                    isset($payload[$fieldKey . '_url']) ? (string) $payload[$fieldKey . '_url'] : null
                 );
                 continue;
             }
 
+            if ($type === 'media_reference') {
+                $reference = $payload[$fieldKey] ?? [];
+                $fileIds[] = $this->resolveMediaReferenceFileId($reference);
+                continue;
+            }
+
             if ($type === 'repeater') {
-                $items = $blockData[$fieldKey] ?? [];
+                $items = $payload[$fieldKey] ?? [];
                 if (! is_array($items)) {
                     continue;
                 }
@@ -223,16 +225,16 @@ class FileUrlResolver
                     if (! is_array($item)) {
                         continue;
                     }
-                    $fileIds = array_merge($fileIds, $this->collectBlockFileIds($item, $itemFields));
+                    $fileIds = array_merge($fileIds, $this->collectSchemaFileIds($item, $itemFields));
                 }
                 continue;
             }
 
             if (in_array($type, ['group', 'fieldset'], true)) {
                 $nestedFields = is_array($fieldDef['fields'] ?? null) ? (array) $fieldDef['fields'] : [];
-                $nestedData   = $blockData[$fieldKey] ?? null;
+                $nestedData   = $payload[$fieldKey] ?? null;
                 if (is_array($nestedData) && $nestedFields !== []) {
-                    $fileIds = array_merge($fileIds, $this->collectBlockFileIds($nestedData, $nestedFields));
+                    $fileIds = array_merge($fileIds, $this->collectSchemaFileIds($nestedData, $nestedFields));
                 }
             }
         }
@@ -255,6 +257,98 @@ class FileUrlResolver
         }
 
         return $this->resolveFileIdFromUrl($url);
+    }
+
+    /**
+     * Normalize a media_reference payload into the canonical nested array.
+     *
+     * @param  mixed $reference
+     * @return array{source_kind: string, file_id: int|null, url: string|null}
+     */
+    public function normalizeMediaReference(mixed $reference, string $context = 'public'): array
+    {
+        if (is_string($reference) || is_int($reference)) {
+            $reference = ['url' => (string) $reference];
+        }
+
+        if (! is_array($reference)) {
+            $reference = [];
+        }
+
+        $sourceKindRaw = strtolower(trim((string) ($reference['source_kind'] ?? '')));
+        $url = isset($reference['url']) ? $this->normalizeUrl($reference['url']) : null;
+        $fileId = $this->resolveFileIdFromValue($reference['file_id'] ?? null, $url);
+        $resolvedByUrl = $url !== null ? $this->resolveFileIdFromUrl($url) : null;
+
+        if ($sourceKindRaw === 'external_url') {
+            return [
+                'source_kind' => 'external_url',
+                'file_id' => null,
+                'url' => $url,
+            ];
+        }
+
+        if ($sourceKindRaw === 'hub_file') {
+            if ($fileId === null && $resolvedByUrl !== null) {
+                $fileId = $resolvedByUrl;
+            }
+
+            return [
+                'source_kind' => 'hub_file',
+                'file_id' => $fileId,
+                'url' => $this->resolveUrlValue($fileId, $url, $context),
+            ];
+        }
+
+        if ($fileId !== null) {
+            return [
+                'source_kind' => 'hub_file',
+                'file_id' => $fileId,
+                'url' => $this->resolveUrlValue($fileId, $url, $context),
+            ];
+        }
+
+        if ($resolvedByUrl !== null) {
+            return [
+                'source_kind' => 'hub_file',
+                'file_id' => $resolvedByUrl,
+                'url' => $this->resolveUrlValue($resolvedByUrl, $url, $context),
+            ];
+        }
+
+        return [
+            'source_kind' => 'external_url',
+            'file_id' => null,
+            'url' => $url,
+        ];
+    }
+
+    /**
+     * @param mixed $reference
+     */
+    public function resolveMediaReferenceFileId(mixed $reference): ?int
+    {
+        if (is_array($reference)) {
+            $normalized = $this->normalizeMediaReference($reference);
+
+            return $normalized['file_id'];
+        }
+
+        return $this->resolveFileIdFromValue(is_int($reference) || is_string($reference) ? $reference : null, is_string($reference) ? $reference : null);
+    }
+
+    /**
+     * @param mixed $reference
+     */
+    public function resolveMediaReferenceUrl(mixed $reference, string $context = 'public'): ?string
+    {
+        if (is_array($reference)) {
+            $normalized = $this->normalizeMediaReference($reference, $context);
+
+            return $normalized['url'];
+        }
+
+        return $this->resolveUrlValue(is_int($reference) || is_string($reference) ? $reference : null, is_string($reference) ? $reference : null, $context);
     }
 
     public function resolveFileIdFromUrl(string $url): ?int
@@ -318,5 +412,61 @@ class FileUrlResolver
         $url = trim((string) $value);
 
         return $url !== '' ? $url : null;
+    }
+
+    /**
+     * @param array<string, mixed> $payload
+     * @param array<string, array<string, mixed>> $schemaFields
+     * @return array<string, mixed>
+     */
+    private function normalizeSchemaPayload(array $payload, array $schemaFields, string $context): array
+    {
+        foreach ($schemaFields as $fieldKey => $fieldDef) {
+            $type = strtolower((string) ($fieldDef['type'] ?? 'string'));
+
+            if ($type === 'file') {
+                $fileIdKey = $fieldKey . '_file_id';
+                $urlKey    = $fieldKey . '_url';
+                $payload[$urlKey] = $this->resolveUrlValue(
+                    $payload[$fileIdKey] ?? null,
+                    isset($payload[$urlKey]) ? (string) $payload[$urlKey] : null,
+                    $context
+                );
+                continue;
+            }
+
+            if ($type === 'media_reference') {
+                $payload[$fieldKey] = $this->normalizeMediaReference($payload[$fieldKey] ?? [], $context);
+                continue;
+            }
+
+            if ($type === 'repeater') {
+                $items = $payload[$fieldKey] ?? [];
+                if (! is_array($items)) {
+                    continue;
+                }
+
+                $itemFields = is_array($fieldDef['item_fields'] ?? null) ? (array) $fieldDef['item_fields'] : [];
+                $normalized = [];
+                foreach ($items as $item) {
+                    $normalized[] = is_array($item)
+                        ? $this->normalizeSchemaPayload($item, $itemFields, $context)
+                        : $item;
+                }
+
+                $payload[$fieldKey] = $normalized;
+                continue;
+            }
+
+            if (in_array($type, ['group', 'fieldset'], true)) {
+                $nestedFields = is_array($fieldDef['fields'] ?? null) ? (array) $fieldDef['fields'] : [];
+                $nestedData   = $payload[$fieldKey] ?? null;
+                if (is_array($nestedData) && $nestedFields !== []) {
+                    $payload[$fieldKey] = $this->normalizeSchemaPayload($nestedData, $nestedFields, $context);
+                }
+            }
+        }
+
+        return $payload;
     }
 }

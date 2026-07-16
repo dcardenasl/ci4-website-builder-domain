@@ -120,7 +120,8 @@ class BackfillCmsFileReferences extends BaseCommand
 
         foreach ($instances as $instance) {
             $schemaFields = $this->schemaFields($db, (int) ($instance['block_id'] ?? 0));
-            if ($schemaFields === []) {
+            $schemaConfigFields = $this->schemaConfigFields($db, (int) ($instance['block_id'] ?? 0));
+            if ($schemaFields === [] && $schemaConfigFields === []) {
                 continue;
             }
 
@@ -147,6 +148,21 @@ class BackfillCmsFileReferences extends BaseCommand
                         ->update([
                             'block_data' => json_encode($normalized, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES),
                         ]);
+                }
+            }
+
+            if ($schemaConfigFields !== []) {
+                $blockConfig = $this->decodeJsonArray($instance['block_config'] ?? null);
+                $normalizedConfig = $this->normalizeBlockConfig($blockConfig, $schemaConfigFields, $resolver);
+                if ($normalizedConfig !== $blockConfig) {
+                    $updated++;
+                    if (! $dryRun) {
+                        $db->table('cms_block_instances')
+                            ->where('id', (int) $instance['id'])
+                            ->update([
+                                'block_config' => json_encode($normalizedConfig, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES),
+                            ]);
+                    }
                 }
             }
         }
@@ -184,6 +200,35 @@ class BackfillCmsFileReferences extends BaseCommand
     }
 
     /**
+     * @param \CodeIgniter\Database\BaseConnection<object, object> $db
+     * @return array<string, array<string, mixed>>
+     */
+    private function schemaConfigFields(\CodeIgniter\Database\BaseConnection $db, int $blockId): array
+    {
+        if ($blockId <= 0) {
+            return [];
+        }
+
+        $result = $db->table('cms_content_blocks')
+            ->select('schema_definition')
+            ->where('id', $blockId)
+            ->get();
+        $row = $result === false ? null : $result->getRowArray();
+
+        if (! is_array($row) || ! isset($row['schema_definition'])) {
+            return [];
+        }
+
+        $decoded = json_decode((string) $row['schema_definition'], true);
+        if (! is_array($decoded)) {
+            return [];
+        }
+
+        $fields = $decoded['config_fields'] ?? [];
+        return is_array($fields) ? $fields : [];
+    }
+
+    /**
      * @param array<string, mixed> $blockData
      * @param array<string, array<string, mixed>> $schemaFields
      * @return array<string, mixed>
@@ -201,6 +246,11 @@ class BackfillCmsFileReferences extends BaseCommand
                     $blockData[$fileIdKey] = $resolvedFileId;
                 }
                 $blockData[$urlKey] = $resolver->resolveUrlValue($resolvedFileId, isset($blockData[$urlKey]) ? (string) $blockData[$urlKey] : null);
+                continue;
+            }
+
+            if ($type === 'media_reference') {
+                $blockData[$fieldKey] = $resolver->normalizeMediaReference($blockData[$fieldKey] ?? []);
                 continue;
             }
 
@@ -232,6 +282,59 @@ class BackfillCmsFileReferences extends BaseCommand
         }
 
         return $blockData;
+    }
+
+    /**
+     * @param array<string, mixed> $blockConfig
+     * @param array<string, array<string, mixed>> $schemaFields
+     * @return array<string, mixed>
+     */
+    private function normalizeBlockConfig(array $blockConfig, array $schemaFields, FileUrlResolver $resolver): array
+    {
+        foreach ($schemaFields as $fieldKey => $fieldDef) {
+            $type = strtolower((string) ($fieldDef['type'] ?? 'string'));
+
+            if ($type === 'file') {
+                $blockConfig[$fieldKey] = $resolver->resolveUrlValue(
+                    $blockConfig[$fieldKey . '_file_id'] ?? null,
+                    isset($blockConfig[$fieldKey . '_url']) ? (string) $blockConfig[$fieldKey . '_url'] : null
+                );
+                continue;
+            }
+
+            if ($type === 'media_reference') {
+                $blockConfig[$fieldKey] = $resolver->normalizeMediaReference($blockConfig[$fieldKey] ?? []);
+                continue;
+            }
+
+            if ($type === 'repeater') {
+                $items = $blockConfig[$fieldKey] ?? [];
+                $itemFields = is_array($fieldDef['item_fields'] ?? null) ? (array) $fieldDef['item_fields'] : [];
+                if (! is_array($items) || $itemFields === []) {
+                    continue;
+                }
+
+                $normalized = [];
+                foreach ($items as $item) {
+                    $normalized[] = is_array($item)
+                        ? $this->normalizeBlockConfig($item, $itemFields, $resolver)
+                        : $item;
+                }
+
+                $blockConfig[$fieldKey] = $normalized;
+                continue;
+            }
+
+            if (in_array($type, ['group', 'fieldset'], true)) {
+                $nestedFields = is_array($fieldDef['fields'] ?? null) ? (array) $fieldDef['fields'] : [];
+                $nestedData = $blockConfig[$fieldKey] ?? null;
+                if (is_array($nestedData) && $nestedFields !== []) {
+                    $blockConfig[$fieldKey] = $this->normalizeBlockConfig($nestedData, $nestedFields, $resolver);
+                }
+            }
+        }
+
+        return $blockConfig;
     }
 
     /**
