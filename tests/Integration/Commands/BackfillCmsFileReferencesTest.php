@@ -95,6 +95,25 @@ final class BackfillCmsFileReferencesTest extends CIUnitTestCase
             'is_active'         => 1,
             'sort_order'        => 2,
         ]);
+        $db->table('cms_content_blocks')->insert([
+            'id'                => 12,
+            'block_key'         => 'image',
+            'name'              => 'Image',
+            'schema_definition' => json_encode([
+                'fields' => [
+                    'alt' => ['type' => 'string', 'label' => 'Alt'],
+                    'caption' => ['type' => 'string', 'label' => 'Caption'],
+                ],
+                'config_fields' => [
+                    'image' => ['type' => 'media_reference', 'label' => 'Image', 'accept' => 'image'],
+                ],
+            ]),
+            'supports_pages'    => 1,
+            'supports_entries'  => 0,
+            'is_container'      => 0,
+            'is_active'         => 1,
+            'sort_order'        => 3,
+        ]);
 
         $db->table('cms_block_instances')->insert([
             'id'                 => 100,
@@ -105,6 +124,22 @@ final class BackfillCmsFileReferencesTest extends CIUnitTestCase
             'sort_order'         => 1,
             'is_active'          => 1,
             'block_config'       => json_encode([]),
+        ]);
+        $db->table('cms_block_instances')->insert([
+            'id'                 => 102,
+            'block_id'           => 12,
+            'owner_type'         => 'page',
+            'owner_id'           => 99,
+            'parent_instance_id' => null,
+            'sort_order'         => 3,
+            'is_active'          => 1,
+            'block_config'       => json_encode([
+                'image' => [
+                    'source_kind' => 'external_url',
+                    'file_id' => 500,
+                    'url' => 'http://localhost:8182/files/500/view',
+                ],
+            ]),
         ]);
         $db->table('cms_block_instances')->insert([
             'id'                 => 101,
@@ -130,6 +165,15 @@ final class BackfillCmsFileReferencesTest extends CIUnitTestCase
             ]),
             'is_published' => 1,
         ]);
+        $db->table('cms_block_instance_translations')->insert([
+            'instance_id'  => 102,
+            'language_id'  => 1,
+            'block_data'   => json_encode([
+                'alt' => 'Backfill alt',
+                'caption' => 'Backfill caption',
+            ]),
+            'is_published' => 1,
+        ]);
 
         $command->run(['--dry-run']);
 
@@ -150,5 +194,14 @@ final class BackfillCmsFileReferencesTest extends CIUnitTestCase
 
         $this->assertSame(500, $afterData['image_file_id']);
         $this->assertSame('http://localhost:8180/uploads/posts/500.png', $afterData['image_url']);
+
+        $backfilledConfig = $db->table('cms_block_instances')
+            ->where('id', 102)
+            ->get()
+            ->getRowArray();
+        $backfilledConfigData = json_decode((string) $backfilledConfig['block_config'], true);
+
+        $this->assertSame('external_url', $backfilledConfigData['image']['source_kind']);
+        $this->assertNull($backfilledConfigData['image']['file_id']);
     }
 }

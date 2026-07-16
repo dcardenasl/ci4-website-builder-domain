@@ -54,4 +54,39 @@ final class FileUrlResolverTest extends CIUnitTestCase
             $resolver->resolve(21, 'original')
         );
     }
+
+    public function testNormalizeMediaReferencePreservesExternalUrl(): void
+    {
+        $hubClient = $this->createMock(HubClient::class);
+        $resolver = new FileUrlResolver($hubClient);
+
+        $reference = $resolver->normalizeMediaReference([
+            'source_kind' => 'external_url',
+            'url' => 'https://cdn.example.com/banner.jpg',
+        ]);
+
+        $this->assertSame('external_url', $reference['source_kind']);
+        $this->assertNull($reference['file_id']);
+        $this->assertSame('https://cdn.example.com/banner.jpg', $reference['url']);
+    }
+
+    public function testNormalizeMediaReferenceInfersHubFileFromFileUrl(): void
+    {
+        $hubClient = $this->createMock(HubClient::class);
+        $hubClient->method('resolvePublicFileMeta')->willReturn([
+            20 => [
+                'url' => 'http://localhost:8180/uploads/2026/06/28/logo.gif',
+            ],
+        ]);
+
+        $resolver = new FileUrlResolver($hubClient);
+
+        $reference = $resolver->normalizeMediaReference([
+            'url' => 'http://localhost:8182/files/20/view',
+        ]);
+
+        $this->assertSame('hub_file', $reference['source_kind']);
+        $this->assertSame(20, $reference['file_id']);
+        $this->assertSame('http://localhost:8180/uploads/2026/06/28/logo.gif', $reference['url']);
+    }
 }

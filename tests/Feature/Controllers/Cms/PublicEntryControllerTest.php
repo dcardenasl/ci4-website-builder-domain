@@ -36,6 +36,13 @@ final class PublicEntryControllerTest extends CIUnitTestCase
         $this->db->query("DELETE FROM `cms_languages`");
         $this->db->enableForeignKeyChecks();
 
+        if (! $this->db->fieldExists('featured_image_url', 'cms_entry_translations')) {
+            $this->db->query(
+                "ALTER TABLE `cms_entry_translations`
+                 ADD COLUMN `featured_image_url` VARCHAR(2048) NULL AFTER `featured_file_id`"
+            );
+        }
+
         // Seed default language first so the test mirrors the live Spanish site.
         $this->db->table('cms_languages')->insert([
             'code'       => 'es',
@@ -213,7 +220,7 @@ final class PublicEntryControllerTest extends CIUnitTestCase
         $result->assertStatus(404);
     }
 
-    public function testListingIncludesFeaturedImageUrl(): void
+    public function testListingIncludesFeaturedImage(): void
     {
         // Create entry with a public featured image URL
         $this->db->table('cms_entries')->insert([
@@ -243,8 +250,11 @@ final class PublicEntryControllerTest extends CIUnitTestCase
         $body = json_decode($result->getJSON(), true);
         $this->assertSame('success', $body['status']);
         $this->assertCount(1, $body['data']);
-        $this->assertArrayHasKey('featured_image_url', $body['data'][0]);
-        $this->assertSame('http://localhost:8180/uploads/posts/post-con-imagen.png', $body['data'][0]['featured_image_url']);
+        $this->assertArrayHasKey('featured_image', $body['data'][0]);
+        $this->assertSame('hub_file', $body['data'][0]['featured_image']['source_kind']);
+        $this->assertSame(42, $body['data'][0]['featured_image']['file_id']);
+        $this->assertSame('http://localhost:8180/uploads/posts/post-con-imagen.png', $body['data'][0]['featured_image']['url']);
+        $this->assertArrayNotHasKey('featured_image_url', $body['data'][0]);
     }
 
     public function testPublicEntriesSupportLimitAndOrdering(): void
@@ -304,7 +314,7 @@ final class PublicEntryControllerTest extends CIUnitTestCase
         $this->assertSame(2, (int) $body['meta']['per_page']);
     }
 
-    public function testShowIncludesFeaturedImageUrl(): void
+    public function testShowIncludesFeaturedImage(): void
     {
         // Create entry with a public featured image URL
         $this->db->table('cms_entries')->insert([
@@ -333,8 +343,11 @@ final class PublicEntryControllerTest extends CIUnitTestCase
 
         $body = json_decode($result->getJSON(), true);
         $this->assertSame('success', $body['status']);
-        $this->assertArrayHasKey('featured_image_url', $body['data']);
-        $this->assertSame('http://localhost:8180/uploads/posts/detalle-con-imagen.png', $body['data']['featured_image_url']);
+        $this->assertArrayHasKey('featured_image', $body['data']);
+        $this->assertSame('hub_file', $body['data']['featured_image']['source_kind']);
+        $this->assertSame(99, $body['data']['featured_image']['file_id']);
+        $this->assertSame('http://localhost:8180/uploads/posts/detalle-con-imagen.png', $body['data']['featured_image']['url']);
+        $this->assertArrayNotHasKey('featured_image_url', $body['data']);
     }
 
     public function testGetPublicEntriesFilteredByCategoryAndTag(): void
