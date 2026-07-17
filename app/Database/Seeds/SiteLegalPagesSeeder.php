@@ -350,12 +350,12 @@ class SiteLegalPagesSeeder extends Seeder
                 'description' => 'Estatutos e informes financieros anuales.',
                 'documents' => [
                     [
-                        'file_url' => 'https://example.com/docs/estatutos_corporativos.pdf',
+                        'file' => $this->mediaReference('https://example.com/docs/estatutos_corporativos.pdf'),
                         'title' => 'Estatutos de la Entidad',
                         'description' => 'Documentación fundacional y estatutos vigentes del Starter CMS.'
                     ],
                     [
-                        'file_url' => 'https://example.com/docs/cuentas_anuales_2025.xlsx',
+                        'file' => $this->mediaReference('https://example.com/docs/cuentas_anuales_2025.xlsx'),
                         'title' => 'Cuentas Anuales 2025',
                         'description' => 'Cierre financiero y auditorías contables aprobadas.'
                     ]
@@ -366,12 +366,12 @@ class SiteLegalPagesSeeder extends Seeder
                 'description' => 'Bylaws and annual financial reports.',
                 'documents' => [
                     [
-                        'file_url' => 'https://example.com/docs/corporate_bylaws.pdf',
+                        'file' => $this->mediaReference('https://example.com/docs/corporate_bylaws.pdf'),
                         'title' => 'Entity Bylaws',
                         'description' => 'Foundational documents and current bylaws of Starter CMS.'
                     ],
                     [
-                        'file_url' => 'https://example.com/docs/annual_accounts_2025.xlsx',
+                        'file' => $this->mediaReference('https://example.com/docs/annual_accounts_2025.xlsx'),
                         'title' => 'Annual Accounts 2025',
                         'description' => 'Financial closing statement and approved audits.'
                     ]

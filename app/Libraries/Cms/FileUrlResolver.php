@@ -112,15 +112,25 @@ class FileUrlResolver
      */
     public function normalizeEntryTranslation(array $translation, string $context = 'public'): array
     {
-        $translation['featured_image'] = $this->normalizeMediaReference([
-            'file_id' => $translation['featured_file_id'] ?? null,
-            'url'     => isset($translation['featured_image_url']) ? (string) $translation['featured_image_url'] : null,
-        ], $context);
+        $featuredImage = $translation['featured_image'] ?? null;
+        if (is_array($featuredImage) && $featuredImage !== []) {
+            $translation['featured_image'] = $this->normalizeMediaReference($featuredImage, $context);
+        } else {
+            $translation['featured_image'] = $this->normalizeMediaReference([
+                'file_id' => $translation['featured_file_id'] ?? null,
+                'url'     => isset($translation['featured_image_url']) ? (string) $translation['featured_image_url'] : null,
+            ], $context);
+        }
 
-        $translation['og_image'] = $this->normalizeMediaReference([
-            'file_id' => $translation['og_image_file_id'] ?? null,
-            'url'     => isset($translation['og_image_url']) ? (string) $translation['og_image_url'] : null,
-        ], $context);
+        $ogImage = $translation['og_image'] ?? null;
+        if (is_array($ogImage) && $ogImage !== []) {
+            $translation['og_image'] = $this->normalizeMediaReference($ogImage, $context);
+        } else {
+            $translation['og_image'] = $this->normalizeMediaReference([
+                'file_id' => $translation['og_image_file_id'] ?? null,
+                'url'     => isset($translation['og_image_url']) ? (string) $translation['og_image_url'] : null,
+            ], $context);
+        }
 
         unset(
             $translation['featured_file_id'],
@@ -138,11 +148,17 @@ class FileUrlResolver
      */
     public function normalizePageTranslation(array $translation, string $context = 'public'): array
     {
-        $translation['og_image_url'] = $this->resolveUrlValue(
-            $translation['og_image_file_id'] ?? null,
-            isset($translation['og_image_url']) ? (string) $translation['og_image_url'] : null,
-            $context
-        );
+        $ogImage = $translation['og_image'] ?? null;
+        if (is_array($ogImage) && $ogImage !== []) {
+            $translation['og_image'] = $this->normalizeMediaReference($ogImage, $context);
+        } else {
+            $translation['og_image'] = $this->normalizeMediaReference([
+                'file_id' => $translation['og_image_file_id'] ?? null,
+                'url'     => isset($translation['og_image_url']) ? (string) $translation['og_image_url'] : null,
+            ], $context);
+        }
+
+        unset($translation['og_image_file_id'], $translation['og_image_url']);
 
         return $translation;
     }

@@ -460,8 +460,10 @@ class PublicEntryReader
             $slug = trim((string) $row->slug);
 
             $normalizedMedia = $this->fileUrlResolver->normalizeEntryTranslation([
+                'featured_image' => $row->featured_image ?? null,
                 'featured_file_id' => $row->featured_file_id !== null ? (int) $row->featured_file_id : null,
                 'featured_image_url' => $row->featured_image_url,
+                'og_image' => $row->og_image ?? null,
                 'og_image_file_id' => $row->og_image_file_id !== null ? (int) $row->og_image_file_id : null,
                 'og_image_url' => $row->og_image_url ?? null,
             ]);
@@ -665,6 +667,7 @@ class PublicEntryReader
         $featuredImage = $item['featured_image'] ?? null;
         if (!is_array($featuredImage) || $featuredImage === []) {
             $normalized = $this->fileUrlResolver->normalizeEntryTranslation([
+                'featured_image' => $item['featured_image'] ?? null,
                 'featured_file_id' => $item['featured_file_id'] ?? null,
                 'featured_image_url' => $item['featured_image_url'] ?? null,
             ]);
@@ -675,6 +678,7 @@ class PublicEntryReader
         $ogImage = $item['og_image'] ?? null;
         if (!is_array($ogImage) || $ogImage === []) {
             $normalized = $this->fileUrlResolver->normalizeEntryTranslation([
+                'og_image' => $item['og_image'] ?? null,
                 'og_image_file_id' => $item['og_image_file_id'] ?? null,
                 'og_image_url' => $item['og_image_url'] ?? null,
             ]);

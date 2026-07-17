@@ -33,7 +33,7 @@ readonly class PageCreateRequestDTO extends BaseRequestDTO
     public bool $is_in_sitemap;
 
     /**
-     * @var array<array{language_id: int, slug: string, title: string, excerpt?: string, meta_title?: string, meta_description?: string, og_image_file_id?: int, og_type?: string, canonical_url?: string, robots?: string, schema_data?: array<mixed>}>
+     * @var array<array{language_id: int, slug: string, title: string, excerpt?: string, meta_title?: string, meta_description?: string, og_image?: array{source_kind?: string, file_id?: int|null, url?: string|null}, og_image_file_id?: int|null, og_image_url?: string, og_type?: string, canonical_url?: string, robots?: string, schema_data?: array<mixed>}>
      */
     #[OA\Property(description: 'translations', type: 'array', items: new OA\Items(type: 'object'))]
     public array $translations;
@@ -61,7 +61,9 @@ readonly class PageCreateRequestDTO extends BaseRequestDTO
             'translations.*.excerpt' => 'permit_empty|string|max_length[500]',
             'translations.*.meta_title' => 'permit_empty|string|max_length[255]',
             'translations.*.meta_description' => 'permit_empty|string|max_length[500]',
+            'translations.*.og_image' => 'permit_empty',
             'translations.*.og_image_file_id' => 'permit_empty|integer',
+            'translations.*.og_image_url' => 'permit_empty|string|max_length[2048]',
             'translations.*.og_type' => 'permit_empty|string|max_length[50]',
             'translations.*.canonical_url' => 'permit_empty|string|max_length[500]',
             'translations.*.robots' => 'permit_empty|string|max_length[100]',

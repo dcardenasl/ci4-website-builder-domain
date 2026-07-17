@@ -51,14 +51,14 @@ class CmsHeroSliderChildrenSeeder extends Seeder
                 'sort_order' => 1,
                 'data' => [
                     'es' => [
-                        'image_url' => 'https://picsum.photos/id/180/1920/1080',
+                        'image'     => $this->mediaReference('https://picsum.photos/id/180/1920/1080'),
                         'heading'   => 'Bienvenidos a Mi Sitio',
                         'subtitle'  => 'Contenido multilingüe y gestión moderna para tu sitio web.',
                         'cta_label' => 'Conocer más',
                         'cta_url'   => '/nosotros',
                     ],
                     'en' => [
-                        'image_url' => 'https://picsum.photos/id/180/1920/1080',
+                        'image'     => $this->mediaReference('https://picsum.photos/id/180/1920/1080'),
                         'heading'   => 'Welcome to My Site',
                         'subtitle'  => 'Multilingual content and modern management for your website.',
                         'cta_label' => 'Learn more',
@@ -70,14 +70,14 @@ class CmsHeroSliderChildrenSeeder extends Seeder
                 'sort_order' => 2,
                 'data' => [
                     'es' => [
-                        'image_url' => 'https://picsum.photos/id/24/1920/1080',
+                        'image'     => $this->mediaReference('https://picsum.photos/id/24/1920/1080'),
                         'heading'   => 'Nuestra Historia',
                         'subtitle'  => 'Conoce el camino que hemos recorrido y los hitos que nos definen.',
                         'cta_label' => 'Ver nuestra historia',
                         'cta_url'   => '/historia',
                     ],
                     'en' => [
-                        'image_url' => 'https://picsum.photos/id/24/1920/1080',
+                        'image'     => $this->mediaReference('https://picsum.photos/id/24/1920/1080'),
                         'heading'   => 'Our History',
                         'subtitle'  => 'Discover the journey we have traveled and the milestones that define us.',
                         'cta_label' => 'Read our story',
@@ -89,14 +89,14 @@ class CmsHeroSliderChildrenSeeder extends Seeder
                 'sort_order' => 3,
                 'data' => [
                     'es' => [
-                        'image_url' => 'https://picsum.photos/id/370/1920/1080',
+                        'image'     => $this->mediaReference('https://picsum.photos/id/370/1920/1080'),
                         'heading'   => 'Contáctanos',
                         'subtitle'  => 'Escríbenos y te responderemos a la brevedad.',
                         'cta_label' => 'Ir al formulario',
                         'cta_url'   => '/contacto',
                     ],
                     'en' => [
-                        'image_url' => 'https://picsum.photos/id/370/1920/1080',
+                        'image'     => $this->mediaReference('https://picsum.photos/id/370/1920/1080'),
                         'heading'   => 'Contact Us',
                         'subtitle'  => 'Write to us and we will reply as soon as possible.',
                         'cta_label' => 'Open form',

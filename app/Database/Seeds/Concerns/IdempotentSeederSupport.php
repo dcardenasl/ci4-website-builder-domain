@@ -206,4 +206,61 @@ trait IdempotentSeederSupport
         $this->db->table('cms_block_instance_translations')->whereIn('instance_id', $ids)->delete();
         $this->db->table('cms_block_instances')->whereIn('id', $ids)->delete();
     }
+
+    /**
+     * Build a canonical media reference payload for seed data.
+     *
+     * Seeders should persist the same nested shape the CMS renderer expects:
+     * `{source_kind, file_id, url}`. That keeps demo content aligned with the
+     * runtime contract and avoids flat legacy keys in new fixtures.
+     *
+     * @return array{source_kind: string, file_id: int|null, url: string}
+     */
+    protected function mediaReference(string $url, ?int $fileId = null): array
+    {
+        $url = trim($url);
+
+        if ($fileId !== null) {
+            return [
+                'source_kind' => 'hub_file',
+                'file_id' => $fileId,
+                'url' => $url !== '' ? $url : '/files/' . $fileId . '/view',
+            ];
+        }
+
+        return [
+            'source_kind' => 'external_url',
+            'file_id' => null,
+            'url' => $url,
+        ];
+    }
+
+    /**
+     * Convert a canonical media reference into the legacy DB column pair used
+     * by seeded translation rows. Seed data should keep the nested reference
+     * shape; this helper only bridges the current persistence schema.
+     *
+     * @param array{source_kind?: string, file_id?: int|null, url?: string|null}|string|null $reference
+     * @return array<string, int|string|null>
+     */
+    protected function mediaReferenceColumns(
+        array|string|null $reference,
+        string $fileIdColumn,
+        string $urlColumn
+    ): array {
+        if (is_string($reference)) {
+            $reference = ['url' => $reference];
+        }
+
+        if (! is_array($reference)) {
+            $reference = [];
+        }
+
+        return [
+            $fileIdColumn => is_numeric($reference['file_id'] ?? null) ? (int) $reference['file_id'] : null,
+            $urlColumn    => isset($reference['url']) && trim((string) $reference['url']) !== ''
+                ? trim((string) $reference['url'])
+                : null,
+        ];
+    }
 }

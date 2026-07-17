@@ -12,12 +12,15 @@ class TranslationResolver
     /** @var BaseConnection<mixed, mixed> */
     private BaseConnection $db;
 
+    private FileUrlResolver $fileUrlResolver;
+
     /**
      * @param BaseConnection<mixed, mixed>|null $db
      */
-    public function __construct(?BaseConnection $db = null)
+    public function __construct(?BaseConnection $db = null, ?FileUrlResolver $fileUrlResolver = null)
     {
         $this->db = $db ?? Database::connect();
+        $this->fileUrlResolver = $fileUrlResolver ?? service('fileUrlResolver');
     }
 
     /**
@@ -42,7 +45,7 @@ class TranslationResolver
         if ($targetLang && (int) $targetLang['is_active'] === 1) {
             $translation = $this->getTranslation((string) $config['table'], (string) $config['fk'], $id, (int) $targetLang['id']);
             if ($translation) {
-                return array_merge($this->sanitizeFields($translation, array_keys($config['fields'])), ['is_fallback' => false]);
+                return array_merge($this->normalizePayload($resourceType, $translation, $config), ['is_fallback' => false]);
             }
         }
 
@@ -51,7 +54,7 @@ class TranslationResolver
         if ($defaultLang) {
             $translation = $this->getTranslation((string) $config['table'], (string) $config['fk'], $id, (int) $defaultLang['id']);
             if ($translation) {
-                return array_merge($this->sanitizeFields($translation, array_keys($config['fields'])), ['is_fallback' => true]);
+                return array_merge($this->normalizePayload($resourceType, $translation, $config), ['is_fallback' => true]);
             }
         }
 
@@ -59,7 +62,7 @@ class TranslationResolver
         if ($targetLang && isset($targetLang['fallback_language_id'])) {
             $translation = $this->getTranslation((string) $config['table'], (string) $config['fk'], $id, (int) $targetLang['fallback_language_id']);
             if ($translation) {
-                return array_merge($this->sanitizeFields($translation, array_keys($config['fields'])), ['is_fallback' => true]);
+                return array_merge($this->normalizePayload($resourceType, $translation, $config), ['is_fallback' => true]);
             }
         }
 
@@ -69,7 +72,7 @@ class TranslationResolver
             $emptyPayload[$field] = null;
         }
 
-        return array_merge($emptyPayload, ['is_fallback' => true]);
+        return array_merge($this->normalizePayload($resourceType, $emptyPayload, $config), ['is_fallback' => true]);
     }
 
     /**
@@ -122,5 +125,21 @@ class TranslationResolver
             $sanitized[$field] = $data[$field] ?? null;
         }
         return $sanitized;
+    }
+
+    /**
+     * @param array<string, mixed> $translation
+     * @param array{table: string, fk: string, fields: array<string, array{required: bool}>} $config
+     * @return array<string, mixed>
+     */
+    private function normalizePayload(string $resourceType, array $translation, array $config): array
+    {
+        $payload = $this->sanitizeFields($translation, array_keys($config['fields']));
+
+        if ($resourceType === 'page') {
+            $payload = $this->fileUrlResolver->normalizePageTranslation($payload);
+        }
+
+        return $payload;
     }
 }

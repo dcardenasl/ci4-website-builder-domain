@@ -101,7 +101,7 @@ class SiteAboutPageSeeder extends Seeder
             ['css_class' => '', 'text_color' => '#ffffff', 'overlay_color' => 'rgba(15, 23, 42, 0.4)'],
             [
                 'es' => [
-                    'image_url'  => 'https://picsum.photos/id/1015/1920/1080',
+                    'image'      => $this->mediaReference('https://picsum.photos/id/1015/1920/1080'),
                     'alt'        => 'Equipo colaborando en un espacio de trabajo comunitario',
                     'heading'    => 'Nuestra misión nos une',
                     'subheading' => 'Trabajamos para crear espacios de encuentro, aprendizaje y transformación que impacten positivamente a nuestra comunidad.',
@@ -109,7 +109,7 @@ class SiteAboutPageSeeder extends Seeder
                     'cta_url'    => '/historia',
                 ],
                 'en' => [
-                    'image_url'  => 'https://picsum.photos/id/1015/1920/1080',
+                    'image'      => $this->mediaReference('https://picsum.photos/id/1015/1920/1080'),
                     'alt'        => 'Team collaborating in a community workspace',
                     'heading'    => 'Our mission brings us together',
                     'subheading' => 'We work to create spaces of encounter, learning, and transformation that positively impact our community.',
@@ -322,12 +322,12 @@ class SiteAboutPageSeeder extends Seeder
             [
                 'sort_order' => 1,
                 'es' => [
-                    'image_url' => 'https://picsum.photos/id/48/1200/900',
+                    'image'     => $this->mediaReference('https://picsum.photos/id/48/1200/900'),
                     'alt'       => 'Panel de Control de Analítica',
                     'caption'   => 'Visualización de datos avanzados y monitoreo en tiempo real.',
                 ],
                 'en' => [
-                    'image_url' => 'https://picsum.photos/id/48/1200/900',
+                    'image'     => $this->mediaReference('https://picsum.photos/id/48/1200/900'),
                     'alt'       => 'Analytics Dashboard Control Panel',
                     'caption'   => 'Advanced data visualization and real-time monitoring.',
                 ],
@@ -335,12 +335,12 @@ class SiteAboutPageSeeder extends Seeder
             [
                 'sort_order' => 2,
                 'es' => [
-                    'image_url' => 'https://picsum.photos/id/160/1200/900',
+                    'image'     => $this->mediaReference('https://picsum.photos/id/160/1200/900'),
                     'alt'       => 'Diseño UI Adaptable para Tablet',
                     'caption'   => 'Interfaces optimizadas para ofrecer una navegación impecable en dispositivos móviles.',
                 ],
                 'en' => [
-                    'image_url' => 'https://picsum.photos/id/160/1200/900',
+                    'image'     => $this->mediaReference('https://picsum.photos/id/160/1200/900'),
                     'alt'       => 'Adaptive UI Design for Tablet',
                     'caption'   => 'Optimized interfaces delivering seamless navigation across mobile devices.',
                 ],
@@ -348,14 +348,14 @@ class SiteAboutPageSeeder extends Seeder
             [
                 'sort_order' => 3,
                 'es' => [
-                    'image_url' => 'https://picsum.photos/id/3/1200/900',
+                    'image'     => $this->mediaReference('https://picsum.photos/id/3/1200/900'),
                     'alt'       => 'Arquitectura de Comercio Electrónico',
                     'caption'   => 'Catálogos dinámicos auto-administrables y pasarelas de cobro completamente seguras.',
                     'link_url'  => '/portafolio',
                     'link_label' => 'Ver portafolio',
                 ],
                 'en' => [
-                    'image_url' => 'https://picsum.photos/id/3/1200/900',
+                    'image'     => $this->mediaReference('https://picsum.photos/id/3/1200/900'),
                     'alt'       => 'E-commerce Architecture Design',
                     'caption'   => 'Self-managed dynamic catalogs and completely secure payment gateways.',
                     'link_url'  => '/portfolio',

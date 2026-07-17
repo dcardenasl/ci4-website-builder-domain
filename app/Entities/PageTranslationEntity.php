@@ -18,6 +18,7 @@ class PageTranslationEntity extends Entity
         'meta_title'       => 'string',
         'meta_description' => 'string',
         'og_image_file_id' => 'integer',
+        'og_image_url'     => 'string',
         'og_type'          => 'string',
         'canonical_url'    => 'string',
         'robots'           => 'string',

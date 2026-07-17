@@ -137,12 +137,12 @@ class SiteMediaPageSeeder extends Seeder
             [
                 'sort_order' => 1,
                 'es' => [
-                    'image_url' => 'https://picsum.photos/id/1040/1200/900',
+                    'image'     => $this->mediaReference('https://picsum.photos/id/1040/1200/900'),
                     'alt'       => 'Galería en cuadrícula 1',
                     'caption'   => 'Vista en cuadrícula para series cortas y descubrimiento rápido.',
                 ],
                 'en' => [
-                    'image_url' => 'https://picsum.photos/id/1040/1200/900',
+                    'image'     => $this->mediaReference('https://picsum.photos/id/1040/1200/900'),
                     'alt'       => 'Grid gallery 1',
                     'caption'   => 'Grid view for short series and quick discovery.',
                 ],
@@ -150,12 +150,12 @@ class SiteMediaPageSeeder extends Seeder
             [
                 'sort_order' => 2,
                 'es' => [
-                    'image_url' => 'https://picsum.photos/id/1041/1200/900',
+                    'image'     => $this->mediaReference('https://picsum.photos/id/1041/1200/900'),
                     'alt'       => 'Galería en cuadrícula 2',
                     'caption'   => 'Cada tarjeta mantiene una jerarquía clara y respirable.',
                 ],
                 'en' => [
-                    'image_url' => 'https://picsum.photos/id/1041/1200/900',
+                    'image'     => $this->mediaReference('https://picsum.photos/id/1041/1200/900'),
                     'alt'       => 'Grid gallery 2',
                     'caption'   => 'Each card keeps a clear and breathable hierarchy.',
                 ],
@@ -163,12 +163,12 @@ class SiteMediaPageSeeder extends Seeder
             [
                 'sort_order' => 3,
                 'es' => [
-                    'image_url' => 'https://picsum.photos/id/1042/1200/900',
+                    'image'     => $this->mediaReference('https://picsum.photos/id/1042/1200/900'),
                     'alt'       => 'Galería en cuadrícula 3',
                     'caption'   => 'Ideal para grillas editoriales o colecciones de referencia.',
                 ],
                 'en' => [
-                    'image_url' => 'https://picsum.photos/id/1042/1200/900',
+                    'image'     => $this->mediaReference('https://picsum.photos/id/1042/1200/900'),
                     'alt'       => 'Grid gallery 3',
                     'caption'   => 'Ideal for editorial grids or reference collections.',
                 ],
@@ -176,12 +176,12 @@ class SiteMediaPageSeeder extends Seeder
             [
                 'sort_order' => 4,
                 'es' => [
-                    'image_url' => 'https://picsum.photos/id/1043/1200/900',
+                    'image'     => $this->mediaReference('https://picsum.photos/id/1043/1200/900'),
                     'alt'       => 'Galería en cuadrícula 4',
                     'caption'   => 'La relación de aspecto se mantiene consistente.',
                 ],
                 'en' => [
-                    'image_url' => 'https://picsum.photos/id/1043/1200/900',
+                    'image'     => $this->mediaReference('https://picsum.photos/id/1043/1200/900'),
                     'alt'       => 'Grid gallery 4',
                     'caption'   => 'Aspect ratio stays consistent.',
                 ],
@@ -218,12 +218,12 @@ class SiteMediaPageSeeder extends Seeder
             [
                 'sort_order' => 1,
                 'es' => [
-                    'image_url' => 'https://picsum.photos/id/1050/1200/900',
+                    'image'     => $this->mediaReference('https://picsum.photos/id/1050/1200/900'),
                     'alt'       => 'Vista inline 1',
                     'caption'   => 'La previsualización cambia sin abandonar la página.',
                 ],
                 'en' => [
-                    'image_url' => 'https://picsum.photos/id/1050/1200/900',
+                    'image'     => $this->mediaReference('https://picsum.photos/id/1050/1200/900'),
                     'alt'       => 'Inline preview 1',
                     'caption'   => 'The preview updates without leaving the page.',
                 ],
@@ -231,12 +231,12 @@ class SiteMediaPageSeeder extends Seeder
             [
                 'sort_order' => 2,
                 'es' => [
-                    'image_url' => 'https://picsum.photos/id/1051/1200/900',
+                    'image'     => $this->mediaReference('https://picsum.photos/id/1051/1200/900'),
                     'alt'       => 'Vista inline 2',
                     'caption'   => 'Sirve para colecciones seleccionadas o pequeñas galerías.',
                 ],
                 'en' => [
-                    'image_url' => 'https://picsum.photos/id/1051/1200/900',
+                    'image'     => $this->mediaReference('https://picsum.photos/id/1051/1200/900'),
                     'alt'       => 'Inline preview 2',
                     'caption'   => 'Useful for curated collections or small galleries.',
                 ],
@@ -244,12 +244,12 @@ class SiteMediaPageSeeder extends Seeder
             [
                 'sort_order' => 3,
                 'es' => [
-                    'image_url' => 'https://picsum.photos/id/1052/1200/900',
+                    'image'     => $this->mediaReference('https://picsum.photos/id/1052/1200/900'),
                     'alt'       => 'Vista inline 3',
                     'caption'   => 'La jerarquía del preview guía la atención.',
                 ],
                 'en' => [
-                    'image_url' => 'https://picsum.photos/id/1052/1200/900',
+                    'image'     => $this->mediaReference('https://picsum.photos/id/1052/1200/900'),
                     'alt'       => 'Inline preview 3',
                     'caption'   => 'The preview hierarchy guides attention.',
                 ],
@@ -286,14 +286,14 @@ class SiteMediaPageSeeder extends Seeder
             [
                 'sort_order' => 1,
                 'es' => [
-                    'image_url' => 'https://picsum.photos/id/1060/1200/900',
+                    'image'     => $this->mediaReference('https://picsum.photos/id/1060/1200/900'),
                     'alt'       => 'Vista modal 1',
                     'caption'   => 'El modal resalta una pieza a la vez.',
                     'link_url'  => '/es/portafolio',
                     'link_label' => 'Ver portafolio',
                 ],
                 'en' => [
-                    'image_url' => 'https://picsum.photos/id/1060/1200/900',
+                    'image'     => $this->mediaReference('https://picsum.photos/id/1060/1200/900'),
                     'alt'       => 'Modal view 1',
                     'caption'   => 'The modal highlights one piece at a time.',
                     'link_url'  => '/en/portfolio',
@@ -303,12 +303,12 @@ class SiteMediaPageSeeder extends Seeder
             [
                 'sort_order' => 2,
                 'es' => [
-                    'image_url' => 'https://picsum.photos/id/1061/1200/900',
+                    'image'     => $this->mediaReference('https://picsum.photos/id/1061/1200/900'),
                     'alt'       => 'Vista modal 2',
                     'caption'   => 'Ideal para fotografía, posters y material editorial.',
                 ],
                 'en' => [
-                    'image_url' => 'https://picsum.photos/id/1061/1200/900',
+                    'image'     => $this->mediaReference('https://picsum.photos/id/1061/1200/900'),
                     'alt'       => 'Modal view 2',
                     'caption'   => 'Ideal for photography, posters, and editorial material.',
                 ],
@@ -316,12 +316,12 @@ class SiteMediaPageSeeder extends Seeder
             [
                 'sort_order' => 3,
                 'es' => [
-                    'image_url' => 'https://picsum.photos/id/1062/1200/900',
+                    'image'     => $this->mediaReference('https://picsum.photos/id/1062/1200/900'),
                     'alt'       => 'Vista modal 3',
                     'caption'   => 'El modal preserva el foco visual sin recargar la página.',
                 ],
                 'en' => [
-                    'image_url' => 'https://picsum.photos/id/1062/1200/900',
+                    'image'     => $this->mediaReference('https://picsum.photos/id/1062/1200/900'),
                     'alt'       => 'Modal view 3',
                     'caption'   => 'The modal preserves visual focus without overloading the page.',
                 ],
@@ -360,17 +360,17 @@ class SiteMediaPageSeeder extends Seeder
                     'description' => 'Listado de descargas con iconos adaptativos según extensión de archivo (PDF, Word, ZIP, Excel).',
                     'documents'   => [
                         [
-                            'file_url'    => 'https://www.w3.org/WAI/ER/tests/xhtml/testfiles/resources/pdf/dummy.pdf',
+                            'file'        => $this->mediaReference('http://localhost:8186/assets/docs/policies-handbook-demo.pdf'),
                             'title'       => 'Manual de Políticas Generales',
                             'description' => 'Documento PDF que describe los lineamientos y políticas fundamentales.',
                         ],
                         [
-                            'file_url'    => 'https://calibre-ebook.com/downloads/demos/demo.docx',
+                            'file'        => $this->mediaReference('https://calibre-ebook.com/downloads/demos/demo.docx'),
                             'title'       => 'Formulario de Afiliación',
                             'description' => 'Plantilla de Word editable para completar tus datos.',
                         ],
                         [
-                            'file_url'    => 'https://www.learningcontainer.com/wp-content/uploads/2020/05/sample-zip-file.zip',
+                            'file'        => $this->mediaReference('https://www.learningcontainer.com/wp-content/uploads/2020/05/sample-zip-file.zip'),
                             'title'       => 'Paquete de Recursos Gráficos',
                             'description' => 'Archivo ZIP comprimido con logos oficiales, manual de marca e iconos.',
                         ],
@@ -381,17 +381,17 @@ class SiteMediaPageSeeder extends Seeder
                     'description' => 'Download list with adaptive icons matching file extensions (PDF, Word, ZIP, Excel).',
                     'documents'   => [
                         [
-                            'file_url'    => 'https://www.w3.org/WAI/ER/tests/xhtml/testfiles/resources/pdf/dummy.pdf',
+                            'file'        => $this->mediaReference('http://localhost:8186/assets/docs/policies-handbook-demo.pdf'),
                             'title'       => 'General Policies Handbook',
                             'description' => 'PDF document covering the core guidelines and company rules.',
                         ],
                         [
-                            'file_url'    => 'https://calibre-ebook.com/downloads/demos/demo.docx',
+                            'file'        => $this->mediaReference('https://calibre-ebook.com/downloads/demos/demo.docx'),
                             'title'       => 'Affiliation Form',
                             'description' => 'Editable Word document template to fill in your personal data.',
                         ],
                         [
-                            'file_url'    => 'https://www.learningcontainer.com/wp-content/uploads/2020/05/sample-zip-file.zip',
+                            'file'        => $this->mediaReference('https://www.learningcontainer.com/wp-content/uploads/2020/05/sample-zip-file.zip'),
                             'title'       => 'Brand Asset Bundle',
                             'description' => 'ZIP compressed package containing official logos, styleguides, and icons.',
                         ],
@@ -411,11 +411,11 @@ class SiteMediaPageSeeder extends Seeder
             [
                 'es' => [
                     'heading'  => 'Previsualización del Manual de Políticas',
-                    'pdf_file' => 'https://www.w3.org/WAI/ER/tests/xhtml/testfiles/resources/pdf/dummy.pdf',
+                    'pdf_file' => $this->mediaReference('http://localhost:8186/assets/docs/policies-handbook-demo.pdf'),
                 ],
                 'en' => [
                     'heading'  => 'Policies Handbook Preview',
-                    'pdf_file' => 'https://www.w3.org/WAI/ER/tests/xhtml/testfiles/resources/pdf/dummy.pdf',
+                    'pdf_file' => $this->mediaReference('http://localhost:8186/assets/docs/policies-handbook-demo.pdf'),
                 ],
             ],
             $langIds

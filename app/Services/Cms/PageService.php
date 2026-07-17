@@ -152,7 +152,9 @@ class PageService extends BaseCrudService implements PageServiceInterface
         foreach ($translations as $translation) {
             /** @var \App\Entities\PageTranslationEntity $translation */
             $resolvedTranslation = $this->fileUrlResolver->normalizePageTranslation([
+                'og_image' => $translation->og_image ?? null,
                 'og_image_file_id' => $translation->og_image_file_id !== null ? (int) $translation->og_image_file_id : null,
+                'og_image_url' => $translation->og_image_url ?? null,
             ]);
 
             $translationsGrouped[$translation->page_id][] = [
@@ -162,8 +164,8 @@ class PageService extends BaseCrudService implements PageServiceInterface
                 'excerpt'          => $translation->excerpt,
                 'meta_title'       => $translation->meta_title,
                 'meta_description' => $translation->meta_description,
-                'og_image_file_id' => $translation->og_image_file_id,
-                'og_image_url'     => $resolvedTranslation['og_image_url'] ?? null,
+                'og_image'         => $resolvedTranslation['og_image'] ?? null,
+                'og_image_url'     => $resolvedTranslation['og_image']['url'] ?? null,
                 'og_type'          => $translation->og_type,
                 'canonical_url'    => $translation->canonical_url,
                 'robots'           => $translation->robots,
@@ -189,6 +191,12 @@ class PageService extends BaseCrudService implements PageServiceInterface
         foreach ($translations as $translation) {
             $langId = (int) $translation['language_id'];
             $slug = (string) $translation['slug'];
+            $ogImage = $this->fileUrlResolver->normalizeMediaReference(
+                $translation['og_image'] ?? [
+                    'file_id' => $translation['og_image_file_id'] ?? null,
+                    'url'     => isset($translation['og_image_url']) ? (string) $translation['og_image_url'] : null,
+                ]
+            );
 
             $existing = $translationModel
                 ->where('language_id', $langId)
@@ -233,7 +241,8 @@ class PageService extends BaseCrudService implements PageServiceInterface
                 'excerpt'          => $translation['excerpt'] ?? null,
                 'meta_title'       => $translation['meta_title'] ?? null,
                 'meta_description' => $translation['meta_description'] ?? null,
-                'og_image_file_id' => isset($translation['og_image_file_id']) && $translation['og_image_file_id'] !== '' ? (int) $translation['og_image_file_id'] : null,
+                'og_image_file_id' => $ogImage['file_id'],
+                'og_image_url'     => $ogImage['url'],
                 'og_type'          => $translation['og_type'] ?? null,
                 'canonical_url'    => $translation['canonical_url'] ?? null,
                 'robots'           => $translation['robots'] ?? null,

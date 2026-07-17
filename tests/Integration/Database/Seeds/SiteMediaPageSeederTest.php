@@ -90,6 +90,52 @@ final class SiteMediaPageSeederTest extends CIUnitTestCase
         $videoConfig = json_decode((string) ($videoBlock['block_config'] ?? '{}'), true);
         $this->assertIsArray($videoConfig);
         $this->assertSame('16/9', $videoConfig['aspect_ratio'] ?? null);
+
+        $documentBlock = $this->db->table('cms_block_instances')
+            ->select('cms_block_instance_translations.block_data')
+            ->join('cms_content_blocks', 'cms_content_blocks.id = cms_block_instances.block_id')
+            ->join('cms_block_instance_translations', 'cms_block_instance_translations.instance_id = cms_block_instances.id')
+            ->join('cms_languages', 'cms_languages.id = cms_block_instance_translations.language_id')
+            ->where('cms_block_instances.owner_type', 'page')
+            ->where('cms_block_instances.owner_id', (int) $page['id'])
+            ->where('cms_block_instances.parent_instance_id IS NULL', null, false)
+            ->where('cms_content_blocks.block_key', 'document_gallery')
+            ->where('cms_languages.code', 'es')
+            ->get()
+            ->getRowArray();
+
+        $this->assertNotNull($documentBlock);
+
+        $documentData = json_decode((string) ($documentBlock['block_data'] ?? '{}'), true);
+        $this->assertIsArray($documentData);
+        $documents = $documentData['documents'] ?? [];
+        $this->assertIsArray($documents);
+        $this->assertSame(
+            'http://localhost:8186/assets/docs/policies-handbook-demo.pdf',
+            $documents[0]['file']['url'] ?? null
+        );
+
+        $pdfBlock = $this->db->table('cms_block_instances')
+            ->select('cms_block_instance_translations.block_data')
+            ->join('cms_content_blocks', 'cms_content_blocks.id = cms_block_instances.block_id')
+            ->join('cms_block_instance_translations', 'cms_block_instance_translations.instance_id = cms_block_instances.id')
+            ->join('cms_languages', 'cms_languages.id = cms_block_instance_translations.language_id')
+            ->where('cms_block_instances.owner_type', 'page')
+            ->where('cms_block_instances.owner_id', (int) $page['id'])
+            ->where('cms_block_instances.parent_instance_id IS NULL', null, false)
+            ->where('cms_content_blocks.block_key', 'pdf_viewer')
+            ->where('cms_languages.code', 'es')
+            ->get()
+            ->getRowArray();
+
+        $this->assertNotNull($pdfBlock);
+
+        $pdfConfig = json_decode((string) ($pdfBlock['block_data'] ?? '{}'), true);
+        $this->assertIsArray($pdfConfig);
+        $this->assertSame(
+            'http://localhost:8186/assets/docs/policies-handbook-demo.pdf',
+            $pdfConfig['pdf_file']['url'] ?? null
+        );
     }
 
     /**

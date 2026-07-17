@@ -58,7 +58,7 @@ trait CmsDomainServices
             return static::getSharedInstance('translationResolver');
         }
 
-        return new \App\Libraries\Cms\TranslationResolver();
+        return new \App\Libraries\Cms\TranslationResolver(null, static::fileUrlResolver());
     }
 
     public static function fileUrlResolver(bool $getShared = true): \App\Libraries\Cms\FileUrlResolver

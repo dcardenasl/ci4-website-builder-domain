@@ -48,6 +48,7 @@ final class TranslationResourceCatalog
                 'meta_title' => ['required' => false],
                 'meta_description' => ['required' => false],
                 'og_image_file_id' => ['required' => false],
+                'og_image_url' => ['required' => false],
                 'og_type' => ['required' => false],
                 'canonical_url' => ['required' => false],
                 'robots' => ['required' => false],

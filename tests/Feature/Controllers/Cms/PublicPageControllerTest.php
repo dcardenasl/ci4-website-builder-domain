@@ -59,6 +59,7 @@ final class PublicPageControllerTest extends CIUnitTestCase
             'slug'        => 'nosotros',
             'title'       => 'Sobre Nosotros',
             'excerpt'     => 'Esta es la pagina sobre nosotros.',
+            'og_image_url' => 'https://picsum.photos/id/42/1200/900',
         ]);
 
         $result = $this->get('/api/v1/public/es/pages/nosotros');
@@ -70,6 +71,8 @@ final class PublicPageControllerTest extends CIUnitTestCase
         $this->assertSame('nosotros', $body['data']['slug']);
         $this->assertSame('Sobre Nosotros', $body['data']['title']);
         $this->assertSame('Esta es la pagina sobre nosotros.', $body['data']['excerpt']);
+        $this->assertSame('https://picsum.photos/id/42/1200/900', $body['data']['og_image']['url']);
+        $this->assertSame('external_url', $body['data']['og_image']['source_kind']);
     }
 
     public function testGetPublicPageNotFound(): void

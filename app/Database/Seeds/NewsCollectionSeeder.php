@@ -261,7 +261,7 @@ class NewsCollectionSeeder extends Seeder
                 'sort_order'         => 1,
                 'published_days_ago' => 2,
                 'category_slug'      => 'producto',
-                'featured_image_url' => 'https://picsum.photos/id/1011/1200/800',
+                'featured_image'     => ['source_kind' => 'external_url', 'url' => 'https://picsum.photos/id/1011/1200/800'],
                 'detail_image_url'   => 'https://picsum.photos/id/1025/1200/800',
                 'es' => [
                     'title'            => 'Lanzamos el nuevo portal editorial',
@@ -284,7 +284,7 @@ class NewsCollectionSeeder extends Seeder
                 'sort_order'         => 2,
                 'published_days_ago' => 1,
                 'category_slug'      => 'producto',
-                'featured_image_url' => 'https://picsum.photos/id/1015/1200/800',
+                'featured_image'     => ['source_kind' => 'external_url', 'url' => 'https://picsum.photos/id/1015/1200/800'],
                 'detail_image_url'   => 'https://picsum.photos/id/1035/1200/800',
                 'es' => [
                     'title'            => 'La colección de noticias ahora destaca portadas',
@@ -307,7 +307,7 @@ class NewsCollectionSeeder extends Seeder
                 'sort_order'         => 3,
                 'published_days_ago' => 0,
                 'category_slug'      => 'compania',
-                'featured_image_url' => 'https://picsum.photos/id/1043/1200/800',
+                'featured_image'     => ['source_kind' => 'external_url', 'url' => 'https://picsum.photos/id/1043/1200/800'],
                 'detail_image_url'   => 'https://picsum.photos/id/1044/1200/800',
                 'es' => [
                     'title'            => 'Ahora cada noticia sugiere historias relacionadas',
@@ -378,6 +378,11 @@ class NewsCollectionSeeder extends Seeder
                 }
 
                 $translation = $entry[$langCode];
+                $featuredImageColumns = $this->mediaReferenceColumns(
+                    $entry['featured_image'] ?? null,
+                    'featured_file_id',
+                    'featured_image_url'
+                );
                 $this->upsertRecord('cms_entry_translations', [
                     'entry_id'    => $entryId,
                     'language_id' => $langId,
@@ -385,7 +390,8 @@ class NewsCollectionSeeder extends Seeder
                     'title'              => $translation['title'],
                     'slug'               => $translation['slug'],
                     'excerpt'            => $translation['excerpt'],
-                    'featured_image_url' => $entry['featured_image_url'],
+                    'featured_file_id'   => $featuredImageColumns['featured_file_id'],
+                    'featured_image_url' => $featuredImageColumns['featured_image_url'],
                     'meta_title'         => $translation['meta_title'],
                     'meta_description'   => $translation['meta_description'],
                 ]);

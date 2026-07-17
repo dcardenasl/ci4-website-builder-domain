@@ -204,7 +204,7 @@ class PortfolioCollectionSeeder extends Seeder
         // ── 5. Entries (Sample Projects) ───────────────────────────────────────
         $entries = [
             [
-                'featured_image_url' => 'https://picsum.photos/id/2/600/400',
+                'featured_image'     => ['source_kind' => 'external_url', 'url' => 'https://picsum.photos/id/2/600/400'],
                 'detail_image_url'   => 'https://picsum.photos/id/1040/1200/800',
                 'category_slug'      => 'desarrollo-web',
                 'tag_slugs'          => ['reciente', 'destacado'],
@@ -226,7 +226,7 @@ class PortfolioCollectionSeeder extends Seeder
                 ],
             ],
             [
-                'featured_image_url' => 'https://picsum.photos/id/10/600/400',
+                'featured_image'     => ['source_kind' => 'external_url', 'url' => 'https://picsum.photos/id/10/600/400'],
                 'detail_image_url'   => 'https://picsum.photos/id/1050/1200/800',
                 'category_slug'      => 'diseno-ui-ux',
                 'tag_slugs'          => ['destacado'],
@@ -316,6 +316,11 @@ class PortfolioCollectionSeeder extends Seeder
                     continue;
                 }
                 $tData = $entry[$langCode];
+                $featuredImageColumns = $this->mediaReferenceColumns(
+                    $entry['featured_image'] ?? null,
+                    'featured_file_id',
+                    'featured_image_url'
+                );
 
                 $this->upsertRecord('cms_entry_translations', [
                     'entry_id'         => $entryId,
@@ -324,7 +329,8 @@ class PortfolioCollectionSeeder extends Seeder
                     'title'            => $tData['title'],
                     'slug'             => $tData['slug'],
                     'excerpt'          => $tData['excerpt'],
-                    'featured_image_url' => $entry['featured_image_url'],
+                    'featured_file_id' => $featuredImageColumns['featured_file_id'],
+                    'featured_image_url' => $featuredImageColumns['featured_image_url'],
                     'meta_title'       => $tData['meta_title'],
                     'meta_description' => $tData['meta_description'],
                 ]);

@@ -233,8 +233,10 @@ class EntryService extends BaseCrudService implements EntryServiceInterface
         foreach ($translations as $translation) {
             /** @var \App\Entities\EntryTranslationEntity $translation */
             $resolvedTranslation = $this->fileUrlResolver->normalizeEntryTranslation([
+                'featured_image' => $translation->featured_image ?? null,
                 'featured_file_id' => $translation->featured_file_id !== null ? (int) $translation->featured_file_id : null,
                 'featured_image_url' => $translation->featured_image_url,
+                'og_image' => $translation->og_image ?? null,
                 'og_image_file_id' => $translation->og_image_file_id !== null ? (int) $translation->og_image_file_id : null,
                 'og_image_url' => $translation->og_image_url ?? null,
             ]);
@@ -449,13 +451,17 @@ class EntryService extends BaseCrudService implements EntryServiceInterface
 
         $rows = [];
         foreach ($translations as $translation) {
-            $featuredImageUrl = $this->fileUrlResolver->resolveUrlValue(
-                $translation['featured_file_id'] ?? null,
-                isset($translation['featured_image_url']) ? (string) $translation['featured_image_url'] : null
+            $featuredImage = $this->fileUrlResolver->normalizeMediaReference(
+                $translation['featured_image'] ?? [
+                    'file_id' => $translation['featured_file_id'] ?? null,
+                    'url'     => isset($translation['featured_image_url']) ? (string) $translation['featured_image_url'] : null,
+                ]
             );
-            $ogImageUrl = $this->fileUrlResolver->resolveUrlValue(
-                $translation['og_image_file_id'] ?? null,
-                isset($translation['og_image_url']) ? (string) $translation['og_image_url'] : null
+            $ogImage = $this->fileUrlResolver->normalizeMediaReference(
+                $translation['og_image'] ?? [
+                    'file_id' => $translation['og_image_file_id'] ?? null,
+                    'url'     => isset($translation['og_image_url']) ? (string) $translation['og_image_url'] : null,
+                ]
             );
 
             $rows[] = [
@@ -464,12 +470,12 @@ class EntryService extends BaseCrudService implements EntryServiceInterface
                 'slug'             => (string) $translation['slug'],
                 'title'            => $translation['title'],
                 'excerpt'          => $translation['excerpt'] ?? null,
-                'featured_file_id' => isset($translation['featured_file_id']) && $translation['featured_file_id'] !== '' ? (int) $translation['featured_file_id'] : null,
-                'featured_image_url' => $featuredImageUrl,
+                'featured_file_id' => $featuredImage['file_id'],
+                'featured_image_url' => $featuredImage['url'],
                 'meta_title'       => $translation['meta_title'] ?? null,
                 'meta_description' => $translation['meta_description'] ?? null,
-                'og_image_file_id' => isset($translation['og_image_file_id']) && $translation['og_image_file_id'] !== '' ? (int) $translation['og_image_file_id'] : null,
-                'og_image_url'     => $ogImageUrl,
+                'og_image_file_id' => $ogImage['file_id'],
+                'og_image_url'     => $ogImage['url'],
                 'og_type'          => $translation['og_type'] ?? 'article',
                 'canonical_url'    => $translation['canonical_url'] ?? null,
                 'robots'           => $translation['robots'] ?? null,
