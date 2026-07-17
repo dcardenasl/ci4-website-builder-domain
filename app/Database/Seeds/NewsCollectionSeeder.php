@@ -435,6 +435,10 @@ class NewsCollectionSeeder extends Seeder
     /** @param list<int> $keptInstanceIds */
     private function cleanupStaleEntryBlocks(int $entryId, array $keptInstanceIds): void
     {
+        if ($keptInstanceIds === []) {
+            return;
+        }
+
         $stale = $this->db->table('cms_block_instances')
             ->select('id')
             ->where('owner_type', 'entry')

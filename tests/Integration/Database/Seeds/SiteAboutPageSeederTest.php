@@ -79,6 +79,60 @@ final class SiteAboutPageSeederTest extends CIUnitTestCase
         $this->assertSame('gallery_item', $this->blockKeyForInstance((int) $galleryChildren[0]['block_id']));
     }
 
+    public function testAboutPageSeederSeedsTeamMemberPhotosWithTheCurrentMediaReferenceContract(): void
+    {
+        $seeder = \Config\Database::seeder();
+        $seeder->call(\App\Database\Seeds\CmsLanguageSeeder::class);
+        $seeder->call(\App\Database\Seeds\CmsBlockTypeSeeder::class);
+        $seeder->call(\App\Database\Seeds\SiteAboutPageSeeder::class);
+
+        $aboutPage = $this->db->table('cms_pages')
+            ->where('page_type', 'about')
+            ->get()
+            ->getRowArray();
+
+        $this->assertNotNull($aboutPage);
+
+        $teamGrid = $this->db->table('cms_block_instances')
+            ->where('owner_type', 'page')
+            ->where('owner_id', (int) $aboutPage['id'])
+            ->where('parent_instance_id IS NULL', null, false)
+            ->where('sort_order', 11)
+            ->get()
+            ->getRowArray();
+
+        $this->assertNotNull($teamGrid);
+
+        $teamMember = $this->db->table('cms_block_instances')
+            ->where('parent_instance_id', (int) $teamGrid['id'])
+            ->orderBy('sort_order', 'ASC')
+            ->get()
+            ->getRowArray();
+
+        $this->assertNotNull($teamMember);
+        $this->assertSame('team_member', $this->blockKeyForInstance((int) $teamMember['block_id']));
+
+        $lang = $this->db->table('cms_languages')
+            ->where('code', 'es')
+            ->get()
+            ->getRowArray();
+        $this->assertNotNull($lang);
+
+        $translation = $this->db->table('cms_block_instance_translations')
+            ->where('instance_id', (int) $teamMember['id'])
+            ->where('language_id', (int) $lang['id'])
+            ->get()
+            ->getRowArray();
+
+        $this->assertNotNull($translation);
+        $blockData = json_decode((string) ($translation['block_data'] ?? '{}'), true);
+        $this->assertIsArray($blockData);
+        $this->assertArrayHasKey('photo', $blockData);
+        $this->assertSame('external_url', $blockData['photo']['source_kind'] ?? null);
+        $this->assertSame('https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=150&auto=format&fit=crop&q=60', $blockData['photo']['url'] ?? null);
+        $this->assertArrayNotHasKey('photo_url', $blockData);
+    }
+
     private function blockKeyForInstance(int $blockId): string
     {
         $row = $this->db->table('cms_content_blocks')

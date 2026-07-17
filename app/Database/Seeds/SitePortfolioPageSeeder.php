@@ -141,17 +141,19 @@ class SitePortfolioPageSeeder extends Seeder
             $blockIds,
             'image',
             4,
-            ['aspect_ratio' => '16/9', 'css_class' => ''],
+            [
+                'image'        => $this->mediaReference('https://picsum.photos/id/355/1200/675'),
+                'aspect_ratio' => '16/9',
+                'css_class'    => '',
+            ],
             [
                 'es' => [
-                    'url'       => 'https://picsum.photos/id/355/1200/675',
-                    'alt'       => 'Imagen de la sección de portafolio',
-                    'caption'   => 'Construimos el futuro digital de nuestros clientes.',
+                    'alt'     => 'Imagen de la sección de portafolio',
+                    'caption' => 'Construimos el futuro digital de nuestros clientes.',
                 ],
                 'en' => [
-                    'url'       => 'https://picsum.photos/id/355/1200/675',
-                    'alt'       => 'Portfolio section image',
-                    'caption'   => 'Building the digital future of our clients.',
+                    'alt'     => 'Portfolio section image',
+                    'caption' => 'Building the digital future of our clients.',
                 ],
             ],
             $langIds

@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Database\Seeds;
 
 use App\Database\Seeds\Concerns\IdempotentSeederSupport;
+use CodeIgniter\Database\Exceptions\DatabaseException;
 use CodeIgniter\Database\Seeder;
 
 /**
@@ -368,6 +369,21 @@ class SiteLegalPagesSeederChile extends Seeder
     // Helper methods
     private function upsertPage(string $defaultSlug, string $pageType, array $pageData): int
     {
+        if (in_array($pageType, ['privacy', 'terms'], true)) {
+            $existingSingleton = $this->db->table('cms_pages')
+                ->where('page_type', $pageType)
+                ->get()
+                ->getRowArray();
+
+            if ($existingSingleton !== null) {
+                $pageId = (int) $existingSingleton['id'];
+                $this->db->table('cms_pages')
+                    ->where('id', $pageId)
+                    ->update(array_merge($pageData, ['page_type' => $pageType]));
+                return $pageId;
+            }
+        }
+
         $existing = $this->db->table('cms_page_translations')
             ->where('slug', $defaultSlug)
             ->get()
@@ -381,8 +397,27 @@ class SiteLegalPagesSeederChile extends Seeder
             return $pageId;
         }
 
-        $this->db->table('cms_pages')->insert(array_merge($pageData, ['page_type' => $pageType]));
-        return (int) $this->db->insertID();
+        $payload = array_merge($pageData, ['page_type' => $pageType]);
+
+        try {
+            $this->db->table('cms_pages')->insert($payload);
+            return (int) $this->db->insertID();
+        } catch (DatabaseException $exception) {
+            $fallback = $this->db->table('cms_pages')
+                ->where('page_type', $pageType)
+                ->get()
+                ->getRowArray();
+
+            if ($fallback !== null) {
+                $pageId = (int) $fallback['id'];
+                $this->db->table('cms_pages')
+                    ->where('id', $pageId)
+                    ->update($payload);
+                return $pageId;
+            }
+
+            throw $exception;
+        }
     }
 
     private function upsertPageTranslation(int $pageId, int $languageId, array $translationData): void

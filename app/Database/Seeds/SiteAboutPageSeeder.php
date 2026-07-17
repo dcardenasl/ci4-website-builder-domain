@@ -489,14 +489,22 @@ class SiteAboutPageSeeder extends Seeder
                     'position'     => 'Directora de Tecnología (CTO)',
                     'bio'          => 'Ingeniera de software con más de 12 años de experiencia liderando arquitecturas complejas en PHP.',
                     'linkedin_url' => 'https://linkedin.com/in/ana-martinez',
-                    'photo_url'    => 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=150&auto=format&fit=crop&q=60',
+                    'photo'        => [
+                        'source_kind' => 'external_url',
+                        'file_id'     => null,
+                        'url'         => 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=150&auto=format&fit=crop&q=60',
+                    ],
                 ],
                 'en' => [
                     'name'         => 'Ana Martinez',
                     'position'     => 'Chief Technology Officer (CTO)',
                     'bio'          => 'Software engineer with over 12 years of experience leading complex PHP architectures.',
                     'linkedin_url' => 'https://linkedin.com/in/ana-martinez',
-                    'photo_url'    => 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=150&auto=format&fit=crop&q=60',
+                    'photo'        => [
+                        'source_kind' => 'external_url',
+                        'file_id'     => null,
+                        'url'         => 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=150&auto=format&fit=crop&q=60',
+                    ],
                 ],
             ],
             [
@@ -506,14 +514,22 @@ class SiteAboutPageSeeder extends Seeder
                     'position'     => 'Director Creativo',
                     'bio'          => 'Apasionado de la tipografía y el diseño modular. Diseñador del sistema visual del CMS.',
                     'linkedin_url' => 'https://linkedin.com/in/carlos-ruiz',
-                    'photo_url'    => 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150&auto=format&fit=crop&q=60',
+                    'photo'        => [
+                        'source_kind' => 'external_url',
+                        'file_id'     => null,
+                        'url'         => 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150&auto=format&fit=crop&q=60',
+                    ],
                 ],
                 'en' => [
                     'name'         => 'Carlos Ruiz',
                     'position'     => 'Creative Director',
                     'bio'          => 'Passionate about typography and modular web layout. Designer of the CMS visual system.',
                     'linkedin_url' => 'https://linkedin.com/in/carlos-ruiz',
-                    'photo_url'    => 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150&auto=format&fit=crop&q=60',
+                    'photo'        => [
+                        'source_kind' => 'external_url',
+                        'file_id'     => null,
+                        'url'         => 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150&auto=format&fit=crop&q=60',
+                    ],
                 ],
             ],
             [
@@ -523,14 +539,22 @@ class SiteAboutPageSeeder extends Seeder
                     'position'     => 'Especialista SEO',
                     'bio'          => 'Experta en indexación semántica y optimización de Core Web Vitals para grandes portales.',
                     'linkedin_url' => 'https://linkedin.com/in/laura-gomez',
-                    'photo_url'    => 'https://images.unsplash.com/photo-1438761681033-6461ffad8d80?w=150&auto=format&fit=crop&q=60',
+                    'photo'        => [
+                        'source_kind' => 'external_url',
+                        'file_id'     => null,
+                        'url'         => 'https://images.unsplash.com/photo-1438761681033-6461ffad8d80?w=150&auto=format&fit=crop&q=60',
+                    ],
                 ],
                 'en' => [
                     'name'         => 'Laura Gomez',
                     'position'     => 'SEO Specialist',
                     'bio'          => 'Expert in semantic indexing and Core Web Vitals optimization for high-traffic websites.',
                     'linkedin_url' => 'https://linkedin.com/in/laura-gomez',
-                    'photo_url'    => 'https://images.unsplash.com/photo-1438761681033-6461ffad8d80?w=150&auto=format&fit=crop&q=60',
+                    'photo'        => [
+                        'source_kind' => 'external_url',
+                        'file_id'     => null,
+                        'url'         => 'https://images.unsplash.com/photo-1438761681033-6461ffad8d80?w=150&auto=format&fit=crop&q=60',
+                    ],
                 ],
             ],
         ];

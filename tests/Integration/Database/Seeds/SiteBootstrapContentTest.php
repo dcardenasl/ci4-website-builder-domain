@@ -64,8 +64,16 @@ final class SiteBootstrapContentTest extends CIUnitTestCase
         $seeder = \Config\Database::seeder();
         $seeder->call(\App\Database\Seeds\SiteBootstrapSeeder::class);
 
-        $pages = $this->db->table('cms_pages')->whereIn('page_type', ['home', 'contact', 'about', 'history', 'collection_index'])->get()->getResultArray();
-        $this->assertCount(6, $pages);
+        $pages = $this->db->table('cms_pages')->whereIn('page_type', ['home', 'contact', 'about', 'history', 'media', 'collection_index'])->get()->getResultArray();
+        $this->assertNotEmpty($pages);
+
+        $pageTypes = array_map(static fn (array $row): string => (string) $row['page_type'], $pages);
+        foreach (['home', 'contact', 'about', 'history', 'media'] as $pageType) {
+            $this->assertContains($pageType, $pageTypes, sprintf('Missing %s page in bootstrap.', $pageType));
+        }
+
+        $collectionIndexCount = count(array_filter($pageTypes, static fn (string $pageType): bool => $pageType === 'collection_index'));
+        $this->assertGreaterThanOrEqual(2, $collectionIndexCount);
 
         $menu = $this->db->table('cms_menus')->whereIn('menu_key', ['main', 'footer'])->get()->getResultArray();
         $this->assertCount(2, $menu);

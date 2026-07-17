@@ -96,5 +96,21 @@ final class SitePortfolioPageSeederTest extends CIUnitTestCase
             ->where('page_type', 'collection_index')
             ->countAllResults();
         $this->assertSame(1, $pagesForCollection);
+
+        $imageBlock = $this->db->table('cms_block_instances')
+            ->select('cms_block_instances.block_config, cms_block_instances.id')
+            ->join('cms_content_blocks', 'cms_content_blocks.id = cms_block_instances.block_id')
+            ->where('cms_block_instances.owner_type', 'page')
+            ->where('cms_block_instances.owner_id', $legacyPageId)
+            ->where('cms_content_blocks.block_key', 'image')
+            ->get()
+            ->getRowArray();
+
+        $this->assertNotNull($imageBlock);
+
+        $imageConfig = json_decode((string) ($imageBlock['block_config'] ?? '{}'), true);
+        $this->assertIsArray($imageConfig);
+        $this->assertSame('external_url', $imageConfig['image']['source_kind'] ?? null);
+        $this->assertSame('https://picsum.photos/id/355/1200/675', $imageConfig['image']['url'] ?? null);
     }
 }
