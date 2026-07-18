@@ -82,11 +82,31 @@ class PrepareTestDatabase extends BaseCommand
             return;
         }
 
+        if ($driver === 'mysqli' || $driver === 'mysql') {
+            $database = (string) $db->database;
+            if (! str_ends_with($database, '_test')) {
+                throw new \RuntimeException('Refusing to recreate a database whose name does not end in `_test`.');
+            }
+
+            $identifier = $db->escapeIdentifiers($database);
+            $db->query('DROP DATABASE IF EXISTS ' . $identifier);
+            $db->query(
+                'CREATE DATABASE ' . $identifier
+                . ' CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci'
+            );
+            $db->query('USE ' . $identifier);
+            $db->resetDataCache();
+            CLI::write('Recreated the MySQL test database.');
+            return;
+        }
+
+        $db->resetDataCache();
         $existingTables = $db->listTables();
-        $tables         = array_filter(
-            $existingTables === false ? [] : $existingTables,
-            static fn ($table) => $table !== 'migrations'
-        );
+        $tables = $existingTables === false ? [] : $existingTables;
+
+        // Drop the migration ledger with the schema. Keeping and truncating it
+        // separately allowed stale connection metadata to preserve partial
+        // history after a failed run, producing duplicate migration execution.
         if (empty($tables)) {
             CLI::write('No tables found to drop.');
             return;
@@ -95,11 +115,18 @@ class PrepareTestDatabase extends BaseCommand
         $this->disableForeignKeys($db);
 
         foreach ($tables as $table) {
-            $db->query("DROP TABLE IF EXISTS `$table`");
+            if ($db->query('DROP TABLE IF EXISTS ' . $db->escapeIdentifiers($table)) === false) {
+                throw new \RuntimeException('Unable to drop test table: ' . $table);
+            }
         }
 
         $this->enableForeignKeys($db);
         $db->resetDataCache();
+
+        $remainingTables = $db->listTables();
+        if ($remainingTables !== false && $remainingTables !== []) {
+            throw new \RuntimeException('Test database cleanup left tables behind: ' . implode(', ', $remainingTables));
+        }
         CLI::write('Dropped all existing tables.');
     }
 

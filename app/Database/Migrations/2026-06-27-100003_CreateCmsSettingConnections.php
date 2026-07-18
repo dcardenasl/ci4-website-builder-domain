@@ -31,8 +31,11 @@ class CreateCmsSettingConnections extends Migration
 
     public function down(): void
     {
-        $this->db->disableForeignKeyChecks();
+        /** @var \CodeIgniter\Database\BaseConnection $db */
+        $db = $this->db;
+
+        $db->disableForeignKeyChecks();
         $this->forge->dropTable('cms_setting_connections', true);
-        $this->db->enableForeignKeyChecks();
+        $db->enableForeignKeyChecks();
     }
 }

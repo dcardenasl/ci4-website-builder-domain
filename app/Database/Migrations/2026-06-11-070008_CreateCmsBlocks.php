@@ -26,6 +26,7 @@ class CreateCmsBlocks extends Migration
         ]);
         $this->forge->addField('`created_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP');
         $this->forge->addField('`updated_at` DATETIME DEFAULT NULL ON UPDATE CURRENT_TIMESTAMP');
+        $this->forge->addField('FULLTEXT KEY `ft_cms_content_blocks_search` (`block_key`, `name`)');
 
         $this->forge->addPrimaryKey('id');
         $this->forge->addUniqueKey('block_key', 'uk_block_key');
@@ -56,6 +57,25 @@ class CreateCmsBlocks extends Migration
 
         $this->forge->createTable('cms_block_instances', false, ['ENGINE' => 'InnoDB']);
 
+        // Domain-owned registry of Hub file IDs referenced by CMS resources.
+        // There is deliberately no FK to `files`: that table belongs to the Hub.
+        $this->forge->addField([
+            'id'                => ['type' => 'BIGINT', 'constraint' => 20, 'unsigned' => true, 'auto_increment' => true],
+            'hub_file_id'       => ['type' => 'BIGINT', 'constraint' => 20, 'unsigned' => true],
+            'resource_type'     => ['type' => 'VARCHAR', 'constraint' => 50],
+            'resource_id'       => ['type' => 'INT', 'constraint' => 10, 'unsigned' => true],
+            'block_instance_id' => ['type' => 'INT', 'constraint' => 10, 'unsigned' => true, 'null' => true],
+            'role'              => ['type' => 'VARCHAR', 'constraint' => 50],
+            'label'             => ['type' => 'VARCHAR', 'constraint' => 255, 'null' => true],
+        ]);
+        $this->forge->addField('`created_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP');
+        $this->forge->addPrimaryKey('id');
+        $this->forge->addUniqueKey(['resource_type', 'resource_id', 'role'], 'uk_cms_file_reference_resource_role');
+        $this->forge->addKey('hub_file_id', false, false, 'idx_cms_file_reference_hub_file');
+        $this->forge->addKey('block_instance_id', false, false, 'idx_cms_file_reference_block');
+        $this->forge->addForeignKey('block_instance_id', 'cms_block_instances', 'id', '', 'CASCADE', 'fk_cms_file_reference_block');
+        $this->forge->createTable('cms_file_references', false, ['ENGINE' => 'InnoDB']);
+
         $this->forge->addField([
             'id'           => ['type' => 'INT', 'constraint' => 10, 'unsigned' => true, 'auto_increment' => true],
             'instance_id'  => ['type' => 'INT', 'constraint' => 10, 'unsigned' => true],
@@ -77,10 +97,14 @@ class CreateCmsBlocks extends Migration
 
     public function down(): void
     {
-        $this->db->disableForeignKeyChecks();
+        /** @var \CodeIgniter\Database\BaseConnection $db */
+        $db = $this->db;
+
+        $db->disableForeignKeyChecks();
         $this->forge->dropTable('cms_block_instance_translations', true);
+        $this->forge->dropTable('cms_file_references', true);
         $this->forge->dropTable('cms_block_instances', true);
         $this->forge->dropTable('cms_content_blocks', true);
-        $this->db->enableForeignKeyChecks();
+        $db->enableForeignKeyChecks();
     }
 }

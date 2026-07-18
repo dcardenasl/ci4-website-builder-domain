@@ -14,7 +14,7 @@ use CodeIgniter\Database\Seeder;
  *
  * The goal is to keep every public presentation mode represented in a real,
  * navigable page so the starter can be audited visually without hidden routes
- * or legacy fallbacks.
+ * or compatibility fallbacks.
  */
 class SiteMediaPageSeeder extends Seeder
 {
@@ -136,52 +136,48 @@ class SiteMediaPageSeeder extends Seeder
         $this->seedChildBlocks($pageId, $gridGalleryId, 'gallery_item', [
             [
                 'sort_order' => 1,
+                'config'     => ['image' => $this->mediaReference('https://picsum.photos/id/1040/1200/900')],
                 'es' => [
-                    'image'     => $this->mediaReference('https://picsum.photos/id/1040/1200/900'),
                     'alt'       => 'Galería en cuadrícula 1',
                     'caption'   => 'Vista en cuadrícula para series cortas y descubrimiento rápido.',
                 ],
                 'en' => [
-                    'image'     => $this->mediaReference('https://picsum.photos/id/1040/1200/900'),
                     'alt'       => 'Grid gallery 1',
                     'caption'   => 'Grid view for short series and quick discovery.',
                 ],
             ],
             [
                 'sort_order' => 2,
+                'config'     => ['image' => $this->mediaReference('https://picsum.photos/id/1041/1200/900')],
                 'es' => [
-                    'image'     => $this->mediaReference('https://picsum.photos/id/1041/1200/900'),
                     'alt'       => 'Galería en cuadrícula 2',
                     'caption'   => 'Cada tarjeta mantiene una jerarquía clara y respirable.',
                 ],
                 'en' => [
-                    'image'     => $this->mediaReference('https://picsum.photos/id/1041/1200/900'),
                     'alt'       => 'Grid gallery 2',
                     'caption'   => 'Each card keeps a clear and breathable hierarchy.',
                 ],
             ],
             [
                 'sort_order' => 3,
+                'config'     => ['image' => $this->mediaReference('https://picsum.photos/id/1042/1200/900')],
                 'es' => [
-                    'image'     => $this->mediaReference('https://picsum.photos/id/1042/1200/900'),
                     'alt'       => 'Galería en cuadrícula 3',
                     'caption'   => 'Ideal para grillas editoriales o colecciones de referencia.',
                 ],
                 'en' => [
-                    'image'     => $this->mediaReference('https://picsum.photos/id/1042/1200/900'),
                     'alt'       => 'Grid gallery 3',
                     'caption'   => 'Ideal for editorial grids or reference collections.',
                 ],
             ],
             [
                 'sort_order' => 4,
+                'config'     => ['image' => $this->mediaReference('https://picsum.photos/id/1043/1200/900')],
                 'es' => [
-                    'image'     => $this->mediaReference('https://picsum.photos/id/1043/1200/900'),
                     'alt'       => 'Galería en cuadrícula 4',
                     'caption'   => 'La relación de aspecto se mantiene consistente.',
                 ],
                 'en' => [
-                    'image'     => $this->mediaReference('https://picsum.photos/id/1043/1200/900'),
                     'alt'       => 'Grid gallery 4',
                     'caption'   => 'Aspect ratio stays consistent.',
                 ],
@@ -217,39 +213,36 @@ class SiteMediaPageSeeder extends Seeder
         $this->seedChildBlocks($pageId, $inlineGalleryId, 'gallery_item', [
             [
                 'sort_order' => 1,
+                'config'     => ['image' => $this->mediaReference('https://picsum.photos/id/1050/1200/900')],
                 'es' => [
-                    'image'     => $this->mediaReference('https://picsum.photos/id/1050/1200/900'),
                     'alt'       => 'Vista inline 1',
                     'caption'   => 'La previsualización cambia sin abandonar la página.',
                 ],
                 'en' => [
-                    'image'     => $this->mediaReference('https://picsum.photos/id/1050/1200/900'),
                     'alt'       => 'Inline preview 1',
                     'caption'   => 'The preview updates without leaving the page.',
                 ],
             ],
             [
                 'sort_order' => 2,
+                'config'     => ['image' => $this->mediaReference('https://picsum.photos/id/1051/1200/900')],
                 'es' => [
-                    'image'     => $this->mediaReference('https://picsum.photos/id/1051/1200/900'),
                     'alt'       => 'Vista inline 2',
                     'caption'   => 'Sirve para colecciones seleccionadas o pequeñas galerías.',
                 ],
                 'en' => [
-                    'image'     => $this->mediaReference('https://picsum.photos/id/1051/1200/900'),
                     'alt'       => 'Inline preview 2',
                     'caption'   => 'Useful for curated collections or small galleries.',
                 ],
             ],
             [
                 'sort_order' => 3,
+                'config'     => ['image' => $this->mediaReference('https://picsum.photos/id/1052/1200/900')],
                 'es' => [
-                    'image'     => $this->mediaReference('https://picsum.photos/id/1052/1200/900'),
                     'alt'       => 'Vista inline 3',
                     'caption'   => 'La jerarquía del preview guía la atención.',
                 ],
                 'en' => [
-                    'image'     => $this->mediaReference('https://picsum.photos/id/1052/1200/900'),
                     'alt'       => 'Inline preview 3',
                     'caption'   => 'The preview hierarchy guides attention.',
                 ],
@@ -285,15 +278,14 @@ class SiteMediaPageSeeder extends Seeder
         $this->seedChildBlocks($pageId, $modalGalleryId, 'gallery_item', [
             [
                 'sort_order' => 1,
+                'config'     => ['image' => $this->mediaReference('https://picsum.photos/id/1060/1200/900')],
                 'es' => [
-                    'image'     => $this->mediaReference('https://picsum.photos/id/1060/1200/900'),
                     'alt'       => 'Vista modal 1',
                     'caption'   => 'El modal resalta una pieza a la vez.',
                     'link_url'  => '/es/portafolio',
                     'link_label' => 'Ver portafolio',
                 ],
                 'en' => [
-                    'image'     => $this->mediaReference('https://picsum.photos/id/1060/1200/900'),
                     'alt'       => 'Modal view 1',
                     'caption'   => 'The modal highlights one piece at a time.',
                     'link_url'  => '/en/portfolio',
@@ -302,26 +294,24 @@ class SiteMediaPageSeeder extends Seeder
             ],
             [
                 'sort_order' => 2,
+                'config'     => ['image' => $this->mediaReference('https://picsum.photos/id/1061/1200/900')],
                 'es' => [
-                    'image'     => $this->mediaReference('https://picsum.photos/id/1061/1200/900'),
                     'alt'       => 'Vista modal 2',
                     'caption'   => 'Ideal para fotografía, posters y material editorial.',
                 ],
                 'en' => [
-                    'image'     => $this->mediaReference('https://picsum.photos/id/1061/1200/900'),
                     'alt'       => 'Modal view 2',
                     'caption'   => 'Ideal for photography, posters, and editorial material.',
                 ],
             ],
             [
                 'sort_order' => 3,
+                'config'     => ['image' => $this->mediaReference('https://picsum.photos/id/1062/1200/900')],
                 'es' => [
-                    'image'     => $this->mediaReference('https://picsum.photos/id/1062/1200/900'),
                     'alt'       => 'Vista modal 3',
                     'caption'   => 'El modal preserva el foco visual sin recargar la página.',
                 ],
                 'en' => [
-                    'image'     => $this->mediaReference('https://picsum.photos/id/1062/1200/900'),
                     'alt'       => 'Modal view 3',
                     'caption'   => 'The modal preserves visual focus without overloading the page.',
                 ],
@@ -407,15 +397,18 @@ class SiteMediaPageSeeder extends Seeder
             $blockIds,
             'pdf_viewer',
             11,
-            ['height' => '600px', 'allow_download' => true, 'css_class' => 'my-12'],
+            [
+                'pdf_file'      => $this->mediaReference('http://localhost:8186/assets/docs/policies-handbook-demo.pdf'),
+                'height'        => '600px',
+                'allow_download' => true,
+                'css_class'     => 'my-12',
+            ],
             [
                 'es' => [
-                    'heading'  => 'Previsualización del Manual de Políticas',
-                    'pdf_file' => $this->mediaReference('http://localhost:8186/assets/docs/policies-handbook-demo.pdf'),
+                    'heading' => 'Previsualización del Manual de Políticas',
                 ],
                 'en' => [
-                    'heading'  => 'Policies Handbook Preview',
-                    'pdf_file' => $this->mediaReference('http://localhost:8186/assets/docs/policies-handbook-demo.pdf'),
+                    'heading' => 'Policies Handbook Preview',
                 ],
             ],
             $langIds
@@ -659,7 +652,10 @@ class SiteMediaPageSeeder extends Seeder
             ], [
                 'column_index' => null,
                 'is_active'    => 1,
-                'block_config' => json_encode([], JSON_UNESCAPED_UNICODE),
+                'block_config' => json_encode(
+                    is_array($item['config'] ?? null) ? $item['config'] : [],
+                    JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES
+                ),
             ]);
 
             if ($instanceId === null) {

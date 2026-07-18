@@ -10,7 +10,10 @@ class CreateMetricsTable extends Migration
 {
     public function up(): void
     {
-        if ($this->db->tableExists('metrics')) {
+        /** @var \CodeIgniter\Database\BaseConnection $db */
+        $db = $this->db;
+
+        if ($db->tableExists('metrics')) {
             return;
         }
 
@@ -47,6 +50,13 @@ class CreateMetricsTable extends Migration
 
     public function down(): void
     {
-        // Intentionally left as a no-op.
+        /** @var \CodeIgniter\Database\BaseConnection $db */
+        $db = $this->db;
+
+        if (! $db->tableExists('metrics')) {
+            return;
+        }
+
+        $this->forge->dropTable('metrics', true);
     }
 }

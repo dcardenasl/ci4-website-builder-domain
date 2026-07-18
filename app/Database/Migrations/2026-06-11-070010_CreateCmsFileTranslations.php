@@ -33,8 +33,11 @@ class CreateCmsFileTranslations extends Migration
 
     public function down(): void
     {
-        $this->db->disableForeignKeyChecks();
+        /** @var \CodeIgniter\Database\BaseConnection $db */
+        $db = $this->db;
+
+        $db->disableForeignKeyChecks();
         $this->forge->dropTable('cms_file_translations', true);
-        $this->db->enableForeignKeyChecks();
+        $db->enableForeignKeyChecks();
     }
 }

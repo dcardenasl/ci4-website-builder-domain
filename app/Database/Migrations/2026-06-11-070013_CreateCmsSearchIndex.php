@@ -26,6 +26,7 @@ class CreateCmsSearchIndex extends Migration
             'published_at'  => ['type' => 'DATETIME', 'null' => true],
         ]);
         $this->forge->addField('`reindexed_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP');
+        $this->forge->addField('FULLTEXT KEY `ft_search_content` (`title`, `excerpt`, `body`)');
 
         $this->forge->addPrimaryKey('id');
         $this->forge->addUniqueKey(['entity_type', 'entity_id', 'language_id'], 'uk_search_entity');
@@ -34,14 +35,15 @@ class CreateCmsSearchIndex extends Migration
 
         $this->forge->createTable('cms_search_index', false, ['ENGINE' => 'InnoDB']);
 
-        // FULLTEXT indexes are not supported by forge
-        $this->db->query('ALTER TABLE `cms_search_index` ADD FULLTEXT KEY `ft_search_content` (`title`, `excerpt`, `body`)');
     }
 
     public function down(): void
     {
-        $this->db->disableForeignKeyChecks();
+        /** @var \CodeIgniter\Database\BaseConnection $db */
+        $db = $this->db;
+
+        $db->disableForeignKeyChecks();
         $this->forge->dropTable('cms_search_index', true);
-        $this->db->enableForeignKeyChecks();
+        $db->enableForeignKeyChecks();
     }
 }

@@ -44,6 +44,10 @@ class CreateCmsFormFieldTranslations extends Migration
                 'type' => 'TEXT',
                 'null' => true,
             ],
+            'option_labels' => [
+                'type' => 'TEXT',
+                'null' => true,
+            ],
             'error_required' => [
                 'type'       => 'VARCHAR',
                 'constraint' => 255,
@@ -67,8 +71,11 @@ class CreateCmsFormFieldTranslations extends Migration
 
     public function down(): void
     {
-        $this->db->disableForeignKeyChecks();
+        /** @var \CodeIgniter\Database\BaseConnection $db */
+        $db = $this->db;
+
+        $db->disableForeignKeyChecks();
         $this->forge->dropTable('cms_form_field_translations', true);
-        $this->db->enableForeignKeyChecks();
+        $db->enableForeignKeyChecks();
     }
 }

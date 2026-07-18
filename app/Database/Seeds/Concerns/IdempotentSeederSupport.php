@@ -118,65 +118,12 @@ trait IdempotentSeederSupport
     }
 
     /**
-     * Upsert a collection index page while repairing legacy starter rows in place.
+     * Upsert the canonical collection index page for a collection.
      *
-     * This keeps the current canonical shape (`page_type = collection_index`
-     * with a `collection_id`) but avoids duplicating an older singleton page
-     * when an existing starter database still has the legacy type.
-     *
-     * @param list<string> $legacyPageTypes
      * @param array<string, mixed> $data
      */
-    protected function upsertCollectionIndexPageRecord(int $collectionId, array $legacyPageTypes, array $data): ?int
+    protected function upsertCollectionIndexPageRecord(int $collectionId, array $data): ?int
     {
-        $existing = $this->db->table('cms_pages')
-            ->where('page_type', 'collection_index')
-            ->where('collection_id', $collectionId)
-            ->get()
-            ->getRowArray();
-
-        if ($existing !== null && isset($existing['id'])) {
-            $pageId = (int) $existing['id'];
-            $updatePayload = array_merge($data, [
-                'page_type'     => 'collection_index',
-                'collection_id' => $collectionId,
-            ]);
-            if ($this->db->fieldExists('updated_at', 'cms_pages')) {
-                $updatePayload['updated_at'] = date('Y-m-d H:i:s');
-            }
-
-            $this->db->table('cms_pages')
-                ->where('id', $pageId)
-                ->update($updatePayload);
-
-            return $pageId;
-        }
-
-        if ($legacyPageTypes !== []) {
-            $legacyPage = $this->db->table('cms_pages')
-                ->whereIn('page_type', $legacyPageTypes)
-                ->orderBy('id', 'ASC')
-                ->get()
-                ->getRowArray();
-
-            if ($legacyPage !== null && isset($legacyPage['id'])) {
-                $pageId = (int) $legacyPage['id'];
-                $updatePayload = array_merge($data, [
-                    'page_type'     => 'collection_index',
-                    'collection_id' => $collectionId,
-                ]);
-                if ($this->db->fieldExists('updated_at', 'cms_pages')) {
-                    $updatePayload['updated_at'] = date('Y-m-d H:i:s');
-                }
-
-                $this->db->table('cms_pages')
-                    ->where('id', $pageId)
-                    ->update($updatePayload);
-
-                return $pageId;
-            }
-        }
-
         return $this->upsertRecord('cms_pages', [
             'page_type'     => 'collection_index',
             'collection_id' => $collectionId,
@@ -212,7 +159,7 @@ trait IdempotentSeederSupport
      *
      * Seeders should persist the same nested shape the CMS renderer expects:
      * `{source_kind, file_id, url}`. That keeps demo content aligned with the
-     * runtime contract and avoids flat legacy keys in new fixtures.
+     * runtime contract.
      *
      * @return array{source_kind: string, file_id: int|null, url: string}
      */
@@ -236,31 +183,46 @@ trait IdempotentSeederSupport
     }
 
     /**
-     * Convert a canonical media reference into the legacy DB column pair used
-     * by seeded translation rows. Seed data should keep the nested reference
-     * shape; this helper only bridges the current persistence schema.
+     * Convert a canonical media reference into the relational columns used by
+     * seeded translation rows.
      *
-     * @param array{source_kind?: string, file_id?: int|null, url?: string|null}|string|null $reference
+     * @param array{source_kind: string, file_id: int|null, url: string}|null $reference
      * @return array<string, int|string|null>
      */
     protected function mediaReferenceColumns(
-        array|string|null $reference,
+        ?array $reference,
         string $fileIdColumn,
         string $urlColumn
     ): array {
-        if (is_string($reference)) {
-            $reference = ['url' => $reference];
+        if ($reference === null) {
+            return [
+                $fileIdColumn => null,
+                $urlColumn    => null,
+            ];
         }
 
-        if (! is_array($reference)) {
-            $reference = [];
+        if (! array_key_exists('source_kind', $reference)
+            || ! array_key_exists('file_id', $reference)
+            || ! array_key_exists('url', $reference)
+            || ! is_string($reference['source_kind'])
+            || ($reference['file_id'] !== null && ! is_int($reference['file_id']))
+            || ! is_string($reference['url'])) {
+            throw new \LogicException('Seeder media references must define source_kind, file_id, and url with canonical types.');
+        }
+
+        $sourceKind = $reference['source_kind'];
+        $fileId = $reference['file_id'];
+        $url = trim($reference['url']);
+
+        if (! in_array($sourceKind, ['hub_file', 'external_url'], true)
+            || ($sourceKind === 'hub_file' && ($fileId === null || $fileId <= 0))
+            || ($sourceKind === 'external_url' && ($fileId !== null || $url === ''))) {
+            throw new \LogicException('Seeder media references must use the canonical {source_kind, file_id, url} contract.');
         }
 
         return [
-            $fileIdColumn => is_numeric($reference['file_id'] ?? null) ? (int) $reference['file_id'] : null,
-            $urlColumn    => isset($reference['url']) && trim((string) $reference['url']) !== ''
-                ? trim((string) $reference['url'])
-                : null,
+            $fileIdColumn => $fileId,
+            $urlColumn    => $url !== '' ? $url : null,
         ];
     }
 }

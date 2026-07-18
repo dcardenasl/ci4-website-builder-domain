@@ -8,7 +8,7 @@ use CodeIgniter\Test\CIUnitTestCase;
 use CodeIgniter\Test\DatabaseTestTrait;
 
 /**
- * Verifies the portfolio page seeder repairs legacy singleton rows in place.
+ * Verifies canonical portfolio page creation and idempotency.
  *
  * @internal
  */
@@ -27,6 +27,7 @@ final class SitePortfolioPageSeederTest extends CIUnitTestCase
 
         $this->db->disableForeignKeyChecks();
         $tables = [
+            'cms_file_references',
             'cms_block_instance_translations',
             'cms_block_instances',
             'cms_content_blocks',
@@ -51,7 +52,7 @@ final class SitePortfolioPageSeederTest extends CIUnitTestCase
         $this->db->enableForeignKeyChecks();
     }
 
-    public function testSeederRepairsLegacyPortfolioPageWithoutDuplicatingIt(): void
+    public function testSeederCreatesOneCanonicalPortfolioPageAcrossRepeatedRuns(): void
     {
         $seeder = \Config\Database::seeder();
         $seeder->call(\App\Database\Seeds\CmsLanguageSeeder::class);
@@ -64,30 +65,18 @@ final class SitePortfolioPageSeederTest extends CIUnitTestCase
             ->getRowArray();
         $this->assertNotNull($collection);
 
-        $legacyPageId = $this->db->table('cms_pages')->insert([
-            'page_type'          => 'portfolio',
-            'status'             => 'published',
-            'published_at'       => date('Y-m-d H:i:s'),
-            'scheduled_at'       => null,
-            'sort_order'         => 40,
-            'sitemap_priority'   => '0.8',
-            'sitemap_changefreq' => 'weekly',
-            'is_in_sitemap'      => 1,
-            'deleted_at'         => null,
-            'created_at'         => date('Y-m-d H:i:s'),
-            'updated_at'         => date('Y-m-d H:i:s'),
-        ]) ? (int) $this->db->insertID() : 0;
-
-        $this->assertGreaterThan(0, $legacyPageId);
-
+        $seeder->call(\App\Database\Seeds\SitePortfolioPageSeeder::class);
         $seeder->call(\App\Database\Seeds\SitePortfolioPageSeeder::class);
 
         $page = $this->db->table('cms_pages')
-            ->where('id', $legacyPageId)
+            ->where('page_type', 'collection_index')
+            ->where('collection_id', (int) $collection['id'])
             ->get()
             ->getRowArray();
 
         $this->assertNotNull($page);
+        $pageId = (int) $page['id'];
+        $this->assertGreaterThan(0, $pageId);
         $this->assertSame('collection_index', $page['page_type']);
         $this->assertSame((string) $collection['id'], (string) ($page['collection_id'] ?? ''));
 
@@ -101,7 +90,7 @@ final class SitePortfolioPageSeederTest extends CIUnitTestCase
             ->select('cms_block_instances.block_config, cms_block_instances.id')
             ->join('cms_content_blocks', 'cms_content_blocks.id = cms_block_instances.block_id')
             ->where('cms_block_instances.owner_type', 'page')
-            ->where('cms_block_instances.owner_id', $legacyPageId)
+            ->where('cms_block_instances.owner_id', $pageId)
             ->where('cms_content_blocks.block_key', 'image')
             ->get()
             ->getRowArray();

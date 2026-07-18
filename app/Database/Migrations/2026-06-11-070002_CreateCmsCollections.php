@@ -10,16 +10,22 @@ class CreateCmsCollections extends Migration
 {
     public function up(): void
     {
-        if (! $this->db->tableExists('cms_collections')) {
+        /** @var \CodeIgniter\Database\BaseConnection $db */
+        $db = $this->db;
+
+        if (! $db->tableExists('cms_collections')) {
             $this->forge->addField([
                 'id'                       => ['type' => 'INT', 'constraint' => 10, 'unsigned' => true, 'auto_increment' => true],
                 'collection_key'           => ['type' => 'VARCHAR', 'constraint' => 50],
+                'collection_type'          => ['type' => 'VARCHAR', 'constraint' => 50, 'default' => 'other'],
                 'is_active'                => ['type' => 'TINYINT', 'constraint' => 1, 'default' => 1],
                 'requires_approval'        => ['type' => 'TINYINT', 'constraint' => 1, 'default' => 0],
                 'enables_categories'       => ['type' => 'TINYINT', 'constraint' => 1, 'default' => 1],
                 'enables_tags'             => ['type' => 'TINYINT', 'constraint' => 1, 'default' => 1],
                 'default_sitemap_priority' => ['type' => 'DECIMAL', 'constraint' => '2,1', 'null' => true, 'default' => 0.6],
                 'default_changefreq'       => ['type' => 'ENUM', 'constraint' => ['always', 'hourly', 'daily', 'weekly', 'monthly', 'yearly', 'never'], 'null' => true, 'default' => 'weekly'],
+                'block_template'           => ['type' => 'JSON', 'null' => true],
+                'wizard_config'            => ['type' => 'JSON', 'null' => true],
                 'sort_order'               => ['type' => 'INT', 'default' => 0],
             ]);
             $this->forge->addField('`created_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP');
@@ -31,7 +37,7 @@ class CreateCmsCollections extends Migration
             $this->forge->createTable('cms_collections', false, ['ENGINE' => 'InnoDB']);
         }
 
-        if (! $this->db->tableExists('cms_collection_translations')) {
+        if (! $db->tableExists('cms_collection_translations')) {
             $this->forge->addField([
                 'id'                       => ['type' => 'INT', 'constraint' => 10, 'unsigned' => true, 'auto_increment' => true],
                 'collection_id'            => ['type' => 'INT', 'constraint' => 10, 'unsigned' => true],
@@ -58,13 +64,16 @@ class CreateCmsCollections extends Migration
 
     public function down(): void
     {
-        $this->db->disableForeignKeyChecks();
-        if ($this->db->tableExists('cms_collection_translations')) {
+        /** @var \CodeIgniter\Database\BaseConnection $db */
+        $db = $this->db;
+
+        $db->disableForeignKeyChecks();
+        if ($db->tableExists('cms_collection_translations')) {
             $this->forge->dropTable('cms_collection_translations', true);
         }
-        if ($this->db->tableExists('cms_collections')) {
+        if ($db->tableExists('cms_collections')) {
             $this->forge->dropTable('cms_collections', true);
         }
-        $this->db->enableForeignKeyChecks();
+        $db->enableForeignKeyChecks();
     }
 }

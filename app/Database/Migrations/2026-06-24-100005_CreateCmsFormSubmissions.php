@@ -12,6 +12,7 @@ class CreateCmsFormSubmissions extends Migration
     {
         $this->forge->addField([
             'id'            => ['type' => 'BIGINT', 'constraint' => 20, 'unsigned' => true, 'auto_increment' => true],
+            'form_id'       => ['type' => 'BIGINT', 'constraint' => 20, 'unsigned' => true, 'null' => true],
             'form_key'      => ['type' => 'VARCHAR', 'constraint' => 50],
             'page_id'       => ['type' => 'INT', 'constraint' => 10, 'unsigned' => true, 'null' => true],
             'language_id'   => ['type' => 'INT', 'constraint' => 10, 'unsigned' => true, 'null' => true],
@@ -26,9 +27,11 @@ class CreateCmsFormSubmissions extends Migration
         $this->forge->addField('`updated_at` DATETIME DEFAULT NULL ON UPDATE CURRENT_TIMESTAMP');
 
         $this->forge->addPrimaryKey('id');
+        $this->forge->addKey('form_id', false, false, 'idx_subm_form');
         $this->forge->addKey(['form_key', 'status', 'created_at'], false, false, 'idx_subm_form_status');
         $this->forge->addKey('page_id', false, false, 'idx_subm_page');
         $this->forge->addKey('is_anonymized', false, false, 'idx_subm_anonymized');
+        $this->forge->addForeignKey('form_id', 'cms_forms', 'id', '', 'SET NULL', 'fk_form_submissions_form_id');
         $this->forge->addForeignKey('page_id', 'cms_pages', 'id', '', 'SET NULL', 'fk_subm_page');
         $this->forge->addForeignKey('language_id', 'cms_languages', 'id', '', 'SET NULL', 'fk_subm_lang');
 
@@ -37,8 +40,11 @@ class CreateCmsFormSubmissions extends Migration
 
     public function down(): void
     {
-        $this->db->disableForeignKeyChecks();
+        /** @var \CodeIgniter\Database\BaseConnection $db */
+        $db = $this->db;
+
+        $db->disableForeignKeyChecks();
         $this->forge->dropTable('cms_form_submissions', true);
-        $this->db->enableForeignKeyChecks();
+        $db->enableForeignKeyChecks();
     }
 }

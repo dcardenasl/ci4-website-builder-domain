@@ -136,27 +136,12 @@ class CmsPageBlockSeeder extends Seeder
                 'block_key' => 'form_embed',
                 'sort_order' => 2,
                 'config'    => [
-                    'form_key'        => 'contact',
-                    'show_info_boxes' => true,
-                    'css_class'       => '',
+                    'form_key'  => 'contact',
+                    'css_class' => '',
                 ],
                 'data'      => [
-                    'es' => [
-                        'heading'          => 'Escríbenos',
-                        'description'      => 'Completa el formulario y te responderemos pronto.',
-                        'info_email_label' => 'Correo',
-                        'info_email_desc'  => 'Usa este formulario y te contactaremos por correo.',
-                        'info_phone_label' => 'Teléfono',
-                        'info_phone_desc'  => 'Atención de lunes a viernes.',
-                    ],
-                    'en' => [
-                        'heading'          => 'Write to us',
-                        'description'      => 'Fill out the form and we will reply soon.',
-                        'info_email_label' => 'Email',
-                        'info_email_desc'  => 'Use this form and we will contact you by email.',
-                        'info_phone_label' => 'Phone',
-                        'info_phone_desc'  => 'Support available Monday through Friday.',
-                    ],
+                    'es' => [],
+                    'en' => [],
                 ],
             ],
             [

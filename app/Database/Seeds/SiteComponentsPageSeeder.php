@@ -91,10 +91,10 @@ class SiteComponentsPageSeeder extends Seeder
             ['css_class' => ''],
             [
                 'es' => [
-                    'content' => '<p>Este starter no depende de páginas ocultas ni de vistas legacy para mostrar sus bloques. El contenido de ejemplo se reparte en páginas públicas reales: inicio, quiénes somos, historia, portafolio, noticias, multimedia, contacto y esta página de bloques.</p><p>La idea es simple: si un bloque se crea por seeders, debe poder verse sin trabajo manual adicional. Así mantenemos el sistema auditable, consistente y fácil de mantener.</p>',
+                    'content' => '<p>Este starter no depende de páginas ocultas ni de vistas obsoletas para mostrar sus bloques. El contenido de ejemplo se reparte en páginas públicas reales: inicio, quiénes somos, historia, portafolio, noticias, multimedia, contacto y esta página de bloques.</p><p>La idea es simple: si un bloque se crea por seeders, debe poder verse sin trabajo manual adicional. Así mantenemos el sistema auditable, consistente y fácil de mantener.</p>',
                 ],
                 'en' => [
-                    'content' => '<p>This starter does not depend on hidden pages or legacy views to showcase its blocks. The example content is distributed across real public pages: home, about, history, portfolio, news, multimedia, contact, and this blocks page.</p><p>The idea is simple: if a block is seeded, it should be visible without manual work. That keeps the system auditable, consistent, and easy to maintain.</p>',
+                    'content' => '<p>This starter does not depend on hidden pages or obsolete views to showcase its blocks. The example content is distributed across real public pages: home, about, history, portfolio, news, multimedia, contact, and this blocks page.</p><p>The idea is simple: if a block is seeded, it should be visible without manual work. That keeps the system auditable, consistent, and easy to maintain.</p>',
                 ],
             ],
             $langIds
@@ -124,15 +124,14 @@ class SiteComponentsPageSeeder extends Seeder
         $cards = [
             [
                 'sort_order' => 1,
+                'config'     => ['image' => $this->mediaReference('https://picsum.photos/id/1011/900/600')],
                 'es' => [
-                    'image'       => $this->mediaReference('https://picsum.photos/id/1011/900/600'),
                     'title'       => 'Inicio',
                     'description' => 'Carrusel hero, grilla de noticias y CTA principal.',
                     'link_label'  => 'Abrir inicio',
                     'link_url'    => '/es',
                 ],
                 'en' => [
-                    'image'       => $this->mediaReference('https://picsum.photos/id/1011/900/600'),
                     'title'       => 'Home',
                     'description' => 'Hero slider, news grid, and the main CTA.',
                     'link_label'  => 'Open home',
@@ -141,15 +140,14 @@ class SiteComponentsPageSeeder extends Seeder
             ],
             [
                 'sort_order' => 2,
+                'config'     => ['image' => $this->mediaReference('https://picsum.photos/id/1015/900/600')],
                 'es' => [
-                    'image'       => $this->mediaReference('https://picsum.photos/id/1015/900/600'),
                     'title'       => 'Quiénes somos',
                     'description' => 'Hero banner, texto, cards, métricas, carrusel, galería y video.',
                     'link_label'  => 'Abrir página',
                     'link_url'    => '/es/nosotros',
                 ],
                 'en' => [
-                    'image'       => $this->mediaReference('https://picsum.photos/id/1015/900/600'),
                     'title'       => 'About us',
                     'description' => 'Hero banner, text, cards, metrics, slider, gallery, and video.',
                     'link_label'  => 'Open page',
@@ -158,15 +156,14 @@ class SiteComponentsPageSeeder extends Seeder
             ],
             [
                 'sort_order' => 3,
+                'config'     => ['image' => $this->mediaReference('https://picsum.photos/id/1035/900/600')],
                 'es' => [
-                    'image'       => $this->mediaReference('https://picsum.photos/id/1035/900/600'),
                     'title'       => 'Historia',
                     'description' => 'Métricas, acordeón, imagen y CTA editorial.',
                     'link_label'  => 'Ver historia',
                     'link_url'    => '/es/historia',
                 ],
                 'en' => [
-                    'image'       => $this->mediaReference('https://picsum.photos/id/1035/900/600'),
                     'title'       => 'History',
                     'description' => 'Metrics, accordion, image, and editorial CTA.',
                     'link_label'  => 'View history',
@@ -175,15 +172,14 @@ class SiteComponentsPageSeeder extends Seeder
             ],
             [
                 'sort_order' => 4,
+                'config'     => ['image' => $this->mediaReference('https://picsum.photos/id/1025/900/600')],
                 'es' => [
-                    'image'       => $this->mediaReference('https://picsum.photos/id/1025/900/600'),
                     'title'       => 'Portafolio',
                     'description' => 'Listado completo de colección, alertas, tabs e imágenes.',
                     'link_label'  => 'Abrir portafolio',
                     'link_url'    => '/es/portafolio',
                 ],
                 'en' => [
-                    'image'       => $this->mediaReference('https://picsum.photos/id/1025/900/600'),
                     'title'       => 'Portfolio',
                     'description' => 'Full collection listing, alerts, tabs, and images.',
                     'link_label'  => 'Open portfolio',
@@ -192,15 +188,14 @@ class SiteComponentsPageSeeder extends Seeder
             ],
             [
                 'sort_order' => 5,
+                'config'     => ['image' => $this->mediaReference('https://picsum.photos/id/1074/900/600')],
                 'es' => [
-                    'image'       => $this->mediaReference('https://picsum.photos/id/1074/900/600'),
                     'title'       => 'Multimedia',
                     'description' => 'Galerías con varias presentaciones, visor en línea y video incorporado.',
                     'link_label'  => 'Abrir multimedia',
                     'link_url'    => '/es/multimedia',
                 ],
                 'en' => [
-                    'image'       => $this->mediaReference('https://picsum.photos/id/1074/900/600'),
                     'title'       => 'Media',
                     'description' => 'Galleries with multiple presentations, inline preview, and embedded video.',
                     'link_label'  => 'Open media',
@@ -209,15 +204,14 @@ class SiteComponentsPageSeeder extends Seeder
             ],
             [
                 'sort_order' => 6,
+                'config'     => ['image' => $this->mediaReference('https://picsum.photos/id/1060/900/600')],
                 'es' => [
-                    'image'       => $this->mediaReference('https://picsum.photos/id/1060/900/600'),
                     'title'       => 'Noticias',
                     'description' => 'Grid de colección con imagen principal y contenido resumido.',
                     'link_label'  => 'Ir a noticias',
                     'link_url'    => '/es/noticias',
                 ],
                 'en' => [
-                    'image'       => $this->mediaReference('https://picsum.photos/id/1060/900/600'),
                     'title'       => 'News',
                     'description' => 'Collection grid with a featured image and summary content.',
                     'link_label'  => 'Go to news',
@@ -226,15 +220,14 @@ class SiteComponentsPageSeeder extends Seeder
             ],
             [
                 'sort_order' => 7,
+                'config'     => ['image' => $this->mediaReference('https://picsum.photos/id/1048/900/600')],
                 'es' => [
-                    'image'       => $this->mediaReference('https://picsum.photos/id/1048/900/600'),
                     'title'       => 'Contacto',
                     'description' => 'Formulario, información de contacto, mapa y redes.',
                     'link_label'  => 'Ir a contacto',
                     'link_url'    => '/es/contacto',
                 ],
                 'en' => [
-                    'image'       => $this->mediaReference('https://picsum.photos/id/1048/900/600'),
                     'title'       => 'Contact',
                     'description' => 'Form, contact details, map, and social links.',
                     'link_label'  => 'Go to contact',
@@ -435,7 +428,10 @@ class SiteComponentsPageSeeder extends Seeder
             ], [
                 'column_index' => null,
                 'is_active'    => 1,
-                'block_config'  => json_encode([], JSON_UNESCAPED_UNICODE),
+                'block_config'  => json_encode(
+                    is_array($item['config'] ?? null) ? $item['config'] : [],
+                    JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES
+                ),
             ]);
 
             if ($instanceId === null) {

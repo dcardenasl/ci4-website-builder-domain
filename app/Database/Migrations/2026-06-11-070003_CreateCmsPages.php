@@ -11,14 +11,19 @@ class CreateCmsPages extends Migration
     public function up(): void
     {
         $this->forge->addField([
-            'id'        => ['type' => 'INT', 'constraint' => 10, 'unsigned' => true, 'auto_increment' => true],
-            'parent_id' => ['type' => 'INT', 'constraint' => 10, 'unsigned' => true, 'null' => true],
-            'page_type' => ['type' => 'ENUM', 'constraint' => ['home', 'generic', 'contact', 'privacy', 'terms', '404', '500', 'maintenance'], 'default' => 'generic'],
+            'id'            => ['type' => 'INT', 'constraint' => 10, 'unsigned' => true, 'auto_increment' => true],
+            'parent_id'     => ['type' => 'INT', 'constraint' => 10, 'unsigned' => true, 'null' => true],
+            'collection_id' => ['type' => 'INT', 'constraint' => 10, 'unsigned' => true, 'null' => true],
+            'page_type'     => [
+                'type' => 'ENUM',
+                'constraint' => ['home', 'generic', 'contact', 'privacy', 'terms', '404', '500', 'maintenance', 'about', 'history', 'events', 'components', 'media', 'collection_index', 'portfolio'],
+                'default' => 'generic',
+            ],
         ]);
         // Generated column — forge doesn't support GENERATED ALWAYS AS syntax
         $this->forge->addField(
             "`type_singleton` VARCHAR(20) GENERATED ALWAYS AS (" .
-            "CASE WHEN `page_type` IN ('home','404','500','maintenance','contact','privacy','terms') " .
+            "CASE WHEN `page_type` IN ('home','404','500','maintenance','contact','privacy','terms','portfolio') " .
             "AND `deleted_at` IS NULL THEN `page_type` ELSE NULL END) STORED"
         );
         $this->forge->addField([
@@ -36,9 +41,12 @@ class CreateCmsPages extends Migration
 
         $this->forge->addPrimaryKey('id');
         $this->forge->addUniqueKey('type_singleton', 'uk_page_type_singleton');
+        $this->forge->addUniqueKey('collection_id', 'uk_page_collection_id');
         $this->forge->addKey(['parent_id', 'sort_order'], false, false, 'idx_page_parent_sort');
+        $this->forge->addKey('collection_id', false, false, 'idx_page_collection_id');
         $this->forge->addKey(['status', 'deleted_at'], false, false, 'idx_page_status');
         $this->forge->addForeignKey('parent_id', 'cms_pages', 'id', '', 'CASCADE', 'fk_page_parent');
+        $this->forge->addForeignKey('collection_id', 'cms_collections', 'id', '', 'CASCADE', 'fk_page_collection');
 
         $this->forge->createTable('cms_pages', false, ['ENGINE' => 'InnoDB']);
 
@@ -52,6 +60,7 @@ class CreateCmsPages extends Migration
             'meta_title'       => ['type' => 'VARCHAR', 'constraint' => 255, 'null' => true],
             'meta_description' => ['type' => 'VARCHAR', 'constraint' => 500, 'null' => true],
             'og_image_file_id' => ['type' => 'INT', 'constraint' => 10, 'unsigned' => true, 'null' => true],
+            'og_image_url'     => ['type' => 'VARCHAR', 'constraint' => 2048, 'null' => true],
             'og_type'          => ['type' => 'VARCHAR', 'constraint' => 50, 'null' => true],
             'canonical_url'    => ['type' => 'VARCHAR', 'constraint' => 500, 'null' => true],
             'robots'           => ['type' => 'VARCHAR', 'constraint' => 100, 'null' => true],
@@ -59,6 +68,7 @@ class CreateCmsPages extends Migration
         ]);
         $this->forge->addField('`created_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP');
         $this->forge->addField('`updated_at` DATETIME DEFAULT NULL ON UPDATE CURRENT_TIMESTAMP');
+        $this->forge->addField('FULLTEXT KEY `ft_page_search` (`title`, `excerpt`)');
 
         $this->forge->addPrimaryKey('id');
         $this->forge->addUniqueKey(['page_id', 'language_id'], 'uk_page_lang');
@@ -68,9 +78,6 @@ class CreateCmsPages extends Migration
         $this->forge->addForeignKey('language_id', 'cms_languages', 'id', '', 'CASCADE', 'fk_pagetrans_lang');
 
         $this->forge->createTable('cms_page_translations', false, ['ENGINE' => 'InnoDB']);
-
-        // FULLTEXT indexes are not supported by forge
-        $this->db->query('ALTER TABLE `cms_page_translations` ADD FULLTEXT KEY `ft_page_search` (`title`, `excerpt`)');
 
         $this->forge->addField([
             'id'             => ['type' => 'BIGINT', 'constraint' => 20, 'unsigned' => true, 'auto_increment' => true],
@@ -92,10 +99,13 @@ class CreateCmsPages extends Migration
 
     public function down(): void
     {
-        $this->db->disableForeignKeyChecks();
+        /** @var \CodeIgniter\Database\BaseConnection $db */
+        $db = $this->db;
+
+        $db->disableForeignKeyChecks();
         $this->forge->dropTable('cms_page_versions', true);
         $this->forge->dropTable('cms_page_translations', true);
         $this->forge->dropTable('cms_pages', true);
-        $this->db->enableForeignKeyChecks();
+        $db->enableForeignKeyChecks();
     }
 }

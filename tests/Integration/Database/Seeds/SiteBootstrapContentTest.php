@@ -27,6 +27,7 @@ final class SiteBootstrapContentTest extends CIUnitTestCase
 
         $this->db->disableForeignKeyChecks();
         $tables = [
+            'cms_file_references',
             'cms_block_instance_translations',
             'cms_block_instances',
             'cms_content_blocks',

@@ -204,8 +204,8 @@ class PortfolioCollectionSeeder extends Seeder
         // ── 5. Entries (Sample Projects) ───────────────────────────────────────
         $entries = [
             [
-                'featured_image'     => ['source_kind' => 'external_url', 'url' => 'https://picsum.photos/id/2/600/400'],
-                'detail_image_url'   => 'https://picsum.photos/id/1040/1200/800',
+                'featured_image'     => $this->mediaReference('https://picsum.photos/id/2/600/400'),
+                'detail_image'       => $this->mediaReference('https://picsum.photos/id/1040/1200/800'),
                 'category_slug'      => 'desarrollo-web',
                 'tag_slugs'          => ['reciente', 'destacado'],
                 'es' => [
@@ -226,8 +226,8 @@ class PortfolioCollectionSeeder extends Seeder
                 ],
             ],
             [
-                'featured_image'     => ['source_kind' => 'external_url', 'url' => 'https://picsum.photos/id/10/600/400'],
-                'detail_image_url'   => 'https://picsum.photos/id/1050/1200/800',
+                'featured_image'     => $this->mediaReference('https://picsum.photos/id/10/600/400'),
+                'detail_image'       => $this->mediaReference('https://picsum.photos/id/1050/1200/800'),
                 'category_slug'      => 'diseno-ui-ux',
                 'tag_slugs'          => ['destacado'],
                 'es' => [
@@ -295,7 +295,11 @@ class PortfolioCollectionSeeder extends Seeder
                 'owner_id'   => $entryId,
                 'sort_order' => 1,
             ], [
-                'is_active' => 1,
+                'is_active'    => 1,
+                'block_config' => json_encode(
+                    ['image' => $entry['detail_image']],
+                    JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES
+                ),
             ]);
 
             // Block 2: rich_text
@@ -341,9 +345,8 @@ class PortfolioCollectionSeeder extends Seeder
                     'language_id' => $langId,
                 ], [
                     'block_data'  => json_encode([
-                        'image_url' => $entry['detail_image_url'],
-                        'alt'       => $tData['title'],
-                        'caption'   => 'Proyecto finalizado: ' . $tData['title']
+                        'alt'     => $tData['title'],
+                        'caption' => 'Proyecto finalizado: ' . $tData['title']
                     ], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES),
                 ]);
 

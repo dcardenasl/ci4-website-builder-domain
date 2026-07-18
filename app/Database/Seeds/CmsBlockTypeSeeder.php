@@ -97,8 +97,8 @@ class CmsBlockTypeSeeder extends Seeder
             ],
 
             // ── hero_banner ──────────────────────────────────────────────────────
-            // La imagen se selecciona del file manager. Convención file type:
-            //   block_data["image_file_id"] + block_data["image_url"]
+            // La imagen se selecciona del file manager. Convención media_reference:
+            //   block_config["image"] = {source_kind, file_id, url}
             [
                 'block_key'         => 'hero_banner',
                 'name'              => 'Hero Banner',

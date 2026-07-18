@@ -19,7 +19,6 @@ class CreateCmsMenus extends Migration
         ]);
         $this->forge->addField('`created_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP');
         $this->forge->addField('`updated_at` DATETIME DEFAULT NULL ON UPDATE CURRENT_TIMESTAMP');
-
         $this->forge->addPrimaryKey('id');
         $this->forge->addUniqueKey('menu_key', 'uk_menu_key');
         $this->forge->addKey(['location', 'is_active'], false, false, 'idx_menu_location');
@@ -56,6 +55,15 @@ class CreateCmsMenus extends Migration
         ]);
         $this->forge->addField('`created_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP');
         $this->forge->addField('`updated_at` DATETIME DEFAULT NULL ON UPDATE CURRENT_TIMESTAMP');
+        $this->forge->addField(
+            "CONSTRAINT `chk_menuitem_link` CHECK (
+                (`link_type` = 'page' AND `page_id` IS NOT NULL AND `entry_id` IS NULL AND `collection_id` IS NULL)
+                OR (`link_type` = 'entry' AND `entry_id` IS NOT NULL AND `page_id` IS NULL AND `collection_id` IS NULL)
+                OR (`link_type` = 'collection_listing' AND `collection_id` IS NOT NULL AND `page_id` IS NULL AND `entry_id` IS NULL)
+                OR (`link_type` = 'custom_url' AND `page_id` IS NULL AND `entry_id` IS NULL AND `collection_id` IS NULL)
+                OR (`link_type` = 'no_link' AND `page_id` IS NULL AND `entry_id` IS NULL AND `collection_id` IS NULL)
+            )"
+        );
 
         $this->forge->addPrimaryKey('id');
         $this->forge->addKey(['menu_id', 'parent_id', 'sort_order'], false, false, 'idx_menuitem_menu_parent');
@@ -69,17 +77,6 @@ class CreateCmsMenus extends Migration
         $this->forge->addForeignKey('collection_id', 'cms_collections', 'id', '', 'CASCADE', 'fk_menuitem_collection');
 
         $this->forge->createTable('cms_menu_items', false, ['ENGINE' => 'InnoDB']);
-
-        // CHECK constraints are not supported by forge
-        $this->db->query(
-            "ALTER TABLE `cms_menu_items` ADD CONSTRAINT `chk_menuitem_link` CHECK (
-                (`link_type` = 'page' AND `page_id` IS NOT NULL AND `entry_id` IS NULL AND `collection_id` IS NULL)
-                OR (`link_type` = 'entry' AND `entry_id` IS NOT NULL AND `page_id` IS NULL AND `collection_id` IS NULL)
-                OR (`link_type` = 'collection_listing' AND `collection_id` IS NOT NULL AND `page_id` IS NULL AND `entry_id` IS NULL)
-                OR (`link_type` = 'custom_url' AND `page_id` IS NULL AND `entry_id` IS NULL AND `collection_id` IS NULL)
-                OR (`link_type` = 'no_link' AND `page_id` IS NULL AND `entry_id` IS NULL AND `collection_id` IS NULL)
-            )"
-        );
 
         $this->forge->addField([
             'id'           => ['type' => 'INT', 'constraint' => 10, 'unsigned' => true, 'auto_increment' => true],
@@ -100,11 +97,14 @@ class CreateCmsMenus extends Migration
 
     public function down(): void
     {
-        $this->db->disableForeignKeyChecks();
+        /** @var \CodeIgniter\Database\BaseConnection $db */
+        $db = $this->db;
+
+        $db->disableForeignKeyChecks();
         $this->forge->dropTable('cms_menu_item_translations', true);
         $this->forge->dropTable('cms_menu_items', true);
         $this->forge->dropTable('cms_menu_translations', true);
         $this->forge->dropTable('cms_menus', true);
-        $this->db->enableForeignKeyChecks();
+        $db->enableForeignKeyChecks();
     }
 }

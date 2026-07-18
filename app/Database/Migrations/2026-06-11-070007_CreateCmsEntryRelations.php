@@ -42,6 +42,7 @@ class CreateCmsEntryRelations extends Migration
             'relation_type'    => ['type' => 'ENUM', 'constraint' => ['related', 'recommended', 'prerequisite', 'sequel'], 'default' => 'related'],
             'sort_order'       => ['type' => 'INT', 'default' => 0],
         ]);
+        $this->forge->addField('CONSTRAINT `chk_related_not_self` CHECK (`entry_id` <> `related_entry_id`)');
 
         $this->forge->addPrimaryKey(['entry_id', 'related_entry_id']);
         $this->forge->addKey('related_entry_id', false, false, 'idx_related_target');
@@ -50,16 +51,17 @@ class CreateCmsEntryRelations extends Migration
 
         $this->forge->createTable('cms_entry_related', false, ['ENGINE' => 'InnoDB']);
 
-        // CHECK constraints are not supported by forge
-        $this->db->query('ALTER TABLE `cms_entry_related` ADD CONSTRAINT `chk_related_not_self` CHECK (`entry_id` <> `related_entry_id`)');
     }
 
     public function down(): void
     {
-        $this->db->disableForeignKeyChecks();
+        /** @var \CodeIgniter\Database\BaseConnection $db */
+        $db = $this->db;
+
+        $db->disableForeignKeyChecks();
         $this->forge->dropTable('cms_entry_related', true);
         $this->forge->dropTable('cms_entry_categories', true);
         $this->forge->dropTable('cms_entry_tags', true);
-        $this->db->enableForeignKeyChecks();
+        $db->enableForeignKeyChecks();
     }
 }

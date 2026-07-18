@@ -30,9 +30,13 @@ class CreateCmsFormFields extends Migration
             ],
             'field_type' => [
                 'type'       => 'ENUM',
-                'constraint' => ['text', 'email', 'phone', 'textarea'],
+                'constraint' => ['text', 'email', 'phone', 'textarea', 'select', 'radio', 'checkbox', 'date', 'number', 'url'],
                 'null'       => false,
                 'default'    => 'text',
+            ],
+            'options' => [
+                'type' => 'TEXT',
+                'null' => true,
             ],
             'display_order' => [
                 'type'     => 'INT',
@@ -72,8 +76,11 @@ class CreateCmsFormFields extends Migration
 
     public function down(): void
     {
-        $this->db->disableForeignKeyChecks();
+        /** @var \CodeIgniter\Database\BaseConnection $db */
+        $db = $this->db;
+
+        $db->disableForeignKeyChecks();
         $this->forge->dropTable('cms_form_fields', true);
-        $this->db->enableForeignKeyChecks();
+        $db->enableForeignKeyChecks();
     }
 }

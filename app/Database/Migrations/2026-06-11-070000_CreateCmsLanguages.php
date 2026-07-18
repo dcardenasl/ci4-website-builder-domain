@@ -10,7 +10,10 @@ class CreateCmsLanguages extends Migration
 {
     public function up(): void
     {
-        if ($this->db->tableExists('cms_languages')) {
+        /** @var \CodeIgniter\Database\BaseConnection $db */
+        $db = $this->db;
+
+        if ($db->tableExists('cms_languages')) {
             return;
         }
 
@@ -37,12 +40,15 @@ class CreateCmsLanguages extends Migration
 
     public function down(): void
     {
-        if (! $this->db->tableExists('cms_languages')) {
+        /** @var \CodeIgniter\Database\BaseConnection $db */
+        $db = $this->db;
+
+        if (! $db->tableExists('cms_languages')) {
             return;
         }
 
-        $this->db->disableForeignKeyChecks();
+        $db->disableForeignKeyChecks();
         $this->forge->dropTable('cms_languages', true);
-        $this->db->enableForeignKeyChecks();
+        $db->enableForeignKeyChecks();
     }
 }

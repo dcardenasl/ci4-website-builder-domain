@@ -23,7 +23,10 @@ class CreateIdempotencyKeysTable extends Migration
 {
     public function up(): void
     {
-        if ($this->db->tableExists('idempotency_keys')) {
+        /** @var \CodeIgniter\Database\BaseConnection $db */
+        $db = $this->db;
+
+        if ($db->tableExists('idempotency_keys')) {
             return;
         }
 
@@ -82,6 +85,13 @@ class CreateIdempotencyKeysTable extends Migration
 
     public function down(): void
     {
-        // Intentionally left as a no-op.
+        /** @var \CodeIgniter\Database\BaseConnection $db */
+        $db = $this->db;
+
+        if (! $db->tableExists('idempotency_keys')) {
+            return;
+        }
+
+        $this->forge->dropTable('idempotency_keys', true);
     }
 }

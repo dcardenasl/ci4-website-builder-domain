@@ -98,10 +98,14 @@ class SiteAboutPageSeeder extends Seeder
             $blockIds,
             'hero_banner',
             2,
-            ['css_class' => '', 'text_color' => '#ffffff', 'overlay_color' => 'rgba(15, 23, 42, 0.4)'],
+            [
+                'image'         => $this->mediaReference('https://picsum.photos/id/1015/1920/1080'),
+                'css_class'     => '',
+                'text_color'    => '#ffffff',
+                'overlay_color' => 'rgba(15, 23, 42, 0.4)',
+            ],
             [
                 'es' => [
-                    'image'      => $this->mediaReference('https://picsum.photos/id/1015/1920/1080'),
                     'alt'        => 'Equipo colaborando en un espacio de trabajo comunitario',
                     'heading'    => 'Nuestra misión nos une',
                     'subheading' => 'Trabajamos para crear espacios de encuentro, aprendizaje y transformación que impacten positivamente a nuestra comunidad.',
@@ -109,7 +113,6 @@ class SiteAboutPageSeeder extends Seeder
                     'cta_url'    => '/historia',
                 ],
                 'en' => [
-                    'image'      => $this->mediaReference('https://picsum.photos/id/1015/1920/1080'),
                     'alt'        => 'Team collaborating in a community workspace',
                     'heading'    => 'Our mission brings us together',
                     'subheading' => 'We work to create spaces of encounter, learning, and transformation that positively impact our community.',
@@ -321,41 +324,38 @@ class SiteAboutPageSeeder extends Seeder
         $galleryItems = [
             [
                 'sort_order' => 1,
+                'config'     => ['image' => $this->mediaReference('https://picsum.photos/id/48/1200/900')],
                 'es' => [
-                    'image'     => $this->mediaReference('https://picsum.photos/id/48/1200/900'),
                     'alt'       => 'Panel de Control de Analítica',
                     'caption'   => 'Visualización de datos avanzados y monitoreo en tiempo real.',
                 ],
                 'en' => [
-                    'image'     => $this->mediaReference('https://picsum.photos/id/48/1200/900'),
                     'alt'       => 'Analytics Dashboard Control Panel',
                     'caption'   => 'Advanced data visualization and real-time monitoring.',
                 ],
             ],
             [
                 'sort_order' => 2,
+                'config'     => ['image' => $this->mediaReference('https://picsum.photos/id/160/1200/900')],
                 'es' => [
-                    'image'     => $this->mediaReference('https://picsum.photos/id/160/1200/900'),
                     'alt'       => 'Diseño UI Adaptable para Tablet',
                     'caption'   => 'Interfaces optimizadas para ofrecer una navegación impecable en dispositivos móviles.',
                 ],
                 'en' => [
-                    'image'     => $this->mediaReference('https://picsum.photos/id/160/1200/900'),
                     'alt'       => 'Adaptive UI Design for Tablet',
                     'caption'   => 'Optimized interfaces delivering seamless navigation across mobile devices.',
                 ],
             ],
             [
                 'sort_order' => 3,
+                'config'     => ['image' => $this->mediaReference('https://picsum.photos/id/3/1200/900')],
                 'es' => [
-                    'image'     => $this->mediaReference('https://picsum.photos/id/3/1200/900'),
                     'alt'       => 'Arquitectura de Comercio Electrónico',
                     'caption'   => 'Catálogos dinámicos auto-administrables y pasarelas de cobro completamente seguras.',
                     'link_url'  => '/portafolio',
                     'link_label' => 'Ver portafolio',
                 ],
                 'en' => [
-                    'image'     => $this->mediaReference('https://picsum.photos/id/3/1200/900'),
                     'alt'       => 'E-commerce Architecture Design',
                     'caption'   => 'Self-managed dynamic catalogs and completely secure payment gateways.',
                     'link_url'  => '/portfolio',
@@ -455,8 +455,14 @@ class SiteAboutPageSeeder extends Seeder
             10,
             ['autoplay' => false, 'mute' => false, 'loop' => false, 'aspect_ratio' => '16/9', 'css_class' => ''],
             [
-                'es' => ['heading' => 'Conoce nuestra misión'],
-                'en' => ['heading' => 'Learn about our mission'],
+                'es' => [
+                    'video_url' => 'https://www.youtube.com/watch?v=dQw4w9WgXcQ',
+                    'heading'   => 'Conoce nuestra misión',
+                ],
+                'en' => [
+                    'video_url' => 'https://www.youtube.com/watch?v=dQw4w9WgXcQ',
+                    'heading'   => 'Learn about our mission',
+                ],
             ],
             $langIds
         );
@@ -484,77 +490,50 @@ class SiteAboutPageSeeder extends Seeder
         $teamItems = [
             [
                 'sort_order' => 1,
+                'config'     => ['photo' => $this->mediaReference('https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=150&auto=format&fit=crop&q=60')],
                 'es' => [
                     'name'         => 'Ana Martínez',
                     'position'     => 'Directora de Tecnología (CTO)',
                     'bio'          => 'Ingeniera de software con más de 12 años de experiencia liderando arquitecturas complejas en PHP.',
                     'linkedin_url' => 'https://linkedin.com/in/ana-martinez',
-                    'photo'        => [
-                        'source_kind' => 'external_url',
-                        'file_id'     => null,
-                        'url'         => 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=150&auto=format&fit=crop&q=60',
-                    ],
                 ],
                 'en' => [
                     'name'         => 'Ana Martinez',
                     'position'     => 'Chief Technology Officer (CTO)',
                     'bio'          => 'Software engineer with over 12 years of experience leading complex PHP architectures.',
                     'linkedin_url' => 'https://linkedin.com/in/ana-martinez',
-                    'photo'        => [
-                        'source_kind' => 'external_url',
-                        'file_id'     => null,
-                        'url'         => 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=150&auto=format&fit=crop&q=60',
-                    ],
                 ],
             ],
             [
                 'sort_order' => 2,
+                'config'     => ['photo' => $this->mediaReference('https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150&auto=format&fit=crop&q=60')],
                 'es' => [
                     'name'         => 'Carlos Ruiz',
                     'position'     => 'Director Creativo',
                     'bio'          => 'Apasionado de la tipografía y el diseño modular. Diseñador del sistema visual del CMS.',
                     'linkedin_url' => 'https://linkedin.com/in/carlos-ruiz',
-                    'photo'        => [
-                        'source_kind' => 'external_url',
-                        'file_id'     => null,
-                        'url'         => 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150&auto=format&fit=crop&q=60',
-                    ],
                 ],
                 'en' => [
                     'name'         => 'Carlos Ruiz',
                     'position'     => 'Creative Director',
                     'bio'          => 'Passionate about typography and modular web layout. Designer of the CMS visual system.',
                     'linkedin_url' => 'https://linkedin.com/in/carlos-ruiz',
-                    'photo'        => [
-                        'source_kind' => 'external_url',
-                        'file_id'     => null,
-                        'url'         => 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150&auto=format&fit=crop&q=60',
-                    ],
                 ],
             ],
             [
                 'sort_order' => 3,
+                'config'     => ['photo' => $this->mediaReference('https://images.unsplash.com/photo-1438761681033-6461ffad8d80?w=150&auto=format&fit=crop&q=60')],
                 'es' => [
                     'name'         => 'Laura Gómez',
                     'position'     => 'Especialista SEO',
                     'bio'          => 'Experta en indexación semántica y optimización de Core Web Vitals para grandes portales.',
                     'linkedin_url' => 'https://linkedin.com/in/laura-gomez',
-                    'photo'        => [
-                        'source_kind' => 'external_url',
-                        'file_id'     => null,
-                        'url'         => 'https://images.unsplash.com/photo-1438761681033-6461ffad8d80?w=150&auto=format&fit=crop&q=60',
-                    ],
                 ],
                 'en' => [
                     'name'         => 'Laura Gomez',
                     'position'     => 'SEO Specialist',
                     'bio'          => 'Expert in semantic indexing and Core Web Vitals optimization for high-traffic websites.',
                     'linkedin_url' => 'https://linkedin.com/in/laura-gomez',
-                    'photo'        => [
-                        'source_kind' => 'external_url',
-                        'file_id'     => null,
-                        'url'         => 'https://images.unsplash.com/photo-1438761681033-6461ffad8d80?w=150&auto=format&fit=crop&q=60',
-                    ],
                 ],
             ],
         ];
@@ -674,7 +653,10 @@ class SiteAboutPageSeeder extends Seeder
             ], [
                 'column_index'       => null,
                 'is_active'          => 1,
-                'block_config'       => json_encode([], JSON_UNESCAPED_UNICODE),
+                'block_config'       => json_encode(
+                    is_array($item['config'] ?? null) ? $item['config'] : [],
+                    JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES
+                ),
             ]);
 
             if ($instanceId === null) {

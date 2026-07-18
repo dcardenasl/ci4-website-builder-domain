@@ -8,7 +8,7 @@ use App\Database\Seeds\Concerns\IdempotentSeederSupport;
 use CodeIgniter\Database\Seeder;
 
 /**
- * Seeds the starter site's news collection and its public collection index page.
+ * Seeds the starter site's news collection, taxonomy, and sample entries.
  * Idempotent across repeated bootstrap runs.
  */
 class NewsCollectionSeeder extends Seeder
@@ -17,26 +17,10 @@ class NewsCollectionSeeder extends Seeder
 
     public function run(): void
     {
-        $existing = $this->db->table('cms_collections')
-            ->where('collection_key', 'noticias')
-            ->get()
-            ->getRowArray();
-
         $langIds = $this->langIds(['es', 'en']);
 
         if (empty($langIds['es'])) {
             echo "NewsCollectionSeeder: 'es' language not found in cms_languages. Seed CmsLanguageSeeder first.\n";
-            return;
-        }
-
-        if ($existing !== null) {
-            $collectionId = (int) $existing['id'];
-
-            $catIdMap = $this->seedCategories($collectionId, $langIds);
-            $this->seedSampleEntries($collectionId, $langIds, $catIdMap);
-            $this->ensureCollectionIndexPage($collectionId, $langIds);
-
-            echo "NewsCollectionSeeder: 'noticias' collection already exists, repaired/ensured collection index page.\n";
             return;
         }
 
@@ -171,36 +155,9 @@ class NewsCollectionSeeder extends Seeder
 
         $catIdMap = $this->seedCategories($collectionId, $langIds);
         $this->seedSampleEntries($collectionId, $langIds, $catIdMap);
-        $this->ensureCollectionIndexPage($collectionId, $langIds);
 
-        echo "NewsCollectionSeeder: 'noticias' collection seeded successfully (collection_id={$collectionId}, index page ensured).\n";
+        echo "NewsCollectionSeeder: 'noticias' collection seeded successfully (collection_id={$collectionId}).\n";
         return;
-    }
-
-    /**
-     * @param array<string, int> $langIds
-     */
-    private function ensureCollectionIndexPage(int $collectionId, array $langIds): void
-    {
-        $newsPageId = $this->upsertCollectionIndexPage($collectionId);
-        if ($newsPageId === null) {
-            return;
-        }
-
-        $this->upsertCollectionIndexTranslation($newsPageId, $langIds['es'] ?? null, [
-            'slug'             => 'noticias',
-            'title'            => 'Noticias',
-            'excerpt'          => 'Mantente al día con las noticias y novedades del sitio.',
-            'meta_title'       => 'Noticias | Mi Sitio',
-            'meta_description' => 'Explora el índice público de noticias y actualizaciones.',
-        ]);
-        $this->upsertCollectionIndexTranslation($newsPageId, $langIds['en'] ?? null, [
-            'slug'             => 'news',
-            'title'            => 'News',
-            'excerpt'          => 'Stay up to date with the site news and updates.',
-            'meta_title'       => 'News | My Site',
-            'meta_description' => 'Explore the public index of news and updates.',
-        ]);
     }
 
     /**
@@ -261,8 +218,8 @@ class NewsCollectionSeeder extends Seeder
                 'sort_order'         => 1,
                 'published_days_ago' => 2,
                 'category_slug'      => 'producto',
-                'featured_image'     => ['source_kind' => 'external_url', 'url' => 'https://picsum.photos/id/1011/1200/800'],
-                'detail_image_url'   => 'https://picsum.photos/id/1025/1200/800',
+                'featured_image'     => $this->mediaReference('https://picsum.photos/id/1011/1200/800'),
+                'detail_image'       => $this->mediaReference('https://picsum.photos/id/1025/1200/800'),
                 'es' => [
                     'title'            => 'Lanzamos el nuevo portal editorial',
                     'slug'             => 'nuevo-portal-editorial',
@@ -284,8 +241,8 @@ class NewsCollectionSeeder extends Seeder
                 'sort_order'         => 2,
                 'published_days_ago' => 1,
                 'category_slug'      => 'producto',
-                'featured_image'     => ['source_kind' => 'external_url', 'url' => 'https://picsum.photos/id/1015/1200/800'],
-                'detail_image_url'   => 'https://picsum.photos/id/1035/1200/800',
+                'featured_image'     => $this->mediaReference('https://picsum.photos/id/1015/1200/800'),
+                'detail_image'       => $this->mediaReference('https://picsum.photos/id/1035/1200/800'),
                 'es' => [
                     'title'            => 'La colección de noticias ahora destaca portadas',
                     'slug'             => 'noticias-destacan-portadas',
@@ -307,8 +264,8 @@ class NewsCollectionSeeder extends Seeder
                 'sort_order'         => 3,
                 'published_days_ago' => 0,
                 'category_slug'      => 'compania',
-                'featured_image'     => ['source_kind' => 'external_url', 'url' => 'https://picsum.photos/id/1043/1200/800'],
-                'detail_image_url'   => 'https://picsum.photos/id/1044/1200/800',
+                'featured_image'     => $this->mediaReference('https://picsum.photos/id/1043/1200/800'),
+                'detail_image'       => $this->mediaReference('https://picsum.photos/id/1044/1200/800'),
                 'es' => [
                     'title'            => 'Ahora cada noticia sugiere historias relacionadas',
                     'slug'             => 'historias-relacionadas',
@@ -362,7 +319,13 @@ class NewsCollectionSeeder extends Seeder
                 'owner_type' => 'entry',
                 'owner_id'   => $entryId,
                 'sort_order' => 1,
-            ], ['is_active' => 1]);
+            ], [
+                'is_active'    => 1,
+                'block_config' => json_encode(
+                    ['image' => $entry['detail_image']],
+                    JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES
+                ),
+            ]);
 
             $textBlockId = $this->upsertRecord('cms_block_instances', [
                 'block_id'   => $blockIds['rich_text'],
@@ -402,9 +365,8 @@ class NewsCollectionSeeder extends Seeder
                         'language_id' => $langId,
                     ], [
                         'block_data' => json_encode([
-                            'image_url' => $entry['detail_image_url'],
-                            'alt'       => $translation['title'],
-                            'caption'   => $translation['title'],
+                            'alt'     => $translation['title'],
+                            'caption' => $translation['title'],
                         ], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES),
                     ]);
                 }
@@ -486,32 +448,6 @@ class NewsCollectionSeeder extends Seeder
             $map[$row['code']] = (int) $row['id'];
         }
         return $map;
-    }
-
-    private function upsertCollectionIndexPage(int $collectionId): ?int
-    {
-        return $this->upsertCollectionIndexPageRecord($collectionId, ['news'], [
-            'status'             => 'published',
-            'published_at'       => date('Y-m-d H:i:s'),
-            'scheduled_at'       => null,
-            'sort_order'         => 30,
-            'sitemap_priority'   => '0.8',
-            'sitemap_changefreq' => 'weekly',
-            'is_in_sitemap'      => 1,
-            'deleted_at'         => null,
-        ]);
-    }
-
-    private function upsertCollectionIndexTranslation(?int $pageId, ?int $languageId, array $translationData): void
-    {
-        if ($pageId === null || $languageId === null) {
-            return;
-        }
-
-        $this->upsertRecord('cms_page_translations', [
-            'page_id'     => $pageId,
-            'language_id' => $languageId,
-        ], $translationData);
     }
 
 }

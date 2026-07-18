@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Database\Seeds;
 
 use CodeIgniter\Database\Seeder;
+use Config\Services;
 
 /**
  * Seeds the full starter/demo site: content, forms, pages, block type examples,
@@ -19,6 +20,9 @@ class SiteBootstrapSeeder extends Seeder
         $this->call(CmsFormSeeder::class);
         $this->call(SiteIdentitySeeder::class);
         $this->call(SiteContactDefaultsSeeder::class);
+        $this->call(SiteIntegrationSettingsSeeder::class);
+        $this->call(AnalyticsSeeder::class);
+        $this->call(SiteSocialLinksSeeder::class);
         $this->call(CmsBlockTypeSeeder::class);
         $this->call(SitePagesSeeder::class);
         $this->call(NewsCollectionSeeder::class);
@@ -36,7 +40,12 @@ class SiteBootstrapSeeder extends Seeder
         $this->call(SiteLandingPageSeeder::class);
         $this->call(SiteLegalPagesSeederChile::class);
         $this->call(SiteLegalMenuSeeder::class);
-        $this->call(FixCollectionIndexPages::class);
         $this->call(SiteMenuSeeder::class);
+
+        // Seeders write directly for deterministic bootstrap performance, so
+        // finish through the same canonical reference synchronizer used by the
+        // application services. A fresh install is immediately consistent and
+        // never depends on a repair command.
+        Services::fileReferenceSynchronizer(false)->rebuildAll();
     }
 }

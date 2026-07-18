@@ -10,7 +10,10 @@ class CreateFailedJobsTable extends Migration
 {
     public function up(): void
     {
-        if ($this->db->tableExists('failed_jobs')) {
+        /** @var \CodeIgniter\Database\BaseConnection $db */
+        $db = $this->db;
+
+        if ($db->tableExists('failed_jobs')) {
             return;
         }
 
@@ -47,6 +50,13 @@ class CreateFailedJobsTable extends Migration
 
     public function down(): void
     {
-        // Intentionally left as a no-op.
+        /** @var \CodeIgniter\Database\BaseConnection $db */
+        $db = $this->db;
+
+        if (! $db->tableExists('failed_jobs')) {
+            return;
+        }
+
+        $this->forge->dropTable('failed_jobs', true);
     }
 }

@@ -27,6 +27,7 @@ final class SiteBootstrapSeederTest extends CIUnitTestCase
 
         $this->db->disableForeignKeyChecks();
         $tables = [
+            'cms_file_references',
             'cms_block_instance_translations',
             'cms_block_instances',
             'cms_content_blocks',
@@ -115,7 +116,7 @@ final class SiteBootstrapSeederTest extends CIUnitTestCase
         $config = json_decode((string) $contactBlock['block_config'], true);
         $this->assertIsArray($config);
         $this->assertSame('contact', $config['form_key'] ?? null);
-        $this->assertArrayHasKey('show_info_boxes', $config);
+        $this->assertArrayNotHasKey('show_info_boxes', $config);
 
         $contactTranslation = $this->db->table('cms_block_instance_translations')
             ->where('instance_id', (int) $contactBlock['id'])
@@ -197,6 +198,7 @@ final class SiteBootstrapSeederTest extends CIUnitTestCase
             'pages' => $this->db->table('cms_pages')->countAllResults(),
             'collections' => $this->db->table('cms_collections')->countAllResults(),
             'blocks' => $this->db->table('cms_block_instances')->countAllResults(),
+            'file_references' => $this->db->table('cms_file_references')->countAllResults(),
         ];
 
         $seeder->call(\App\Database\Seeds\SiteBootstrapSeeder::class);
@@ -205,6 +207,7 @@ final class SiteBootstrapSeederTest extends CIUnitTestCase
             'pages' => $this->db->table('cms_pages')->countAllResults(),
             'collections' => $this->db->table('cms_collections')->countAllResults(),
             'blocks' => $this->db->table('cms_block_instances')->countAllResults(),
+            'file_references' => $this->db->table('cms_file_references')->countAllResults(),
         ];
 
         $this->assertSame($countsBefore, $countsAfter);

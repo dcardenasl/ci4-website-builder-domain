@@ -10,7 +10,10 @@ class CreateRequestLogsTable extends Migration
 {
     public function up(): void
     {
-        if ($this->db->tableExists('request_logs')) {
+        /** @var \CodeIgniter\Database\BaseConnection $db */
+        $db = $this->db;
+
+        if ($db->tableExists('request_logs')) {
             return;
         }
 
@@ -65,6 +68,13 @@ class CreateRequestLogsTable extends Migration
 
     public function down(): void
     {
-        // Intentionally left as a no-op.
+        /** @var \CodeIgniter\Database\BaseConnection $db */
+        $db = $this->db;
+
+        if (! $db->tableExists('request_logs')) {
+            return;
+        }
+
+        $this->forge->dropTable('request_logs', true);
     }
 }

@@ -109,15 +109,17 @@ class SiteHistoryPageSeeder extends Seeder
             $blockIds,
             'image',
             3,
-            ['aspect_ratio' => '16/9', 'css_class' => ''],
+            [
+                'image'        => $this->mediaReference('https://picsum.photos/id/1015/800/600'),
+                'aspect_ratio' => '16/9',
+                'css_class'    => '',
+            ],
             [
                 'es' => [
-                    'image'     => $this->mediaReference('https://picsum.photos/id/1015/800/600'),
                     'alt'       => 'Imagen histórica de la organización',
                     'caption'   => 'Los primeros pasos de una historia que sigue escribiéndose.',
                 ],
                 'en' => [
-                    'image'     => $this->mediaReference('https://picsum.photos/id/1015/800/600'),
                     'alt'       => 'Historical image of the organization',
                     'caption'   => 'The first steps of a story that continues to be written.',
                 ],

@@ -4,16 +4,18 @@ Este documento define el modelo canónico de archivos para el CMS.
 
 ## Fuente de verdad
 
-- `file_id` identifica el archivo.
-- `file_references` es el registro canónico de "dónde se usa".
+- `media_reference` es el único primitivo de schema para campos multimedia.
+- Su forma persistida es `{source_kind, file_id, url}`.
+- `file_id` identifica un archivo del Hub; las URLs externas tienen `file_id` nulo.
+- `cms_file_references` es el registro canónico de "dónde se usa" propiedad de Domain.
+- La base de Domain nunca posee una tabla `files` ni crea una FK hacia datos del Hub.
 - Las URLs persistidas son salida derivada, no dato canónico.
 - El backend debe resolver la URL final según el contexto de consumo.
 
 ## Contrato de lectura
 
 - Las respuestas públicas deben devolver URLs, no rutas de preview del admin.
-- Si un payload contiene `file_id`, el backend resuelve la URL desde la tabla `files`.
-- Si todavía existe una URL legacy de preview, el backend puede resolver el `file_id` y normalizar la salida.
+- Si un payload contiene `file_id`, el backend resuelve la URL mediante el Hub.
 - El frontend nunca debe inventar rutas de archivo.
 
 ## Contrato de escritura
@@ -30,19 +32,20 @@ Este documento define el modelo canónico de archivos para el CMS.
 
 - El resolver debe preferir variantes de imagen cuando existan.
 - El consumo público debe usar la URL resuelta por backend, no la preview cruda del admin.
-- Los serializers de bloques deben normalizar `*_url` desde el `*_file_id` canónico.
+- Los serializers de bloques resuelven en batch las URLs de media references desde el file ID canónico.
 
 ## Sincronización de referencias
 
-- Reconstruir `file_references` al guardar entradas, páginas y bloques.
+- Reconstruir `cms_file_references` dentro de la misma transacción al guardar entradas, páginas, bloques o schemas de bloque con media.
 - Borrar y reinsertar referencias del mismo recurso para no dejar filas obsoletas.
 - Mantener las referencias estables al reemplazar el archivo. Cambia el archivo; no cambia el uso.
 
-## Backfill y limpieza
+## Consistencia desde el inicio
 
-- Ejecutar el backfill cuando existan URLs legacy o referencias faltantes.
-- El backfill debe ser idempotente.
-- Debe normalizar URLs, inferir `file_id` cuando sea posible y reconstruir referencias.
+- La migración base crea `cms_file_references` junto con el resto de la estructura de bloques.
+- Los seeders escriben exclusivamente payloads canónicos de media.
+- `SiteBootstrapSeeder` reconstruye el registro después de las escrituras directas de seeders.
+- No existen migraciones ni comandos de conversión de formatos anteriores.
 
 ## Qué no hacer
 
@@ -53,8 +56,8 @@ Este documento define el modelo canónico de archivos para el CMS.
 
 ## Agregar un nuevo campo de archivo
 
-1. Agregar un campo `file` al schema.
-2. Persistir `*_file_id` como identidad.
-3. Dejar que el backend derive `*_url`.
-4. Registrar o reconstruir las referencias del nuevo uso.
-5. Agregar un test de regresión para guardado, lectura y backfill.
+1. Agregar un campo `media_reference` al schema y declarar su valor `accept`.
+2. Persistir el valor anidado `{source_kind, file_id, url}`.
+3. Dejar que el backend resuelva la URL final en batch.
+4. Registrar o reconstruir `cms_file_references` para el nuevo uso.
+5. Agregar un test de regresión para guardado, lectura y sincronización de referencias.

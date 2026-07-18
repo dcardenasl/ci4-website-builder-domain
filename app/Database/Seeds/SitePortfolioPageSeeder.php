@@ -166,15 +166,15 @@ class SitePortfolioPageSeeder extends Seeder
             $blockIds,
             'alert',
             5,
-            ['alert_type' => 'info', 'dismissible' => true, 'css_class' => 'my-8'],
+            ['type' => 'info', 'dismissible' => true, 'css_class' => 'my-8'],
             [
                 'es' => [
                     'title'   => 'Nota de Calidad',
-                    'content' => '<p>Todos los proyectos presentados a continuación representan soluciones a la medida y casos reales de éxito para nuestros clientes. Los detalles técnicos están actualizados al año corriente.</p>',
+                    'message' => '<p>Todos los proyectos presentados a continuación representan soluciones a la medida y casos reales de éxito para nuestros clientes. Los detalles técnicos están actualizados al año corriente.</p>',
                 ],
                 'en' => [
                     'title'   => 'Quality Note',
-                    'content' => '<p>All projects presented below represent custom-tailored solutions and real-world client success stories. Technical details are updated to the current year.</p>',
+                    'message' => '<p>All projects presented below represent custom-tailored solutions and real-world client success stories. Technical details are updated to the current year.</p>',
                 ],
             ],
             $langIds
@@ -246,7 +246,7 @@ class SitePortfolioPageSeeder extends Seeder
 
     private function upsertPage(int $collectionId): ?int
     {
-        return $this->upsertCollectionIndexPageRecord($collectionId, ['portfolio'], [
+        return $this->upsertCollectionIndexPageRecord($collectionId, [
             'status'             => 'published',
             'published_at'       => date('Y-m-d H:i:s'),
             'scheduled_at'       => null,

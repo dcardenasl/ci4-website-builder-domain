@@ -27,7 +27,7 @@ class SiteSocialLinksSeeder extends Seeder
         $settings = [
             [
                 'setting_key'     => 'social_facebook',
-                'setting_value'   => '[SOCIAL_FACEBOOK_URL]',
+                'setting_value'   => 'https://www.facebook.com/',
                 'setting_type'    => 'string',
                 'input_type'      => 'url',
                 'setting_group'   => 'social',
@@ -39,7 +39,7 @@ class SiteSocialLinksSeeder extends Seeder
             ],
             [
                 'setting_key'     => 'social_instagram',
-                'setting_value'   => '[SOCIAL_INSTAGRAM_URL]',
+                'setting_value'   => 'https://www.instagram.com/',
                 'setting_type'    => 'string',
                 'input_type'      => 'url',
                 'setting_group'   => 'social',
@@ -51,7 +51,7 @@ class SiteSocialLinksSeeder extends Seeder
             ],
             [
                 'setting_key'     => 'social_twitter',
-                'setting_value'   => '[SOCIAL_TWITTER_URL]',
+                'setting_value'   => 'https://x.com/',
                 'setting_type'    => 'string',
                 'input_type'      => 'url',
                 'setting_group'   => 'social',
@@ -63,7 +63,7 @@ class SiteSocialLinksSeeder extends Seeder
             ],
             [
                 'setting_key'     => 'social_linkedin',
-                'setting_value'   => '[SOCIAL_LINKEDIN_URL]',
+                'setting_value'   => 'https://www.linkedin.com/',
                 'setting_type'    => 'string',
                 'input_type'      => 'url',
                 'setting_group'   => 'social',
@@ -75,7 +75,7 @@ class SiteSocialLinksSeeder extends Seeder
             ],
             [
                 'setting_key'     => 'social_youtube',
-                'setting_value'   => '[SOCIAL_YOUTUBE_URL]',
+                'setting_value'   => 'https://www.youtube.com/',
                 'setting_type'    => 'string',
                 'input_type'      => 'url',
                 'setting_group'   => 'social',
@@ -87,7 +87,7 @@ class SiteSocialLinksSeeder extends Seeder
             ],
             [
                 'setting_key'     => 'social_tiktok',
-                'setting_value'   => '[SOCIAL_TIKTOK_URL]',
+                'setting_value'   => 'https://www.tiktok.com/',
                 'setting_type'    => 'string',
                 'input_type'      => 'url',
                 'setting_group'   => 'social',
@@ -99,7 +99,7 @@ class SiteSocialLinksSeeder extends Seeder
             ],
             [
                 'setting_key'     => 'social_pinterest',
-                'setting_value'   => '[SOCIAL_PINTEREST_URL]',
+                'setting_value'   => 'https://www.pinterest.com/',
                 'setting_type'    => 'string',
                 'input_type'      => 'url',
                 'setting_group'   => 'social',
@@ -111,7 +111,7 @@ class SiteSocialLinksSeeder extends Seeder
             ],
             [
                 'setting_key'     => 'social_github',
-                'setting_value'   => '[SOCIAL_GITHUB_URL]',
+                'setting_value'   => 'https://github.com/',
                 'setting_type'    => 'string',
                 'input_type'      => 'url',
                 'setting_group'   => 'social',
