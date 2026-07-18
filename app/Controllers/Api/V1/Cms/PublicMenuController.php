@@ -25,8 +25,10 @@ class PublicMenuController extends ApiController
     {
         return $this->handleRequest(
             function () use ($menuKey): ResponseInterface {
-                // Get request language from header or fallback
-                $lang = $this->request->getLocale();
+                // The API's static framework locale list must not decide CMS
+                // content language. The public web client sends the locale in
+                // Accept-Language after discovering it from the CMS.
+                $lang = $this->publicLocale();
 
                 // Find menu
                 $menuModel = model(\App\Models\MenuModel::class);
@@ -109,5 +111,29 @@ class PublicMenuController extends ApiController
         }
 
         return $branch;
+    }
+
+    private function publicLocale(): string
+    {
+        $header = trim($this->request->getHeaderLine('Accept-Language'));
+        $locale = strtolower(trim((string) explode(',', $header)[0]));
+        $locale = preg_replace('/[^a-z0-9-].*$/', '', $locale) ?? '';
+
+        if ($locale !== '') {
+            $active = model(\App\Models\LanguageModel::class)
+                ->where('is_active', 1)
+                ->where('code', $locale)
+                ->first();
+            if ($active !== null) {
+                return $locale;
+            }
+        }
+
+        $default = model(\App\Models\LanguageModel::class)
+            ->where('is_active', 1)
+            ->where('is_default', 1)
+            ->first();
+
+        return $default !== null ? (string) $default->code : 'es';
     }
 }

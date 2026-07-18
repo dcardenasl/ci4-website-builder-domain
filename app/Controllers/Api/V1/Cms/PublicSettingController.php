@@ -23,7 +23,8 @@ class PublicSettingController extends ApiController
     {
         return $this->handleRequest(
             function (): ResponseInterface {
-                $lang = $this->request->getLocale();
+                $header = trim($this->request->getHeaderLine('Accept-Language'));
+                $lang = strtolower(trim((string) explode(',', $header)[0]));
 
                 // Get all active, public settings
                 $settingModel = model(\App\Models\SettingModel::class);

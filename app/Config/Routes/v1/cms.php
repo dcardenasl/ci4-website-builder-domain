@@ -3,6 +3,9 @@
 declare (strict_types=1);
 /** @var \CodeIgniter\Router\RouteCollection $routes */
 $routes->group('cms', ['namespace' => '\App\Controllers\Api\V1\Cms'], function ($routes): void {
+    // Public site discovery endpoint. It exposes only active language metadata.
+    $routes->get('public/languages', 'PublicLanguageController::index');
+
     // Auth & Admin Protected Group
     $routes->group('', ['filter' => ['domainauth', 'throttle']], function ($routes): void {
         // Wizard Config (must be before any (:segment) routes)
