@@ -45,8 +45,19 @@ final class PageServiceTest extends CIUnitTestCase
         $cacheMock->expects($this->once())
             ->method('invalidate')
             ->with(['pages', 'collections']);
+        $referenceSynchronizer = $this->createMock(\App\Libraries\Cms\FileReferenceSynchronizer::class);
+        $referenceSynchronizer->expects($this->once())
+            ->method('removeResourceReferences')
+            ->with('page', 10);
 
-        $service = new \App\Services\Cms\PageService($repository, $responseMapper, null, $cacheMock);
+        $service = new \App\Services\Cms\PageService(
+            $repository,
+            $responseMapper,
+            $this->createMock(\App\Libraries\Cms\SlugRedirectRecorder::class),
+            $cacheMock,
+            $this->createMock(\App\Libraries\Cms\FileUrlResolver::class),
+            $referenceSynchronizer
+        );
         $result = $service->destroy(10, null);
 
         $this->assertTrue($result);

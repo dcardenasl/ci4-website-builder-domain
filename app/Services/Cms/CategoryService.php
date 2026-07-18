@@ -27,11 +27,11 @@ class CategoryService extends BaseCrudService implements CategoryServiceInterfac
         RepositoryInterface $categoryRepository,
         ResponseMapperInterface $responseMapper,
         \App\Libraries\Cms\TranslationResolver $translationResolver,
-        ?\App\Libraries\Cms\CacheInvalidationClient $cacheInvalidator = null
+        \App\Libraries\Cms\CacheInvalidationClient $cacheInvalidator
     ) {
         parent::__construct($categoryRepository, $responseMapper);
         $this->translationResolver = $translationResolver;
-        $this->cacheInvalidator    = $cacheInvalidator ?? service('cacheInvalidationClient');
+        $this->cacheInvalidator    = $cacheInvalidator;
     }
 
     protected function enrichEntities(array $entities): array

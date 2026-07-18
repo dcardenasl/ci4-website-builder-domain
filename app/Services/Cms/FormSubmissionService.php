@@ -11,11 +11,14 @@ use App\DTO\Response\Cms\FormSubmissionResponseDTO;
 use App\Entities\FormSubmissionEntity;
 use App\Models\FormSubmissionModel;
 use dcardenasl\Ci4ApiCore\Exceptions\NotFoundException;
+use dcardenasl\Ci4ApiCore\Queue\QueueManagerInterface;
 
 class FormSubmissionService
 {
-    public function __construct(private FormSubmissionModel $model)
-    {
+    public function __construct(
+        private FormSubmissionModel $model,
+        private QueueManagerInterface $queueManager,
+    ) {
     }
 
     /**
@@ -179,7 +182,7 @@ class FormSubmissionService
             }
 
             if ($form->notify_email !== null && $form->notify_email !== '') {
-                service('queueManager')->push(\App\Jobs\FormSubmissionNotificationJob::class, [
+                $this->queueManager->push(\App\Jobs\FormSubmissionNotificationJob::class, [
                     'submission_id' => $submissionId,
                     'form_id'       => $formId,
                 ], 'emails');
@@ -188,7 +191,7 @@ class FormSubmissionService
             if ($form->autoreply_enabled && $form->autoreply_email_field !== null) {
                 $userEmail = (string) ($formData[$form->autoreply_email_field] ?? '');
                 if ($userEmail !== '' && filter_var($userEmail, FILTER_VALIDATE_EMAIL)) {
-                    service('queueManager')->push(\App\Jobs\FormSubmissionAutoreplyJob::class, [
+                    $this->queueManager->push(\App\Jobs\FormSubmissionAutoreplyJob::class, [
                         'submission_id' => $submissionId,
                         'form_id'       => $formId,
                         'user_email'    => $userEmail,

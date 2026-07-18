@@ -314,6 +314,45 @@ final class PublicEntryControllerTest extends CIUnitTestCase
         $this->assertSame(2, (int) $body['meta']['per_page']);
     }
 
+    public function testPublicEntriesFilterByLocalizedTitleAndReturnEmptyForUnknownSearch(): void
+    {
+        foreach ([
+            ['slug' => 'plataforma-comercial', 'title' => 'Plataforma comercial'],
+            ['slug' => 'banca-digital', 'title' => 'Rediseño de banca digital'],
+        ] as $sortOrder => $entry) {
+            $this->db->table('cms_entries')->insert([
+                'collection_id'   => $this->collectionId,
+                'workflow_status' => 'published',
+                'sort_order'      => $sortOrder + 1,
+                'is_in_sitemap'   => 1,
+            ]);
+            $entryId = $this->db->insertID();
+
+            $this->db->table('cms_entry_translations')->insert([
+                'entry_id'    => $entryId,
+                'language_id' => $this->langEsId,
+                'slug'        => $entry['slug'],
+                'title'       => $entry['title'],
+                'excerpt'     => 'Contenido público de prueba.',
+            ]);
+        }
+
+        $matching = $this->get('/api/v1/public/es/entries/blog?q=Banca');
+        $matching->assertStatus(200);
+        $matchingBody = json_decode($matching->getJSON(), true);
+
+        $this->assertCount(1, $matchingBody['data']);
+        $this->assertSame('banca-digital', $matchingBody['data'][0]['slug']);
+        $this->assertSame(1, (int) $matchingBody['meta']['total']);
+
+        $unknown = $this->get('/api/v1/public/es/entries/blog?q=zzzz-sin-resultados');
+        $unknown->assertStatus(200);
+        $unknownBody = json_decode($unknown->getJSON(), true);
+
+        $this->assertSame([], $unknownBody['data']);
+        $this->assertSame(0, (int) $unknownBody['meta']['total']);
+    }
+
     public function testShowIncludesFeaturedImage(): void
     {
         // Create entry with a public featured image URL

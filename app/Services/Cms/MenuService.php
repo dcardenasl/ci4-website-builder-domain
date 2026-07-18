@@ -28,10 +28,10 @@ class MenuService extends BaseCrudService implements MenuServiceInterface
     public function __construct(
         RepositoryInterface $menuRepository,
         ResponseMapperInterface $responseMapper,
-        ?\App\Libraries\Cms\CacheInvalidationClient $cacheInvalidator = null
+        \App\Libraries\Cms\CacheInvalidationClient $cacheInvalidator
     ) {
         parent::__construct($menuRepository, $responseMapper);
-        $this->cacheInvalidator = $cacheInvalidator ?? service('cacheInvalidationClient');
+        $this->cacheInvalidator = $cacheInvalidator;
     }
 
     protected function beforeStore(array $data, ?SecurityContext $context): array

@@ -22,16 +22,20 @@ class SettingService extends BaseCrudService implements SettingServiceInterface
 
     private \App\Libraries\Cms\CacheInvalidationClient $cacheInvalidator;
 
+    private \App\Libraries\Cms\FileReferenceSynchronizer $fileReferenceSynchronizer;
+
     /**
      * @param RepositoryInterface<SettingEntity> $settingRepository
      */
     public function __construct(
         RepositoryInterface $settingRepository,
         ResponseMapperInterface $responseMapper,
-        ?\App\Libraries\Cms\CacheInvalidationClient $cacheInvalidator = null
+        \App\Libraries\Cms\CacheInvalidationClient $cacheInvalidator,
+        \App\Libraries\Cms\FileReferenceSynchronizer $fileReferenceSynchronizer
     ) {
         parent::__construct($settingRepository, $responseMapper);
-        $this->cacheInvalidator = $cacheInvalidator ?? service('cacheInvalidationClient');
+        $this->cacheInvalidator = $cacheInvalidator;
+        $this->fileReferenceSynchronizer = $fileReferenceSynchronizer;
     }
 
     protected function beforeStore(array $data, ?SecurityContext $context): array
@@ -58,6 +62,7 @@ class SettingService extends BaseCrudService implements SettingServiceInterface
         if ($this->tempTranslations !== null && $entity->is_translatable) {
             $this->saveTranslations((int) $entity->id, $this->tempTranslations);
         }
+        $this->fileReferenceSynchronizer->syncSetting((int) $entity->id);
         $this->cacheInvalidator->invalidate(['settings']);
         $this->tempTranslations = null;
     }
@@ -90,6 +95,7 @@ class SettingService extends BaseCrudService implements SettingServiceInterface
         if ($this->tempTranslations !== null && $entity->is_translatable) {
             $this->saveTranslations((int) $entity->id, $this->tempTranslations);
         }
+        $this->fileReferenceSynchronizer->syncSetting((int) $entity->id);
         $this->cacheInvalidator->invalidate(['settings']);
         $this->tempTranslations = null;
     }
@@ -97,6 +103,7 @@ class SettingService extends BaseCrudService implements SettingServiceInterface
     protected function afterDelete(object $entity, ?SecurityContext $context): void
     {
         parent::afterDelete($entity, $context);
+        $this->fileReferenceSynchronizer->removeResourceReferences('setting', (int) $entity->id);
         $this->cacheInvalidator->invalidate(['settings']);
     }
 

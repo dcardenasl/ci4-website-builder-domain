@@ -25,12 +25,20 @@ final class EntryListingContentResolverTest extends CIUnitTestCase
                 return [
                     10 => [
                         ['block_key' => 'rich_text', 'block_data' => ['content' => '<p>Bloque</p>']],
-                        ['block_key' => 'image', 'block_data' => ['image_url' => '/block.jpg', 'image_alt_text' => 'Bloque imagen']],
+                        [
+                            'block_key' => 'image',
+                            'block_config' => ['image' => ['source_kind' => 'external_url', 'file_id' => null, 'url' => '/block.jpg']],
+                            'block_data' => ['alt' => 'Bloque imagen'],
+                        ],
                         ['block_key' => 'cta', 'block_data' => ['label' => 'Bloque CTA', 'url' => '/bloque']],
                     ],
                     11 => [
                         ['block_key' => 'rich_text', 'block_data' => ['content' => '<p>Fallback</p>']],
-                        ['block_key' => 'image', 'block_data' => ['image_url' => '/fallback.jpg', 'image_alt_text' => 'Fallback imagen']],
+                        [
+                            'block_key' => 'image',
+                            'block_config' => ['image' => ['source_kind' => 'external_url', 'file_id' => null, 'url' => '/fallback.jpg']],
+                            'block_data' => ['alt' => 'Fallback imagen'],
+                        ],
                         ['block_key' => 'cta', 'block_data' => ['label' => 'Fallback CTA', 'url' => '/fallback']],
                     ],
                 ];

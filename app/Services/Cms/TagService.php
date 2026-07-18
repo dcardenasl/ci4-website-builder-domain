@@ -26,11 +26,12 @@ class TagService extends BaseCrudService implements TagServiceInterface
     public function __construct(
         RepositoryInterface $tagRepository,
         ResponseMapperInterface $responseMapper,
-        ?\App\Libraries\Cms\CacheInvalidationClient $cacheInvalidator = null
+        \App\Libraries\Cms\CacheInvalidationClient $cacheInvalidator,
+        \App\Libraries\Cms\TranslationResolver $translationResolver
     ) {
         parent::__construct($tagRepository, $responseMapper);
-        $this->cacheInvalidator = $cacheInvalidator ?? service('cacheInvalidationClient');
-        $this->translationResolver = service('translationResolver');
+        $this->cacheInvalidator = $cacheInvalidator;
+        $this->translationResolver = $translationResolver;
     }
 
     protected function enrichEntities(array $entities): array

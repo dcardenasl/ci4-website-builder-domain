@@ -44,8 +44,17 @@ final class SettingServiceTest extends CIUnitTestCase
         $cacheMock->expects($this->once())
             ->method('invalidate')
             ->with(['settings']);
+        $referenceSynchronizer = $this->createMock(\App\Libraries\Cms\FileReferenceSynchronizer::class);
+        $referenceSynchronizer->expects($this->once())
+            ->method('removeResourceReferences')
+            ->with('setting', 10);
 
-        $service = new \App\Services\Cms\SettingService($repository, $responseMapper, $cacheMock);
+        $service = new \App\Services\Cms\SettingService(
+            $repository,
+            $responseMapper,
+            $cacheMock,
+            $referenceSynchronizer
+        );
         $result = $service->destroy(10, null);
 
         $this->assertTrue($result);

@@ -195,8 +195,21 @@ final class EntryServiceTest extends CIUnitTestCase
         $cacheMock->expects($this->once())
             ->method('invalidate')
             ->with(['entries']);
+        $referenceSynchronizer = $this->createMock(\App\Libraries\Cms\FileReferenceSynchronizer::class);
+        $referenceSynchronizer->expects($this->once())
+            ->method('removeResourceReferences')
+            ->with('entry', 10);
 
-        $service = new \App\Services\Cms\EntryService($repository, $responseMapper, null, $cacheMock);
+        $service = new \App\Services\Cms\EntryService(
+            $repository,
+            $responseMapper,
+            $this->createMock(\App\Libraries\Cms\SlugRedirectRecorder::class),
+            $cacheMock,
+            $this->createMock(\App\Libraries\Cms\FileUrlResolver::class),
+            $referenceSynchronizer,
+            $this->createMock(\App\Libraries\Cms\TranslationResolver::class),
+            $this->createMock(\App\Services\Cms\PublicEntryReader::class)
+        );
         $result = $service->destroy(10, null);
 
         $this->assertTrue($result);

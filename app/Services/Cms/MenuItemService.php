@@ -22,16 +22,24 @@ class MenuItemService extends BaseCrudService implements MenuItemServiceInterfac
 
     private \App\Libraries\Cms\CacheInvalidationClient $cacheInvalidator;
 
+    private \App\Libraries\Cms\TranslationResolver $translationResolver;
+
+    private \App\Libraries\Cms\SlugRouter $slugRouter;
+
     /**
      * @param RepositoryInterface<MenuItemEntity> $menuItemRepository
      */
     public function __construct(
         RepositoryInterface $menuItemRepository,
         ResponseMapperInterface $responseMapper,
-        ?\App\Libraries\Cms\CacheInvalidationClient $cacheInvalidator = null
+        \App\Libraries\Cms\CacheInvalidationClient $cacheInvalidator,
+        \App\Libraries\Cms\TranslationResolver $translationResolver,
+        \App\Libraries\Cms\SlugRouter $slugRouter
     ) {
         parent::__construct($menuItemRepository, $responseMapper);
-        $this->cacheInvalidator = $cacheInvalidator ?? service('cacheInvalidationClient');
+        $this->cacheInvalidator = $cacheInvalidator;
+        $this->translationResolver = $translationResolver;
+        $this->slugRouter = $slugRouter;
     }
 
     protected function beforeStore(array $data, ?SecurityContext $context): array
@@ -232,8 +240,8 @@ class MenuItemService extends BaseCrudService implements MenuItemServiceInterfac
      */
     public function resolveLink(MenuItemEntity $item, string $lang): ?string
     {
-        $translationResolver = service('translationResolver');
-        $slugRouter = service('slugRouter');
+        $translationResolver = $this->translationResolver;
+        $slugRouter = $this->slugRouter;
 
         $customUrl = null;
 
@@ -349,8 +357,7 @@ class MenuItemService extends BaseCrudService implements MenuItemServiceInterfac
             ->first();
 
         if ($indexPage !== null) {
-            $slugRouter = service('slugRouter');
-            $pageSlug = $slugRouter->resolveSlug($lang, 'page', (int) $indexPage->id);
+            $pageSlug = $this->slugRouter->resolveSlug($lang, 'page', (int) $indexPage->id);
             if ($pageSlug !== null) {
                 return trim($pageSlug, '/');
             }

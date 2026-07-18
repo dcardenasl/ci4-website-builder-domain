@@ -311,7 +311,13 @@ final class MenuItemServiceTest extends CIUnitTestCase
             ->method('invalidate')
             ->with(['menus']);
 
-        $service = new \App\Services\Cms\MenuItemService($repository, $responseMapper, $cacheMock);
+        $service = new \App\Services\Cms\MenuItemService(
+            $repository,
+            $responseMapper,
+            $cacheMock,
+            $this->createMock(\App\Libraries\Cms\TranslationResolver::class),
+            $this->createMock(\App\Libraries\Cms\SlugRouter::class)
+        );
         $result = $service->destroy(10, null);
 
         $this->assertTrue($result);

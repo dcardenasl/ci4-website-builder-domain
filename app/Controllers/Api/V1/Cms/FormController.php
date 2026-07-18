@@ -45,7 +45,7 @@ class FormController extends ApiController
                 }
                 /** @var FormService $svc */
                 $svc = service('formService');
-                return $svc->get($id)->toArray();
+                return $svc->get($id, $this->request->getLocale())->toArray();
             }
         );
     }

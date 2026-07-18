@@ -26,7 +26,7 @@ final class TranslationResolverTest extends CIUnitTestCase
     protected function setUp(): void
     {
         parent::setUp();
-        $this->resolver = new TranslationResolver();
+        $this->resolver = new TranslationResolver(service('fileUrlResolver'));
         $this->seedDatabase();
     }
 

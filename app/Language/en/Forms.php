@@ -14,4 +14,8 @@ return [
     'duplicate_form_key'     => 'A form with this key already exists.',
     'duplicate_field_key'    => 'A field with this key already exists in this form.',
     'options_required_for_choice_type' => 'This field type requires at least one option.',
+    'in_use'                 => 'Cannot delete: this form is used in {0} block(s) — {1}. Remove those blocks first.',
+    'usage_page'             => 'Page',
+    'usage_entry'            => 'Entry',
+    'usage_instance'         => 'instance',
 ];

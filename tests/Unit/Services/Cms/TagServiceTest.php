@@ -46,7 +46,12 @@ final class TagServiceTest extends CIUnitTestCase
             ->method('invalidate')
             ->with(['taxonomies', 'entries']);
 
-        $service = new \App\Services\Cms\TagService($repository, $responseMapper, $cacheMock);
+        $service = new \App\Services\Cms\TagService(
+            $repository,
+            $responseMapper,
+            $cacheMock,
+            $this->createMock(\App\Libraries\Cms\TranslationResolver::class)
+        );
         $result = $service->destroy(10, null);
 
         $this->assertTrue($result);

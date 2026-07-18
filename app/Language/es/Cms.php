@@ -23,4 +23,9 @@ return [
         'update_success' => 'Configuración actualizada exitosamente.',
         'delete_success' => 'Configuración eliminada exitosamente.',
     ],
+    'file_references' => [
+        'missing_table' => 'Falta la tabla requerida `cms_file_references`. Ejecuta las migraciones del dominio.',
+        'unsupported_resource' => 'Tipo de recurso no soportado para referencias de archivos CMS: {0}.',
+        'sync_failed' => 'No se pudieron sincronizar las referencias de archivos CMS para {0} #{1}.',
+    ],
 ];

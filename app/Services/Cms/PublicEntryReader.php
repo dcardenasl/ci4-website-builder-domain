@@ -7,6 +7,8 @@ namespace App\Services\Cms;
 use App\DTO\Request\Cms\PublicEntryIndexRequestDTO;
 use App\DTO\Request\Cms\PublicEntryShowRequestDTO;
 use App\Entities\EntryEntity;
+use App\Libraries\Cms\BlockInstanceSerializer;
+use App\Libraries\Cms\EntryListingContentResolver;
 use App\Libraries\Cms\FileUrlResolver;
 use App\Libraries\Cms\PreviewToken;
 use dcardenasl\Ci4ApiCore\Dto\Common\PayloadResponseDTO;
@@ -35,8 +37,11 @@ class PublicEntryReader
 
     private ?\App\Models\LanguageModel $languageModel = null;
 
-    public function __construct(private FileUrlResolver $fileUrlResolver)
-    {
+    public function __construct(
+        private FileUrlResolver $fileUrlResolver,
+        private EntryListingContentResolver $entryListingContentResolver,
+        private BlockInstanceSerializer $blockInstanceSerializer,
+    ) {
     }
 
     private function collectionModel(): \App\Models\CollectionModel
@@ -118,7 +123,14 @@ class PublicEntryReader
 
         ['langId' => $langId, 'defaultLangId' => $defaultLangId] = $this->resolveLanguageIds($dto->lang);
 
+        // The reader is shared by the service container. Start every public
+        // request from a clean builder so an early return or failed query can
+        // never leak joins, groups, or projections into the next request.
+        // Keep the projection rooted in cms_entries so countAllResults() never
+        // wraps duplicate joined column names.
         $entryModel = $this->entryModel();
+        $entryModel->builder()->resetQuery();
+        $entryModel->select('cms_entries.*');
 
         if ($dto->category !== null) {
             $catTrans = $this->categoryTranslationModel()->where('slug', $dto->category)->first();
@@ -244,9 +256,7 @@ class PublicEntryReader
         }
 
         if ($dto->include_listing_content) {
-            /** @var \App\Libraries\Cms\EntryListingContentResolver $listingContentResolver */
-            $listingContentResolver = service('entryListingContentResolver');
-            $listingContentByEntry = $listingContentResolver->resolveBatch($data, $dto->lang);
+            $listingContentByEntry = $this->entryListingContentResolver->resolveBatch($data, $dto->lang);
 
             foreach ($data as &$item) {
                 $entryId = (int) ($item['id'] ?? 0);
@@ -342,8 +352,7 @@ class PublicEntryReader
         $categoriesMap = $this->batchResolveCategoryPivot([$entryId], $langId, $defaultLangId);
         $tagsMap       = $this->batchResolveTagPivot([$entryId], $langId, $defaultLangId);
 
-        $blockSerializer = service('blockInstanceSerializer');
-        $blocks = $blockSerializer->forContent('entry', $entryId, $dto->lang);
+        $blocks = $this->blockInstanceSerializer->forContent('entry', $entryId, $dto->lang);
 
         $data               = array_merge($entry->toArray(), $entryTransMap[$entryId] ?? []);
         $data['categories'] = $categoriesMap[$entryId] ?? [];

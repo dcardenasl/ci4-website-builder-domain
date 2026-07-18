@@ -23,4 +23,9 @@ return [
         'update_success' => 'Setting updated successfully.',
         'delete_success' => 'Setting deleted successfully.',
     ],
+    'file_references' => [
+        'missing_table' => 'Required table `cms_file_references` is missing. Run the domain migrations.',
+        'unsupported_resource' => 'Unsupported CMS file reference resource type: {0}.',
+        'sync_failed' => 'Unable to synchronize CMS file references for {0} #{1}.',
+    ],
 ];

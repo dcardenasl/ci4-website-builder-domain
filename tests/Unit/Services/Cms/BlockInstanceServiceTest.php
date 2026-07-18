@@ -7,6 +7,8 @@ namespace Tests\Unit\Services\Cms;
 use App\DTO\Request\Cms\BlockInstanceUpdateRequestDTO;
 use App\Interfaces\Cms\BlockInstanceServiceInterface;
 use App\Libraries\Cms\CacheInvalidationClient;
+use App\Libraries\Cms\FileReferenceSynchronizer;
+use App\Libraries\Cms\FileUrlResolver;
 use App\Services\Cms\BlockInstanceService;
 use CodeIgniter\Test\CIUnitTestCase;
 use Config\Services;
@@ -64,7 +66,13 @@ final class BlockInstanceServiceTest extends CIUnitTestCase
                 }
             });
 
-        $service = new BlockInstanceService($repository, $responseMapper);
+        $service = new BlockInstanceService(
+            $repository,
+            $responseMapper,
+            $this->createMock(FileUrlResolver::class),
+            $this->createMock(FileReferenceSynchronizer::class),
+            $this->createMock(CacheInvalidationClient::class)
+        );
 
         $dto = $this->hydrateDto(BlockInstanceUpdateRequestDTO::class, [
             'block_config' => ['theme' => 'dark'],
@@ -108,9 +116,14 @@ final class BlockInstanceServiceTest extends CIUnitTestCase
         $cacheMock->expects($this->once())
             ->method('invalidate')
             ->with(['entries']);
-        Services::injectMock('cacheInvalidationClient', $cacheMock);
 
-        $service = new BlockInstanceService($repository, $responseMapper);
+        $service = new BlockInstanceService(
+            $repository,
+            $responseMapper,
+            $this->createMock(FileUrlResolver::class),
+            $this->createMock(FileReferenceSynchronizer::class),
+            $cacheMock
+        );
 
         $dto = $this->hydrateDto(BlockInstanceUpdateRequestDTO::class, [
             'block_config' => ['theme' => 'dark'],

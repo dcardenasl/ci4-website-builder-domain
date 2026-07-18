@@ -77,14 +77,8 @@ final class EntryListingContentResolver
     private function richTextFromBlock(array $blocks): string
     {
         $data = $this->firstBlockData($blocks, 'rich_text');
-        foreach (['content', 'body', 'html', 'text'] as $key) {
-            $value = $this->stringValue($data[$key] ?? null);
-            if ($value !== '') {
-                return $value;
-            }
-        }
 
-        return '';
+        return $this->stringValue($data['content'] ?? null);
     }
 
     /**
@@ -93,12 +87,22 @@ final class EntryListingContentResolver
      */
     private function imageFromBlock(array $blocks): ?array
     {
-        $data = $this->firstBlockData($blocks, 'image');
+        foreach ($blocks as $block) {
+            if (($block['block_key'] ?? null) !== 'image') {
+                continue;
+            }
 
-        return $this->imageFromSchema([
-            'url' => $data['image_url'] ?? $data['url'] ?? null,
-            'alt' => $data['image_alt_text'] ?? $data['alt'] ?? null,
-        ]);
+            $config = is_array($block['block_config'] ?? null) ? $block['block_config'] : [];
+            $data = is_array($block['block_data'] ?? null) ? $block['block_data'] : [];
+            $image = $this->imageFromSchema($config['image'] ?? null);
+            if ($image !== null) {
+                $image['alt'] = $this->stringValue($data['alt'] ?? $image['alt']);
+
+                return $image;
+            }
+        }
+
+        return null;
     }
 
     /**
@@ -110,8 +114,8 @@ final class EntryListingContentResolver
         $data = $this->firstBlockData($blocks, 'cta');
 
         return $this->actionFromSchema([
-            'label' => $data['label'] ?? $data['cta_label'] ?? null,
-            'url' => $data['url'] ?? $data['cta_url'] ?? null,
+            'label' => $data['label'] ?? null,
+            'url' => $data['url'] ?? null,
         ]);
     }
 
@@ -143,12 +147,12 @@ final class EntryListingContentResolver
             return null;
         }
 
-        $url = $this->stringValue($value['url'] ?? $value['image_url'] ?? null);
+        $url = $this->stringValue($value['url'] ?? null);
         if ($url === '') {
             return null;
         }
 
-        return ['url' => $url, 'alt' => $this->stringValue($value['alt'] ?? $value['image_alt_text'] ?? null)];
+        return ['url' => $url, 'alt' => $this->stringValue($value['alt'] ?? null)];
     }
 
     /** @return array{label: string, url: string}|null */
@@ -161,8 +165,8 @@ final class EntryListingContentResolver
             return null;
         }
 
-        $label = $this->stringValue($value['label'] ?? $value['cta_label'] ?? null);
-        $url = $this->stringValue($value['url'] ?? $value['cta_url'] ?? null);
+        $label = $this->stringValue($value['label'] ?? null);
+        $url = $this->stringValue($value['url'] ?? null);
 
         return $label !== '' && $url !== '' ? ['label' => $label, 'url' => $url] : null;
     }

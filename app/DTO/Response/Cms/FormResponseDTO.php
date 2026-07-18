@@ -12,10 +12,13 @@ final readonly class FormResponseDTO implements DataTransferObjectInterface
     public array $translations;
     /** @var list<array<string, mixed>> */
     public array $fields;
+    /** @var list<array<string, mixed>> */
+    public array $usages;
 
     /**
      * @param list<array<string, mixed>> $translations
      * @param list<array<string, mixed>> $fields
+     * @param list<array<string, mixed>> $usages
      */
     public function __construct(
         public int     $id,
@@ -29,9 +32,11 @@ final readonly class FormResponseDTO implements DataTransferObjectInterface
         public string  $updated_at,
         array          $translations = [],
         array          $fields = [],
+        array          $usages = [],
     ) {
         $this->translations = $translations;
         $this->fields       = $fields;
+        $this->usages       = $usages;
     }
 
     /**
@@ -51,6 +56,7 @@ final readonly class FormResponseDTO implements DataTransferObjectInterface
             updated_at:            (string) ($data['updated_at'] ?? ''),
             translations:          is_array($data['translations'] ?? null) ? array_values($data['translations']) : [],
             fields:                is_array($data['fields'] ?? null) ? array_values($data['fields']) : [],
+            usages:                is_array($data['usages'] ?? null) ? array_values($data['usages']) : [],
         );
     }
 
@@ -71,6 +77,7 @@ final readonly class FormResponseDTO implements DataTransferObjectInterface
             'updated_at'            => $this->updated_at,
             'translations'          => $this->translations,
             'fields'                => $this->fields,
+            'usages'                => $this->usages,
         ];
     }
 }

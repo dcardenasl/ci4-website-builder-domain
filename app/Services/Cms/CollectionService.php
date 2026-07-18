@@ -28,10 +28,10 @@ class CollectionService extends BaseCrudService implements CollectionServiceInte
     public function __construct(
         RepositoryInterface $collectionRepository,
         ResponseMapperInterface $responseMapper,
-        ?\App\Libraries\Cms\CacheInvalidationClient $cacheInvalidator = null
+        \App\Libraries\Cms\CacheInvalidationClient $cacheInvalidator
     ) {
         parent::__construct($collectionRepository, $responseMapper);
-        $this->cacheInvalidator = $cacheInvalidator ?? service('cacheInvalidationClient');
+        $this->cacheInvalidator = $cacheInvalidator;
     }
 
     protected function beforeStore(array $data, ?SecurityContext $context): array

@@ -6,7 +6,6 @@ namespace App\Services\Cms;
 
 use App\Entities\BlockInstanceEntity;
 use App\Interfaces\Cms\BlockInstanceServiceInterface;
-use App\Libraries\Cms\BlockTextPayload;
 use App\Libraries\Cms\FileReferenceSynchronizer;
 use App\Libraries\Cms\FileUrlResolver;
 use App\Libraries\Cms\HtmlSanitizer;
@@ -30,6 +29,8 @@ class BlockInstanceService extends BaseCrudService implements BlockInstanceServi
 
     private FileReferenceSynchronizer $fileReferenceSynchronizer;
 
+    private \App\Libraries\Cms\CacheInvalidationClient $cacheInvalidator;
+
     public function setOwnerContext(string $ownerType, int $ownerId): void
     {
         $this->filterOwnerType = $ownerType;
@@ -42,12 +43,14 @@ class BlockInstanceService extends BaseCrudService implements BlockInstanceServi
     public function __construct(
         RepositoryInterface $blockInstanceRepository,
         ResponseMapperInterface $responseMapper,
-        ?FileUrlResolver $fileUrlResolver = null,
-        ?FileReferenceSynchronizer $fileReferenceSynchronizer = null
+        FileUrlResolver $fileUrlResolver,
+        FileReferenceSynchronizer $fileReferenceSynchronizer,
+        \App\Libraries\Cms\CacheInvalidationClient $cacheInvalidator
     ) {
         parent::__construct($blockInstanceRepository, $responseMapper);
-        $this->fileUrlResolver = $fileUrlResolver ?? service('fileUrlResolver');
-        $this->fileReferenceSynchronizer = $fileReferenceSynchronizer ?? service('fileReferenceSynchronizer');
+        $this->fileUrlResolver = $fileUrlResolver;
+        $this->fileReferenceSynchronizer = $fileReferenceSynchronizer;
+        $this->cacheInvalidator = $cacheInvalidator;
     }
 
     protected function beforeStore(array $data, ?SecurityContext $context): array
@@ -71,7 +74,7 @@ class BlockInstanceService extends BaseCrudService implements BlockInstanceServi
         }
         $this->fileReferenceSynchronizer->syncBlockInstance((int) $entity->id);
         $this->tempTranslations = null;
-        service('cacheInvalidationClient')->invalidate($this->cacheScopesForEntity($entity));
+        $this->cacheInvalidator->invalidate($this->cacheScopesForEntity($entity));
     }
 
     protected function beforeUpdate(int $id, array $data, ?SecurityContext $context): array
@@ -95,13 +98,13 @@ class BlockInstanceService extends BaseCrudService implements BlockInstanceServi
         }
         $this->fileReferenceSynchronizer->syncBlockInstance((int) $entity->id);
         $this->tempTranslations = null;
-        service('cacheInvalidationClient')->invalidate($this->cacheScopesForEntity($entity));
+        $this->cacheInvalidator->invalidate($this->cacheScopesForEntity($entity));
     }
 
     protected function afterDelete(object $entity, ?SecurityContext $context): void
     {
         parent::afterDelete($entity, $context);
-        service('cacheInvalidationClient')->invalidate($this->cacheScopesForEntity($entity));
+        $this->cacheInvalidator->invalidate($this->cacheScopesForEntity($entity));
     }
 
     protected function enrichEntities(array $entities): array
@@ -140,22 +143,9 @@ class BlockInstanceService extends BaseCrudService implements BlockInstanceServi
 
         /** @var array<int, string> $blockKeyById  id → block_key */
         $blockKeyById = [];
-        /** @var array<int, array<string, mixed>> $schemaByBlockId */
-        $schemaByBlockId = [];
         foreach ($blockTypeEntities as $bt) {
             $blockKeyById[(int) $bt->id] = (string) $bt->block_key;
-            $schemaDefinition = $bt->schema_definition ?? null;
-            if (is_string($schemaDefinition)) {
-                $decoded = json_decode($schemaDefinition, true);
-                $schemaByBlockId[(int) $bt->id] = is_array($decoded) ? $decoded : [];
-            } elseif (is_array($schemaDefinition)) {
-                $schemaByBlockId[(int) $bt->id] = $schemaDefinition;
-            } else {
-                $schemaByBlockId[(int) $bt->id] = [];
-            }
         }
-
-        $defaultLangId = $this->defaultLanguageId();
 
         // ── Apply to entities ──────────────────────────────────────────────────
         foreach ($entities as $entity) {
@@ -170,15 +160,6 @@ class BlockInstanceService extends BaseCrudService implements BlockInstanceServi
                 $entity->block_config = is_array($entity->block_config) ? $entity->block_config : [];
             }
 
-            $schemaDefinition = $schemaByBlockId[$bid] ?? [];
-            if ($schemaDefinition !== []) {
-                $entity->block_config = $this->hydrateLegacyMediaReferences(
-                    $entity->block_config,
-                    $entity->translations,
-                    $schemaDefinition,
-                    $defaultLangId
-                );
-            }
         }
 
         return $entities;
@@ -202,7 +183,6 @@ class BlockInstanceService extends BaseCrudService implements BlockInstanceServi
                 $blockData = [];
             } else {
                 $blockData = $this->sanitizeBlockData($blockData);
-                $blockData = BlockTextPayload::normalize($blockData);
                 if ($blockSchemaFields !== []) {
                     $blockData = $this->fileUrlResolver->normalizeBlockData($blockData, $blockSchemaFields);
                 }
@@ -328,117 +308,6 @@ class BlockInstanceService extends BaseCrudService implements BlockInstanceServi
         $blockId = isset($row->block_id) ? (int) $row->block_id : null;
 
         return $blockId !== null ? $this->blockSchemaDefinition($blockId) : [];
-    }
-
-    /**
-     * @param array<string, mixed> $blockConfig
-     * @param list<array{language_id: int, block_data?: mixed}> $translations
-     * @param array<string, mixed> $schemaDefinition
-     * @return array<string, mixed>
-     */
-    private function hydrateLegacyMediaReferences(array $blockConfig, array $translations, array $schemaDefinition, ?int $defaultLangId): array
-    {
-        $configFields = is_array($schemaDefinition['config_fields'] ?? null)
-            ? (array) $schemaDefinition['config_fields']
-            : [];
-
-        if ($configFields === []) {
-            return $blockConfig;
-        }
-
-        foreach ($configFields as $fieldKey => $fieldDef) {
-            if (! is_array($fieldDef) || strtolower((string) ($fieldDef['type'] ?? 'string')) !== 'media_reference') {
-                continue;
-            }
-
-            $current = $blockConfig[$fieldKey] ?? null;
-            if (is_array($current) && (($current['file_id'] ?? null) !== null || trim((string) ($current['url'] ?? '')) !== '')) {
-                $blockConfig[$fieldKey] = $this->fileUrlResolver->normalizeMediaReference($current);
-                continue;
-            }
-
-            $legacyReference = $this->legacyMediaReferenceFromTranslations($translations, (string) $fieldKey, $defaultLangId);
-            if ($legacyReference !== null) {
-                $blockConfig[$fieldKey] = $legacyReference;
-                continue;
-            }
-
-            if (is_array($current)) {
-                $blockConfig[$fieldKey] = $this->fileUrlResolver->normalizeMediaReference($current);
-            }
-        }
-
-        return $blockConfig;
-    }
-
-    /**
-     * @param list<array{language_id: int, block_data?: mixed}> $translations
-     * @return array{source_kind: string, file_id: int|null, url: string|null}|null
-     */
-    private function legacyMediaReferenceFromTranslations(array $translations, string $fieldKey, ?int $defaultLangId): ?array
-    {
-        $orderedTranslations = $translations;
-        usort(
-            $orderedTranslations,
-            static function (array $a, array $b) use ($defaultLangId): int {
-                $aDefault = $defaultLangId !== null && (int) ($a['language_id'] ?? 0) === $defaultLangId;
-                $bDefault = $defaultLangId !== null && (int) ($b['language_id'] ?? 0) === $defaultLangId;
-                return ($aDefault === $bDefault) ? 0 : ($aDefault ? -1 : 1);
-            }
-        );
-
-        foreach ($orderedTranslations as $translation) {
-            $blockData = $translation['block_data'] ?? null;
-            if (is_string($blockData)) {
-                $decoded = json_decode($blockData, true);
-                $blockData = is_array($decoded) ? $decoded : [];
-            }
-
-            if (! is_array($blockData)) {
-                continue;
-            }
-
-            $candidate = $this->legacyMediaReferenceFromBlockData($blockData, $fieldKey);
-            if ($candidate !== null) {
-                return $this->fileUrlResolver->normalizeMediaReference($candidate);
-            }
-        }
-
-        return null;
-    }
-
-    /**
-     * @param array<string, mixed> $blockData
-     * @return array<string, mixed>|null
-     */
-    private function legacyMediaReferenceFromBlockData(array $blockData, string $fieldKey): ?array
-    {
-        if (is_array($blockData[$fieldKey] ?? null)) {
-            return $blockData[$fieldKey];
-        }
-
-        $fileIdKey = $fieldKey . '_file_id';
-        $urlKey    = $fieldKey . '_url';
-        $legacyFileId = $blockData[$fileIdKey] ?? $blockData['file_id'] ?? null;
-        $legacyUrl = $blockData[$urlKey] ?? $blockData['file_url'] ?? null;
-
-        if ($legacyFileId === null && $legacyUrl === null) {
-            return null;
-        }
-
-        return [
-            'file_id' => $legacyFileId,
-            'url' => is_string($legacyUrl) ? $legacyUrl : (is_scalar($legacyUrl) ? (string) $legacyUrl : null),
-        ];
-    }
-
-    private function defaultLanguageId(): ?int
-    {
-        /** @var \App\Models\LanguageModel $languageModel */
-        $languageModel = model(\App\Models\LanguageModel::class);
-        $language = $languageModel->where('is_default', 1)->first();
-
-        return isset($language->id) ? (int) $language->id : null;
     }
 
     protected function applyQueryOptions(array $criteria): array

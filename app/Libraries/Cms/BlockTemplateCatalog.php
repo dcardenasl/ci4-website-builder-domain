@@ -4,8 +4,6 @@ declare(strict_types=1);
 
 namespace App\Libraries\Cms;
 
-require_once dirname(__DIR__, 4) . '/shared/cms_preview_samples.php';
-
 use App\Entities\BlockTypeEntity;
 use dcardenasl\Ci4ApiCore\Repositories\RepositoryInterface;
 
@@ -143,7 +141,7 @@ final class BlockTemplateCatalog
      */
     private function previewSample(string $key, array $fields): array
     {
-        $curated = cms_block_preview_sample($key);
+        $curated = BlockPreviewSampleCatalog::sample($key);
 
         // Only keep curated keys that still exist in the persisted schema —
         // this is what makes the sample self-healing instead of re-drifting.

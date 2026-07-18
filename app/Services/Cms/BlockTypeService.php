@@ -7,7 +7,6 @@ namespace App\Services\Cms;
 use App\Entities\BlockTypeEntity;
 use App\Interfaces\Cms\BlockTypeServiceInterface;
 use CodeIgniter\Database\BaseConnection;
-use Config\Database;
 use dcardenasl\Ci4ApiCore\Dto\SecurityContext;
 use dcardenasl\Ci4ApiCore\Exceptions\ConflictException;
 use dcardenasl\Ci4ApiCore\Exceptions\ValidationException;
@@ -25,17 +24,20 @@ class BlockTypeService extends BaseCrudService implements BlockTypeServiceInterf
     /** @var BaseConnection<mixed, mixed> */
     private BaseConnection $db;
 
+    private bool $schemaChanged = false;
+
     /**
      * @param RepositoryInterface<BlockTypeEntity> $blockTypeRepository
-     * @param BaseConnection<mixed, mixed>|null $db
+     * @param BaseConnection<mixed, mixed> $db
      */
     public function __construct(
         RepositoryInterface $blockTypeRepository,
         ResponseMapperInterface $responseMapper,
-        ?BaseConnection $db = null,
+        BaseConnection $db,
+        private readonly \App\Libraries\Cms\FileReferenceSynchronizer $fileReferenceSynchronizer,
     ) {
         parent::__construct($blockTypeRepository, $responseMapper);
-        $this->db = $db ?? Database::connect();
+        $this->db = $db;
     }
 
     protected function beforeStore(array $data, ?SecurityContext $context): array
@@ -151,6 +153,7 @@ class BlockTypeService extends BaseCrudService implements BlockTypeServiceInterf
     protected function beforeUpdate(int $id, array $data, ?SecurityContext $context): array
     {
         $data = parent::beforeUpdate($id, $data, $context);
+        $this->schemaChanged = false;
 
         if (array_key_exists('block_key', $data)) {
             $existing = $this->repository->findBy('block_key', $data['block_key']);
@@ -164,9 +167,33 @@ class BlockTypeService extends BaseCrudService implements BlockTypeServiceInterf
 
         if (array_key_exists('schema_definition', $data)) {
             $data['schema_definition'] = $this->normalizeSchemaDefinition($data['schema_definition']);
+            $this->schemaChanged = true;
         }
 
         return $data;
+    }
+
+    protected function afterUpdate(object $entity, ?SecurityContext $context): void
+    {
+        parent::afterUpdate($entity, $context);
+
+        if (! $this->schemaChanged) {
+            return;
+        }
+
+        $result = $this->db->table('cms_block_instances')
+            ->select('id')
+            ->where('block_id', (int) $entity->id)
+            ->get();
+
+        foreach ($result ? $result->getResultArray() : [] as $row) {
+            $instanceId = (int) ($row['id'] ?? 0);
+            if ($instanceId > 0) {
+                $this->fileReferenceSynchronizer->syncBlockInstance($instanceId);
+            }
+        }
+
+        $this->schemaChanged = false;
     }
 
     /**

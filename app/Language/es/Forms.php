@@ -14,4 +14,8 @@ return [
     'duplicate_form_key'     => 'Ya existe un formulario con esta clave.',
     'duplicate_field_key'    => 'Ya existe un campo con esta clave en este formulario.',
     'options_required_for_choice_type' => 'Este tipo de campo requiere al menos una opción.',
+    'in_use'                 => 'No se puede eliminar: este formulario se usa en {0} bloque(s) — {1}. Elimina esos bloques primero.',
+    'usage_page'             => 'Página',
+    'usage_entry'            => 'Entrada',
+    'usage_instance'         => 'instancia',
 ];

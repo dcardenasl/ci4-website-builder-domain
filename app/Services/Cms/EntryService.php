@@ -42,26 +42,30 @@ class EntryService extends BaseCrudService implements EntryServiceInterface
 
     private PublicEntryReader $publicReader;
 
+    private \App\Libraries\Cms\TranslationResolver $translationResolver;
+
     /**
      * @param RepositoryInterface<EntryEntity> $entryRepository
      */
     public function __construct(
         RepositoryInterface $entryRepository,
         ResponseMapperInterface $responseMapper,
-        ?\App\Libraries\Cms\SlugRedirectRecorder $slugRedirectRecorder = null,
-        ?\App\Libraries\Cms\CacheInvalidationClient $cacheInvalidator = null,
-        ?FileUrlResolver $fileUrlResolver = null,
-        ?FileReferenceSynchronizer $fileReferenceSynchronizer = null,
-        ?EntryBlockTemplateInitializer $blockTemplateInitializer = null,
-        ?PublicEntryReader $publicReader = null
+        \App\Libraries\Cms\SlugRedirectRecorder $slugRedirectRecorder,
+        \App\Libraries\Cms\CacheInvalidationClient $cacheInvalidator,
+        FileUrlResolver $fileUrlResolver,
+        FileReferenceSynchronizer $fileReferenceSynchronizer,
+        \App\Libraries\Cms\TranslationResolver $translationResolver,
+        PublicEntryReader $publicReader,
+        ?EntryBlockTemplateInitializer $blockTemplateInitializer = null
     ) {
         parent::__construct($entryRepository, $responseMapper);
-        $this->slugRedirectRecorder = $slugRedirectRecorder ?? service('slugRedirectRecorder');
-        $this->cacheInvalidator     = $cacheInvalidator ?? service('cacheInvalidationClient');
-        $this->fileUrlResolver      = $fileUrlResolver ?? service('fileUrlResolver');
-        $this->fileReferenceSynchronizer = $fileReferenceSynchronizer ?? service('fileReferenceSynchronizer');
+        $this->slugRedirectRecorder = $slugRedirectRecorder;
+        $this->cacheInvalidator     = $cacheInvalidator;
+        $this->fileUrlResolver      = $fileUrlResolver;
+        $this->fileReferenceSynchronizer = $fileReferenceSynchronizer;
+        $this->translationResolver = $translationResolver;
+        $this->publicReader = $publicReader;
         $this->blockTemplateInitializer = $blockTemplateInitializer ?? new EntryBlockTemplateInitializer();
-        $this->publicReader = $publicReader ?? new PublicEntryReader($this->fileUrlResolver);
     }
 
     protected function beforeStore(array $data, ?SecurityContext $context): array
@@ -203,6 +207,7 @@ class EntryService extends BaseCrudService implements EntryServiceInterface
         if ($this->tempTranslations !== null) {
             $this->saveTranslations((int) $entity->id, $this->tempTranslations);
         }
+        $this->fileReferenceSynchronizer->syncEntry((int) $entity->id);
         $this->createVersionSnapshot((int) $entity->id, 'Update entry');
         $this->cacheInvalidator->invalidate(['entries']);
         $this->tempTranslations = null;
@@ -211,6 +216,7 @@ class EntryService extends BaseCrudService implements EntryServiceInterface
     protected function afterDelete(object $entity, ?SecurityContext $context): void
     {
         parent::afterDelete($entity, $context);
+        $this->fileReferenceSynchronizer->removeResourceReferences('entry', (int) $entity->id);
         $this->cacheInvalidator->invalidate(['entries']);
     }
 
@@ -415,7 +421,7 @@ class EntryService extends BaseCrudService implements EntryServiceInterface
         if (!empty($currentSlugs)) {
             $entryModel      = model(\App\Models\EntryModel::class);
             $entry           = $entryModel->find($entryId);
-            $translationResolver = service('translationResolver');
+            $translationResolver = $this->translationResolver;
             $languageCodeMap = [];
             if ($entry instanceof \App\Entities\EntryEntity) {
                 $currentLangResult = \Config\Database::connect()->table('cms_languages')

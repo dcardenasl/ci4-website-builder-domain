@@ -17,10 +17,10 @@ class TranslationResolver
     /**
      * @param BaseConnection<mixed, mixed>|null $db
      */
-    public function __construct(?BaseConnection $db = null, ?FileUrlResolver $fileUrlResolver = null)
+    public function __construct(FileUrlResolver $fileUrlResolver, ?BaseConnection $db = null)
     {
+        $this->fileUrlResolver = $fileUrlResolver;
         $this->db = $db ?? Database::connect();
-        $this->fileUrlResolver = $fileUrlResolver ?? service('fileUrlResolver');
     }
 
     /**

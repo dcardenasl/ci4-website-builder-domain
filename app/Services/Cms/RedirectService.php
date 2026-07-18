@@ -24,10 +24,10 @@ class RedirectService extends BaseCrudService implements RedirectServiceInterfac
     public function __construct(
         RepositoryInterface $redirectRepository,
         ResponseMapperInterface $responseMapper,
-        ?\App\Libraries\Cms\CacheInvalidationClient $cacheInvalidator = null
+        \App\Libraries\Cms\CacheInvalidationClient $cacheInvalidator
     ) {
         parent::__construct($redirectRepository, $responseMapper);
-        $this->cacheInvalidator = $cacheInvalidator ?? service('cacheInvalidationClient');
+        $this->cacheInvalidator = $cacheInvalidator;
     }
 
     protected function afterStore(object $entity, ?SecurityContext $context): void

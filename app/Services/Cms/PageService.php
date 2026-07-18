@@ -36,16 +36,16 @@ class PageService extends BaseCrudService implements PageServiceInterface
     public function __construct(
         RepositoryInterface $pageRepository,
         ResponseMapperInterface $responseMapper,
-        ?\App\Libraries\Cms\SlugRedirectRecorder $slugRedirectRecorder = null,
-        ?\App\Libraries\Cms\CacheInvalidationClient $cacheInvalidator = null,
-        ?FileUrlResolver $fileUrlResolver = null,
-        ?FileReferenceSynchronizer $fileReferenceSynchronizer = null
+        \App\Libraries\Cms\SlugRedirectRecorder $slugRedirectRecorder,
+        \App\Libraries\Cms\CacheInvalidationClient $cacheInvalidator,
+        FileUrlResolver $fileUrlResolver,
+        FileReferenceSynchronizer $fileReferenceSynchronizer
     ) {
         parent::__construct($pageRepository, $responseMapper);
-        $this->slugRedirectRecorder = $slugRedirectRecorder ?? service('slugRedirectRecorder');
-        $this->cacheInvalidator     = $cacheInvalidator ?? service('cacheInvalidationClient');
-        $this->fileUrlResolver      = $fileUrlResolver ?? service('fileUrlResolver');
-        $this->fileReferenceSynchronizer = $fileReferenceSynchronizer ?? service('fileReferenceSynchronizer');
+        $this->slugRedirectRecorder = $slugRedirectRecorder;
+        $this->cacheInvalidator     = $cacheInvalidator;
+        $this->fileUrlResolver      = $fileUrlResolver;
+        $this->fileReferenceSynchronizer = $fileReferenceSynchronizer;
     }
 
     protected function beforeStore(array $data, ?SecurityContext $context): array
@@ -125,6 +125,7 @@ class PageService extends BaseCrudService implements PageServiceInterface
         if ($this->tempTranslations !== null) {
             $this->saveTranslations((int) $entity->id, $this->tempTranslations);
         }
+        $this->fileReferenceSynchronizer->syncPage((int) $entity->id);
         $this->createVersionSnapshot((int) $entity->id, 'Update page');
         $this->cacheInvalidator->invalidate(['pages', 'collections']);
         $this->tempTranslations = null;
@@ -133,6 +134,7 @@ class PageService extends BaseCrudService implements PageServiceInterface
     protected function afterDelete(object $entity, ?SecurityContext $context): void
     {
         parent::afterDelete($entity, $context);
+        $this->fileReferenceSynchronizer->removeResourceReferences('page', (int) $entity->id);
         $this->cacheInvalidator->invalidate(['pages', 'collections']);
     }
 
