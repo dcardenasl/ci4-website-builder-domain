@@ -133,9 +133,6 @@ class EntryBlockTemplateInitializer
      * Matches wizard_extra keys against a block type's schema fields and returns the
      * block_data subset to pre-fill, plus the list of wizard_extra keys consumed.
      *
-     * Image fields (schema type "file") are stored in block_data as {key}_file_id and
-     * {key}_url — the same convention the wizard uses when uploading images.
-     *
      * @param array<string, mixed> $schemaFields  schema_definition['fields'] from BlockTypeEntity
      * @param array<string, mixed> $wizardExtra
      * @return array{data: array<string, mixed>, consumed: list<string>}
@@ -149,19 +146,8 @@ class EntryBlockTemplateInitializer
         $blockData = [];
         $consumed  = [];
 
-        foreach ($schemaFields as $fieldKey => $fieldDef) {
-            $fieldType = is_array($fieldDef) ? (string) ($fieldDef['type'] ?? 'string') : 'string';
-
-            if ($fieldType === 'file' || $fieldType === 'image') {
-                $fileIdKey = $fieldKey . '_file_id';
-                $urlKey    = $fieldKey . '_url';
-                if (isset($wizardExtra[$fileIdKey])) {
-                    $blockData[$fileIdKey] = $wizardExtra[$fileIdKey];
-                    $blockData[$urlKey]    = $wizardExtra[$urlKey] ?? null;
-                    $consumed[]            = $fileIdKey;
-                    $consumed[]            = $urlKey;
-                }
-            } elseif (array_key_exists($fieldKey, $wizardExtra)) {
+        foreach (array_keys($schemaFields) as $fieldKey) {
+            if (array_key_exists($fieldKey, $wizardExtra)) {
                 $blockData[$fieldKey] = $wizardExtra[$fieldKey];
                 $consumed[]           = $fieldKey;
             }

@@ -11,8 +11,6 @@ final class FieldPrimitiveRegistry
         'text',
         'textarea',
         'richtext',
-        'image',
-        'file',
         'media_reference',
         'url',
         'number',
@@ -37,8 +35,6 @@ final class FieldPrimitiveRegistry
         'decimal' => 'number',
         'bool' => 'boolean',
         'boolean' => 'boolean',
-        'file' => 'file',
-        'image' => 'image',
         'media_reference' => 'media_reference',
         'url' => 'url',
         'select' => 'select',
@@ -55,16 +51,9 @@ final class FieldPrimitiveRegistry
         return self::SUPPORTED;
     }
 
-    /**
-     * @param array<string, mixed> $fieldDefinition
-     */
-    public function normalize(string $type, array $fieldDefinition = []): string
+    public function normalize(string $type): string
     {
         $normalized = self::ALIASES[strtolower(trim($type))] ?? '';
-
-        if ($normalized === 'file' && $this->acceptsImage($fieldDefinition)) {
-            return 'image';
-        }
 
         return in_array($normalized, self::SUPPORTED, true) ? $normalized : 'unsupported';
     }
@@ -80,17 +69,5 @@ final class FieldPrimitiveRegistry
     public function isTranslatable(string $primitive): bool
     {
         return in_array($primitive, ['text', 'textarea', 'richtext', 'url'], true);
-    }
-
-    /**
-     * @param array<string, mixed> $fieldDefinition
-     */
-    private function acceptsImage(array $fieldDefinition): bool
-    {
-        $accept = strtolower((string) ($fieldDefinition['accept'] ?? $fieldDefinition['mime'] ?? $fieldDefinition['mime_type'] ?? ''));
-
-        return $accept === 'image'
-            || str_contains($accept, 'image/')
-            || str_contains($accept, 'image/*');
     }
 }

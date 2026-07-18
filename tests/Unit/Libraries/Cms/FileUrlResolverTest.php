@@ -70,7 +70,7 @@ final class FileUrlResolverTest extends CIUnitTestCase
         $this->assertSame('https://cdn.example.com/banner.jpg', $reference['url']);
     }
 
-    public function testNormalizeMediaReferenceInfersHubFileFromFileUrl(): void
+    public function testNormalizeMediaReferenceUsesExplicitHubFileId(): void
     {
         $hubClient = $this->createMock(HubClient::class);
         $hubClient->method('resolvePublicFileMeta')->willReturn([
@@ -82,11 +82,59 @@ final class FileUrlResolverTest extends CIUnitTestCase
         $resolver = new FileUrlResolver($hubClient);
 
         $reference = $resolver->normalizeMediaReference([
-            'url' => 'http://localhost:8182/files/20/view',
+            'source_kind' => 'hub_file',
+            'file_id' => 20,
+            'url' => null,
         ]);
 
         $this->assertSame('hub_file', $reference['source_kind']);
         $this->assertSame(20, $reference['file_id']);
         $this->assertSame('http://localhost:8180/uploads/2026/06/28/logo.gif', $reference['url']);
+    }
+
+    public function testNormalizeMediaReferenceIncludesVariants(): void
+    {
+        $hubClient = $this->createMock(HubClient::class);
+        $hubClient->method('resolvePublicFileMeta')->willReturn([
+            20 => [
+                'url' => 'http://localhost:8180/uploads/2026/06/28/logo.gif',
+                'variants' => [
+                    'md' => ['url' => 'http://localhost:8180/uploads/2026/06/28/logo_md.gif'],
+                ],
+            ],
+        ]);
+
+        $resolver = new FileUrlResolver($hubClient);
+
+        $reference = $resolver->normalizeMediaReference([
+            'source_kind' => 'hub_file',
+            'file_id' => 20,
+            'url' => null,
+        ]);
+
+        $this->assertSame('hub_file', $reference['source_kind']);
+        $this->assertSame(20, $reference['file_id']);
+        $this->assertSame('http://localhost:8180/uploads/2026/06/28/logo_md.gif', $reference['url']);
+        $this->assertSame(['md' => ['url' => 'http://localhost:8180/uploads/2026/06/28/logo_md.gif']], $reference['variants']);
+    }
+
+    public function testResolveManyMetaReturnsUrlsAndVariants(): void
+    {
+        $hubClient = $this->createMock(HubClient::class);
+        $hubClient->method('resolvePublicFileMeta')->willReturn([
+            20 => [
+                'url' => 'http://localhost:8180/uploads/2026/06/28/logo.gif',
+                'variants' => [
+                    'md' => ['url' => 'http://localhost:8180/uploads/2026/06/28/logo_md.gif'],
+                ],
+            ],
+        ]);
+
+        $resolver = new FileUrlResolver($hubClient);
+        $result = $resolver->resolveManyMeta([20]);
+
+        $this->assertArrayHasKey(20, $result);
+        $this->assertSame('http://localhost:8180/uploads/2026/06/28/logo_md.gif', $result[20]['url']);
+        $this->assertSame(['md' => ['url' => 'http://localhost:8180/uploads/2026/06/28/logo_md.gif']], $result[20]['variants']);
     }
 }

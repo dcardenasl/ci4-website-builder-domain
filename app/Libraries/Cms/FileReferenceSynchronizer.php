@@ -10,7 +10,7 @@ use Config\Database;
 /**
  * Rebuilds CMS file references from canonical resource data.
  *
- * This keeps `file_references` aligned with the actual CMS records and makes
+ * This keeps `cms_file_references` aligned with the actual CMS records and makes
  * the admin "used in" view, delete guards, and cleanup jobs deterministic.
  */
 class FileReferenceSynchronizer
@@ -26,10 +26,10 @@ class FileReferenceSynchronizer
     /**
      * @param BaseConnection<mixed, mixed>|null $db
      */
-    public function __construct(?BaseConnection $db = null, ?FileUrlResolver $urlResolver = null)
+    public function __construct(FileUrlResolver $urlResolver, ?BaseConnection $db = null)
     {
+        $this->urlResolver = $urlResolver;
         $this->db = $db ?? Database::connect();
-        $this->urlResolver = $urlResolver ?? new FileUrlResolver();
     }
 
     public function syncEntry(int $entryId): void
@@ -110,10 +110,70 @@ class FileReferenceSynchronizer
         $this->syncOwnedBlockInstances('page', $pageId);
     }
 
+    public function syncSetting(int $settingId): void
+    {
+        $result = $this->db->table('cms_settings')
+            ->select('id, setting_key, setting_type, setting_value, is_translatable')
+            ->where('id', $settingId)
+            ->get();
+        $setting = $result ? $result->getRowArray() : null;
+
+        $references = [];
+        if (is_array($setting) && ($setting['setting_type'] ?? null) === 'file_id') {
+            $fileId = is_numeric($setting['setting_value'] ?? null) ? (int) $setting['setting_value'] : 0;
+            if ($fileId > 0) {
+                $references[] = $this->referenceRow(
+                    $fileId,
+                    'setting',
+                    $settingId,
+                    'setting_value',
+                    trim((string) ($setting['setting_key'] ?? '')) ?: 'Setting #' . $settingId
+                );
+            }
+
+            if ((int) ($setting['is_translatable'] ?? 0) === 1) {
+                $translationResult = $this->db->table('cms_setting_translations')
+                    ->select('language_id, setting_value')
+                    ->where('setting_id', $settingId)
+                    ->get();
+
+                foreach ($translationResult ? $translationResult->getResultArray() : [] as $translation) {
+                    $translatedFileId = is_numeric($translation['setting_value'] ?? null)
+                        ? (int) $translation['setting_value']
+                        : 0;
+                    if ($translatedFileId <= 0) {
+                        continue;
+                    }
+
+                    $languageCode = $this->languageCode((int) ($translation['language_id'] ?? 0));
+                    $references[] = $this->referenceRow(
+                        $translatedFileId,
+                        'setting',
+                        $settingId,
+                        $this->buildRole('setting_value', $languageCode),
+                        (trim((string) ($setting['setting_key'] ?? '')) ?: 'Setting #' . $settingId)
+                            . ' (' . $languageCode . ')'
+                    );
+                }
+            }
+        }
+
+        $this->replaceReferences('setting', $settingId, $references);
+    }
+
+    public function removeResourceReferences(string $resourceType, int $resourceId): void
+    {
+        if (! in_array($resourceType, ['entry', 'page', 'setting', 'block_instance'], true)) {
+            throw new \InvalidArgumentException(lang('Cms.file_references.unsupported_resource', [$resourceType]));
+        }
+
+        $this->replaceReferences($resourceType, $resourceId, []);
+    }
+
     public function syncBlockInstance(int $instanceId): void
     {
         $result = $this->db->table('cms_block_instances i')
-            ->select('i.id, i.block_id, i.owner_type, i.owner_id, b.block_key, b.name as block_name, b.schema_definition')
+            ->select('i.id, i.block_id, i.owner_type, i.owner_id, i.block_config, b.block_key, b.name as block_name, b.schema_definition')
             ->join('cms_content_blocks b', 'b.id = i.block_id')
             ->where('i.id', $instanceId)
             ->get();
@@ -174,13 +234,14 @@ class FileReferenceSynchronizer
     /**
      * Rebuild every CMS file reference from scratch.
      *
-     * @return array{pages: int, entries: int, block_instances: int, references: int}
+     * @return array{pages: int, entries: int, settings: int, block_instances: int, references: int}
      */
     public function rebuildAll(): array
     {
         $counts = [
             'pages' => 0,
             'entries' => 0,
+            'settings' => 0,
             'block_instances' => 0,
             'references' => 0,
         ];
@@ -205,9 +266,28 @@ class FileReferenceSynchronizer
             $counts['entries']++;
         }
 
-        $counts['block_instances'] = (int) $this->db->table('cms_block_instances')->countAllResults();
-        $counts['references'] = $this->db->tableExists('file_references')
-            ? (int) $this->db->table('file_references')->countAllResults()
+        $settingsResult = $this->db->table('cms_settings')->select('id')->get();
+        foreach ($settingsResult ? $settingsResult->getResultArray() : [] as $row) {
+            $settingId = (int) ($row['id'] ?? 0);
+            if ($settingId <= 0) {
+                continue;
+            }
+            $this->syncSetting($settingId);
+            $counts['settings']++;
+        }
+
+        $blockInstancesResult = $this->db->table('cms_block_instances')->select('id')->get();
+        foreach ($blockInstancesResult ? $blockInstancesResult->getResultArray() : [] as $row) {
+            $instanceId = (int) ($row['id'] ?? 0);
+            if ($instanceId <= 0) {
+                continue;
+            }
+            $this->syncBlockInstance($instanceId);
+            $counts['block_instances']++;
+        }
+
+        $counts['references'] = $this->db->tableExists('cms_file_references')
+            ? (int) $this->db->table('cms_file_references')->countAllResults()
             : 0;
 
         return $counts;
@@ -216,7 +296,7 @@ class FileReferenceSynchronizer
     /**
      * @param array<string, mixed> $blockData
      * @param array<string, array<string, mixed>> $schemaFields
-     * @return list<array{file_id:int, resource_type:string, resource_id:int, role:string, label:?string, created_at:string}>
+     * @return list<array{hub_file_id:int, resource_type:string, resource_id:int, block_instance_id:int|null, role:string, label:?string, created_at:string}>
      */
     private function collectBlockReferences(
         array $blockData,
@@ -231,25 +311,6 @@ class FileReferenceSynchronizer
         foreach ($schemaFields as $fieldKey => $fieldDef) {
             $type = strtolower((string) ($fieldDef['type'] ?? 'string'));
             $fieldPath = $pathPrefix === '' ? $fieldKey : $pathPrefix . '.' . $fieldKey;
-
-            if ($type === 'file') {
-                $fileId = $this->urlResolver->resolveFileIdFromValue(
-                    $blockData[$fieldKey . '_file_id'] ?? null,
-                    isset($blockData[$fieldKey . '_url']) ? (string) $blockData[$fieldKey . '_url'] : null
-                );
-                if ($fileId === null) {
-                    continue;
-                }
-
-                $references[] = $this->referenceRow(
-                    $fileId,
-                    'block_instance',
-                    $instanceId,
-                    $this->buildRole($fieldPath, $languageCode),
-                    $blockLabel . ' - ' . $this->humanizeFieldLabel((string) ($fieldDef['label'] ?? $fieldKey), $fieldPath)
-                );
-                continue;
-            }
 
             if ($type === 'media_reference') {
                 $fileId = $this->urlResolver->resolveMediaReferenceFileId($blockData[$fieldKey] ?? null);
@@ -317,24 +378,30 @@ class FileReferenceSynchronizer
     }
 
     /**
-     * @param list<array{file_id:int, resource_type:string, resource_id:int, role:string, label:?string, created_at:string}> $references
+     * @param list<array{hub_file_id:int, resource_type:string, resource_id:int, block_instance_id:int|null, role:string, label:?string, created_at:string}> $references
      */
     private function replaceReferences(string $resourceType, int $resourceId, array $references): void
     {
-        if (! $this->db->tableExists('file_references')) {
-            return;
+        if (! $this->db->tableExists('cms_file_references')) {
+            throw new \RuntimeException(lang('Cms.file_references.missing_table'));
         }
 
-        $this->db->table('file_references')
+        $this->db->transStart();
+
+        $this->db->table('cms_file_references')
             ->where('resource_type', $resourceType)
             ->where('resource_id', $resourceId)
             ->delete();
 
-        if ($references === []) {
-            return;
+        if ($references !== []) {
+            $this->db->table('cms_file_references')->insertBatch($references);
         }
 
-        $this->db->table('file_references')->insertBatch($references);
+        $this->db->transComplete();
+
+        if ($this->db->transStatus() === false) {
+            throw new \RuntimeException(lang('Cms.file_references.sync_failed', [$resourceType, (string) $resourceId]));
+        }
     }
 
     private function syncOwnedBlockInstances(string $ownerType, int $ownerId): void
@@ -403,21 +470,20 @@ class FileReferenceSynchronizer
 
     private function buildRole(string $path, string $languageCode): string
     {
-        if (trim($languageCode) === '') {
-            return $path;
-        }
-
-        $suffix = '.' . $languageCode;
+        $suffix = trim($languageCode) === '' ? '' : '.' . $languageCode;
         $role   = $path . $suffix;
 
         if (strlen($role) <= 50) {
             return $role;
         }
 
-        $hash = substr(sha1($path), 0, 10);
-        $base = substr($path, 0, max(1, 37 - strlen($suffix)));
+        // Roles participate in a unique key and are limited to 50 characters.
+        // Keep a readable prefix and hash the complete path (including locale),
+        // so long config paths and translated paths remain deterministic and unique.
+        $hash = substr(sha1($role), 0, 10);
+        $base = substr($role, 0, 39);
 
-        return $base . '~' . $hash . $suffix;
+        return $base . '~' . $hash;
     }
 
     /**
@@ -474,17 +540,20 @@ class FileReferenceSynchronizer
     }
 
     /**
-     * @return array{file_id:int, resource_type:string, resource_id:int, role:string, label:?string, created_at:string}
+     * @return array{hub_file_id:int, resource_type:string, resource_id:int, block_instance_id:int|null, role:string, label:?string, created_at:string}
      */
     private function referenceRow(int $fileId, string $resourceType, int $resourceId, string $role, ?string $label): array
     {
+        $label = $label === null ? null : mb_substr($label, 0, 255);
+
         return [
-            'file_id'       => $fileId,
-            'resource_type' => $resourceType,
-            'resource_id'   => $resourceId,
-            'role'          => $role,
-            'label'         => $label,
-            'created_at'    => date('Y-m-d H:i:s'),
+            'hub_file_id'       => $fileId,
+            'resource_type'     => $resourceType,
+            'resource_id'       => $resourceId,
+            'block_instance_id' => $resourceType === 'block_instance' ? $resourceId : null,
+            'role'              => $role,
+            'label'             => $label,
+            'created_at'        => date('Y-m-d H:i:s'),
         ];
     }
 

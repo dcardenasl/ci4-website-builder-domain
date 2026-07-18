@@ -8,9 +8,9 @@ class BlockInstanceSerializer
 {
     private FileUrlResolver $fileUrlResolver;
 
-    public function __construct(?FileUrlResolver $fileUrlResolver = null)
+    public function __construct(FileUrlResolver $fileUrlResolver)
     {
-        $this->fileUrlResolver = $fileUrlResolver ?? service('fileUrlResolver');
+        $this->fileUrlResolver = $fileUrlResolver;
     }
 
     /**
@@ -95,11 +95,8 @@ class BlockInstanceSerializer
         }
 
         $allFileIds        = array_values(array_unique($allFileIds));
-        $fileUrlMap        = !empty($allFileIds)
-            ? $this->fileUrlResolver->resolveMany($allFileIds, 'public')
-            : [];
-        $fileTranslationsMap = !empty($allFileIds)
-            ? $this->batchResolveFileTranslations($allFileIds, $langCode, $db)
+        $fileMetaMap       = !empty($allFileIds)
+            ? $this->fileUrlResolver->resolveManyMeta($allFileIds, 'public')
             : [];
 
         // Serialize ALL instances (top-level and children alike) into a map keyed by id
@@ -114,8 +111,6 @@ class BlockInstanceSerializer
             $blockData    = is_string($rawBlockData)
                 ? (json_decode($rawBlockData, true) ?? [])
                 : (array) $rawBlockData;
-            $blockData = BlockTextPayload::normalize($blockData);
-
             $blockConfig = [];
             if (!empty($instance['block_config'])) {
                 $blockConfig = is_string($instance['block_config'])
@@ -128,10 +123,14 @@ class BlockInstanceSerializer
             $schemaConfigFields = (array) ($schemaDefinition['config_fields'] ?? []);
 
             $blockConfig = SchemaDefaults::applyConfigDefaults($schemaDefinition, $blockConfig);
-            if ($schemaConfigFields !== []) {
-                $blockConfig = $this->fileUrlResolver->normalizeBlockConfig($blockConfig, $schemaConfigFields);
-            }
             $blockData = SchemaDefaults::apply($blockData, $schemaFields);
+
+            // URLs were resolved once for the complete owner batch above. Apply
+            // that map to both config and translated data without calling Hub
+            // again for each field.
+            if ($schemaConfigFields !== []) {
+                $blockConfig = $this->mergeFileMetadata($blockConfig, $schemaConfigFields, $fileMetaMap);
+            }
 
             $blockPayload = [
                 'id'                 => $instanceId,
@@ -145,12 +144,11 @@ class BlockInstanceSerializer
                 'children'           => [],
             ];
 
-            // Resolve file-type fields and expand file IDs inside repeater items
+            // Resolve media fields and expand file IDs inside nested structures.
             $blockPayload['block_data'] = $this->mergeFileMetadata(
                 $blockPayload['block_data'],
                 $schemaFields,
-                $fileTranslationsMap,
-                $fileUrlMap
+                $fileMetaMap
             );
 
             $serializedMap[$instanceId] = $blockPayload;
@@ -236,34 +234,20 @@ class BlockInstanceSerializer
     }
 
     /**
-     * Merge resolved file metadata into block_data for all file-type and repeater fields.
-     *
-     * For a 'file' field named "image":
-     *   - Reads  block_data["image_file_id"]
-     *   - Writes block_data["image_alt_text"], ["image_caption"], ["image_title"], ["image_credit"]
-     *
-     * For a 'repeater' field, the same enrichment is applied inside each item.
+     * Merge resolved media_reference and repeater fields into block_data.
      *
      * @param  array<string, mixed>        $blockData
      * @param  array<string, array<string, mixed>> $schemaFields
-     * @param  array<int, array<string, mixed>>    $fileTransMap   keyed by file_id
-     * @param  array<int, string>                 $fileUrlMap      keyed by file_id
+     * @param  array<int, array{url: string|null, variants: array<string, mixed>|null}> $fileMetaMap keyed by file_id
      * @return array<string, mixed>
      */
-    private function mergeFileMetadata(array $blockData, array $schemaFields, array $fileTransMap, array $fileUrlMap): array
+    private function mergeFileMetadata(array $blockData, array $schemaFields, array $fileMetaMap): array
     {
         foreach ($schemaFields as $fieldKey => $fieldDef) {
             $type = $fieldDef['type'] ?? 'string';
 
-            if ($type === 'file') {
-                $this->mergeSingleFileField(
-                    $blockData,
-                    $fieldKey,
-                    $fileTransMap,
-                    $fileUrlMap
-                );
-            } elseif ($type === 'media_reference') {
-                $this->mergeMediaReferenceField($blockData, $fieldKey);
+            if ($type === 'media_reference') {
+                $this->mergeMediaReferenceField($blockData, $fieldKey, $fileMetaMap);
             } elseif ($type === 'repeater') {
                 $items      = $blockData[$fieldKey] ?? [];
                 $itemFields = $fieldDef['item_fields'] ?? [];
@@ -277,14 +261,14 @@ class BlockInstanceSerializer
                         $enriched[] = $item;
                         continue;
                     }
-                    $enriched[] = $this->mergeFileMetadata($item, $itemFields, $fileTransMap, $fileUrlMap);
+                    $enriched[] = $this->mergeFileMetadata($item, $itemFields, $fileMetaMap);
                 }
                 $blockData[$fieldKey] = $enriched;
             } elseif (in_array($type, ['group', 'fieldset'], true)) {
                 $nestedFields = $fieldDef['fields'] ?? [];
                 $nestedData   = $blockData[$fieldKey] ?? [];
                 if (is_array($nestedData) && is_array($nestedFields)) {
-                    $blockData[$fieldKey] = $this->mergeFileMetadata($nestedData, $nestedFields, $fileTransMap, $fileUrlMap);
+                    $blockData[$fieldKey] = $this->mergeFileMetadata($nestedData, $nestedFields, $fileMetaMap);
                 }
             }
         }
@@ -293,52 +277,49 @@ class BlockInstanceSerializer
     }
 
     /**
-     * Normalize a single file field in block_data.
-     *
-     * @param array<string, mixed> $blockData
-     * @param array<int, array<string, mixed>> $fileTransMap
-     * @param array<int, string> $fileUrlMap
-     */
-    private function mergeSingleFileField(array &$blockData, string $fieldKey, array $fileTransMap, array $fileUrlMap): void
-    {
-        $fileIdKey = $fieldKey . '_file_id';
-        $urlKey    = $fieldKey . '_url';
-        $fileId    = $blockData[$fileIdKey] ?? null;
-
-        $resolvedFileId = $this->fileUrlResolver->resolveFileIdFromValue(
-            $fileId,
-            isset($blockData[$urlKey]) ? (string) $blockData[$urlKey] : null
-        );
-
-        if ($resolvedFileId !== null) {
-            $fileTrans = $fileTransMap[$resolvedFileId] ?? [];
-            $blockData[$fieldKey . '_alt_text'] = $fileTrans['alt_text'] ?? null;
-            $blockData[$fieldKey . '_caption']  = $fileTrans['caption'] ?? null;
-            $blockData[$fieldKey . '_title']    = $fileTrans['title'] ?? null;
-            $blockData[$fieldKey . '_credit']   = $fileTrans['credit'] ?? null;
-            $blockData[$urlKey] = $fileUrlMap[$resolvedFileId] ?? $this->fileUrlResolver->resolve($resolvedFileId, 'public');
-
-            return;
-        }
-
-        $blockData[$urlKey] = $this->fileUrlResolver->resolveUrlValue(
-            $fileId,
-            isset($blockData[$urlKey]) ? (string) $blockData[$urlKey] : null
-        );
-    }
-
-    /**
      * Normalize a media_reference field into the canonical nested payload.
      *
      * @param array<string, mixed> $blockData
+     * @param array<int, array{url: string|null, variants: array<string, mixed>|null}> $fileMetaMap
      */
-    private function mergeMediaReferenceField(array &$blockData, string $fieldKey): void
+    private function mergeMediaReferenceField(array &$blockData, string $fieldKey, array $fileMetaMap): void
     {
         $reference = is_array($blockData[$fieldKey] ?? null) ? $blockData[$fieldKey] : [];
+        $sourceKind = strtolower(trim((string) ($reference['source_kind'] ?? '')));
+        $url = isset($reference['url']) && is_scalar($reference['url'])
+            ? trim((string) $reference['url'])
+            : '';
+        $url = $url !== '' ? $url : null;
+        $variants = is_array($reference['variants'] ?? null) ? $reference['variants'] : null;
 
-        $normalized = $this->fileUrlResolver->normalizeMediaReference($reference);
+        if ($sourceKind === 'external_url') {
+            $blockData[$fieldKey] = [
+                'source_kind' => 'external_url',
+                'file_id'     => null,
+                'url'         => $url,
+                'variants'    => null,
+            ];
+            return;
+        }
 
-        $blockData[$fieldKey] = $normalized;
+        $fileId = $this->fileUrlResolver->resolveMediaReferenceFileId($reference);
+        if ($fileId !== null) {
+            $meta = $fileMetaMap[$fileId] ?? null;
+            $blockData[$fieldKey] = [
+                'source_kind' => 'hub_file',
+                'file_id'     => $fileId,
+                'url'         => $meta['url'] ?? $url,
+                'variants'    => $meta['variants'] ?? $variants,
+            ];
+            return;
+        }
+
+        $blockData[$fieldKey] = [
+            'source_kind' => $sourceKind === 'hub_file' ? 'hub_file' : 'external_url',
+            'file_id'     => null,
+            'url'         => $url,
+            'variants'    => null,
+        ];
     }
 
     /**
@@ -378,50 +359,6 @@ class BlockInstanceSerializer
                     'block_data'  => $row['block_data'],
                     'is_fallback' => $lid !== $langId,
                 ];
-            }
-        }
-
-        return $map;
-    }
-
-    /**
-     * Batch-resolve file translations for a list of file IDs.
-     *
-     * @param  list<int> $fileIds
-     * @param  string    $langCode
-     * @param  object    $db
-     * @return array<int, array<string, mixed>>     keyed by file_id
-     */
-    private function batchResolveFileTranslations(
-        array $fileIds,
-        string $langCode,
-        object $db
-    ): array {
-        [$langId, $defaultLangId] = $this->resolveLanguageIds($langCode, $db);
-
-        $langIds = array_unique(array_filter([$langId, $defaultLangId]));
-
-        if (empty($langIds) || empty($fileIds)) {
-            return [];
-        }
-
-        $result = $db->table('cms_file_translations')
-            ->whereIn('file_id', $fileIds)
-            ->whereIn('language_id', $langIds)
-            ->get();
-        $rows = $result ? $result->getResultArray() : [];
-
-        $fields = ['alt_text', 'caption', 'title', 'credit', 'description'];
-        $map    = [];
-        foreach ($rows as $row) {
-            $fid = (int) $row['file_id'];
-            $lid = (int) $row['language_id'];
-            if (!isset($map[$fid]) || $lid === $langId) {
-                $entry = ['is_fallback' => $lid !== $langId];
-                foreach ($fields as $f) {
-                    $entry[$f] = $row[$f] ?? null;
-                }
-                $map[$fid] = $entry;
             }
         }
 

@@ -137,7 +137,6 @@ final class TranslationResourceCatalog
         'textarea',
         'richtext',
         'url',
-        'file',
     ];
 
     /**
@@ -186,21 +185,5 @@ final class TranslationResourceCatalog
         $type = strtolower((string) ($fieldDefinition['type'] ?? 'string'));
 
         return in_array($type, self::AUDITABLE_BLOCK_FIELD_TYPES, true);
-    }
-
-    /**
-     * Returns the data key that should be inspected inside `block_data`.
-     *
-     * @param array<string, mixed> $fieldDefinition
-     */
-    public static function blockDataKey(string $fieldKey, array $fieldDefinition): string
-    {
-        $type = strtolower((string) ($fieldDefinition['type'] ?? 'string'));
-
-        if ($type === 'file') {
-            return $fieldKey . '_file_id';
-        }
-
-        return $fieldKey;
     }
 }

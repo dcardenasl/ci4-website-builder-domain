@@ -22,9 +22,9 @@ class FileUrlResolver
 {
     private HubClient $hubClient;
 
-    public function __construct(?HubClient $hubClient = null)
+    public function __construct(HubClient $hubClient)
     {
-        $this->hubClient = $hubClient ?? service('hubClient');
+        $this->hubClient = $hubClient;
     }
 
     // ─── Public API (interface unchanged) ────────────────────────────────────
@@ -70,6 +70,44 @@ class FileUrlResolver
     }
 
     /**
+     * Resolve public metadata (url and variants) for multiple file IDs.
+     *
+     * @param  list<int>  $fileIds
+     * @return array<int, array{url: string|null, variants: array<string, mixed>|null}>
+     */
+    public function resolveManyMeta(array $fileIds, string $context = 'public'): array
+    {
+        $fileIds = array_values(array_unique(array_filter(
+            $fileIds,
+            static fn ($id): bool => is_int($id) && $id > 0
+        )));
+
+        if (empty($fileIds)) {
+            return [];
+        }
+
+        $metaMap = $this->hubClient->resolvePublicFileMeta($fileIds);
+        $result  = [];
+
+        foreach ($metaMap as $fileId => $row) {
+            $url = $this->resolveFromRow($row, $context);
+
+            $variants = $row['variants'] ?? null;
+            if (is_string($variants) && $variants !== '') {
+                $decoded  = json_decode($variants, true);
+                $variants = is_array($decoded) ? $decoded : null;
+            }
+
+            $result[(int) $fileId] = [
+                'url'      => $url,
+                'variants' => $variants,
+            ];
+        }
+
+        return $result;
+    }
+
+    /**
      * Canonicalize a file-bearing URL field.
      *
      * If a file ID exists, it always wins over a stored URL.
@@ -88,24 +126,13 @@ class FileUrlResolver
             return $this->normalizeUrl($currentUrl);
         }
 
-        $currentUrl = $this->normalizeUrl($currentUrl);
-        if ($currentUrl === null) {
-            return null;
-        }
-
-        $resolvedFileId = $this->resolveFileIdFromUrl($currentUrl);
-        if ($resolvedFileId !== null) {
-            return $this->resolve($resolvedFileId, $context) ?? $currentUrl;
-        }
-
-        return $currentUrl;
+        return $this->normalizeUrl($currentUrl);
     }
 
     /**
      * Normalize entry translation media into canonical nested objects.
      *
-     * This intentionally drops the legacy flat URL/file-id view from the
-     * returned payload so readers/services can expose a single contract.
+     * Relational persistence columns are projected into one public contract.
      *
      * @param  array<string, mixed> $translation
      * @return array<string, mixed>
@@ -178,7 +205,7 @@ class FileUrlResolver
     /**
      * Normalize a block_config payload with the same schema-driven rules used
      * for block_data. Media reference config fields share the same canonical
-     * shape as legacy file fields, only nested under the config field key.
+     * nested shape as translated media fields.
      *
      * @param  array<string, mixed>                $blockConfig
      * @param  array<string, array<string, mixed>> $schemaFields
@@ -267,19 +294,14 @@ class FileUrlResolver
             return (int) $fileId;
         }
 
-        $url = $this->normalizeUrl($url);
-        if ($url === null) {
-            return null;
-        }
-
-        return $this->resolveFileIdFromUrl($url);
+        return null;
     }
 
     /**
      * Normalize a media_reference payload into the canonical nested array.
      *
      * @param  mixed $reference
-     * @return array{source_kind: string, file_id: int|null, url: string|null}
+     * @return array{source_kind: string, file_id: int|null, url: string|null, variants: array<string, mixed>|null}
      */
     public function normalizeMediaReference(mixed $reference, string $context = 'public'): array
     {
@@ -294,41 +316,31 @@ class FileUrlResolver
         $sourceKindRaw = strtolower(trim((string) ($reference['source_kind'] ?? '')));
         $url = isset($reference['url']) ? $this->normalizeUrl($reference['url']) : null;
         $fileId = $this->resolveFileIdFromValue($reference['file_id'] ?? null, $url);
-        $resolvedByUrl = $url !== null ? $this->resolveFileIdFromUrl($url) : null;
+        $variants = is_array($reference['variants'] ?? null) ? $reference['variants'] : null;
 
         if ($sourceKindRaw === 'external_url') {
             return [
                 'source_kind' => 'external_url',
                 'file_id' => null,
                 'url' => $url,
+                'variants' => null,
             ];
         }
 
-        if ($sourceKindRaw === 'hub_file') {
-            if ($fileId === null && $resolvedByUrl !== null) {
-                $fileId = $resolvedByUrl;
+        if ($sourceKindRaw === 'hub_file' || $fileId !== null) {
+            if ($variants === null && $fileId !== null) {
+                $map = $this->hubClient->resolvePublicFileMeta([$fileId]);
+                $row = $map[$fileId] ?? null;
+                if ($row !== null && isset($row['variants'])) {
+                    $variants = is_string($row['variants']) ? json_decode($row['variants'], true) : $row['variants'];
+                }
             }
 
             return [
                 'source_kind' => 'hub_file',
                 'file_id' => $fileId,
                 'url' => $this->resolveUrlValue($fileId, $url, $context),
-            ];
-        }
-
-        if ($fileId !== null) {
-            return [
-                'source_kind' => 'hub_file',
-                'file_id' => $fileId,
-                'url' => $this->resolveUrlValue($fileId, $url, $context),
-            ];
-        }
-
-        if ($resolvedByUrl !== null) {
-            return [
-                'source_kind' => 'hub_file',
-                'file_id' => $resolvedByUrl,
-                'url' => $this->resolveUrlValue($resolvedByUrl, $url, $context),
+                'variants' => $variants,
             ];
         }
 
@@ -336,6 +348,7 @@ class FileUrlResolver
             'source_kind' => 'external_url',
             'file_id' => null,
             'url' => $url,
+            'variants' => null,
         ];
     }
 
@@ -345,9 +358,17 @@ class FileUrlResolver
     public function resolveMediaReferenceFileId(mixed $reference): ?int
     {
         if (is_array($reference)) {
-            $normalized = $this->normalizeMediaReference($reference);
+            $sourceKind = strtolower(trim((string) ($reference['source_kind'] ?? '')));
+            if ($sourceKind === 'external_url') {
+                return null;
+            }
 
-            return $normalized['file_id'];
+            $fileId = $reference['file_id'] ?? null;
+            if (is_numeric($fileId) && (int) $fileId > 0) {
+                return (int) $fileId;
+            }
+
+            return null;
         }
 
         return $this->resolveFileIdFromValue(is_int($reference) || is_string($reference) ? $reference : null, is_string($reference) ? $reference : null);
@@ -365,15 +386,6 @@ class FileUrlResolver
         }
 
         return $this->resolveUrlValue(is_int($reference) || is_string($reference) ? $reference : null, is_string($reference) ? $reference : null, $context);
-    }
-
-    public function resolveFileIdFromUrl(string $url): ?int
-    {
-        if (preg_match('~/files/(\d+)/(?:view|download)(?:\?.*)?$~', $url, $matches) === 1) {
-            return (int) $matches[1];
-        }
-
-        return null;
     }
 
     // ─── Private helpers ──────────────────────────────────────────────────────

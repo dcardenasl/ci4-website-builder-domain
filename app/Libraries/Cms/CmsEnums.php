@@ -10,7 +10,7 @@ final class CmsEnums
     public const PAGE_STATUS        = ['draft', 'published', 'archived'];
     public const PAGE_TYPE          = ['home', 'generic', 'contact', 'privacy', 'terms', '404', '500', 'maintenance', 'about', 'history', 'events', 'components', 'media', 'collection_index', 'portfolio'];
     public const SITEMAP_CHANGEFREQ = ['always', 'hourly', 'daily', 'weekly', 'monthly', 'yearly', 'never'];
-    public const NON_TRANSLATABLE_TYPES = ['file', 'image', 'media_reference', 'repeater', 'boolean', 'integer', 'select', 'number'];
+    public const NON_TRANSLATABLE_TYPES = ['media_reference', 'repeater', 'boolean', 'integer', 'select', 'number'];
 
     /** @param array<string> $values */
     public static function inListRule(array $values): string

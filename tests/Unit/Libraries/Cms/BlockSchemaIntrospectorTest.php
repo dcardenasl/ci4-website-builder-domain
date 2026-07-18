@@ -20,8 +20,8 @@ final class BlockSchemaIntrospectorTest extends CIUnitTestCase
         $this->assertSame('text', $registry->normalize('string'));
         $this->assertSame('textarea', $registry->normalize('text'));
         $this->assertSame('richtext', $registry->normalize('rich_text'));
-        $this->assertSame('image', $registry->normalize('file', ['accept' => 'image/*']));
-        $this->assertSame('file', $registry->normalize('file', ['accept' => 'application/pdf']));
+        $this->assertSame('media_reference', $registry->normalize('media_reference'));
+        $this->assertSame('unsupported', $registry->normalize('file'));
     }
 
     public function testIntrospectorDerivesBlockCapabilitiesFromFields(): void
@@ -31,8 +31,7 @@ final class BlockSchemaIntrospectorTest extends CIUnitTestCase
         $result = $introspector->introspect([
             'fields' => [
                 'body' => ['type' => 'rich_text', 'required' => true],
-                'cover' => ['type' => 'file', 'accept' => 'image/*'],
-                'document' => ['type' => 'file', 'accept' => 'application/pdf'],
+                'cover' => ['type' => 'media_reference', 'accept' => 'image'],
                 'items' => ['type' => 'repeater'],
             ],
         ]);
@@ -43,6 +42,6 @@ final class BlockSchemaIntrospectorTest extends CIUnitTestCase
         $this->assertSame(['body'], $result['required_fields']);
         $this->assertSame(['body'], $result['translatable_fields']);
         $this->assertSame(['items'], $result['unsupported_fields']);
-        $this->assertSame('image', $result['fields']['cover']['primitive']);
+        $this->assertSame('media_reference', $result['fields']['cover']['primitive']);
     }
 }

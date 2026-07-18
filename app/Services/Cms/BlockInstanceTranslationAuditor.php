@@ -200,7 +200,7 @@ class BlockInstanceTranslationAuditor
             $translatable[$fieldKey] = [
                 'required' => (bool) ($fieldDef['required'] ?? false),
                 'type' => strtolower((string) ($fieldDef['type'] ?? 'string')),
-                'data_key' => TranslationResourceCatalog::blockDataKey($fieldKey, $fieldDef),
+                'data_key' => $fieldKey,
             ];
         }
 
