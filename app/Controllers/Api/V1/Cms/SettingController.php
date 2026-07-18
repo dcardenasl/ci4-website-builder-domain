@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Controllers\Api\V1\Cms;
 
+use App\DTO\Request\Cms\SettingBatchUpdateRequestDTO;
 use App\DTO\Request\Cms\SettingCreateRequestDTO;
 use App\DTO\Request\Cms\SettingIndexRequestDTO;
 use App\DTO\Request\Cms\SettingUpdateRequestDTO;
@@ -43,6 +44,14 @@ class SettingController extends ApiController
             fn ($dto, $context) => $this->settingService->update($id, $dto, $context),
             SettingUpdateRequestDTO::class,
             ['id' => $id]
+        );
+    }
+
+    public function batch(): ResponseInterface
+    {
+        return $this->handleRequest(
+            fn ($dto, $context) => $this->settingService->batchUpdate($dto->updates, $context),
+            SettingBatchUpdateRequestDTO::class
         );
     }
 

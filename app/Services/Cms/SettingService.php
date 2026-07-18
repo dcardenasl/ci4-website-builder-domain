@@ -20,6 +20,9 @@ class SettingService extends BaseCrudService implements SettingServiceInterface
     /** @var array<array{language_id: int, setting_value?: string, label?: string, placeholder?: string, help_text?: string}>|null */
     private ?array $tempTranslations = null;
 
+    /** Prevent per-item network side effects during an atomic batch. */
+    private bool $batchMode = false;
+
     private \App\Libraries\Cms\CacheInvalidationClient $cacheInvalidator;
 
     private \App\Libraries\Cms\FileReferenceSynchronizer $fileReferenceSynchronizer;
@@ -36,6 +39,43 @@ class SettingService extends BaseCrudService implements SettingServiceInterface
         parent::__construct($settingRepository, $responseMapper);
         $this->cacheInvalidator = $cacheInvalidator;
         $this->fileReferenceSynchronizer = $fileReferenceSynchronizer;
+    }
+
+    /** @param list<array{id: int, payload: array<string, mixed>}> $updates */
+    public function batchUpdate(array $updates, ?SecurityContext $context = null): array
+    {
+        $db = \Config\Database::connect();
+        $updated = [];
+
+        $this->batchMode = true;
+        try {
+            $db->transStart();
+            foreach ($updates as $update) {
+                $dto = new \App\DTO\Request\Cms\SettingUpdateRequestDTO(
+                    $update['payload'],
+                    service('validation')
+                );
+                $this->update((int) $update['id'], $dto, $context);
+                $updated[] = (int) $update['id'];
+            }
+            $db->transComplete();
+        } catch (\Throwable $exception) {
+            $db->transRollback();
+            throw $exception;
+        } finally {
+            $this->batchMode = false;
+        }
+
+        if ($db->transStatus() === false) {
+            throw new \RuntimeException(lang('Settings.batch_update_failed'));
+        }
+
+        // One best-effort notification after commit. Calling the web app from
+        // every item made a large batch spend the whole PHP execution budget
+        // in network calls and could deadlock when the web app was busy.
+        $this->cacheInvalidator->invalidate(['settings']);
+
+        return ['updated' => $updated];
     }
 
     protected function beforeStore(array $data, ?SecurityContext $context): array
@@ -63,7 +103,9 @@ class SettingService extends BaseCrudService implements SettingServiceInterface
             $this->saveTranslations((int) $entity->id, $this->tempTranslations);
         }
         $this->fileReferenceSynchronizer->syncSetting((int) $entity->id);
-        $this->cacheInvalidator->invalidate(['settings']);
+        if (!$this->batchMode) {
+            $this->cacheInvalidator->invalidate(['settings']);
+        }
         $this->tempTranslations = null;
     }
 
@@ -96,7 +138,9 @@ class SettingService extends BaseCrudService implements SettingServiceInterface
             $this->saveTranslations((int) $entity->id, $this->tempTranslations);
         }
         $this->fileReferenceSynchronizer->syncSetting((int) $entity->id);
-        $this->cacheInvalidator->invalidate(['settings']);
+        if (!$this->batchMode) {
+            $this->cacheInvalidator->invalidate(['settings']);
+        }
         $this->tempTranslations = null;
     }
 

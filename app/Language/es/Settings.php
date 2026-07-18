@@ -10,4 +10,5 @@ return [
     'key_must_be_unique'      => 'La clave de configuración debe ser única.',
     'key_already_taken'          => "La clave de configuración '{0}' ya está en uso.",
     'connection_already_exists'  => 'Ya existe una conexión para esta entidad en este setting.',
+    'batch_update_failed'        => 'Falló la transacción de actualización por lote de configuraciones.',
 ];

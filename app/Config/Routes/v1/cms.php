@@ -24,6 +24,7 @@ $routes->group('cms', ['namespace' => '\App\Controllers\Api\V1\Cms'], function (
         // Settings CRUD
         $routes->get('settings', 'SettingController::index', ['filter' => 'permission:cms.settings.read']);
         $routes->post('settings', 'SettingController::create', ['filter' => 'permission:cms.settings.write']);
+        $routes->post('settings/batch', 'SettingController::batch', ['filter' => 'permission:cms.settings.write']);
         // Block Types CRUD
         $routes->get('block-types', 'BlockTypeController::index', ['filter' => 'permission:cms.blocks.read']);
         $routes->get('block-types/templates', 'BlockTypeController::templates', ['filter' => 'permission:cms.blocks.read']);
