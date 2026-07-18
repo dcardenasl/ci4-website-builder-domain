@@ -418,7 +418,10 @@ class MenuItemService extends BaseCrudService implements MenuItemServiceInterfac
     {
         $linkType = (string) ($data['link_type'] ?? '');
 
-        if ($linkType === 'custom_url') {
+        // Marker items have no destination, so multiple root/child markers are
+        // valid. A custom URL is intentionally free-form and cannot be
+        // compared reliably here either.
+        if (in_array($linkType, ['custom_url', 'no_link'], true)) {
             return;
         }
 

@@ -95,13 +95,14 @@ final class MenuItemServiceHierarchyTest extends CIUnitTestCase
         $service->store($requestDto);
     }
 
-    public function testDuplicateMenuItemInSameMenuThrowsException(): void
+    public function testDuplicateNavigableMenuItemInSameMenuThrowsException(): void
     {
         $service = Services::menuItemService();
 
         $this->db->table('cms_menu_items')->insert([
             'menu_id' => $this->menuId,
-            'link_type' => 'no_link',
+            'link_type' => 'page',
+            'page_id' => 1,
             'link_target' => '_self',
             'sort_order' => 1,
             'is_active' => 1,
@@ -111,7 +112,8 @@ final class MenuItemServiceHierarchyTest extends CIUnitTestCase
 
         $requestDto = new MenuItemCreateRequestDTO([
             'menu_id' => $this->menuId,
-            'link_type' => 'no_link',
+            'link_type' => 'page',
+            'page_id' => 1,
             'link_target' => '_self',
             'sort_order' => 2,
             'is_active' => 1,
