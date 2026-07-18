@@ -16,6 +16,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Expanded form field types** — the initial form field schema supports select, radio, checkbox, date, number, and URL fields; DTOs, entities, models, services, and notification jobs use the enriched metadata directly.
 - **Component and media page types** — the canonical page schema includes `components` and `media`; `SiteComponentsPageSeeder` and `SiteMediaPageSeeder` bootstrap public examples with full block coverage tests.
 - **Map embed block** — `CmsBlockTypeSeeder` defines `map_embed` independently from `contact_info`, and demo seeders write that structure directly.
+- **Settings batch update endpoint** — `POST /api/v1/cms/settings/batch` applies a list of partial setting updates in a single transaction via `SettingService::batchUpdate()`, and fires a single cache-invalidation call after commit instead of one per item, avoiding spending the request budget on repeated network calls for large batches
+- **Public language discovery endpoint** — `GET /api/v1/cms/public/languages` exposes active language metadata (code, name, native name, default flag) so public clients can discover supported locales before requesting localized content
 
 ### Changed
 - **Canonical generic block naming** — block types use generic names (`collection_grid`, `form_embed`, `contact_info`, `accordion`, etc.) in the initial catalog and demo content, reducing type proliferation.
@@ -51,6 +53,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **BlockType service** — validate `block_key` uniqueness with translated error messages
 - **CMS Request DTOs** — Refined field validation rules and type hinting across all request DTOs
 - **Settings model and service** — Added support for public flag and active status with database migration and language keys
+- **Menu item marker duplicate-link check** — `MenuItemService` no longer rejects a second `no_link` marker item as a duplicate link; only navigable link types are compared for uniqueness
+- **`PublicMenuController`/`PublicSettingController` locale resolution** — derive the response language from the `Accept-Language` header instead of CodeIgniter's static framework locale list, so newly added CMS languages are respected without a framework config change; `PublicMenuController` also validates the requested locale against active languages before using it, falling back to the default language
 
 ### Added
 - **Scheduled Publishing (CMS-011)** — developed `ScheduledPublishingJob` queue job and `cms:publish-scheduled` Spark CLI command to transition scheduled pages and entries to published status on schedule, with automatic version snapshot generation and transaction-backed idempotency
