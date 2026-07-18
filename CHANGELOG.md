@@ -8,17 +8,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
-- **Media reference field system migration** — migrated image-based blocks (image, hero_banner, hero_slider, etc.) to unified media_reference field type; new `LegacyMediaReferenceResolver` trait and migrations handle automatic conversion of legacy flat file_id/url fields to canonical media_reference shape (source_kind, file_id, url); `FileUrlResolver` enhanced to support both Hub-managed files and external URLs with unified caching strategy; improves media asset handling consistency across blocks
+- **Canonical media reference system** — image-based blocks use the single `media_reference` shape (`source_kind`, `file_id`, `url`) from their initial seed data; `FileUrlResolver` supports Hub-managed files and external URLs with one caching strategy, and the base block migration creates the Domain file-reference registry directly.
 - **Non-translatable field types export** — `WizardConfigController` now exports `NON_TRANSLATABLE_TYPES` constant in configuration response, enabling admin panel to dynamically determine which block field types should not be duplicated across language translations without hardcoding
 - **Dynamic social links block system** — refactored social links from hardcoded network fields to a flexible container + child block pattern; `social_links` block now acts as a container for individual `social_link_item` children with configurable network type, URL, and handle per link; `CmsSocialLinksChildrenSeeder` populates example links for the contact page with multilingual data support
 - **Environment variable support for container deployments** — `App`, `Database`, and `Hub` configuration classes now support UPPERCASE environment variables as alternatives to dotted keys (`APP_BASE_URL`, `DB_HOST`, `DB_PORT`, `MYSQL_DATABASE`, `MYSQL_USER`, `MYSQL_PASSWORD`, `HUB_URL`, `HUB_API_KEY`, `HUB_APP_CODE`); improves portability across Docker, Kubernetes, and cloud environments where dotted variable names are unreliable; `docker/entrypoint.sh` waits for database availability and runs migrations on container startup.
-- **Form field option labels translation** — migrated form field option labels to `form_field_translations` table, enabling multilingual label rendering for select, checkbox, and radio field options; `FormService` now resolves language-specific labels with fallback to field values
-- **Expanded form field types** — migration `2026-07-10-000001_ExpandCmsFormFieldTypesAndOptions` extends form field schema with new type options; updated DTOs, entities, models, and service layer to handle enriched field validation and configuration; form submission notification job now processes expanded field metadata
-- **Component and media page types** — migration `2026-07-09-000001_AddComponentsAndMediaPageTypesToCmsPages` introduces two new page types (`component` and `media`) for modular page composition; adds `SiteComponentsPageSeeder` and `SiteMediaPageSeeder` to bootstrap example pages with full block coverage validation tests
-- **Map embed block extraction** — migration `2026-07-06-110001_ExtractMapEmbedAndNormalizeGenericBlocks` separates embedded maps from `contact_info` block into independent `map_embed` block for better modularity; automatically migrates existing `contact_info` instances that include map URLs to the new dedicated block type
+- **Form field option labels translation** — the initial form schema stores option labels in `form_field_translations`, enabling multilingual labels for select, checkbox, and radio fields; `FormService` resolves language-specific labels with fallback to field values.
+- **Expanded form field types** — the initial form field schema supports select, radio, checkbox, date, number, and URL fields; DTOs, entities, models, services, and notification jobs use the enriched metadata directly.
+- **Component and media page types** — the canonical page schema includes `components` and `media`; `SiteComponentsPageSeeder` and `SiteMediaPageSeeder` bootstrap public examples with full block coverage tests.
+- **Map embed block** — `CmsBlockTypeSeeder` defines `map_embed` independently from `contact_info`, and demo seeders write that structure directly.
 
 ### Changed
-- **Generic block naming normalization** — consolidated domain-specific block types (news_grid, portfolio_grid, events_grid, contact_form, location_info, faq_accordion, etc.) into unified generic block names (collection_grid, form_embed, contact_info, accordion, etc.); migration `NormalizeCmsGenericBlockKeys` automatically migrates existing instances; improves consistency and reduces block type proliferation
+- **Canonical generic block naming** — block types use generic names (`collection_grid`, `form_embed`, `contact_info`, `accordion`, etc.) in the initial catalog and demo content, reducing type proliferation.
 
 ### Added
 - **Dynamic ordering for entry listings** — enhanced `PublicEntryIndexRequestDTO` and `PublicEntryReader` with `order_by` (published_at, created_at, sort_order, title) and `order_direction` (asc/desc) parameters; public `/api/v1/cms/public/{lang}/entries/{collection}` endpoint now supports flexible sorting with title-based ordering via join to translations table
@@ -44,7 +44,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Fixed
 - **Form submission job data access** — `FormSubmissionNotificationJob` and `FormSubmissionAutoreplyJob` now use `$this->data` (standard CodeIgniter Queue job property) instead of `$this->payload` for extracting submission ID, form ID, and user email parameters; ensures compatibility with CI4 queue job contracts and prevents payload access errors.
 - **Category response enrichment** — `CategoryResponseDTO` and `CategoryService` now include `collection_name` and `parent_label` fields for admin UI display; service fetches and maps collection and parent category translations for cleaner relational labels
-- **Legacy rich-text block keys** — `BlockInstanceSerializer` and `BlockInstanceService` normalize `body`/`html`/`text` payload keys to the canonical `content` field on read and write; a backfill migration (`BackfillLegacyBlockContentKeys`) normalizes existing rows
 - **CMS DTO validation** — strengthen translation normalization in `MenuCreateRequestDTO`, `MenuUpdateRequestDTO`, `BlockTypeCreateRequestDTO` with trimming and filtering of empty values
 - **CMS Service response mapping** — add `name` and `slug` fields to `CategoryService`, `EntryService`, and `TagService` responses by extracting from primary translations
 - **CMS Response DTOs** — add serialization fields to `CategoryResponseDTO`, `EntryResponseDTO`, and `TagResponseDTO` for consistent API contracts
@@ -67,6 +66,5 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Collections API** — full CRUD under `/cms/collections` protected with permissions, multi-language translation integration resolved via `TranslationResolver` with fallbacks, and a public listing endpoint on `GET public/{lang}/collections` for active collections
 - **Entries API** — full CRUD under `/cms/entries` protected with `cms.entries.*` permissions, version snapshot history, multi-language translation integration, and public endpoints on `GET public/{lang}/entries/{collection}` for paginated listings and `GET public/{lang}/entries/{collection}/{slug}` for detail views with serialized block instances
 - **Taxonomies API (Categories & Tags)** — Category and Tag CRUD with multi-language translations, pivot tables linking entries to taxonomies, public entries filtering by category/tag slug, and resolved taxonomies inside public entry responses
-
 
 
