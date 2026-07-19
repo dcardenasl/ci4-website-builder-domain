@@ -9,6 +9,7 @@ use App\DTO\Request\Cms\PublicEntryShowRequestDTO;
 use App\Entities\EntryEntity;
 use App\Libraries\Cms\BlockInstanceSerializer;
 use App\Libraries\Cms\EntryListingContentResolver;
+use App\Libraries\Cms\EntryTaxonomyPivotResolver;
 use App\Libraries\Cms\FileUrlResolver;
 use App\Libraries\Cms\PreviewToken;
 use dcardenasl\Ci4ApiCore\Dto\Common\PayloadResponseDTO;
@@ -41,6 +42,7 @@ class PublicEntryReader
         private FileUrlResolver $fileUrlResolver,
         private EntryListingContentResolver $entryListingContentResolver,
         private BlockInstanceSerializer $blockInstanceSerializer,
+        private EntryTaxonomyPivotResolver $taxonomyPivotResolver,
     ) {
     }
 
@@ -237,8 +239,8 @@ class PublicEntryReader
         }
 
         $entryTransMap  = $this->batchResolveEntryTranslations($entryIds, $langId, $defaultLangId);
-        $categoriesMap  = $this->batchResolveCategoryPivot($entryIds, $langId, $defaultLangId);
-        $tagsMap        = $this->batchResolveTagPivot($entryIds, $langId, $defaultLangId);
+        $categoriesMap  = $this->taxonomyPivotResolver->resolveLocalizedCategories($entryIds, $langId, $defaultLangId);
+        $tagsMap        = $this->taxonomyPivotResolver->resolveLocalizedTags($entryIds, $langId, $defaultLangId);
 
         $data = [];
         foreach ($entries as $entry) {
@@ -349,8 +351,8 @@ class PublicEntryReader
         }
 
         $entryTransMap = $this->batchResolveEntryTranslations([$entryId], $langId, $defaultLangId);
-        $categoriesMap = $this->batchResolveCategoryPivot([$entryId], $langId, $defaultLangId);
-        $tagsMap       = $this->batchResolveTagPivot([$entryId], $langId, $defaultLangId);
+        $categoriesMap = $this->taxonomyPivotResolver->resolveLocalizedCategories([$entryId], $langId, $defaultLangId);
+        $tagsMap       = $this->taxonomyPivotResolver->resolveLocalizedTags([$entryId], $langId, $defaultLangId);
 
         $blocks = $this->blockInstanceSerializer->forContent('entry', $entryId, $dto->lang);
 
@@ -536,129 +538,6 @@ class PublicEntryReader
             $map[$entryId] = $selected + [
                 'is_fallback'     => $selectedLanguageId !== $langId,
                 'localized_slugs' => $localizedSlugs,
-            ];
-        }
-
-        return $map;
-    }
-
-    /**
-     * @param  list<int>  $entryIds
-     * @return array<int, list<array<string, mixed>>>
-     */
-    private function batchResolveCategoryPivot(array $entryIds, int $langId, int $defaultLangId): array
-    {
-        if (empty($entryIds)) {
-            return [];
-        }
-
-        $langIds          = array_unique([$langId, $defaultLangId]);
-        $langPlaceholders = implode(',', array_fill(0, count($langIds), '?'));
-        $entryPlaceholders = implode(',', array_fill(0, count($entryIds), '?'));
-
-        $sql = "
-            SELECT ec.entry_id, ec.category_id, ec.sort_order,
-                   ct.name, ct.slug, ct.description, ct.language_id
-            FROM cms_entry_categories ec
-            LEFT JOIN cms_category_translations ct
-                ON ct.category_id = ec.category_id
-               AND ct.language_id IN ({$langPlaceholders})
-            WHERE ec.entry_id IN ({$entryPlaceholders})
-            ORDER BY ec.entry_id ASC, ec.sort_order ASC, ct.language_id DESC
-        ";
-
-        $db     = \Config\Database::connect();
-        $result = $db->query($sql, array_merge($langIds, $entryIds));
-
-        if (!$result instanceof \CodeIgniter\Database\BaseResult) {
-            return [];
-        }
-
-        $map      = [];
-        $seenCats = [];
-
-        foreach ($result->getResultArray() as $row) {
-            $eid   = (int) $row['entry_id'];
-            $catId = (int) $row['category_id'];
-            $lid   = (int) ($row['language_id'] ?? 0);
-
-            if (!isset($map[$eid])) {
-                $map[$eid]      = [];
-                $seenCats[$eid] = [];
-            }
-
-            if (isset($seenCats[$eid][$catId]) && $lid !== $langId) {
-                continue;
-            }
-
-            $seenCats[$eid][$catId] = true;
-            $map[$eid][] = [
-                'id'          => $catId,
-                'name'        => $row['name'],
-                'slug'        => $row['slug'],
-                'description' => $row['description'],
-                'is_fallback' => $lid !== $langId,
-            ];
-        }
-
-        return $map;
-    }
-
-    /**
-     * @param  list<int>  $entryIds
-     * @return array<int, list<array<string, mixed>>>
-     */
-    private function batchResolveTagPivot(array $entryIds, int $langId, int $defaultLangId): array
-    {
-        if (empty($entryIds)) {
-            return [];
-        }
-
-        $langIds           = array_unique([$langId, $defaultLangId]);
-        $langPlaceholders  = implode(',', array_fill(0, count($langIds), '?'));
-        $entryPlaceholders = implode(',', array_fill(0, count($entryIds), '?'));
-
-        $sql = "
-            SELECT et.entry_id, et.tag_id,
-                   tt.name, tt.slug, tt.language_id
-            FROM cms_entry_tags et
-            LEFT JOIN cms_tag_translations tt
-                ON tt.tag_id = et.tag_id
-               AND tt.language_id IN ({$langPlaceholders})
-            WHERE et.entry_id IN ({$entryPlaceholders})
-            ORDER BY et.entry_id ASC, et.tag_id ASC, tt.language_id DESC
-        ";
-
-        $db     = \Config\Database::connect();
-        $result = $db->query($sql, array_merge($langIds, $entryIds));
-
-        if (!$result instanceof \CodeIgniter\Database\BaseResult) {
-            return [];
-        }
-
-        $map      = [];
-        $seenTags = [];
-
-        foreach ($result->getResultArray() as $row) {
-            $eid   = (int) $row['entry_id'];
-            $tagId = (int) $row['tag_id'];
-            $lid   = (int) ($row['language_id'] ?? 0);
-
-            if (!isset($map[$eid])) {
-                $map[$eid]       = [];
-                $seenTags[$eid]  = [];
-            }
-
-            if (isset($seenTags[$eid][$tagId]) && $lid !== $langId) {
-                continue;
-            }
-
-            $seenTags[$eid][$tagId] = true;
-            $map[$eid][] = [
-                'id'          => $tagId,
-                'name'        => $row['name'],
-                'slug'        => $row['slug'],
-                'is_fallback' => $lid !== $langId,
             ];
         }
 

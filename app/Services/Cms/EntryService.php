@@ -11,6 +11,7 @@ use App\DTO\Request\Cms\PublicEntryIndexRequestDTO;
 use App\DTO\Request\Cms\PublicEntryShowRequestDTO;
 use App\Entities\EntryEntity;
 use App\Interfaces\Cms\EntryServiceInterface;
+use App\Libraries\Cms\EntryTaxonomyPivotResolver;
 use App\Libraries\Cms\FileReferenceSynchronizer;
 use App\Libraries\Cms\FileUrlResolver;
 use App\Traits\Services\HasDeferredTranslations;
@@ -42,6 +43,8 @@ class EntryService extends BaseCrudService implements EntryServiceInterface
 
     private PublicEntryReader $publicReader;
 
+    private EntryTaxonomyPivotResolver $taxonomyPivotResolver;
+
     private \App\Libraries\Cms\TranslationResolver $translationResolver;
 
     private ?\App\Libraries\Cms\TranslationSynchronizer $translationSynchronizer;
@@ -58,6 +61,7 @@ class EntryService extends BaseCrudService implements EntryServiceInterface
         FileReferenceSynchronizer $fileReferenceSynchronizer,
         \App\Libraries\Cms\TranslationResolver $translationResolver,
         PublicEntryReader $publicReader,
+        EntryTaxonomyPivotResolver $taxonomyPivotResolver,
         ?EntryBlockTemplateInitializer $blockTemplateInitializer = null,
         ?\App\Libraries\Cms\TranslationSynchronizer $translationSynchronizer = null
     ) {
@@ -68,6 +72,7 @@ class EntryService extends BaseCrudService implements EntryServiceInterface
         $this->fileReferenceSynchronizer = $fileReferenceSynchronizer;
         $this->translationResolver = $translationResolver;
         $this->publicReader = $publicReader;
+        $this->taxonomyPivotResolver = $taxonomyPivotResolver;
         $this->blockTemplateInitializer = $blockTemplateInitializer ?? new EntryBlockTemplateInitializer();
         $this->translationSynchronizer = $translationSynchronizer;
     }
@@ -263,8 +268,8 @@ class EntryService extends BaseCrudService implements EntryServiceInterface
             }
         }
 
-        $categoryMap = $this->batchResolveEntryCategories($entryIds);
-        $tagMap      = $this->batchResolveEntryTags($entryIds);
+        $categoryMap = $this->taxonomyPivotResolver->resolveCategoryIds($entryIds);
+        $tagMap      = $this->taxonomyPivotResolver->resolveTagIds($entryIds);
 
         foreach ($entities as $entity) {
             $entityTranslations = $translationsGrouped[$entity->id] ?? [];
@@ -290,83 +295,6 @@ class EntryService extends BaseCrudService implements EntryServiceInterface
         }
 
         return parent::mapToResponse($entity);
-    }
-
-    /**
-     * @param list<int> $entryIds
-     * @return array<int, list<array{id: int, sort_order: int}>>
-     */
-    private function batchResolveEntryCategories(array $entryIds): array
-    {
-        if ($entryIds === []) {
-            return [];
-        }
-
-        $placeholders = implode(',', array_fill(0, count($entryIds), '?'));
-        $sql = "
-            SELECT entry_id, category_id, sort_order
-            FROM cms_entry_categories
-            WHERE entry_id IN ({$placeholders})
-            ORDER BY entry_id ASC, sort_order ASC, category_id ASC
-        ";
-
-        $result = \Config\Database::connect()->query($sql, $entryIds);
-        if (! $result instanceof \CodeIgniter\Database\BaseResult) {
-            return [];
-        }
-
-        $map = [];
-        foreach ($result->getResultArray() as $row) {
-            $entryId = (int) ($row['entry_id'] ?? 0);
-            if ($entryId <= 0) {
-                continue;
-            }
-
-            $map[$entryId][] = [
-                'id' => (int) ($row['category_id'] ?? 0),
-                'sort_order' => (int) ($row['sort_order'] ?? 0),
-            ];
-        }
-
-        return $map;
-    }
-
-    /**
-     * @param list<int> $entryIds
-     * @return array<int, list<array{id: int}>>
-     */
-    private function batchResolveEntryTags(array $entryIds): array
-    {
-        if ($entryIds === []) {
-            return [];
-        }
-
-        $placeholders = implode(',', array_fill(0, count($entryIds), '?'));
-        $sql = "
-            SELECT entry_id, tag_id
-            FROM cms_entry_tags
-            WHERE entry_id IN ({$placeholders})
-            ORDER BY entry_id ASC, tag_id ASC
-        ";
-
-        $result = \Config\Database::connect()->query($sql, $entryIds);
-        if (! $result instanceof \CodeIgniter\Database\BaseResult) {
-            return [];
-        }
-
-        $map = [];
-        foreach ($result->getResultArray() as $row) {
-            $entryId = (int) ($row['entry_id'] ?? 0);
-            if ($entryId <= 0) {
-                continue;
-            }
-
-            $map[$entryId][] = [
-                'id' => (int) ($row['tag_id'] ?? 0),
-            ];
-        }
-
-        return $map;
     }
 
     /**

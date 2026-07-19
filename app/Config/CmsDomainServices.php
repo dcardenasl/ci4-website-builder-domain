@@ -132,8 +132,18 @@ trait CmsDomainServices
         return new \App\Services\Cms\PublicEntryReader(
             static::fileUrlResolver(),
             static::entryListingContentResolver(),
-            static::blockInstanceSerializer()
+            static::blockInstanceSerializer(),
+            static::entryTaxonomyPivotResolver()
         );
+    }
+
+    public static function entryTaxonomyPivotResolver(bool $getShared = true): \App\Libraries\Cms\EntryTaxonomyPivotResolver
+    {
+        if ($getShared) {
+            return static::getSharedInstance('entryTaxonomyPivotResolver');
+        }
+
+        return new \App\Libraries\Cms\EntryTaxonomyPivotResolver(\Config\Database::connect());
     }
 
     public static function entryListingContentResolver(bool $getShared = true): \App\Libraries\Cms\EntryListingContentResolver
@@ -286,6 +296,7 @@ trait CmsDomainServices
             static::fileReferenceSynchronizer(),
             static::translationResolver(),
             static::publicEntryReader(),
+            static::entryTaxonomyPivotResolver(),
             null,
             static::translationSynchronizer()
         );
