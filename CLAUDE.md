@@ -199,6 +199,14 @@ composer quality
   working (see "Required vs. optional bootstrap" in README.md) — just re-run
   `db:seed SiteBootstrapSeeder` to restore the demo content, or accept the empty state and rebuild
   through the admin UI. There is no way to recover data that wasn't part of that seeder.
+- ❌ **Typing `php spark db:seed SeederName -g tests` expecting it to target the tests database.**
+  Unlike `migrate`, CI4's stock `db:seed` command does not read any `-g`/`--group` option — it
+  always seeds `database.default` (dev), silently ignoring the flag with no warning. There is no
+  CLI-level way to seed the `tests` group directly. If you need test data, either seed inside a
+  `CIUnitTestCase`-based test (which switches the DB group itself), or write a dedicated command
+  like `PrepareTestDatabase` that calls `Database::connect('tests')` explicitly. (Root-caused
+  2026-07-18 after this exact pattern produced a seemingly "flaky" row count in an earlier audit —
+  see `docs/audits/2026-07-10-hardening-execution-log.md`.)
 
 ## Where to read next
 
