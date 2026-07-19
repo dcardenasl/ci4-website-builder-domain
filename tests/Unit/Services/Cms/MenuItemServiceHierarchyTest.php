@@ -99,10 +99,16 @@ final class MenuItemServiceHierarchyTest extends CIUnitTestCase
     {
         $service = Services::menuItemService();
 
+        // cms_menu_items.page_id has a FK to cms_pages.id — insert a real page
+        // instead of hardcoding an assumed id, so this test doesn't depend on
+        // what other fixtures happen to have inserted into a shared test DB.
+        $this->db->table('cms_pages')->insert(['page_type' => 'generic']);
+        $pageId = (int) $this->db->insertID();
+
         $this->db->table('cms_menu_items')->insert([
             'menu_id' => $this->menuId,
             'link_type' => 'page',
-            'page_id' => 1,
+            'page_id' => $pageId,
             'link_target' => '_self',
             'sort_order' => 1,
             'is_active' => 1,
@@ -113,7 +119,7 @@ final class MenuItemServiceHierarchyTest extends CIUnitTestCase
         $requestDto = new MenuItemCreateRequestDTO([
             'menu_id' => $this->menuId,
             'link_type' => 'page',
-            'page_id' => 1,
+            'page_id' => $pageId,
             'link_target' => '_self',
             'sort_order' => 2,
             'is_active' => 1,
