@@ -41,14 +41,19 @@ class ServiceModelDependencyConventionsTest extends CIUnitTestCase
         'app/Services/Cms/CategoryService.php' => ['model_call' => 5],
         'app/Services/Cms/CollectionService.php' => ['model_call' => 4],
         'app/Services/Cms/EntryBlockTemplateInitializer.php' => ['model_call' => 5, 'db_connect' => 1],
-        'app/Services/Cms/EntryService.php' => ['model_call' => 13, 'db_connect' => 6],
-        'app/Services/Cms/FormService.php' => ['use_model' => 4, 'model_call' => 2],
+        'app/Services/Cms/EntryService.php' => ['model_call' => 11, 'db_connect' => 3],
+        // FormService.php was split 2026-07-19 into three single-responsibility
+        // classes (form CRUD, field CRUD, public definition assembly); the
+        // model coupling below is the same coupling redistributed, not new debt.
+        'app/Services/Cms/FormFieldService.php' => ['use_model' => 3, 'model_call' => 1],
+        'app/Services/Cms/FormPublicDefinitionAssembler.php' => ['use_model' => 5, 'model_call' => 2],
+        'app/Services/Cms/FormService.php' => ['use_model' => 2],
         'app/Services/Cms/FormSubmissionService.php' => ['use_model' => 1, 'model_call' => 3, 'db_connect' => 1],
         'app/Services/Cms/LanguageService.php' => ['model_call' => 2],
-        'app/Services/Cms/MenuItemService.php' => ['model_call' => 7, 'db_connect' => 1],
+        'app/Services/Cms/MenuItemService.php' => ['model_call' => 6],
         'app/Services/Cms/MenuService.php' => ['model_call' => 2],
         'app/Services/Cms/PageService.php' => ['model_call' => 8],
-        'app/Services/Cms/PublicEntryReader.php' => ['model_call' => 6, 'db_connect' => 2],
+        'app/Services/Cms/PublicEntryReader.php' => ['model_call' => 6],
         'app/Services/Cms/SettingService.php' => ['model_call' => 2],
         'app/Services/Cms/TagService.php' => ['model_call' => 4],
     ];
