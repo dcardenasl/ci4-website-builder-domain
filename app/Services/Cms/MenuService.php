@@ -124,14 +124,15 @@ class MenuService extends BaseCrudService implements MenuServiceInterface
         /** @var \App\Models\MenuTranslationModel $translationModel */
         $translationModel = model(\App\Models\MenuTranslationModel::class);
 
-        $translationModel->where('menu_id', $menuId)->delete();
-
-        foreach ($translations as $translation) {
-            $translationModel->insert([
-                'menu_id'     => $menuId,
+        (new \App\Libraries\Cms\TranslationSynchronizer(\Config\Database::connect()))->replace(
+            $translationModel,
+            'menu_id',
+            $menuId,
+            $translations,
+            static fn (array $translation): array => [
                 'language_id' => (int) $translation['language_id'],
-                'name'        => $translation['name'],
-            ]);
-        }
+                'name'        => (string) $translation['name'],
+            ],
+        );
     }
 }

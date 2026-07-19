@@ -150,16 +150,17 @@ class MenuItemService extends BaseCrudService implements MenuItemServiceInterfac
         /** @var \App\Models\MenuItemTranslationModel $translationModel */
         $translationModel = model(\App\Models\MenuItemTranslationModel::class);
 
-        $translationModel->where('menu_item_id', $menuItemId)->delete();
-
-        foreach ($translations as $translation) {
-            $translationModel->insert([
-                'menu_item_id' => $menuItemId,
-                'language_id'  => (int) $translation['language_id'],
-                'label'        => $translation['label'],
-                'custom_url'   => $translation['custom_url'] ?? null,
-            ]);
-        }
+        (new \App\Libraries\Cms\TranslationSynchronizer(\Config\Database::connect()))->replace(
+            $translationModel,
+            'menu_item_id',
+            $menuItemId,
+            $translations,
+            static fn (array $translation): array => [
+                'language_id' => (int) $translation['language_id'],
+                'label'       => (string) $translation['label'],
+                'custom_url'  => $translation['custom_url'] ?? null,
+            ],
+        );
     }
 
     private function validateMenuExists(int $menuId): void

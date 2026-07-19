@@ -184,28 +184,18 @@ class SettingService extends BaseCrudService implements SettingServiceInterface
         /** @var \App\Models\SettingTranslationModel $translationModel */
         $translationModel = model(\App\Models\SettingTranslationModel::class);
 
-        $translationModel->where('setting_id', $settingId)->delete();
-
-        foreach ($translations as $translation) {
-            $langId = (int) $translation['language_id'];
-            $row    = [
-                'setting_id'    => $settingId,
-                'language_id'   => $langId,
+        (new \App\Libraries\Cms\TranslationSynchronizer(\Config\Database::connect()))->replace(
+            $translationModel,
+            'setting_id',
+            $settingId,
+            $translations,
+            static fn (array $translation): array => [
+                'language_id'   => (int) $translation['language_id'],
                 'setting_value' => $translation['setting_value'] ?? null,
                 'label'         => $translation['label'] ?? null,
                 'placeholder'   => $translation['placeholder'] ?? null,
                 'help_text'     => $translation['help_text'] ?? null,
-            ];
-
-            $result = $translationModel->insert($row);
-
-            if ($result === false) {
-                $errors = $translationModel->errors();
-                throw new ValidationException(
-                    lang('Api.validationFailed'),
-                    $errors ?: ['translations' => lang('Api.invalidTranslation')]
-                );
-            }
-        }
+            ],
+        );
     }
 }

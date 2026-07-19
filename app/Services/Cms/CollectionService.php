@@ -161,21 +161,22 @@ class CollectionService extends BaseCrudService implements CollectionServiceInte
         /** @var \App\Models\CollectionTranslationModel $translationModel */
         $translationModel = model(\App\Models\CollectionTranslationModel::class);
 
-        $translationModel->where('collection_id', $collectionId)->delete();
-
-        foreach ($translations as $translation) {
-            $translationModel->insert([
-                'collection_id'            => $collectionId,
+        (new \App\Libraries\Cms\TranslationSynchronizer(\Config\Database::connect()))->replace(
+            $translationModel,
+            'collection_id',
+            $collectionId,
+            $translations,
+            static fn (array $translation): array => [
                 'language_id'              => (int) $translation['language_id'],
                 'slug'                     => isset($translation['slug']) ? trim((string) $translation['slug'], " \t\n\r\0\x0B/") : null,
-                'name'                     => $translation['name'],
+                'name'                     => (string) $translation['name'],
                 'description'              => $translation['description'] ?? null,
                 'listing_title'            => $translation['listing_title'] ?? null,
                 'listing_intro'            => $translation['listing_intro'] ?? null,
                 'default_meta_title'       => $translation['default_meta_title'] ?? null,
                 'default_meta_description' => $translation['default_meta_description'] ?? null,
-            ]);
-        }
+            ],
+        );
     }
 
     /**

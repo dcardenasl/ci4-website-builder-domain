@@ -158,9 +158,7 @@ class BlockInstanceService extends BaseCrudService implements BlockInstanceServi
         $translationModel = model(\App\Models\BlockInstanceTranslationModel::class);
         $blockSchemaFields = $this->blockSchemaFields($instanceId);
 
-        // Delete existing translations for this instance
-        $translationModel->where('instance_id', $instanceId)->delete();
-
+        $rows = [];
         foreach ($translations as $translation) {
             $blockData = $translation['block_data'] ?? [];
             if (! is_array($blockData)) {
@@ -172,13 +170,20 @@ class BlockInstanceService extends BaseCrudService implements BlockInstanceServi
                 }
             }
 
-            $translationModel->insert([
-                'instance_id'  => $instanceId,
+            $rows[] = [
                 'language_id'  => (int) $translation['language_id'],
                 'block_data'   => json_encode($blockData),
                 'is_published' => (bool) ($translation['is_published'] ?? true),
-            ]);
+            ];
         }
+
+        (new \App\Libraries\Cms\TranslationSynchronizer(\Config\Database::connect()))->replace(
+            $translationModel,
+            'instance_id',
+            $instanceId,
+            $rows,
+            static fn (array $row): array => $row,
+        );
     }
 
     /**
