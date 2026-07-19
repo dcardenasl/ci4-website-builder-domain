@@ -6,6 +6,7 @@ namespace App\Services\Cms;
 
 use App\Entities\SettingEntity;
 use App\Interfaces\Cms\SettingServiceInterface;
+use App\Traits\Services\HasDeferredTranslations;
 use dcardenasl\Ci4ApiCore\Dto\SecurityContext;
 use dcardenasl\Ci4ApiCore\Exceptions\ValidationException;
 use dcardenasl\Ci4ApiCore\Mappers\ResponseMapperInterface;
@@ -17,8 +18,7 @@ use dcardenasl\Ci4ApiCore\Services\BaseCrudService;
  */
 class SettingService extends BaseCrudService implements SettingServiceInterface
 {
-    /** @var array<array{language_id: int, setting_value?: string, label?: string, placeholder?: string, help_text?: string}>|null */
-    private ?array $tempTranslations = null;
+    use HasDeferredTranslations;
 
     /** Prevent per-item network side effects during an atomic batch. */
     private bool $batchMode = false;
@@ -44,30 +44,23 @@ class SettingService extends BaseCrudService implements SettingServiceInterface
     /** @param list<array{id: int, payload: array<string, mixed>}> $updates */
     public function batchUpdate(array $updates, ?SecurityContext $context = null): array
     {
-        $db = \Config\Database::connect();
-        $updated = [];
-
         $this->batchMode = true;
         try {
-            $db->transStart();
-            foreach ($updates as $update) {
-                $dto = new \App\DTO\Request\Cms\SettingUpdateRequestDTO(
-                    $update['payload'],
-                    service('validation')
-                );
-                $this->update((int) $update['id'], $dto, $context);
-                $updated[] = (int) $update['id'];
-            }
-            $db->transComplete();
-        } catch (\Throwable $exception) {
-            $db->transRollback();
-            throw $exception;
+            $updated = $this->wrapInTransaction(function () use ($updates, $context): array {
+                $updated = [];
+                foreach ($updates as $update) {
+                    $dto = new \App\DTO\Request\Cms\SettingUpdateRequestDTO(
+                        $update['payload'],
+                        service('validation')
+                    );
+                    $this->update((int) $update['id'], $dto, $context);
+                    $updated[] = (int) $update['id'];
+                }
+
+                return $updated;
+            });
         } finally {
             $this->batchMode = false;
-        }
-
-        if ($db->transStatus() === false) {
-            throw new \RuntimeException(lang('Settings.batch_update_failed'));
         }
 
         // One best-effort notification after commit. Calling the web app from
@@ -91,22 +84,20 @@ class SettingService extends BaseCrudService implements SettingServiceInterface
             }
         }
 
-        $this->tempTranslations = $data['translations'] ?? null;
-        unset($data['translations']);
-        return $data;
+        return $this->deferTranslationsFromCreate($data);
     }
 
     protected function afterStore(object $entity, ?SecurityContext $context): void
     {
         parent::afterStore($entity, $context);
-        if ($this->tempTranslations !== null && $entity->is_translatable) {
-            $this->saveTranslations((int) $entity->id, $this->tempTranslations);
-        }
+        $this->flushDeferredTranslations(
+            fn (array $t) => $this->saveTranslations((int) $entity->id, $t),
+            (bool) $entity->is_translatable
+        );
         $this->fileReferenceSynchronizer->syncSetting((int) $entity->id);
         if (!$this->batchMode) {
             $this->cacheInvalidator->invalidate(['settings']);
         }
-        $this->tempTranslations = null;
     }
 
     protected function beforeUpdate(int $id, array $data, ?SecurityContext $context): array
@@ -122,26 +113,20 @@ class SettingService extends BaseCrudService implements SettingServiceInterface
             }
         }
 
-        if (array_key_exists('translations', $data)) {
-            $this->tempTranslations = $data['translations'];
-            unset($data['translations']);
-        } else {
-            $this->tempTranslations = null;
-        }
-        return $data;
+        return $this->deferTranslationsFromUpdate($data);
     }
 
     protected function afterUpdate(object $entity, ?SecurityContext $context): void
     {
         parent::afterUpdate($entity, $context);
-        if ($this->tempTranslations !== null && $entity->is_translatable) {
-            $this->saveTranslations((int) $entity->id, $this->tempTranslations);
-        }
+        $this->flushDeferredTranslations(
+            fn (array $t) => $this->saveTranslations((int) $entity->id, $t),
+            (bool) $entity->is_translatable
+        );
         $this->fileReferenceSynchronizer->syncSetting((int) $entity->id);
         if (!$this->batchMode) {
             $this->cacheInvalidator->invalidate(['settings']);
         }
-        $this->tempTranslations = null;
     }
 
     protected function afterDelete(object $entity, ?SecurityContext $context): void
@@ -192,7 +177,7 @@ class SettingService extends BaseCrudService implements SettingServiceInterface
     }
 
     /**
-     * @param array<array{language_id: int, setting_value?: string, label?: string, placeholder?: string, help_text?: string}> $translations
+     * @param array<mixed> $translations
      */
     private function saveTranslations(int $settingId, array $translations): void
     {
