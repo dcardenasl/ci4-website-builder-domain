@@ -15,6 +15,7 @@ use App\DTO\Response\Cms\FormResponseDTO;
 use App\Entities\FormEntity;
 use App\Entities\FormFieldEntity;
 use App\Libraries\Cms\CacheInvalidationClient;
+use App\Libraries\Cms\TranslationSynchronizer;
 use App\Models\FormFieldModel;
 use App\Models\FormFieldTranslationModel;
 use App\Models\FormModel;
@@ -36,6 +37,7 @@ class FormService
         private FormFieldTranslationModel $fieldTranslationModel,
         private CacheInvalidationClient $cacheInvalidator,
         private BaseConnection $db,
+        private ?TranslationSynchronizer $translationSynchronizer = null,
     ) {
     }
 
@@ -652,6 +654,7 @@ class FormService
      */
     private function saveTranslations(int $formId, array $translations): void
     {
+        $rows = [];
         foreach ($translations as $trans) {
             if (! is_array($trans)) {
                 continue;
@@ -661,29 +664,23 @@ class FormService
                 continue;
             }
 
-            $existing = $this->translationModel
-                ->where('form_id', $formId)
-                ->where('language_id', $languageId)
-                ->first();
-
-            $payload = [
+            $rows[] = [
+                'language_id'     => $languageId,
                 'name'            => (string) ($trans['name'] ?? ''),
                 'description'     => isset($trans['description']) && $trans['description'] !== '' ? (string) $trans['description'] : null,
                 'submit_label'    => (string) ($trans['submit_label'] ?? 'Enviar'),
                 'success_message' => isset($trans['success_message']) && $trans['success_message'] !== '' ? (string) $trans['success_message'] : null,
                 'error_message'   => isset($trans['error_message']) && $trans['error_message'] !== '' ? (string) $trans['error_message'] : null,
             ];
-
-            if ($existing !== null) {
-                $this->translationModel
-                    ->where('form_id', $formId)
-                    ->where('language_id', $languageId)
-                    ->set($payload)
-                    ->update();
-            } else {
-                $this->translationModel->insert(array_merge(['form_id' => $formId, 'language_id' => $languageId], $payload));
-            }
         }
+
+        ($this->translationSynchronizer ?? throw new \LogicException(lang('Api.translationSynchronizerRequired')))->replace(
+            $this->translationModel,
+            'form_id',
+            $formId,
+            $rows,
+            static fn (array $row): array => $row,
+        );
     }
 
     /**
@@ -691,6 +688,7 @@ class FormService
      */
     private function saveFieldTranslations(int $fieldId, array $translations): void
     {
+        $rows = [];
         foreach ($translations as $trans) {
             if (! is_array($trans)) {
                 continue;
@@ -700,16 +698,12 @@ class FormService
                 continue;
             }
 
-            $existing = $this->fieldTranslationModel
-                ->where('form_field_id', $fieldId)
-                ->where('language_id', $languageId)
-                ->first();
-
             $optionLabels = isset($trans['option_labels']) && is_array($trans['option_labels'])
                 ? $this->sanitizeOptionLabels($trans['option_labels'])
                 : [];
 
-            $payload = [
+            $rows[] = [
+                'language_id'    => $languageId,
                 'label'          => (string) ($trans['label'] ?? ''),
                 'placeholder'    => isset($trans['placeholder']) && $trans['placeholder'] !== '' ? (string) $trans['placeholder'] : null,
                 'help_text'      => isset($trans['help_text']) && $trans['help_text'] !== '' ? (string) $trans['help_text'] : null,
@@ -717,17 +711,15 @@ class FormService
                 'error_required' => isset($trans['error_required']) && $trans['error_required'] !== '' ? (string) $trans['error_required'] : null,
                 'error_invalid'  => isset($trans['error_invalid']) && $trans['error_invalid'] !== '' ? (string) $trans['error_invalid'] : null,
             ];
-
-            if ($existing !== null) {
-                $this->fieldTranslationModel
-                    ->where('form_field_id', $fieldId)
-                    ->where('language_id', $languageId)
-                    ->set($payload)
-                    ->update();
-            } else {
-                $this->fieldTranslationModel->insert(array_merge(['form_field_id' => $fieldId, 'language_id' => $languageId], $payload));
-            }
         }
+
+        ($this->translationSynchronizer ?? throw new \LogicException(lang('Api.translationSynchronizerRequired')))->replace(
+            $this->fieldTranslationModel,
+            'form_field_id',
+            $fieldId,
+            $rows,
+            static fn (array $row): array => $row,
+        );
     }
 
     /**

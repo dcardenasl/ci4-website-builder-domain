@@ -27,6 +27,8 @@ class SettingService extends BaseCrudService implements SettingServiceInterface
 
     private \App\Libraries\Cms\FileReferenceSynchronizer $fileReferenceSynchronizer;
 
+    private ?\App\Libraries\Cms\TranslationSynchronizer $translationSynchronizer;
+
     /**
      * @param RepositoryInterface<SettingEntity> $settingRepository
      */
@@ -34,11 +36,13 @@ class SettingService extends BaseCrudService implements SettingServiceInterface
         RepositoryInterface $settingRepository,
         ResponseMapperInterface $responseMapper,
         \App\Libraries\Cms\CacheInvalidationClient $cacheInvalidator,
-        \App\Libraries\Cms\FileReferenceSynchronizer $fileReferenceSynchronizer
+        \App\Libraries\Cms\FileReferenceSynchronizer $fileReferenceSynchronizer,
+        ?\App\Libraries\Cms\TranslationSynchronizer $translationSynchronizer = null
     ) {
         parent::__construct($settingRepository, $responseMapper);
         $this->cacheInvalidator = $cacheInvalidator;
         $this->fileReferenceSynchronizer = $fileReferenceSynchronizer;
+        $this->translationSynchronizer = $translationSynchronizer;
     }
 
     /** @param list<array{id: int, payload: array<string, mixed>}> $updates */
@@ -184,7 +188,7 @@ class SettingService extends BaseCrudService implements SettingServiceInterface
         /** @var \App\Models\SettingTranslationModel $translationModel */
         $translationModel = model(\App\Models\SettingTranslationModel::class);
 
-        (new \App\Libraries\Cms\TranslationSynchronizer(\Config\Database::connect()))->replace(
+        ($this->translationSynchronizer ?? throw new \LogicException(lang('Api.translationSynchronizerRequired')))->replace(
             $translationModel,
             'setting_id',
             $settingId,

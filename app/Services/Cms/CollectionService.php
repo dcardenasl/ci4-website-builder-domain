@@ -22,16 +22,20 @@ class CollectionService extends BaseCrudService implements CollectionServiceInte
 
     private \App\Libraries\Cms\CacheInvalidationClient $cacheInvalidator;
 
+    private ?\App\Libraries\Cms\TranslationSynchronizer $translationSynchronizer;
+
     /**
      * @param RepositoryInterface<CollectionEntity> $collectionRepository
      */
     public function __construct(
         RepositoryInterface $collectionRepository,
         ResponseMapperInterface $responseMapper,
-        \App\Libraries\Cms\CacheInvalidationClient $cacheInvalidator
+        \App\Libraries\Cms\CacheInvalidationClient $cacheInvalidator,
+        ?\App\Libraries\Cms\TranslationSynchronizer $translationSynchronizer = null
     ) {
         parent::__construct($collectionRepository, $responseMapper);
         $this->cacheInvalidator = $cacheInvalidator;
+        $this->translationSynchronizer = $translationSynchronizer;
     }
 
     protected function beforeStore(array $data, ?SecurityContext $context): array
@@ -161,7 +165,7 @@ class CollectionService extends BaseCrudService implements CollectionServiceInte
         /** @var \App\Models\CollectionTranslationModel $translationModel */
         $translationModel = model(\App\Models\CollectionTranslationModel::class);
 
-        (new \App\Libraries\Cms\TranslationSynchronizer(\Config\Database::connect()))->replace(
+        ($this->translationSynchronizer ?? throw new \LogicException(lang('Api.translationSynchronizerRequired')))->replace(
             $translationModel,
             'collection_id',
             $collectionId,

@@ -31,6 +31,8 @@ class BlockInstanceService extends BaseCrudService implements BlockInstanceServi
 
     private \App\Libraries\Cms\CacheInvalidationClient $cacheInvalidator;
 
+    private ?\App\Libraries\Cms\TranslationSynchronizer $translationSynchronizer;
+
     public function setOwnerContext(string $ownerType, int $ownerId): void
     {
         $this->filterOwnerType = $ownerType;
@@ -45,12 +47,14 @@ class BlockInstanceService extends BaseCrudService implements BlockInstanceServi
         ResponseMapperInterface $responseMapper,
         FileUrlResolver $fileUrlResolver,
         FileReferenceSynchronizer $fileReferenceSynchronizer,
-        \App\Libraries\Cms\CacheInvalidationClient $cacheInvalidator
+        \App\Libraries\Cms\CacheInvalidationClient $cacheInvalidator,
+        ?\App\Libraries\Cms\TranslationSynchronizer $translationSynchronizer = null
     ) {
         parent::__construct($blockInstanceRepository, $responseMapper);
         $this->fileUrlResolver = $fileUrlResolver;
         $this->fileReferenceSynchronizer = $fileReferenceSynchronizer;
         $this->cacheInvalidator = $cacheInvalidator;
+        $this->translationSynchronizer = $translationSynchronizer;
     }
 
     protected function beforeStore(array $data, ?SecurityContext $context): array
@@ -177,7 +181,7 @@ class BlockInstanceService extends BaseCrudService implements BlockInstanceServi
             ];
         }
 
-        (new \App\Libraries\Cms\TranslationSynchronizer(\Config\Database::connect()))->replace(
+        ($this->translationSynchronizer ?? throw new \LogicException(lang('Api.translationSynchronizerRequired')))->replace(
             $translationModel,
             'instance_id',
             $instanceId,

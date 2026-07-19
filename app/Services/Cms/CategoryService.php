@@ -20,6 +20,8 @@ class CategoryService extends BaseCrudService implements CategoryServiceInterfac
 
     protected \App\Libraries\Cms\TranslationResolver $translationResolver;
 
+    private ?\App\Libraries\Cms\TranslationSynchronizer $translationSynchronizer;
+
     /**
      * @param RepositoryInterface<CategoryEntity> $categoryRepository
      */
@@ -27,11 +29,13 @@ class CategoryService extends BaseCrudService implements CategoryServiceInterfac
         RepositoryInterface $categoryRepository,
         ResponseMapperInterface $responseMapper,
         \App\Libraries\Cms\TranslationResolver $translationResolver,
-        \App\Libraries\Cms\CacheInvalidationClient $cacheInvalidator
+        \App\Libraries\Cms\CacheInvalidationClient $cacheInvalidator,
+        ?\App\Libraries\Cms\TranslationSynchronizer $translationSynchronizer = null
     ) {
         parent::__construct($categoryRepository, $responseMapper);
         $this->translationResolver = $translationResolver;
         $this->cacheInvalidator    = $cacheInvalidator;
+        $this->translationSynchronizer = $translationSynchronizer;
     }
 
     protected function enrichEntities(array $entities): array
@@ -160,19 +164,19 @@ class CategoryService extends BaseCrudService implements CategoryServiceInterfac
         /** @var \App\Models\CategoryTranslationModel $translationModel */
         $translationModel = model(\App\Models\CategoryTranslationModel::class);
 
-        // Clear existing translations
-        $translationModel->where('category_id', $categoryId)->delete();
-
-        foreach ($translations as $translation) {
-            $translationModel->insert([
-                'category_id'      => $categoryId,
+        ($this->translationSynchronizer ?? throw new \LogicException(lang('Api.translationSynchronizerRequired')))->replace(
+            $translationModel,
+            'category_id',
+            $categoryId,
+            $translations,
+            static fn (array $translation): array => [
                 'language_id'      => (int) $translation['language_id'],
                 'slug'             => $translation['slug'],
                 'name'             => $translation['name'],
                 'description'      => $translation['description'] ?? null,
                 'meta_title'       => $translation['meta_title'] ?? null,
                 'meta_description' => $translation['meta_description'] ?? null,
-            ]);
-        }
+            ],
+        );
     }
 }

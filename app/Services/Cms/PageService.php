@@ -30,6 +30,8 @@ class PageService extends BaseCrudService implements PageServiceInterface
 
     private FileReferenceSynchronizer $fileReferenceSynchronizer;
 
+    private ?\App\Libraries\Cms\TranslationSynchronizer $translationSynchronizer;
+
     /**
      * @param RepositoryInterface<PageEntity> $pageRepository
      */
@@ -39,13 +41,15 @@ class PageService extends BaseCrudService implements PageServiceInterface
         \App\Libraries\Cms\SlugRedirectRecorder $slugRedirectRecorder,
         \App\Libraries\Cms\CacheInvalidationClient $cacheInvalidator,
         FileUrlResolver $fileUrlResolver,
-        FileReferenceSynchronizer $fileReferenceSynchronizer
+        FileReferenceSynchronizer $fileReferenceSynchronizer,
+        ?\App\Libraries\Cms\TranslationSynchronizer $translationSynchronizer = null
     ) {
         parent::__construct($pageRepository, $responseMapper);
         $this->slugRedirectRecorder = $slugRedirectRecorder;
         $this->cacheInvalidator     = $cacheInvalidator;
         $this->fileUrlResolver      = $fileUrlResolver;
         $this->fileReferenceSynchronizer = $fileReferenceSynchronizer;
+        $this->translationSynchronizer = $translationSynchronizer;
     }
 
     protected function beforeStore(array $data, ?SecurityContext $context): array
@@ -208,8 +212,7 @@ class PageService extends BaseCrudService implements PageServiceInterface
             }
         }
 
-        $translationModel->where('page_id', $pageId)->delete();
-
+        $rows = [];
         foreach ($translations as $translation) {
             $langId = (int) $translation['language_id'];
             $newSlug = (string) $translation['slug'];
@@ -220,8 +223,7 @@ class PageService extends BaseCrudService implements PageServiceInterface
                 $this->slugRedirectRecorder->record('page', $pageId, $langId, $currentSlugs[$langId], $newSlug, $oldFullPath);
             }
 
-            $translationModel->insert([
-                'page_id'          => $pageId,
+            $rows[] = [
                 'language_id'      => $langId,
                 'slug'             => $newSlug,
                 'title'            => $translation['title'],
@@ -234,8 +236,16 @@ class PageService extends BaseCrudService implements PageServiceInterface
                 'canonical_url'    => $translation['canonical_url'] ?? null,
                 'robots'           => $translation['robots'] ?? null,
                 'schema_data'      => isset($translation['schema_data']) ? json_encode($translation['schema_data']) : null,
-            ]);
+            ];
         }
+
+        ($this->translationSynchronizer ?? throw new \LogicException(lang('Api.translationSynchronizerRequired')))->replace(
+            $translationModel,
+            'page_id',
+            $pageId,
+            $rows,
+            static fn (array $row): array => $row,
+        );
     }
 
     public function createVersionSnapshot(int $pageId, string $note = ''): void

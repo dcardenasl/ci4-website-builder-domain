@@ -44,6 +44,8 @@ class EntryService extends BaseCrudService implements EntryServiceInterface
 
     private \App\Libraries\Cms\TranslationResolver $translationResolver;
 
+    private ?\App\Libraries\Cms\TranslationSynchronizer $translationSynchronizer;
+
     /**
      * @param RepositoryInterface<EntryEntity> $entryRepository
      */
@@ -56,7 +58,8 @@ class EntryService extends BaseCrudService implements EntryServiceInterface
         FileReferenceSynchronizer $fileReferenceSynchronizer,
         \App\Libraries\Cms\TranslationResolver $translationResolver,
         PublicEntryReader $publicReader,
-        ?EntryBlockTemplateInitializer $blockTemplateInitializer = null
+        ?EntryBlockTemplateInitializer $blockTemplateInitializer = null,
+        ?\App\Libraries\Cms\TranslationSynchronizer $translationSynchronizer = null
     ) {
         parent::__construct($entryRepository, $responseMapper);
         $this->slugRedirectRecorder = $slugRedirectRecorder;
@@ -66,6 +69,7 @@ class EntryService extends BaseCrudService implements EntryServiceInterface
         $this->translationResolver = $translationResolver;
         $this->publicReader = $publicReader;
         $this->blockTemplateInitializer = $blockTemplateInitializer ?? new EntryBlockTemplateInitializer();
+        $this->translationSynchronizer = $translationSynchronizer;
     }
 
     protected function beforeStore(array $data, ?SecurityContext $context): array
@@ -400,8 +404,6 @@ class EntryService extends BaseCrudService implements EntryServiceInterface
             }
         }
 
-        $translationModel->where('entry_id', $entryId)->delete();
-
         // Record slug redirects before batch-inserting new translations
         if (!empty($currentSlugs)) {
             $entryModel      = model(\App\Models\EntryModel::class);
@@ -473,9 +475,13 @@ class EntryService extends BaseCrudService implements EntryServiceInterface
                 'schema_data'      => isset($translation['schema_data']) ? json_encode($translation['schema_data']) : null,
             ];
         }
-        if (!empty($rows)) {
-            $translationModel->insertBatch($rows);
-        }
+        ($this->translationSynchronizer ?? throw new \LogicException(lang('Api.translationSynchronizerRequired')))->replace(
+            $translationModel,
+            'entry_id',
+            $entryId,
+            $rows,
+            static fn (array $row): array => $row,
+        );
     }
 
     public function syncCategories(

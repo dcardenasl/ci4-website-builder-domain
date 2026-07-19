@@ -29,4 +29,5 @@ return [
     'responseDtoMustImplement' => 'Class {0} must implement DataTransferObjectInterface.',
     'fieldRequired' => 'The field {0} is required.',
     'invalidTranslation' => 'Invalid language_id or duplicate translation entry.',
+    'translationSynchronizerRequired' => 'Translation persistence is not configured.',
 ];

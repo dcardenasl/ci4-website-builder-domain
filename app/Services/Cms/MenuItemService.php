@@ -26,6 +26,8 @@ class MenuItemService extends BaseCrudService implements MenuItemServiceInterfac
 
     private \App\Libraries\Cms\SlugRouter $slugRouter;
 
+    private ?\App\Libraries\Cms\TranslationSynchronizer $translationSynchronizer;
+
     /**
      * @param RepositoryInterface<MenuItemEntity> $menuItemRepository
      */
@@ -34,12 +36,14 @@ class MenuItemService extends BaseCrudService implements MenuItemServiceInterfac
         ResponseMapperInterface $responseMapper,
         \App\Libraries\Cms\CacheInvalidationClient $cacheInvalidator,
         \App\Libraries\Cms\TranslationResolver $translationResolver,
-        \App\Libraries\Cms\SlugRouter $slugRouter
+        \App\Libraries\Cms\SlugRouter $slugRouter,
+        ?\App\Libraries\Cms\TranslationSynchronizer $translationSynchronizer = null
     ) {
         parent::__construct($menuItemRepository, $responseMapper);
         $this->cacheInvalidator = $cacheInvalidator;
         $this->translationResolver = $translationResolver;
         $this->slugRouter = $slugRouter;
+        $this->translationSynchronizer = $translationSynchronizer;
     }
 
     protected function beforeStore(array $data, ?SecurityContext $context): array
@@ -150,7 +154,7 @@ class MenuItemService extends BaseCrudService implements MenuItemServiceInterfac
         /** @var \App\Models\MenuItemTranslationModel $translationModel */
         $translationModel = model(\App\Models\MenuItemTranslationModel::class);
 
-        (new \App\Libraries\Cms\TranslationSynchronizer(\Config\Database::connect()))->replace(
+        ($this->translationSynchronizer ?? throw new \LogicException(lang('Api.translationSynchronizerRequired')))->replace(
             $translationModel,
             'menu_item_id',
             $menuItemId,

@@ -50,7 +50,8 @@ trait CmsDomainServices
             new \dcardenasl\Ci4ApiCore\Repositories\GenericRepository(model(\App\Models\SettingModel::class)),
             static::settingResponseMapper(),
             static::cacheInvalidationClient(),
-            static::fileReferenceSynchronizer()
+            static::fileReferenceSynchronizer(),
+            static::translationSynchronizer()
         );
     }
 
@@ -161,7 +162,8 @@ trait CmsDomainServices
             static::slugRedirectRecorder(),
             static::cacheInvalidationClient(),
             static::fileUrlResolver(),
-            static::fileReferenceSynchronizer()
+            static::fileReferenceSynchronizer(),
+            static::translationSynchronizer()
         );
     }
 
@@ -185,7 +187,7 @@ trait CmsDomainServices
         if ($getShared) {
             return static::getSharedInstance('menuService');
         }
-        return new \App\Services\Cms\MenuService(new \dcardenasl\Ci4ApiCore\Repositories\GenericRepository(model(\App\Models\MenuModel::class)), static::menuResponseMapper(), static::cacheInvalidationClient());
+        return new \App\Services\Cms\MenuService(new \dcardenasl\Ci4ApiCore\Repositories\GenericRepository(model(\App\Models\MenuModel::class)), static::menuResponseMapper(), static::cacheInvalidationClient(), static::translationSynchronizer());
     }
     public static function menuItemResponseMapper(bool $getShared = true): \dcardenasl\Ci4ApiCore\Mappers\ResponseMapperInterface
     {
@@ -199,7 +201,7 @@ trait CmsDomainServices
         if ($getShared) {
             return static::getSharedInstance('menuItemService');
         }
-        return new \App\Services\Cms\MenuItemService(new \dcardenasl\Ci4ApiCore\Repositories\GenericRepository(model(\App\Models\MenuItemModel::class)), static::menuItemResponseMapper(), static::cacheInvalidationClient(), static::translationResolver(), static::slugRouter());
+        return new \App\Services\Cms\MenuItemService(new \dcardenasl\Ci4ApiCore\Repositories\GenericRepository(model(\App\Models\MenuItemModel::class)), static::menuItemResponseMapper(), static::cacheInvalidationClient(), static::translationResolver(), static::slugRouter(), static::translationSynchronizer());
     }
     public static function blockTypeResponseMapper(bool $getShared = true): \dcardenasl\Ci4ApiCore\Mappers\ResponseMapperInterface
     {
@@ -244,7 +246,8 @@ trait CmsDomainServices
             static::blockInstanceResponseMapper(),
             static::fileUrlResolver(),
             static::fileReferenceSynchronizer(),
-            static::cacheInvalidationClient()
+            static::cacheInvalidationClient(),
+            static::translationSynchronizer()
         );
     }
     public static function collectionResponseMapper(bool $getShared = true): \dcardenasl\Ci4ApiCore\Mappers\ResponseMapperInterface
@@ -259,7 +262,7 @@ trait CmsDomainServices
         if ($getShared) {
             return static::getSharedInstance('collectionService');
         }
-        return new \App\Services\Cms\CollectionService(new \dcardenasl\Ci4ApiCore\Repositories\GenericRepository(model(\App\Models\CollectionModel::class)), static::collectionResponseMapper(), static::cacheInvalidationClient());
+        return new \App\Services\Cms\CollectionService(new \dcardenasl\Ci4ApiCore\Repositories\GenericRepository(model(\App\Models\CollectionModel::class)), static::collectionResponseMapper(), static::cacheInvalidationClient(), static::translationSynchronizer());
     }
     public static function entryResponseMapper(bool $getShared = true): \dcardenasl\Ci4ApiCore\Mappers\ResponseMapperInterface
     {
@@ -281,7 +284,9 @@ trait CmsDomainServices
             static::fileUrlResolver(),
             static::fileReferenceSynchronizer(),
             static::translationResolver(),
-            static::publicEntryReader()
+            static::publicEntryReader(),
+            null,
+            static::translationSynchronizer()
         );
     }
     public static function categoryResponseMapper(bool $getShared = true): \dcardenasl\Ci4ApiCore\Mappers\ResponseMapperInterface
@@ -300,7 +305,8 @@ trait CmsDomainServices
             new \dcardenasl\Ci4ApiCore\Repositories\GenericRepository(model(\App\Models\CategoryModel::class)),
             static::categoryResponseMapper(),
             static::translationResolver(),
-            static::cacheInvalidationClient()
+            static::cacheInvalidationClient(),
+            static::translationSynchronizer()
         );
     }
     public static function tagResponseMapper(bool $getShared = true): \dcardenasl\Ci4ApiCore\Mappers\ResponseMapperInterface
@@ -315,7 +321,7 @@ trait CmsDomainServices
         if ($getShared) {
             return static::getSharedInstance('tagService');
         }
-        return new \App\Services\Cms\TagService(new \dcardenasl\Ci4ApiCore\Repositories\GenericRepository(model(\App\Models\TagModel::class)), static::tagResponseMapper(), static::cacheInvalidationClient(), static::translationResolver());
+        return new \App\Services\Cms\TagService(new \dcardenasl\Ci4ApiCore\Repositories\GenericRepository(model(\App\Models\TagModel::class)), static::tagResponseMapper(), static::cacheInvalidationClient(), static::translationResolver(), static::translationSynchronizer());
     }
     public static function redirectResponseMapper(bool $getShared = true): \dcardenasl\Ci4ApiCore\Mappers\ResponseMapperInterface
     {
@@ -378,6 +384,15 @@ trait CmsDomainServices
         );
     }
 
+    public static function translationSynchronizer(bool $getShared = true): \App\Libraries\Cms\TranslationSynchronizer
+    {
+        if ($getShared) {
+            return static::getSharedInstance('translationSynchronizer');
+        }
+
+        return new \App\Libraries\Cms\TranslationSynchronizer(\Config\Database::connect());
+    }
+
     public static function cacheInvalidationClient(bool $getShared = true): \App\Libraries\Cms\CacheInvalidationClient
     {
         if ($getShared) {
@@ -400,6 +415,7 @@ trait CmsDomainServices
             model(\App\Models\FormFieldTranslationModel::class),
             static::cacheInvalidationClient(),
             \Config\Database::connect(),
+            static::translationSynchronizer(),
         );
     }
 

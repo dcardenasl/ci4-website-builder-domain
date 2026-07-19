@@ -20,6 +20,8 @@ class TagService extends BaseCrudService implements TagServiceInterface
 
     private \App\Libraries\Cms\TranslationResolver $translationResolver;
 
+    private ?\App\Libraries\Cms\TranslationSynchronizer $translationSynchronizer;
+
     /**
      * @param RepositoryInterface<TagEntity> $tagRepository
      */
@@ -27,11 +29,13 @@ class TagService extends BaseCrudService implements TagServiceInterface
         RepositoryInterface $tagRepository,
         ResponseMapperInterface $responseMapper,
         \App\Libraries\Cms\CacheInvalidationClient $cacheInvalidator,
-        \App\Libraries\Cms\TranslationResolver $translationResolver
+        \App\Libraries\Cms\TranslationResolver $translationResolver,
+        ?\App\Libraries\Cms\TranslationSynchronizer $translationSynchronizer = null
     ) {
         parent::__construct($tagRepository, $responseMapper);
         $this->cacheInvalidator = $cacheInvalidator;
         $this->translationResolver = $translationResolver;
+        $this->translationSynchronizer = $translationSynchronizer;
     }
 
     protected function enrichEntities(array $entities): array
@@ -121,16 +125,16 @@ class TagService extends BaseCrudService implements TagServiceInterface
         /** @var \App\Models\TagTranslationModel $translationModel */
         $translationModel = model(\App\Models\TagTranslationModel::class);
 
-        // Clear existing translations
-        $translationModel->where('tag_id', $tagId)->delete();
-
-        foreach ($translations as $translation) {
-            $translationModel->insert([
-                'tag_id'      => $tagId,
+        ($this->translationSynchronizer ?? throw new \LogicException(lang('Api.translationSynchronizerRequired')))->replace(
+            $translationModel,
+            'tag_id',
+            $tagId,
+            $translations,
+            static fn (array $translation): array => [
                 'language_id' => (int) $translation['language_id'],
                 'slug'        => $translation['slug'],
                 'name'        => $translation['name'],
-            ]);
-        }
+            ],
+        );
     }
 }

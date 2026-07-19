@@ -22,16 +22,20 @@ class MenuService extends BaseCrudService implements MenuServiceInterface
 
     private \App\Libraries\Cms\CacheInvalidationClient $cacheInvalidator;
 
+    private ?\App\Libraries\Cms\TranslationSynchronizer $translationSynchronizer;
+
     /**
      * @param RepositoryInterface<MenuEntity> $menuRepository
      */
     public function __construct(
         RepositoryInterface $menuRepository,
         ResponseMapperInterface $responseMapper,
-        \App\Libraries\Cms\CacheInvalidationClient $cacheInvalidator
+        \App\Libraries\Cms\CacheInvalidationClient $cacheInvalidator,
+        ?\App\Libraries\Cms\TranslationSynchronizer $translationSynchronizer = null
     ) {
         parent::__construct($menuRepository, $responseMapper);
         $this->cacheInvalidator = $cacheInvalidator;
+        $this->translationSynchronizer = $translationSynchronizer;
     }
 
     protected function beforeStore(array $data, ?SecurityContext $context): array
@@ -124,7 +128,7 @@ class MenuService extends BaseCrudService implements MenuServiceInterface
         /** @var \App\Models\MenuTranslationModel $translationModel */
         $translationModel = model(\App\Models\MenuTranslationModel::class);
 
-        (new \App\Libraries\Cms\TranslationSynchronizer(\Config\Database::connect()))->replace(
+        ($this->translationSynchronizer ?? throw new \LogicException(lang('Api.translationSynchronizerRequired')))->replace(
             $translationModel,
             'menu_id',
             $menuId,
