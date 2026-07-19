@@ -47,8 +47,31 @@ trait ApiCoreServices
             return static::getSharedInstance('queueManager');
         }
 
+        return static::queueManagerForDriver((string) config('Queue')->driver);
+    }
+
+    public static function auditQueueManager(bool $getShared = true): QueueManagerInterface
+    {
+        if ($getShared) {
+            return static::getSharedInstance('auditQueueManager');
+        }
+
+        return static::queueManagerForDriver((string) env('AUDIT_QUEUE_DRIVER', config('Queue')->driver));
+    }
+
+    public static function cacheQueueManager(bool $getShared = true): QueueManagerInterface
+    {
+        if ($getShared) {
+            return static::getSharedInstance('cacheQueueManager');
+        }
+
+        return static::queueManagerForDriver((string) env('CACHE_QUEUE_DRIVER', config('Queue')->driver));
+    }
+
+    private static function queueManagerForDriver(string $driver): QueueManagerInterface
+    {
         $queueConfig = config('Queue');
-        $driver = strtolower(trim((string) $queueConfig->driver));
+        $driver = strtolower(trim($driver));
 
         return match ($driver) {
             'sync' => new \dcardenasl\Ci4ApiCore\Queue\SyncQueueManager(true),

@@ -412,7 +412,7 @@ trait CmsDomainServices
         }
 
         return new \App\Libraries\Cms\CacheInvalidationClient(
-            queueManager: static::queueManager(),
+            queueManager: static::cacheQueueManager(),
             queueName: config('Queue')->defaultQueue,
         );
     }
