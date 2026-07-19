@@ -7,6 +7,7 @@ namespace Tests\Feature\Controllers\Cms;
 use CodeIgniter\Test\CIUnitTestCase;
 use CodeIgniter\Test\DatabaseTestTrait;
 use CodeIgniter\Test\FeatureTestTrait;
+use Tests\Support\Fixtures\CmsFixtureFactory;
 
 /**
  * @internal
@@ -21,9 +22,13 @@ final class PublicCollectionControllerTest extends CIUnitTestCase
     protected $refresh     = true;
     protected $namespace   = 'App';
 
-    private int $langEsId;
-    private int $langEnId;
-    private int $collectionId;
+    private CmsFixtureFactory $fixtures;
+
+    /** @var list<array{id:int,code:string,name:string,is_default:bool}> */
+    private array $languages;
+
+    /** @var array{id:int,key:string,translations:list<array<string,mixed>>} */
+    private array $collection;
 
     protected function setUp(): void
     {
@@ -35,85 +40,62 @@ final class PublicCollectionControllerTest extends CIUnitTestCase
         $this->db->query("DELETE FROM `cms_languages`");
         $this->db->enableForeignKeyChecks();
 
-        // Seed language
-        $this->db->table('cms_languages')->insert([
-            'code'       => 'es',
-            'name'       => 'Spanish',
-            'is_default' => 1,
-            'is_active'  => 1,
-        ]);
-        $this->langEsId = $this->db->insertID();
-
-        $this->db->table('cms_languages')->insert([
-            'code'       => 'en',
-            'name'       => 'English',
-            'is_default' => 0,
-            'is_active'  => 1,
-        ]);
-        $this->langEnId = $this->db->insertID();
-
-        // Seed collection
-        $this->db->table('cms_collections')->insert([
-            'collection_key'      => 'blog',
-            'is_active'           => 1,
-            'requires_approval'   => 0,
-            'enables_categories'  => 1,
-            'enables_tags'        => 1,
-            'sort_order'          => 1,
-        ]);
-        $this->collectionId = $this->db->insertID();
-
-        $this->db->table('cms_collection_translations')->insert([
-            'collection_id' => $this->collectionId,
-            'language_id'   => $this->langEsId,
-            'slug'          => 'blog',
-            'name'          => 'Mi Blog',
-            'description'   => 'El blog principal de noticias.',
-        ]);
-
-        $this->db->table('cms_collection_translations')->insert([
-            'collection_id' => $this->collectionId,
-            'language_id'   => $this->langEnId,
-            'slug'          => 'news',
-            'name'          => 'My Blog',
-            'description'   => 'The main news blog.',
+        $this->fixtures = new CmsFixtureFactory($this->db, self::class);
+        $this->languages = $this->fixtures->languages(2);
+        $this->collection = $this->fixtures->collection([
+            [
+                'language_id' => $this->languages[0]['id'],
+                'slug' => $this->fixtures->slug('collection', $this->languages[0]['code']),
+                'name' => $this->fixtures->text('collection-name', $this->languages[0]['code']),
+                'description' => $this->fixtures->text('collection-description', $this->languages[0]['code']),
+            ],
+            [
+                'language_id' => $this->languages[1]['id'],
+                'slug' => $this->fixtures->slug('collection', $this->languages[1]['code']),
+                'name' => $this->fixtures->text('collection-name', $this->languages[1]['code']),
+                'description' => $this->fixtures->text('collection-description', $this->languages[1]['code']),
+            ],
         ]);
     }
 
     public function testGetPublicCollectionsSuccess(): void
     {
-        $result = $this->get('/api/v1/public/es/collections');
+        $result = $this->get('/api/v1/public/' . $this->languages[0]['code'] . '/collections');
 
         $result->assertStatus(200);
         $body = json_decode($result->getJSON(), true);
+        $primary = $this->collection['translations'][0];
+        $secondary = $this->collection['translations'][1];
 
         $this->assertSame('success', $body['status']);
         $this->assertCount(1, $body['data']);
-        $this->assertSame('blog', $body['data'][0]['collection_key']);
-        $this->assertSame('blog', $body['data'][0]['slug']);
-        $this->assertSame('Mi Blog', $body['data'][0]['name']);
-        $this->assertSame('El blog principal de noticias.', $body['data'][0]['description']);
-        $this->assertSame('blog', $body['data'][0]['localized_slugs']['es']);
-        $this->assertSame('news', $body['data'][0]['localized_slugs']['en']);
+        $this->assertSame($this->collection['key'], $body['data'][0]['collection_key']);
+        $this->assertSame($primary['slug'], $body['data'][0]['slug']);
+        $this->assertSame($primary['name'], $body['data'][0]['name']);
+        $this->assertSame($primary['description'], $body['data'][0]['description']);
+        $this->assertSame($primary['slug'], $body['data'][0]['localized_slugs'][$this->languages[0]['code']]);
+        $this->assertSame($secondary['slug'], $body['data'][0]['localized_slugs'][$this->languages[1]['code']]);
         $this->assertArrayNotHasKey('url_prefix', $body['data'][0]);
     }
 
     public function testGetPublicCollectionsFallsBackToNameWhenListingTitleIsEmpty(): void
     {
+        $fallbackName = $this->fixtures->text('fallback-name');
+
         $this->db->table('cms_collection_translations')
-            ->where('collection_id', $this->collectionId)
-            ->where('language_id', $this->langEsId)
+            ->where('collection_id', $this->collection['id'])
+            ->where('language_id', $this->languages[0]['id'])
             ->update([
-                'slug'          => 'festivales',
-                'name'          => 'Festivales',
+                'slug' => $this->fixtures->slug('fallback-slug'),
+                'name' => $fallbackName,
                 'listing_title' => '',
             ]);
 
-        $result = $this->get('/api/v1/public/es/collections');
+        $result = $this->get('/api/v1/public/' . $this->languages[0]['code'] . '/collections');
 
         $result->assertStatus(200);
         $body = json_decode($result->getJSON(), true);
 
-        $this->assertSame('Festivales', $body['data'][0]['listing_title']);
+        $this->assertSame($fallbackName, $body['data'][0]['listing_title']);
     }
 }

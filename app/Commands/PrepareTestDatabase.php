@@ -31,7 +31,7 @@ class PrepareTestDatabase extends BaseCommand
         $isSqlite = strtolower($db->DBDriver) === 'sqlite3';
         $this->dropAllTables($db);
 
-        if ($isSqlite) {
+        if ($isSqlite || in_array(strtolower($db->DBDriver), ['mysqli', 'mysql'], true)) {
             $db->close();
             $db = $this->connectToTestsDatabase();
             if ($db === null) {

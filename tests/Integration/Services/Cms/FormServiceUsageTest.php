@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace Tests\Integration\Services\Cms;
 
-use App\Database\Seeds\CmsLanguageSeeder;
 use CodeIgniter\Test\CIUnitTestCase;
 use CodeIgniter\Test\DatabaseTestTrait;
 use Config\Database;
@@ -27,8 +26,7 @@ final class FormServiceUsageTest extends CIUnitTestCase
     {
         parent::setUp();
 
-        $seeder = Database::seeder();
-        $seeder->call(CmsLanguageSeeder::class);
+        $this->insertFixtureLanguages();
     }
 
     protected function tearDown(): void
@@ -42,10 +40,9 @@ final class FormServiceUsageTest extends CIUnitTestCase
         $db = Database::connect();
         $this->resetTables();
 
-        $languageIdEs = (int) ($db->table('cms_languages')->where('code', 'es')->get()->getRowArray()['id'] ?? 0);
-        $languageIdEn = (int) ($db->table('cms_languages')->where('code', 'en')->get()->getRowArray()['id'] ?? 0);
-        $this->assertGreaterThan(0, $languageIdEs);
-        $this->assertGreaterThan(0, $languageIdEn);
+        $languages = $db->table('cms_languages')->orderBy('sort_order', 'ASC')->get()->getResultArray();
+        $languageIdEs = (int) $languages[0]['id'];
+        $languageIdEn = (int) $languages[1]['id'];
 
         $db->table('cms_forms')->insert([
             'id' => 77,
@@ -181,7 +178,7 @@ final class FormServiceUsageTest extends CIUnitTestCase
             ],
         ], $usages);
 
-        $dto = $service->get(77, 'es')->toArray();
+        $dto = $service->get(77, (string) $languages[0]['code'])->toArray();
         $this->assertCount(2, $dto['usages']);
     }
 
@@ -190,8 +187,7 @@ final class FormServiceUsageTest extends CIUnitTestCase
         $db = Database::connect();
         $this->resetTables();
 
-        $languageIdEs = (int) ($db->table('cms_languages')->where('code', 'es')->get()->getRowArray()['id'] ?? 0);
-        $this->assertGreaterThan(0, $languageIdEs);
+        $languageIdEs = (int) ($db->table('cms_languages')->orderBy('sort_order', 'ASC')->get()->getRowArray()['id'] ?? 0);
 
         $db->table('cms_forms')->insert([
             'id' => 78,
@@ -283,7 +279,25 @@ final class FormServiceUsageTest extends CIUnitTestCase
         $db->query('DELETE FROM `cms_languages`');
         $db->query('SET FOREIGN_KEY_CHECKS = 1');
 
-        $seeder = Database::seeder();
-        $seeder->call(CmsLanguageSeeder::class);
+        $this->insertFixtureLanguages();
+    }
+
+    private function insertFixtureLanguages(): void
+    {
+        $db = Database::connect();
+        if ((int) $db->table('cms_languages')->countAllResults() > 0) {
+            return;
+        }
+
+        foreach (['l01', 'l02', 'l03'] as $position => $code) {
+            $db->table('cms_languages')->insert([
+                'code' => $code,
+                'name' => 'Fixture Language ' . ($position + 1),
+                'native_name' => 'Fixture Language ' . ($position + 1),
+                'is_default' => $position === 0 ? 1 : 0,
+                'is_active' => 1,
+                'sort_order' => $position,
+            ]);
+        }
     }
 }

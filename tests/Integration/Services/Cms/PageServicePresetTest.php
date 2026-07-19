@@ -4,8 +4,6 @@ declare(strict_types=1);
 
 namespace Tests\Integration\Services\Cms;
 
-use App\Database\Seeds\CmsBlockTypeSeeder;
-use App\Database\Seeds\CmsLanguageSeeder;
 use CodeIgniter\Test\CIUnitTestCase;
 use CodeIgniter\Test\DatabaseTestTrait;
 use Config\Services;
@@ -27,8 +25,16 @@ final class PageServicePresetTest extends CIUnitTestCase
     {
         parent::setUp();
 
-        $seeder = \Config\Database::seeder();
-        $seeder->call(\App\Database\Seeds\CmsLanguageSeeder::class);
+        if ((int) $this->db->table('cms_languages')->countAllResults() === 0) {
+            $this->db->table('cms_languages')->insert([
+                'code' => 'l01',
+                'name' => 'Fixture Language',
+                'native_name' => 'Fixture Language',
+                'is_default' => 1,
+                'is_active' => 1,
+                'sort_order' => 0,
+            ]);
+        }
     }
 
     protected function tearDown(): void
@@ -49,10 +55,15 @@ final class PageServicePresetTest extends CIUnitTestCase
         $db->query("DELETE FROM `cms_languages`");
         $db->enableForeignKeyChecks();
 
-        (new CmsLanguageSeeder(config('Database'), $db))->run();
-        (new CmsBlockTypeSeeder(config('Database'), $db))->run();
-
-        $languageId = (int) ($db->table('cms_languages')->where('code', 'es')->get()->getRowArray()['id'] ?? 0);
+        $db->table('cms_languages')->insert([
+            'code' => 'l01',
+            'name' => 'Fixture Language',
+            'native_name' => 'Fixture Language',
+            'is_default' => 1,
+            'is_active' => 1,
+            'sort_order' => 0,
+        ]);
+        $languageId = (int) $db->insertID();
         $this->assertGreaterThan(0, $languageId);
 
         $service = Services::pageService(false);

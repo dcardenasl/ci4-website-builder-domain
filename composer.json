@@ -59,6 +59,15 @@
             "@test:prepare-db",
             "phpunit --testsuite=Feature --configuration=phpunit.xml --no-coverage --testdox"
         ],
+        "test:dynamic": [
+            "@test:prepare-db",
+            "phpunit --testsuite=Unit --testsuite=Architecture --testsuite=Integration --testsuite=Feature --configuration=phpunit.xml --no-coverage --testdox"
+        ],
+        "test:seed-contracts": [
+            "@test:prepare-db",
+            "phpunit --testsuite=SeederContracts --configuration=phpunit.xml --no-coverage --testdox"
+        ],
+        "test:fixture-policy": "php scripts/check-test-fixture-policy.php",
         "test": [
             "@test:prepare-db",
             "phpunit --configuration=phpunit.xml --no-coverage --testdox"
@@ -87,6 +96,7 @@
             "@arch-drift",
             "@i18n-check",
             "@docs-i18n-check",
+            "@test:fixture-policy",
             "@test"
         ],
         "format": "@cs-fix",

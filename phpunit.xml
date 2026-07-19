@@ -17,9 +17,13 @@
         </testsuite>
         <testsuite name="Integration">
             <directory>tests/Integration</directory>
+            <exclude>tests/Integration/Database/Seeds</exclude>
         </testsuite>
         <testsuite name="Feature">
             <directory>tests/Feature</directory>
+        </testsuite>
+        <testsuite name="SeederContracts">
+            <directory>tests/Integration/Database/Seeds</directory>
         </testsuite>
     </testsuites>
 

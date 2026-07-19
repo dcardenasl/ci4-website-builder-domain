@@ -22,12 +22,26 @@ final class CollectionServicePresetTest extends CIUnitTestCase
     protected $refresh     = false;
     protected $namespace   = 'App';
 
+    private int $languageId;
+
     protected function setUp(): void
     {
         parent::setUp();
 
-        $seeder = \Config\Database::seeder();
-        $seeder->call(\App\Database\Seeds\CmsLanguageSeeder::class);
+        $db = $this->db;
+        $existing = $db->table('cms_languages')->where('code', 'l01')->get()->getRowArray();
+        if ($existing === null) {
+            $db->table('cms_languages')->insert([
+                'code' => 'l01',
+                'name' => 'Fixture Language',
+                'native_name' => 'Fixture Language',
+                'is_default' => 1,
+                'is_active' => 1,
+                'sort_order' => 0,
+            ]);
+            $existing = $db->table('cms_languages')->where('code', 'l01')->get()->getRowArray();
+        }
+        $this->languageId = (int) $existing['id'];
     }
 
     protected function tearDown(): void
@@ -153,7 +167,7 @@ final class CollectionServicePresetTest extends CIUnitTestCase
                 'sort_order' => 5,
                 'translations' => [
                     [
-                        'language_id' => 1,
+                        'language_id' => $this->languageId,
                         'slug' => 'blog-qa-service',
                         'name' => 'Blog QA Service',
                         'description' => '',
@@ -192,7 +206,7 @@ final class CollectionServicePresetTest extends CIUnitTestCase
                 'sort_order' => 0,
                 'translations' => [
                     [
-                        'language_id' => 1,
+                        'language_id' => $this->languageId,
                         'slug' => 'blog-qa-minimal',
                         'name' => 'Blog QA Minimal',
                         'description' => '',

@@ -7,6 +7,7 @@ namespace Tests\Feature\Controllers\Cms;
 use CodeIgniter\Test\CIUnitTestCase;
 use CodeIgniter\Test\DatabaseTestTrait;
 use CodeIgniter\Test\FeatureTestTrait;
+use Tests\Support\Fixtures\CmsFixtureFactory;
 
 /**
  * @internal
@@ -21,8 +22,18 @@ final class PublicEntryControllerTest extends CIUnitTestCase
     protected $refresh     = true;
     protected $namespace   = 'App';
 
+    private CmsFixtureFactory $fixtures;
+
+    /** @var list<array{id:int,code:string,name:string,is_default:bool}> */
+    private array $languages;
+
+    /** @var array{id:int,key:string,translations:list<array<string,mixed>>} */
+    private array $collection;
+
     private int $langEsId;
+
     private int $langEnId;
+
     private int $collectionId;
 
     protected function setUp(): void
@@ -43,34 +54,23 @@ final class PublicEntryControllerTest extends CIUnitTestCase
             );
         }
 
-        // Seed default language first so the test mirrors the live Spanish site.
-        $this->db->table('cms_languages')->insert([
-            'code'       => 'es',
-            'name'       => 'Spanish',
-            'is_default' => 1,
-            'is_active'  => 1,
+        $this->fixtures = new CmsFixtureFactory($this->db, self::class);
+        $this->languages = $this->fixtures->languages(3);
+        $this->collection = $this->fixtures->collection([
+            [
+                'language_id' => $this->languages[0]['id'],
+                'slug' => $this->fixtures->slug('collection', $this->languages[0]['code']),
+                'name' => $this->fixtures->text('collection-name', $this->languages[0]['code']),
+            ],
+            [
+                'language_id' => $this->languages[1]['id'],
+                'slug' => $this->fixtures->slug('collection', $this->languages[1]['code']),
+                'name' => $this->fixtures->text('collection-name', $this->languages[1]['code']),
+            ],
         ]);
-        $this->langEsId = $this->db->insertID();
-
-        // Seed secondary language
-        $this->db->table('cms_languages')->insert([
-            'code'       => 'en',
-            'name'       => 'English',
-            'is_default' => 0,
-            'is_active'  => 1,
-        ]);
-        $this->langEnId = $this->db->insertID();
-
-        // Seed collection
-        $this->db->table('cms_collections')->insert([
-            'collection_key' => 'blog',
-            'is_active' => 1,
-            'requires_approval' => 0,
-            'enables_categories' => 1,
-            'enables_tags' => 1,
-            'created_at' => date('Y-m-d H:i:s'),
-        ]);
-        $this->collectionId = $this->db->insertID();
+        $this->langEsId = $this->languages[0]['id'];
+        $this->langEnId = $this->languages[1]['id'];
+        $this->collectionId = $this->collection['id'];
     }
 
     public function testGetPublicEntriesSuccess(): void
@@ -94,7 +94,7 @@ final class PublicEntryControllerTest extends CIUnitTestCase
             'featured_image_url' => 'http://localhost:8180/uploads/posts/primer-post.png',
         ]);
 
-        $result = $this->get('/api/v1/public/es/entries/blog');
+        $result = $this->get($this->entryPath());
 
         $result->assertStatus(200);
 
@@ -126,7 +126,7 @@ final class PublicEntryControllerTest extends CIUnitTestCase
             'featured_image_url' => 'http://localhost:8180/uploads/posts/primer-post.png',
         ]);
 
-        $result = $this->get('/api/v1/public/es/entries/blog/primer-post');
+        $result = $this->get($this->entryPath('/primer-post'));
 
         $result->assertStatus(200);
 
@@ -167,7 +167,7 @@ final class PublicEntryControllerTest extends CIUnitTestCase
             'featured_image_url' => 'http://localhost:8180/uploads/festival-en.png',
         ]);
 
-        $result = $this->get('/api/v1/public/es/entries/blog');
+        $result = $this->get($this->entryPath());
 
         $result->assertStatus(200);
         $body = json_decode($result->getJSON(), true);
@@ -201,11 +201,11 @@ final class PublicEntryControllerTest extends CIUnitTestCase
             ]),
         ]);
 
-        $normal = $this->get('/api/v1/public/es/entries/blog');
+        $normal = $this->get($this->entryPath());
         $normalBody = json_decode($normal->getJSON(), true);
         $this->assertArrayNotHasKey('listing_content', $normalBody['data'][0]);
 
-        $result = $this->get('/api/v1/public/es/entries/blog?include=listing_content');
+        $result = $this->get($this->entryPath('?include=listing_content'));
         $result->assertStatus(200);
         $body = json_decode($result->getJSON(), true);
 
@@ -216,7 +216,7 @@ final class PublicEntryControllerTest extends CIUnitTestCase
 
     public function testGetPublicEntryNotFound(): void
     {
-        $result = $this->get('/api/v1/public/es/entries/blog/no-existe');
+        $result = $this->get($this->entryPath('/no-existe'));
         $result->assertStatus(404);
     }
 
@@ -243,7 +243,7 @@ final class PublicEntryControllerTest extends CIUnitTestCase
             'featured_image_url' => 'http://localhost:8180/uploads/posts/post-con-imagen.png',
         ]);
 
-        $result = $this->get('/api/v1/public/es/entries/blog');
+        $result = $this->get($this->entryPath());
 
         $result->assertStatus(200);
 
@@ -301,7 +301,7 @@ final class PublicEntryControllerTest extends CIUnitTestCase
             ]);
         }
 
-        $result = $this->get('/api/v1/public/es/entries/blog?limit=2&order_by=title&order_direction=asc');
+        $result = $this->get($this->entryPath('?limit=2&order_by=title&order_direction=asc'));
 
         $result->assertStatus(200);
 
@@ -337,7 +337,7 @@ final class PublicEntryControllerTest extends CIUnitTestCase
             ]);
         }
 
-        $matching = $this->get('/api/v1/public/es/entries/blog?q=Banca');
+        $matching = $this->get($this->entryPath('?q=Banca'));
         $matching->assertStatus(200);
         $matchingBody = json_decode($matching->getJSON(), true);
 
@@ -345,7 +345,7 @@ final class PublicEntryControllerTest extends CIUnitTestCase
         $this->assertSame('banca-digital', $matchingBody['data'][0]['slug']);
         $this->assertSame(1, (int) $matchingBody['meta']['total']);
 
-        $unknown = $this->get('/api/v1/public/es/entries/blog?q=zzzz-sin-resultados');
+        $unknown = $this->get($this->entryPath('?q=zzzz-sin-resultados'));
         $unknown->assertStatus(200);
         $unknownBody = json_decode($unknown->getJSON(), true);
 
@@ -376,7 +376,7 @@ final class PublicEntryControllerTest extends CIUnitTestCase
             'featured_image_url' => 'http://localhost:8180/uploads/posts/detalle-con-imagen.png',
         ]);
 
-        $result = $this->get('/api/v1/public/es/entries/blog/detalle-con-imagen');
+        $result = $this->get($this->entryPath('/detalle-con-imagen'));
 
         $result->assertStatus(200);
 
@@ -457,7 +457,7 @@ final class PublicEntryControllerTest extends CIUnitTestCase
         ]);
 
         // 5. Query without filters -> should return it and include categories & tags
-        $result = $this->get('/api/v1/public/es/entries/blog');
+        $result = $this->get($this->entryPath());
         $result->assertStatus(200);
         $body = json_decode($result->getJSON(), true);
         $this->assertCount(1, $body['data']);
@@ -465,25 +465,25 @@ final class PublicEntryControllerTest extends CIUnitTestCase
         $this->assertSame('php', $body['data'][0]['tags'][0]['slug']);
 
         // 6. Query with correct category filter -> should return it
-        $result = $this->get('/api/v1/public/es/entries/blog?category=noticias');
+        $result = $this->get($this->entryPath('?category=noticias'));
         $result->assertStatus(200);
         $body = json_decode($result->getJSON(), true);
         $this->assertCount(1, $body['data']);
 
         // 7. Query with incorrect category filter -> should return empty
-        $result = $this->get('/api/v1/public/es/entries/blog?category=deportes');
+        $result = $this->get($this->entryPath('?category=deportes'));
         $result->assertStatus(200);
         $body = json_decode($result->getJSON(), true);
         $this->assertCount(0, $body['data']);
 
         // 8. Query with correct tag filter -> should return it
-        $result = $this->get('/api/v1/public/es/entries/blog?tag=php');
+        $result = $this->get($this->entryPath('?tag=php'));
         $result->assertStatus(200);
         $body = json_decode($result->getJSON(), true);
         $this->assertCount(1, $body['data']);
 
         // 9. Query with incorrect tag filter -> should return empty
-        $result = $this->get('/api/v1/public/es/entries/blog?tag=java');
+        $result = $this->get($this->entryPath('?tag=java'));
         $result->assertStatus(200);
         $body = json_decode($result->getJSON(), true);
         $this->assertCount(0, $body['data']);
@@ -522,11 +522,16 @@ final class PublicEntryControllerTest extends CIUnitTestCase
         ];
     }
 
+    private function entryPath(string $suffix = ''): string
+    {
+        return '/api/v1/public/' . $this->languages[0]['code'] . '/entries/' . $this->collection['key'] . $suffix;
+    }
+
     public function testDraftEntryIsNotFoundByDefault(): void
     {
         $this->insertDraftEntry();
 
-        $result = $this->get('/api/v1/public/es/entries/blog/entrada-borrador');
+        $result = $this->get($this->entryPath('/entrada-borrador'));
         $result->assertStatus(404);
     }
 
@@ -534,7 +539,7 @@ final class PublicEntryControllerTest extends CIUnitTestCase
     {
         $this->insertDraftEntry();
 
-        $result = $this->get('/api/v1/public/es/entries/blog/entrada-borrador?preview=1');
+        $result = $this->get($this->entryPath('/entrada-borrador?preview=1'));
         $result->assertStatus(404);
     }
 
@@ -543,7 +548,7 @@ final class PublicEntryControllerTest extends CIUnitTestCase
         $entryId = $this->insertDraftEntry();
         $token = $this->signPreview('entry', $entryId + 999);
 
-        $result = $this->get('/api/v1/public/es/entries/blog/entrada-borrador?preview=1&preview_expires=' . $token['expires'] . '&preview_sig=' . $token['sig']);
+        $result = $this->get($this->entryPath('/entrada-borrador?preview=1&preview_expires=' . $token['expires'] . '&preview_sig=' . $token['sig']));
         $result->assertStatus(404);
     }
 
@@ -552,7 +557,7 @@ final class PublicEntryControllerTest extends CIUnitTestCase
         $entryId = $this->insertDraftEntry();
         $token = $this->signPreview('entry', $entryId);
 
-        $result = $this->get('/api/v1/public/es/entries/blog/entrada-borrador?preview=1&preview_expires=' . $token['expires'] . '&preview_sig=' . $token['sig']);
+        $result = $this->get($this->entryPath('/entrada-borrador?preview=1&preview_expires=' . $token['expires'] . '&preview_sig=' . $token['sig']));
         $result->assertStatus(200);
 
         $body = json_decode($result->getJSON(), true);
