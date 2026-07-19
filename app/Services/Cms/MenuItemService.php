@@ -307,21 +307,13 @@ class MenuItemService extends BaseCrudService implements MenuItemServiceInterfac
 
         $prefix = $this->getCollectionPrefix((int) $collectionId, $lang, $translationResolver);
 
-        // Get language ID for entry slug
-        $db = \Config\Database::connect();
-        $langResult = $db->table('cms_languages')->where('code', $lang)->get();
-        $langRow = $langResult ? $langResult->getRowArray() : null;
-        $langId = $langRow ? (int) ($langRow['id'] ?? 0) : null;
-
-        if (!$langId) {
-            return null;
-        }
-
-        $entryTransModel = model(\App\Models\EntryTranslationModel::class);
-        $trans = $entryTransModel->where('entry_id', $entryId)->where('language_id', $langId)->first();
-        $slug = $trans ? (is_object($trans) ? $trans->slug : ($trans['slug'] ?? '')) : '';
-
-        if (!$slug) {
+        // Reuse the same TranslationResolver used for the collection prefix
+        // above, instead of a bespoke cms_languages + EntryTranslationModel
+        // lookup — this also gives entry slugs the same default-language
+        // fallback that pages (via SlugRouter) and collections already have,
+        // rather than resolving only when a translation exists in $lang exactly.
+        $slug = trim((string) ($translationResolver->resolve('entry', $entryId, $lang)['slug'] ?? ''));
+        if ($slug === '') {
             return null;
         }
 
