@@ -7,6 +7,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+- **`BlockTypeService::getUsages()` N+1 query** — resolved page/entry owner titles one query per block instance instead of batching; now shares `Libraries/Cms/OwnerUsageResolver` with `FormService`, which already batched correctly.
+- **Menu items linking to entries only resolved when a translation existed in the exact requested language** — `MenuItemService::resolveEntryLink()` now reuses `TranslationResolver` (already used for the collection prefix) instead of a bespoke query, so entry slugs get the same default-language fallback pages and collections already had.
+
+### Changed
+- **Service-layer architecture cleanup in `app/Services/Cms`** — split the 900-line `FormService` into `FormService` (form CRUD + usage report), `FormFieldService` (field CRUD + option-label lifecycle), and `FormPublicDefinitionAssembler` (public read-model, mirroring `PublicEntryReader`); deduplicated `EntryService::syncCategories/syncTags/syncTaxonomy` into shared private helpers; consolidated the independently-reimplemented entry-taxonomy batch queries from `EntryService` and `PublicEntryReader` into `Libraries/Cms/EntryTaxonomyPivotResolver`. No behavior change beyond the two fixes above; `composer quality` (PHPStan level 8, CS-Fixer, swagger drift check, arch-drift, i18n-check, full test suite) green throughout.
+
 ### Added
 - **Translated menu name in public menu endpoint** — `GET /api/v1/public/menus/{key}` now resolves and returns a `name` field via `Services::translationResolver()`, localized by the requested language, falling back to `menu_key` when no translation exists; also fixes the locale fallback to use `config('App')->defaultLocale` instead of a hardcoded `'es'`.
 - **Queue-backed cache invalidation** — `CacheInvalidationClient` dispatches `CacheInvalidationJob` through the shared queue instead of making a blocking HTTP call to the public website inline with the request; falls back to an immediate synchronous call when no queue manager is configured.
