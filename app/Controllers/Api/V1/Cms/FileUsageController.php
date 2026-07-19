@@ -6,6 +6,7 @@ namespace App\Controllers\Api\V1\Cms;
 
 use App\Services\Cms\FileUsageService;
 use CodeIgniter\HTTP\ResponseInterface;
+use Config\Services;
 use dcardenasl\Ci4ApiCore\Http\ApiController;
 
 class FileUsageController extends ApiController
@@ -14,7 +15,7 @@ class FileUsageController extends ApiController
 
     protected function resolveDefaultService(): FileUsageService
     {
-        $this->fileUsageService = service('fileUsageService');
+        $this->fileUsageService = Services::fileUsageService();
 
         return $this->fileUsageService;
     }
