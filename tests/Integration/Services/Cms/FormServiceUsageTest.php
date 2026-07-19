@@ -9,6 +9,7 @@ use CodeIgniter\Test\DatabaseTestTrait;
 use Config\Database;
 use Config\Services;
 use dcardenasl\Ci4ApiCore\Exceptions\ConflictException;
+use Tests\Support\Fixtures\FixtureValueFactory;
 
 /**
  * @internal
@@ -149,7 +150,7 @@ final class FormServiceUsageTest extends CIUnitTestCase
 
         $service = Services::formService(false);
 
-        $usages = $service->getUsages(77, 'es');
+        $usages = $service->getUsages(77, (string) $languages[0]['code']);
 
         $this->assertSame([
             [
@@ -289,7 +290,9 @@ final class FormServiceUsageTest extends CIUnitTestCase
             return;
         }
 
-        foreach (['l01', 'l02', 'l03'] as $position => $code) {
+        $values = new FixtureValueFactory(self::class);
+        foreach (range(0, 2) as $position) {
+            $code = $values->locale($position);
             $db->table('cms_languages')->insert([
                 'code' => $code,
                 'name' => 'Fixture Language ' . ($position + 1),

@@ -8,6 +8,7 @@ use CodeIgniter\Test\CIUnitTestCase;
 use CodeIgniter\Test\DatabaseTestTrait;
 use Config\Services;
 use dcardenasl\Ci4ApiCore\Dto\DataTransferObjectInterface;
+use Tests\Support\Fixtures\FixtureValueFactory;
 
 /**
  * @internal
@@ -21,13 +22,17 @@ final class PageServicePresetTest extends CIUnitTestCase
     protected $refresh     = false;
     protected $namespace   = 'App';
 
+    private string $languageCode;
+
     protected function setUp(): void
     {
         parent::setUp();
 
+        $this->languageCode = (new FixtureValueFactory(self::class))->locale(0);
+
         if ((int) $this->db->table('cms_languages')->countAllResults() === 0) {
             $this->db->table('cms_languages')->insert([
-                'code' => 'l01',
+                'code' => $this->languageCode,
                 'name' => 'Fixture Language',
                 'native_name' => 'Fixture Language',
                 'is_default' => 1,
@@ -56,7 +61,7 @@ final class PageServicePresetTest extends CIUnitTestCase
         $db->enableForeignKeyChecks();
 
         $db->table('cms_languages')->insert([
-            'code' => 'l01',
+            'code' => $this->languageCode,
             'name' => 'Fixture Language',
             'native_name' => 'Fixture Language',
             'is_default' => 1,

@@ -29,7 +29,7 @@ final class FixtureValueFactory
 
     public function locale(int $position): string
     {
-        return 'l' . str_pad((string) ($position + 1), 2, '0', STR_PAD_LEFT);
+        return chr(97 + intdiv($position, 26)) . chr(97 + ($position % 26));
     }
 
     private function prefix(string $role, string $variant): string

@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Tests\Feature;
 
 use Tests\Support\ApiTestCase;
+use Tests\Support\Fixtures\CmsFixtureFactory;
 
 /**
  * Feature tests for Language Audit (Translation Audit) system with real multilingual data.
@@ -28,6 +29,11 @@ final class LanguageAuditRealDataTest extends ApiTestCase
 {
     private int $langEsId = 0;
     private int $langEnId = 0;
+
+    /** @var list<array{id:int,code:string,name:string,is_default:bool}> */
+    private array $languages = [];
+
+    private CmsFixtureFactory $fixtures;
     private array $pageIds = [];
     private array $collectionIds = [];
     private array $menuIds = [];
@@ -127,28 +133,27 @@ final class LanguageAuditRealDataTest extends ApiTestCase
         $stats = $service->getOverallCompleteness();
 
         // Should have 2 language stats
-        $this->assertCount(2, $stats, 'Should have 2 languages');
+        $this->assertCount(count($this->languages), $stats, 'All fixture languages should be reported');
 
-        // Find ES and EN
-        $esStats = null;
-        $enStats = null;
+        $defaultStats = null;
+        $secondaryStats = null;
         foreach ($stats as $stat) {
-            if (($stat['code'] ?? '') === 'es') {
-                $esStats = $stat;
-            } elseif (($stat['code'] ?? '') === 'en') {
-                $enStats = $stat;
+            if (($stat['code'] ?? '') === $this->languages[0]['code']) {
+                $defaultStats = $stat;
+            } elseif (($stat['code'] ?? '') === $this->languages[1]['code']) {
+                $secondaryStats = $stat;
             }
         }
 
-        $this->assertNotNull($esStats, 'ES stats should exist');
-        $this->assertNotNull($enStats, 'EN stats should exist');
+        $this->assertNotNull($defaultStats, 'Default fixture language stats should exist');
+        $this->assertNotNull($secondaryStats, 'Secondary fixture language stats should exist');
 
         // ES is default, should be high percentage (may not be 100% if other audit-able items exist)
-        $this->assertGreaterThanOrEqual(90, $esStats['percentage'], 'ES (default) should be mostly complete');
-        $this->assertTrue($esStats['is_default'], 'ES should be marked as default');
+        $this->assertGreaterThanOrEqual(90, $defaultStats['percentage'], 'Default fixture language should be mostly complete');
+        $this->assertTrue($defaultStats['is_default'], 'The first fixture language should be marked as default');
 
         // EN should be less than default language
-        $this->assertLessThan($esStats['percentage'], $enStats['percentage'], 'EN should be less complete than ES');
+        $this->assertLessThan($defaultStats['percentage'], $secondaryStats['percentage'], 'Secondary language should be less complete than default');
     }
 
     /**
@@ -166,32 +171,29 @@ final class LanguageAuditRealDataTest extends ApiTestCase
         $service = \Config\Services::translationAuditService(false);
         $stats = $service->getOverallCompleteness();
 
-        $enStats = null;
+        $secondaryStats = null;
         foreach ($stats as $stat) {
-            if (($stat['code'] ?? '') === 'en') {
-                $enStats = $stat;
+            if (($stat['code'] ?? '') === $this->languages[1]['code']) {
+                $secondaryStats = $stat;
                 break;
             }
         }
 
-        $this->assertNotNull($enStats);
-        $this->assertArrayHasKey('percentage', $enStats);
-        $this->assertArrayHasKey('completed_elements', $enStats);
-        $this->assertArrayHasKey('total_elements', $enStats);
+        $this->assertNotNull($secondaryStats);
+        $this->assertArrayHasKey('percentage', $secondaryStats);
+        $this->assertArrayHasKey('completed_elements', $secondaryStats);
+        $this->assertArrayHasKey('total_elements', $secondaryStats);
 
-        // EN completion should be reasonable (between 30% and 50%)
-        // The exact percentage depends on what auditable resources exist in the DB
-        $percentage = (int) $enStats['percentage'];
-        $completed = (int) $enStats['completed_elements'];
-        $total = (int) $enStats['total_elements'];
+        $missing = $service->getMissingTranslationsReport([
+            'language_id' => $this->languages[1]['id'],
+        ]);
+        $total = (int) $secondaryStats['total_elements'];
+        $completed = (int) $secondaryStats['completed_elements'];
+        $expectedCompleted = $total - count($missing);
+        $expectedPercentage = $total > 0 ? (int) round(($expectedCompleted / $total) * 100) : 100;
 
-        $this->assertGreaterThanOrEqual(30, $percentage);
-        $this->assertLessThanOrEqual(50, $percentage, sprintf(
-            'EN should be between 30%%-50%% (got %d%%). Completed: %d / Total: %d',
-            $percentage,
-            $completed,
-            $total
-        ));
+        $this->assertSame($expectedCompleted, $completed);
+        $this->assertSame($expectedPercentage, (int) $secondaryStats['percentage']);
     }
 
     /**
@@ -237,14 +239,14 @@ final class LanguageAuditRealDataTest extends ApiTestCase
         $audit = $service->auditResource('page', $this->pageIds[0]); // ES-only page
 
         // Should have entries for both languages
-        $this->assertArrayHasKey('es', $audit);
-        $this->assertArrayHasKey('en', $audit);
+        $this->assertArrayHasKey($this->languages[0]['code'], $audit);
+        $this->assertArrayHasKey($this->languages[1]['code'], $audit);
 
         // ES should be complete
-        $this->assertEquals('complete', $audit['es']['status']);
+        $this->assertEquals('complete', $audit[$this->languages[0]['code']]['status']);
 
         // EN should be missing
-        $this->assertEquals('missing', $audit['en']['status']);
+        $this->assertEquals('missing', $audit[$this->languages[1]['code']]['status']);
     }
 
     /**
@@ -255,8 +257,8 @@ final class LanguageAuditRealDataTest extends ApiTestCase
         $service = \Config\Services::translationAuditService(false);
         $audit = $service->auditResource('page', $this->pageIds[3]); // ES+EN page
 
-        $this->assertEquals('complete', $audit['es']['status']);
-        $this->assertEquals('complete', $audit['en']['status']);
+        $this->assertEquals('complete', $audit[$this->languages[0]['code']]['status']);
+        $this->assertEquals('complete', $audit[$this->languages[1]['code']]['status']);
     }
 
     /**
@@ -336,23 +338,10 @@ final class LanguageAuditRealDataTest extends ApiTestCase
 
         $this->db->enableForeignKeyChecks();
 
-        $this->db->table('cms_languages')->insert([
-            'code'        => 'es',
-            'name'        => 'Spanish',
-            'native_name' => 'Español',
-            'is_default'  => 1,
-            'is_active'   => 1,
-        ]);
-        $this->langEsId = $this->db->insertID();
-
-        $this->db->table('cms_languages')->insert([
-            'code'        => 'en',
-            'name'        => 'English',
-            'native_name' => 'English',
-            'is_default'  => 0,
-            'is_active'   => 1,
-        ]);
-        $this->langEnId = $this->db->insertID();
+        $this->fixtures = new CmsFixtureFactory($this->db, self::class);
+        $this->languages = $this->fixtures->languages(2);
+        $this->langEsId = $this->languages[0]['id'];
+        $this->langEnId = $this->languages[1]['id'];
     }
 
     private function seedPages(): void

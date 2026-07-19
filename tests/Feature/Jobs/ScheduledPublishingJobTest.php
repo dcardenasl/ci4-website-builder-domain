@@ -9,6 +9,7 @@ use CodeIgniter\I18n\Time;
 use CodeIgniter\Test\CIUnitTestCase;
 use CodeIgniter\Test\DatabaseTestTrait;
 use CodeIgniter\Test\FeatureTestTrait;
+use Tests\Support\Fixtures\CmsFixtureFactory;
 
 /**
  * @internal
@@ -23,7 +24,7 @@ final class ScheduledPublishingJobTest extends CIUnitTestCase
     protected $refresh     = true;
     protected $namespace   = 'App';
 
-    private int $langEsId;
+    private int $defaultLanguageId;
     private int $collectionId;
 
     protected function setUp(): void
@@ -41,15 +42,7 @@ final class ScheduledPublishingJobTest extends CIUnitTestCase
         $this->db->query("DELETE FROM `cms_languages`");
         $this->db->enableForeignKeyChecks();
 
-        // Seed default language
-        $this->db->table('cms_languages')->insert([
-            'code'        => 'es',
-            'name'        => 'Spanish',
-            'native_name' => 'Español',
-            'is_default'  => 1,
-            'is_active'   => 1,
-        ]);
-        $this->langEsId = $this->db->insertID();
+        $this->defaultLanguageId = (new CmsFixtureFactory($this->db, self::class))->languages(1)[0]['id'];
 
         // Seed collection (required for entries)
         $this->db->table('cms_collections')->insert([

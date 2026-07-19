@@ -8,6 +8,7 @@ use App\Libraries\Cms\TranslationResolver;
 use CodeIgniter\Test\CIUnitTestCase;
 use CodeIgniter\Test\DatabaseTestTrait;
 use Config\Database;
+use Tests\Support\Fixtures\CmsFixtureFactory;
 
 /**
  * @internal
@@ -23,6 +24,16 @@ final class TranslationResolverTest extends CIUnitTestCase
 
     private TranslationResolver $resolver;
 
+    private CmsFixtureFactory $fixtures;
+
+    /** @var list<array{id:int,code:string,name:string,is_default:bool}> */
+    private array $languages;
+
+    private int $settingId;
+
+    /** @var array{id:int,key:string,translations:list<array<string,mixed>>} */
+    private array $collection;
+
     protected function setUp(): void
     {
         parent::setUp();
@@ -33,141 +44,98 @@ final class TranslationResolverTest extends CIUnitTestCase
     private function seedDatabase(): void
     {
         $db = Database::connect();
-
-        // Clean tables
-        $db->query('SET FOREIGN_KEY_CHECKS = 0');
+        $db->disableForeignKeyChecks();
         $db->query("DELETE FROM `cms_collection_translations`");
         $db->query("DELETE FROM `cms_collections`");
         $db->query("DELETE FROM `cms_setting_translations`");
         $db->query("DELETE FROM `cms_settings`");
         $db->query("DELETE FROM `cms_languages`");
-        $db->query('SET FOREIGN_KEY_CHECKS = 1');
+        $db->enableForeignKeyChecks();
 
-        // 1. Insert Languages
-        // English (Default, Active)
-        $db->table('cms_languages')->insert([
-            'id'          => 1,
-            'code'        => 'en',
-            'name'        => 'English',
-            'native_name' => 'English',
-            'is_default'  => 1,
-            'is_active'   => 1,
-        ]);
+        $this->fixtures = new CmsFixtureFactory($db, self::class);
+        $this->languages = $this->fixtures->languages(3);
+        $db->table('cms_languages')
+            ->where('id', $this->languages[2]['id'])
+            ->update(['is_active' => 0]);
 
-        // Spanish (Active)
-        $db->table('cms_languages')->insert([
-            'id'          => 2,
-            'code'        => 'es',
-            'name'        => 'Spanish',
-            'native_name' => 'Español',
-            'is_default'  => 0,
-            'is_active'   => 1,
-        ]);
-
-        // French (Inactive)
-        $db->table('cms_languages')->insert([
-            'id'          => 3,
-            'code'        => 'fr',
-            'name'        => 'French',
-            'native_name' => 'Français',
-            'is_default'  => 0,
-            'is_active'   => 0,
-        ]);
-
-        // 2. Insert Settings
+        $settingKey = $this->fixtures->slug('setting-key');
         $db->table('cms_settings')->insert([
-            'id'              => 1,
-            'setting_key'     => 'site_name',
-            'setting_value'   => 'Default Site Name',
-            'setting_type'    => 'string',
-            'setting_group'   => 'general',
+            'setting_key' => $settingKey,
+            'setting_value' => $this->fixtures->text('setting-default'),
+            'setting_type' => 'string',
+            'setting_group' => 'general',
             'is_translatable' => 1,
         ]);
+        $this->settingId = (int) $db->insertID();
 
-        // 3. Insert Collection
-        $db->table('cms_collections')->insert([
-            'id'                       => 1,
-            'collection_key'           => 'noticias',
-            'is_active'                => 1,
-            'requires_approval'        => 0,
-            'enables_categories'       => 1,
-            'enables_tags'             => 1,
-            'default_sitemap_priority' => '0.70',
-            'default_changefreq'       => 'weekly',
-            'sort_order'               => 10,
-        ]);
+        $settingValues = [];
+        foreach ([$this->languages[0], $this->languages[1]] as $language) {
+            $settingValues[$language['code']] = $this->fixtures->text('setting-value', $language['code']);
+            $db->table('cms_setting_translations')->insert([
+                'setting_id' => $this->settingId,
+                'language_id' => $language['id'],
+                'setting_value' => $settingValues[$language['code']],
+            ]);
+        }
 
-        // 4. Insert Setting Translations
-        // English translation
-        $db->table('cms_setting_translations')->insert([
-            'setting_id'    => 1,
-            'language_id'   => 1,
-            'setting_value' => 'My English Site Name',
-        ]);
+        $collectionTranslations = [];
+        foreach ([$this->languages[0], $this->languages[1]] as $language) {
+            $collectionTranslations[] = [
+                'language_id' => $language['id'],
+                'slug' => $this->fixtures->slug('collection-slug', $language['code']),
+                'name' => $this->fixtures->text('collection-name', $language['code']),
+                'description' => $this->fixtures->text('collection-description', $language['code']),
+                'listing_title' => $this->fixtures->text('collection-listing', $language['code']),
+            ];
+        }
+        $this->collection = $this->fixtures->collection($collectionTranslations);
 
-        // Spanish translation
-        $db->table('cms_setting_translations')->insert([
-            'setting_id'    => 1,
-            'language_id'   => 2,
-            'setting_value' => 'Nombre de mi Sitio en Español',
-        ]);
-
-        // 5. Insert Collection Translations
-        $db->table('cms_collection_translations')->insert([
-            'collection_id' => 1,
-            'language_id'   => 1,
-            'slug'          => 'news',
-            'name'          => 'News',
-            'description'   => 'News and current events section.',
-            'listing_title' => 'Latest News',
-        ]);
-
-        $db->table('cms_collection_translations')->insert([
-            'collection_id' => 1,
-            'language_id'   => 2,
-            'slug'          => 'noticias',
-            'name'          => 'Noticias',
-            'description'   => 'Sección de noticias y actualidad.',
-            'listing_title' => 'Últimas Noticias',
-        ]);
+        $this->settingValues = $settingValues;
     }
+
+    /** @var array<string, string> */
+    private array $settingValues;
 
     public function testResolveHappyPath(): void
     {
-        $result = $this->resolver->resolve('setting', 1, 'es');
+        $language = $this->languages[1];
+        $result = $this->resolver->resolve('setting', $this->settingId, $language['code']);
 
-        $this->assertSame('Nombre de mi Sitio en Español', $result['setting_value']);
+        $this->assertSame($this->settingValues[$language['code']], $result['setting_value']);
         $this->assertFalse($result['is_fallback']);
     }
 
     public function testResolveFallbackToDefaultWhenLanguageInactive(): void
     {
-        $result = $this->resolver->resolve('setting', 1, 'fr'); // French is inactive
+        $result = $this->resolver->resolve('setting', $this->settingId, $this->languages[2]['code']);
 
-        $this->assertSame('My English Site Name', $result['setting_value']);
+        $this->assertSame($this->settingValues[$this->languages[0]['code']], $result['setting_value']);
         $this->assertTrue($result['is_fallback']);
     }
 
     public function testResolveFallbackToDefaultWhenLanguageNotExists(): void
     {
-        $result = $this->resolver->resolve('setting', 1, 'de'); // German does not exist
+        $unknownLocale = $this->fixtures->slug('unknown-locale');
+        $result = $this->resolver->resolve('setting', $this->settingId, $unknownLocale);
 
-        $this->assertSame('My English Site Name', $result['setting_value']);
+        $this->assertSame($this->settingValues[$this->languages[0]['code']], $result['setting_value']);
         $this->assertTrue($result['is_fallback']);
     }
 
     public function testResolveUnsupportedResourceTypeThrowsException(): void
     {
         $this->expectException(\InvalidArgumentException::class);
-        $this->resolver->resolve('unsupported_type', 1, 'es');
+        $this->resolver->resolve('unsupported_type', $this->settingId, $this->languages[0]['code']);
     }
 
     public function testResolveCollectionIncludesSlugForLanguage(): void
     {
-        $result = $this->resolver->resolve('collection', 1, 'en');
+        $language = $this->languages[0];
+        $translation = $this->collection['translations'][0];
+        $result = $this->resolver->resolve('collection', $this->collection['id'], $language['code']);
 
-        $this->assertSame('news', $result['slug']);
-        $this->assertSame('News', $result['name']);
+        $this->assertSame($translation['slug'], $result['slug']);
+        $this->assertSame($translation['name'], $result['name']);
         $this->assertFalse($result['is_fallback']);
     }
 }

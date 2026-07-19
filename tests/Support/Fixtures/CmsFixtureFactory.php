@@ -162,6 +162,74 @@ final class CmsFixtureFactory
         return ['id' => $id, 'key' => $key, 'translations' => $translations];
     }
 
+    /**
+     * @param list<array<string, mixed>> $translations
+     * @param array<string, mixed> $overrides
+     * @return array{id: int, translations: list<array<string, mixed>>}
+     */
+    public function entry(int $collectionId, array $translations = [], array $overrides = []): array
+    {
+        $this->db->table('cms_entries')->insert(array_replace([
+            'collection_id' => $collectionId,
+            'workflow_status' => 'published',
+            'is_featured' => 0,
+            'view_count' => 0,
+            'sort_order' => 0,
+            'is_in_sitemap' => 1,
+        ], $overrides));
+        $id = (int) $this->db->insertID();
+
+        foreach ($translations as $translation) {
+            $this->db->table('cms_entry_translations')->insert(array_replace([
+                'entry_id' => $id,
+                'language_id' => 0,
+                'slug' => $this->values->slug('entry-slug'),
+                'title' => $this->values->text('entry-title'),
+            ], $translation));
+        }
+
+        return ['id' => $id, 'translations' => $translations];
+    }
+
+    /** @param array<string, mixed> $overrides */
+    public function category(int $collectionId, array $overrides = []): array
+    {
+        $this->db->table('cms_categories')->insert(array_replace([
+            'collection_id' => $collectionId,
+            'sort_order' => 0,
+            'is_active' => 1,
+        ], $overrides));
+
+        return ['id' => (int) $this->db->insertID()];
+    }
+
+    /** @param array<string, mixed> $overrides */
+    public function tag(array $overrides = []): array
+    {
+        $this->db->table('cms_tags')->insert(array_replace([
+            'is_active' => 1,
+        ], $overrides));
+
+        return ['id' => (int) $this->db->insertID()];
+    }
+
+    /** @param array<string, mixed> $overrides */
+    public function block(int $blockId, string $ownerType, int $ownerId, array $overrides = []): array
+    {
+        $this->db->table('cms_block_instances')->insert(array_replace([
+            'block_id' => $blockId,
+            'owner_type' => $ownerType,
+            'owner_id' => $ownerId,
+            'parent_instance_id' => null,
+            'sort_order' => 0,
+            'column_index' => null,
+            'is_active' => 1,
+            'block_config' => json_encode([], JSON_THROW_ON_ERROR),
+        ], $overrides));
+
+        return ['id' => (int) $this->db->insertID()];
+    }
+
     public function text(string $role, string $variant = ''): string
     {
         return $this->values->text($role, $variant);

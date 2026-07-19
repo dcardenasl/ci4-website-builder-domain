@@ -9,6 +9,7 @@ use CodeIgniter\Test\DatabaseTestTrait;
 use Config\Services;
 use dcardenasl\Ci4ApiCore\Dto\DataTransferObjectInterface;
 use dcardenasl\Ci4ApiCore\Exceptions\ValidationException;
+use Tests\Support\Fixtures\FixtureValueFactory;
 
 /**
  * @internal
@@ -24,22 +25,25 @@ final class CollectionServicePresetTest extends CIUnitTestCase
 
     private int $languageId;
 
+    private string $languageCode;
+
     protected function setUp(): void
     {
         parent::setUp();
 
         $db = $this->db;
-        $existing = $db->table('cms_languages')->where('code', 'l01')->get()->getRowArray();
+        $this->languageCode = (new FixtureValueFactory(self::class))->locale(0);
+        $existing = $db->table('cms_languages')->where('code', $this->languageCode)->get()->getRowArray();
         if ($existing === null) {
             $db->table('cms_languages')->insert([
-                'code' => 'l01',
+                'code' => $this->languageCode,
                 'name' => 'Fixture Language',
                 'native_name' => 'Fixture Language',
                 'is_default' => 1,
                 'is_active' => 1,
                 'sort_order' => 0,
             ]);
-            $existing = $db->table('cms_languages')->where('code', 'l01')->get()->getRowArray();
+            $existing = $db->table('cms_languages')->where('code', $this->languageCode)->get()->getRowArray();
         }
         $this->languageId = (int) $existing['id'];
     }
