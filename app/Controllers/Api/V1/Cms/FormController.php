@@ -9,6 +9,7 @@ use App\DTO\Request\Cms\FormFieldCreateRequestDTO;
 use App\DTO\Request\Cms\FormFieldReorderRequestDTO;
 use App\DTO\Request\Cms\FormFieldUpdateRequestDTO;
 use App\DTO\Request\Cms\FormUpdateRequestDTO;
+use App\Services\Cms\FormFieldService;
 use App\Services\Cms\FormService;
 use CodeIgniter\HTTP\ResponseInterface;
 use dcardenasl\Ci4ApiCore\Dto\SecurityContext;
@@ -104,9 +105,9 @@ class FormController extends ApiController
                 if (! $context->hasPermission('cms.forms.read')) {
                     throw new AuthorizationException(lang('Api.forbidden'));
                 }
-                /** @var FormService $svc */
-                $svc = service('formService');
-                return $svc->listFields($formId);
+                /** @var FormFieldService $svc */
+                $svc = service('formFieldService');
+                return $svc->list($formId);
             }
         );
     }
@@ -118,9 +119,9 @@ class FormController extends ApiController
                 if (! $context->hasPermission('cms.forms.write')) {
                     throw new AuthorizationException(lang('Api.forbidden'));
                 }
-                /** @var FormService $svc */
-                $svc = service('formService');
-                return $svc->createField($formId, $dto)->toArray();
+                /** @var FormFieldService $svc */
+                $svc = service('formFieldService');
+                return $svc->create($formId, $dto)->toArray();
             },
             FormFieldCreateRequestDTO::class
         );
@@ -133,9 +134,9 @@ class FormController extends ApiController
                 if (! $context->hasPermission('cms.forms.write')) {
                     throw new AuthorizationException(lang('Api.forbidden'));
                 }
-                /** @var FormService $svc */
-                $svc = service('formService');
-                return $svc->updateField($formId, $fieldId, $dto)->toArray();
+                /** @var FormFieldService $svc */
+                $svc = service('formFieldService');
+                return $svc->update($formId, $fieldId, $dto)->toArray();
             },
             FormFieldUpdateRequestDTO::class
         );
@@ -148,9 +149,9 @@ class FormController extends ApiController
                 if (! $context->hasPermission('cms.forms.write')) {
                     throw new AuthorizationException(lang('Api.forbidden'));
                 }
-                /** @var FormService $svc */
-                $svc = service('formService');
-                $svc->deleteField($formId, $fieldId);
+                /** @var FormFieldService $svc */
+                $svc = service('formFieldService');
+                $svc->delete($formId, $fieldId);
                 return null;
             }
         );
@@ -163,9 +164,9 @@ class FormController extends ApiController
                 if (! $context->hasPermission('cms.forms.write')) {
                     throw new AuthorizationException(lang('Api.forbidden'));
                 }
-                /** @var FormService $svc */
-                $svc = service('formService');
-                $svc->reorderFields($formId, $dto);
+                /** @var FormFieldService $svc */
+                $svc = service('formFieldService');
+                $svc->reorder($formId, $dto);
                 return null;
             },
             FormFieldReorderRequestDTO::class

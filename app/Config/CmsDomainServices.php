@@ -424,11 +424,40 @@ trait CmsDomainServices
         return new \App\Services\Cms\FormService(
             model(\App\Models\FormModel::class),
             model(\App\Models\FormTranslationModel::class),
+            static::cacheInvalidationClient(),
+            \Config\Database::connect(),
+            static::ownerUsageResolver(),
+            static::formFieldService(),
+            static::translationSynchronizer(),
+        );
+    }
+
+    public static function formFieldService(bool $getShared = true): \App\Services\Cms\FormFieldService
+    {
+        if ($getShared) {
+            return static::getSharedInstance('formFieldService');
+        }
+
+        return new \App\Services\Cms\FormFieldService(
             model(\App\Models\FormFieldModel::class),
             model(\App\Models\FormFieldTranslationModel::class),
             static::cacheInvalidationClient(),
             \Config\Database::connect(),
             static::translationSynchronizer(),
+        );
+    }
+
+    public static function formPublicDefinitionAssembler(bool $getShared = true): \App\Services\Cms\FormPublicDefinitionAssembler
+    {
+        if ($getShared) {
+            return static::getSharedInstance('formPublicDefinitionAssembler');
+        }
+
+        return new \App\Services\Cms\FormPublicDefinitionAssembler(
+            model(\App\Models\FormModel::class),
+            model(\App\Models\FormTranslationModel::class),
+            model(\App\Models\FormFieldModel::class),
+            model(\App\Models\FormFieldTranslationModel::class),
         );
     }
 

@@ -5,19 +5,13 @@ declare(strict_types=1);
 namespace App\Services\Cms;
 
 use App\DTO\Request\Cms\FormCreateRequestDTO;
-use App\DTO\Request\Cms\FormFieldCreateRequestDTO;
-use App\DTO\Request\Cms\FormFieldReorderRequestDTO;
-use App\DTO\Request\Cms\FormFieldUpdateRequestDTO;
 use App\DTO\Request\Cms\FormUpdateRequestDTO;
-use App\DTO\Response\Cms\FormFieldResponseDTO;
-use App\DTO\Response\Cms\FormPublicDefinitionResponseDTO;
 use App\DTO\Response\Cms\FormResponseDTO;
 use App\Entities\FormEntity;
-use App\Entities\FormFieldEntity;
 use App\Libraries\Cms\CacheInvalidationClient;
+use App\Libraries\Cms\ModelResultNormalizer;
+use App\Libraries\Cms\OwnerUsageResolver;
 use App\Libraries\Cms\TranslationSynchronizer;
-use App\Models\FormFieldModel;
-use App\Models\FormFieldTranslationModel;
 use App\Models\FormModel;
 use App\Models\FormTranslationModel;
 use CodeIgniter\Database\BaseConnection;
@@ -25,6 +19,15 @@ use dcardenasl\Ci4ApiCore\Exceptions\ConflictException;
 use dcardenasl\Ci4ApiCore\Exceptions\NotFoundException;
 use dcardenasl\Ci4ApiCore\Exceptions\ValidationException;
 
+/**
+ * Owns the Form aggregate root: CRUD and the "who embeds this form" usage
+ * report used to block deletion of a form still in use. Field-level CRUD
+ * lives in FormFieldService (a sub-entity with its own validation and
+ * translation shape); the public, locale-resolved definition lives in
+ * FormPublicDefinitionAssembler (a read-model assembler, same role
+ * PublicEntryReader plays for entries). Split 2026-07-19 out of a single
+ * 900-line class that mixed all three responsibilities.
+ */
 class FormService
 {
     /**
@@ -33,10 +36,10 @@ class FormService
     public function __construct(
         private FormModel $formModel,
         private FormTranslationModel $translationModel,
-        private FormFieldModel $fieldModel,
-        private FormFieldTranslationModel $fieldTranslationModel,
         private CacheInvalidationClient $cacheInvalidator,
         private BaseConnection $db,
+        private OwnerUsageResolver $ownerUsageResolver,
+        private FormFieldService $fieldService,
         private ?TranslationSynchronizer $translationSynchronizer = null,
     ) {
     }
@@ -50,17 +53,11 @@ class FormService
         $forms = $this->formModel->orderBy('form_key', 'ASC')->findAll();
 
         return array_map(function (FormEntity $form) {
-            $data   = $form->toArray();
-            $trans  = $this->translationModel->where('form_id', $data['id'])->findAll();
-            $fields = $this->fieldModel->where('form_id', $data['id'])->orderBy('display_order', 'ASC')->findAll();
+            $data  = $form->toArray();
+            $trans = $this->translationModel->where('form_id', $data['id'])->findAll();
 
-            $data['translations'] = $this->normalizeRows($trans);
-            /** @var list<FormFieldEntity> $typedFields */
-            $typedFields          = $fields;
-            $data['fields']       = array_map(
-                fn (FormFieldEntity $f) => $this->withFieldTranslations($f->toArray()),
-                $typedFields
-            );
+            $data['translations'] = ModelResultNormalizer::toArrayList($trans);
+            $data['fields']       = $this->fieldService->listWithTranslations((int) $data['id']);
 
             return FormResponseDTO::fromArray($data)->toArray();
         }, $forms);
@@ -201,218 +198,6 @@ class FormService
         $this->cacheInvalidator->invalidate(['forms']);
     }
 
-    // ── Field Management ────────────────────────────────────────────────────
-
-    /**
-     * @return list<array<string, mixed>>
-     */
-    public function listFields(int $formId): array
-    {
-        $this->requireForm($formId);
-
-        /** @var list<FormFieldEntity> */
-        $fields = $this->fieldModel
-            ->where('form_id', $formId)
-            ->orderBy('display_order', 'ASC')
-            ->findAll();
-
-        return array_map(
-            fn (FormFieldEntity $f) => FormFieldResponseDTO::fromArray($this->withFieldTranslations($f->toArray()))->toArray(),
-            $fields
-        );
-    }
-
-    public function createField(int $formId, FormFieldCreateRequestDTO $dto): FormFieldResponseDTO
-    {
-        $this->requireForm($formId);
-
-        $existing = $this->fieldModel
-            ->where('form_id', $formId)
-            ->where('field_key', $dto->field_key)
-            ->first();
-
-        if ($existing !== null) {
-            throw new ValidationException(lang('Forms.duplicate_field_key'), ['field_key' => lang('Forms.duplicate_field_key')]);
-        }
-
-        $this->db->transStart();
-
-        $this->fieldModel->insert([
-            'form_id'       => $formId,
-            'field_key'     => $dto->field_key,
-            'field_type'    => $dto->field_type,
-            'options'       => $dto->options !== null ? json_encode($dto->options, JSON_UNESCAPED_UNICODE) : null,
-            'display_order' => $dto->display_order,
-            'is_required'   => $dto->is_required,
-            'is_active'     => $dto->is_active,
-        ]);
-        $fieldId = (int) $this->fieldModel->getInsertID();
-
-        $this->saveFieldTranslations($fieldId, $dto->translations);
-        $this->pruneOptionLabels($fieldId);
-
-        $this->db->transComplete();
-
-        if ($this->db->transStatus() === false) {
-            throw new \RuntimeException(lang('Forms.field_create_failed_db'));
-        }
-
-        $this->cacheInvalidator->invalidate(['forms']);
-
-        return $this->getField($fieldId);
-    }
-
-    public function updateField(int $formId, int $fieldId, FormFieldUpdateRequestDTO $dto): FormFieldResponseDTO
-    {
-        $this->requireField($formId, $fieldId);
-
-        $fields = $dto->toArray();
-        unset($fields['translations']);
-        if (array_key_exists('options', $fields)) {
-            $fields['options'] = $fields['options'] !== null ? json_encode($fields['options'], JSON_UNESCAPED_UNICODE) : null;
-        }
-
-        $this->db->transStart();
-
-        if ($fields !== []) {
-            $this->fieldModel->update($fieldId, $fields);
-        }
-
-        if ($dto->translations !== []) {
-            $this->saveFieldTranslations($fieldId, $dto->translations);
-        }
-
-        // Every save re-derives valid labels from the field's CURRENT options,
-        // dropping any option_labels entries for values that no longer exist
-        // (removed options, or a value edited/regenerated to something else).
-        // Otherwise those orphaned entries accumulate silently forever.
-        $this->pruneOptionLabels($fieldId);
-
-        $this->db->transComplete();
-
-        if ($this->db->transStatus() === false) {
-            throw new \RuntimeException(lang('Forms.field_update_failed_db'));
-        }
-
-        $this->cacheInvalidator->invalidate(['forms']);
-
-        return $this->getField($fieldId);
-    }
-
-    public function deleteField(int $formId, int $fieldId): void
-    {
-        $this->requireField($formId, $fieldId);
-        $this->fieldModel->delete($fieldId);
-        $this->cacheInvalidator->invalidate(['forms']);
-    }
-
-    public function reorderFields(int $formId, FormFieldReorderRequestDTO $dto): void
-    {
-        $this->requireForm($formId);
-
-        $this->db->transStart();
-
-        foreach ($dto->ordered_ids as $order => $fieldId) {
-            $this->fieldModel
-                ->where('id', $fieldId)
-                ->where('form_id', $formId)
-                ->set('display_order', $order)
-                ->update();
-        }
-
-        $this->db->transComplete();
-
-        if ($this->db->transStatus() === false) {
-            throw new \RuntimeException(lang('Forms.field_reorder_failed_db'));
-        }
-
-        $this->cacheInvalidator->invalidate(['forms']);
-    }
-
-    // ── Public form definition ───────────────────────────────────────────────
-
-    public function getPublicDefinition(string $lang, string $formKey): FormPublicDefinitionResponseDTO
-    {
-        /** @var FormEntity|null */
-        $form = $this->formModel
-            ->where('form_key', $formKey)
-            ->where('is_active', 1)
-            ->first();
-
-        if ($form === null) {
-            throw new NotFoundException(lang('Forms.not_found_or_inactive'));
-        }
-
-        $formData = $form->toArray();
-
-        $translation = $this->resolveFormTranslation((int) $formData['id'], $lang);
-
-        /** @var list<FormFieldEntity> */
-        $formFields = $this->fieldModel
-            ->where('form_id', $formData['id'])
-            ->where('is_active', 1)
-            ->orderBy('display_order', 'ASC')
-            ->findAll();
-
-        $publicFields = array_map(function (FormFieldEntity $field) use ($lang): array {
-            $fieldData   = $field->toArray();
-            $fieldTrans  = $this->resolveFieldTranslation((int) $fieldData['id'], $lang);
-
-            // Options are stored as stable, language-independent values on the
-            // field; their display labels are per-language, in this locale's
-            // translation row. Combine them here — form_embed.php on the web
-            // side only ever sees the resolved {value,label} shape.
-            $optionValues = is_array($fieldData['options'] ?? null) ? $fieldData['options'] : [];
-            $optionLabels = $this->decodeOptionLabels($fieldTrans['option_labels'] ?? null);
-            $resolvedOptions = array_map(
-                static fn (string $value): array => ['value' => $value, 'label' => $optionLabels[$value] ?? $value],
-                $optionValues
-            );
-
-            return [
-                'field_key'     => $fieldData['field_key'],
-                'field_type'    => $fieldData['field_type'],
-                'options'       => $resolvedOptions,
-                'is_required'   => (bool) $fieldData['is_required'],
-                'display_order' => (int) $fieldData['display_order'],
-                'label'         => $fieldTrans['label'] ?? $fieldData['field_key'],
-                'placeholder'   => $fieldTrans['placeholder'] ?? null,
-                'help_text'     => $fieldTrans['help_text'] ?? null,
-                'error_required' => $fieldTrans['error_required'] ?? null,
-                'error_invalid'  => $fieldTrans['error_invalid'] ?? null,
-            ];
-        }, $formFields);
-
-        $definitionData = array_merge($formData, $translation, ['fields' => $publicFields]);
-
-        return FormPublicDefinitionResponseDTO::fromArray($definitionData);
-    }
-
-    // ── Private helpers ──────────────────────────────────────────────────────
-
-    /**
-     * @param array<string, mixed> $formData
-     */
-    private function buildFormResponse(array $formData, ?string $locale = null): FormResponseDTO
-    {
-        $trans  = $this->translationModel->where('form_id', $formData['id'])->findAll();
-
-        /** @var list<FormFieldEntity> */
-        $fields = $this->fieldModel
-            ->where('form_id', $formData['id'])
-            ->orderBy('display_order', 'ASC')
-            ->findAll();
-
-        $formData['translations'] = $this->normalizeRows($trans);
-        $formData['fields']       = array_map(
-            fn (FormFieldEntity $f) => $this->withFieldTranslations($f->toArray()),
-            $fields
-        );
-        $formData['usages']       = $this->getUsages((int) $formData['id'], $locale);
-
-        return FormResponseDTO::fromArray($formData);
-    }
-
     /**
      * @return list<array{resource: string, resource_id: int, role: string, label: string|null, context: array{owner_type: string, owner_id: int, block_key: string, block_name: string|null}}>
      */
@@ -437,11 +222,14 @@ class FormService
             ->get();
         $rows = $result ? array_values($result->getResultArray()) : [];
 
-        $defaultLanguageId = $this->resolveLanguageId(null);
-        $languageId = is_string($locale) && trim($locale) !== ''
-            ? $this->resolveLanguageId($locale)
-            : $defaultLanguageId;
-        $ownerTitles = $this->resolveOwnerTitles($rows, $languageId, $defaultLanguageId);
+        $owners = array_map(
+            static fn (array $row): array => [
+                'owner_type' => (string) ($row['owner_type'] ?? ''),
+                'owner_id'   => (int) ($row['owner_id'] ?? 0),
+            ],
+            $rows
+        );
+        $ownerTitles = $this->ownerUsageResolver->resolveTitles($owners, $locale);
 
         return array_values(array_map(function (array $row) use ($ownerTitles): array {
             $ownerType = (string) ($row['owner_type'] ?? '');
@@ -463,168 +251,18 @@ class FormService
         }, $rows));
     }
 
-    public function getField(int $fieldId): FormFieldResponseDTO
-    {
-        /** @var FormFieldEntity|null */
-        $field = $this->fieldModel->find($fieldId);
-        if ($field === null) {
-            throw new NotFoundException(lang('Forms.field_not_found'));
-        }
-
-        return FormFieldResponseDTO::fromArray($this->withFieldTranslations($field->toArray()));
-    }
-
     /**
-     * @param array<string, mixed> $fieldData
-     * @return array<string, mixed>
+     * @param array<string, mixed> $formData
      */
-    private function withFieldTranslations(array $fieldData): array
+    private function buildFormResponse(array $formData, ?string $locale = null): FormResponseDTO
     {
-        $translations = $this->fieldTranslationModel
-            ->where('form_field_id', $fieldData['id'])
-            ->findAll();
+        $trans = $this->translationModel->where('form_id', $formData['id'])->findAll();
 
-        $normalized = $this->normalizeRows($translations);
-        foreach ($normalized as &$row) {
-            $row['option_labels'] = $this->decodeOptionLabels($row['option_labels'] ?? null);
-        }
-        unset($row);
+        $formData['translations'] = ModelResultNormalizer::toArrayList($trans);
+        $formData['fields']       = $this->fieldService->listWithTranslations((int) $formData['id']);
+        $formData['usages']       = $this->getUsages((int) $formData['id'], $locale);
 
-        $fieldData['translations'] = $normalized;
-
-        return $fieldData;
-    }
-
-    /**
-     * @param mixed $rows
-     * @return list<array<string, mixed>>
-     */
-    private function normalizeRows(mixed $rows): array
-    {
-        if (! is_array($rows)) {
-            return [];
-        }
-
-        $normalized = [];
-        foreach ($rows as $row) {
-            if ($row instanceof \CodeIgniter\Entity\Entity) {
-                $normalized[] = $row->toArray();
-                continue;
-            }
-
-            if (is_array($row)) {
-                $normalized[] = $row;
-            }
-        }
-
-        return $normalized;
-    }
-
-    private function resolveLanguageId(?string $locale): ?int
-    {
-        if (is_string($locale) && trim($locale) !== '') {
-            $result = $this->db->table('cms_languages')
-                ->select('id')
-                ->where('code', trim($locale))
-                ->get();
-            $row = $result ? $result->getRowArray() : null;
-
-            if (is_array($row) && isset($row['id'])) {
-                return (int) $row['id'];
-            }
-        }
-
-        $result = $this->db->table('cms_languages')
-            ->select('id')
-            ->where('is_default', 1)
-            ->get();
-        $row = $result ? $result->getRowArray() : null;
-
-        if (is_array($row) && isset($row['id'])) {
-            return (int) $row['id'];
-        }
-
-        $result = $this->db->table('cms_languages')
-            ->select('id')
-            ->orderBy('id', 'ASC')
-            ->limit(1)
-            ->get();
-        $row = $result ? $result->getRowArray() : null;
-
-        return is_array($row) && isset($row['id']) ? (int) $row['id'] : null;
-    }
-
-    /**
-     * Resolve all usage labels with at most one translation query per owner
-     * type. This avoids an N+1 query each time a popular form is inspected.
-     *
-     * @param list<array<string, mixed>> $usageRows
-     * @return array<string, string>
-     */
-    private function resolveOwnerTitles(array $usageRows, ?int $preferredLanguageId, ?int $fallbackLanguageId): array
-    {
-        $languagePriority = array_values(array_unique(array_filter(
-            [$preferredLanguageId, $fallbackLanguageId],
-            static fn (?int $languageId): bool => $languageId !== null && $languageId > 0
-        )));
-        $titles = [];
-
-        foreach ([
-            'page' => ['table' => 'cms_page_translations', 'fk' => 'page_id'],
-            'entry' => ['table' => 'cms_entry_translations', 'fk' => 'entry_id'],
-        ] as $ownerType => $definition) {
-            $ownerIds = [];
-            foreach ($usageRows as $usageRow) {
-                if (($usageRow['owner_type'] ?? null) !== $ownerType) {
-                    continue;
-                }
-
-                $ownerId = (int) ($usageRow['owner_id'] ?? 0);
-                if ($ownerId > 0) {
-                    $ownerIds[] = $ownerId;
-                }
-            }
-
-            $ownerIds = array_values(array_unique($ownerIds));
-            if ($ownerIds === []) {
-                continue;
-            }
-
-            $result = $this->db->table($definition['table'])
-                ->select($definition['fk'] . ' as owner_id, language_id, title')
-                ->whereIn($definition['fk'], $ownerIds)
-                ->orderBy('language_id', 'ASC')
-                ->get();
-            $translationRows = $result ? $result->getResultArray() : [];
-
-            /** @var array<int, array<int, string>> $byOwnerAndLanguage */
-            $byOwnerAndLanguage = [];
-            foreach ($translationRows as $translationRow) {
-                $ownerId = (int) ($translationRow['owner_id'] ?? 0);
-                $languageId = (int) ($translationRow['language_id'] ?? 0);
-                $title = trim((string) ($translationRow['title'] ?? ''));
-                if ($ownerId > 0 && $languageId > 0 && $title !== '') {
-                    $byOwnerAndLanguage[$ownerId][$languageId] = $title;
-                }
-            }
-
-            foreach ($ownerIds as $ownerId) {
-                $available = $byOwnerAndLanguage[$ownerId] ?? [];
-                foreach ($languagePriority as $languageId) {
-                    if (isset($available[$languageId])) {
-                        $titles[$ownerType . ':' . $ownerId] = $available[$languageId];
-                        continue 2;
-                    }
-                }
-
-                $firstTitle = reset($available);
-                if (is_string($firstTitle) && $firstTitle !== '') {
-                    $titles[$ownerType . ':' . $ownerId] = $firstTitle;
-                }
-            }
-        }
-
-        return $titles;
+        return FormResponseDTO::fromArray($formData);
     }
 
     /**
@@ -681,220 +319,5 @@ class FormService
             $rows,
             static fn (array $row): array => $row,
         );
-    }
-
-    /**
-     * @param array<int|string, mixed> $translations
-     */
-    private function saveFieldTranslations(int $fieldId, array $translations): void
-    {
-        $rows = [];
-        foreach ($translations as $trans) {
-            if (! is_array($trans)) {
-                continue;
-            }
-            $languageId = (int) ($trans['language_id'] ?? 0);
-            if ($languageId === 0) {
-                continue;
-            }
-
-            $optionLabels = isset($trans['option_labels']) && is_array($trans['option_labels'])
-                ? $this->sanitizeOptionLabels($trans['option_labels'])
-                : [];
-
-            $rows[] = [
-                'language_id'    => $languageId,
-                'label'          => (string) ($trans['label'] ?? ''),
-                'placeholder'    => isset($trans['placeholder']) && $trans['placeholder'] !== '' ? (string) $trans['placeholder'] : null,
-                'help_text'      => isset($trans['help_text']) && $trans['help_text'] !== '' ? (string) $trans['help_text'] : null,
-                'option_labels'  => $optionLabels !== [] ? json_encode($optionLabels, JSON_UNESCAPED_UNICODE) : null,
-                'error_required' => isset($trans['error_required']) && $trans['error_required'] !== '' ? (string) $trans['error_required'] : null,
-                'error_invalid'  => isset($trans['error_invalid']) && $trans['error_invalid'] !== '' ? (string) $trans['error_invalid'] : null,
-            ];
-        }
-
-        ($this->translationSynchronizer ?? throw new \LogicException(lang('Api.translationSynchronizerRequired')))->replace(
-            $this->fieldTranslationModel,
-            'form_field_id',
-            $fieldId,
-            $rows,
-            static fn (array $row): array => $row,
-        );
-    }
-
-    /**
-     * Drops option_labels entries for values that no longer exist on the
-     * field — e.g. an option was removed or its value edited/regenerated to
-     * something else. Runs after every field save so stale entries never
-     * accumulate.
-     */
-    private function pruneOptionLabels(int $fieldId): void
-    {
-        /** @var FormFieldEntity|null $field */
-        $field = $this->fieldModel->find($fieldId);
-        if ($field === null) {
-            return;
-        }
-
-        $fieldData   = $field->toArray();
-        $validValues = is_array($fieldData['options'] ?? null) ? $fieldData['options'] : [];
-        $validLookup = array_flip($validValues);
-
-        $translations = $this->fieldTranslationModel->where('form_field_id', $fieldId)->findAll();
-        foreach ($translations as $trans) {
-            if (! is_array($trans)) {
-                continue;
-            }
-
-            $decoded = $this->decodeOptionLabels($trans['option_labels'] ?? null);
-            if ($decoded === []) {
-                continue;
-            }
-
-            $pruned = array_intersect_key($decoded, $validLookup);
-            if ($pruned === $decoded) {
-                continue;
-            }
-
-            $this->fieldTranslationModel
-                ->where('id', is_scalar($trans['id'] ?? null) ? (int) $trans['id'] : 0)
-                ->set('option_labels', $pruned !== [] ? json_encode($pruned, JSON_UNESCAPED_UNICODE) : null)
-                ->update();
-        }
-    }
-
-    /**
-     * @param array<int|string, mixed> $raw
-     * @return array<string, string>
-     */
-    private function sanitizeOptionLabels(array $raw): array
-    {
-        $clean = [];
-        foreach ($raw as $value => $label) {
-            $value = trim((string) $value);
-            $label = trim((string) $label);
-            if ($value === '' || $label === '') {
-                continue;
-            }
-            $clean[$value] = $label;
-        }
-
-        return $clean;
-    }
-
-    /**
-     * @return array<string, string>
-     */
-    private function decodeOptionLabels(mixed $raw): array
-    {
-        if (is_array($raw)) {
-            return $raw;
-        }
-
-        if (is_string($raw) && $raw !== '') {
-            $decoded = json_decode($raw, true);
-            return is_array($decoded) ? $decoded : [];
-        }
-
-        return [];
-    }
-
-    /**
-     * @return array<string, mixed>
-     */
-    /** @return array<string, mixed> */
-    private function resolveFormTranslation(int $formId, string $lang): array
-    {
-        /** @var \App\Models\LanguageModel $languageModel */
-        $languageModel = model(\App\Models\LanguageModel::class);
-
-        $language = $languageModel->where('code', $lang)->first();
-        if ($language === null) {
-            $language = $languageModel->where('is_default', 1)->first();
-        }
-
-        if ($language === null) {
-            return ['name' => '', 'submit_label' => 'Enviar'];
-        }
-
-        // (array) $entity does NOT call Entity::toArray() — it exposes the
-        // object's raw properties with PHP's mangled protected/private-property
-        // keys (e.g. "\0*\0attributes"), never a plain 'id' key. That silently
-        // made $languageId always 0 below, so the language_id lookup never
-        // matched and every call fell through to "first translation for this
-        // row" — which is why every locale rendered the same (first-created)
-        // language regardless of what was requested.
-        /** @var array<string, mixed> $langArr */
-        $langArr    = is_array($language) ? $language : $language->toArray();
-        $languageId = (int) ($langArr['id'] ?? 0);
-
-        /** @var array<string, mixed>|null $trans */
-        $trans = $this->translationModel
-            ->where('form_id', $formId)
-            ->where('language_id', $languageId)
-            ->first();
-
-        if ($trans === null) {
-            /** @var array<string, mixed>|null $trans */
-            $trans = $this->translationModel->where('form_id', $formId)->first();
-        }
-
-        return is_array($trans) ? $trans : ['name' => '', 'submit_label' => 'Enviar'];
-    }
-
-    /**
-     * @return array<string, mixed>
-     */
-    /** @return array<string, mixed> */
-    private function resolveFieldTranslation(int $fieldId, string $lang): array
-    {
-        /** @var \App\Models\LanguageModel $languageModel */
-        $languageModel = model(\App\Models\LanguageModel::class);
-
-        $language = $languageModel->where('code', $lang)->first();
-        if ($language === null) {
-            $language = $languageModel->where('is_default', 1)->first();
-        }
-
-        if ($language === null) {
-            return [];
-        }
-
-        // See resolveFormTranslation() above — (array) $entity doesn't work here.
-        /** @var array<string, mixed> $langArr */
-        $langArr    = is_array($language) ? $language : $language->toArray();
-        $languageId = (int) ($langArr['id'] ?? 0);
-
-        /** @var array<string, mixed>|null $trans */
-        $trans = $this->fieldTranslationModel
-            ->where('form_field_id', $fieldId)
-            ->where('language_id', $languageId)
-            ->first();
-
-        if ($trans === null) {
-            /** @var array<string, mixed>|null $trans */
-            $trans = $this->fieldTranslationModel->where('form_field_id', $fieldId)->first();
-        }
-
-        return is_array($trans) ? $trans : [];
-    }
-
-    private function requireForm(int $formId): void
-    {
-        if ($this->formModel->find($formId) === null) {
-            throw new NotFoundException(lang('Forms.not_found'));
-        }
-    }
-
-    private function requireField(int $formId, int $fieldId): void
-    {
-        $field = $this->fieldModel
-            ->where('id', $fieldId)
-            ->where('form_id', $formId)
-            ->first();
-
-        if ($field === null) {
-            throw new NotFoundException(lang('Forms.field_not_found'));
-        }
     }
 }

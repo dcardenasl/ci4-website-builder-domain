@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace App\Controllers\Api\V1\Cms;
 
-use App\Services\Cms\FormService;
+use App\Services\Cms\FormPublicDefinitionAssembler;
 use CodeIgniter\HTTP\ResponseInterface;
 use dcardenasl\Ci4ApiCore\Http\ApiController;
 
@@ -14,18 +14,18 @@ use dcardenasl\Ci4ApiCore\Http\ApiController;
  */
 class PublicFormController extends ApiController
 {
-    protected function resolveDefaultService(): FormService
+    protected function resolveDefaultService(): FormPublicDefinitionAssembler
     {
-        return service('formService');
+        return service('formPublicDefinitionAssembler');
     }
 
     public function definition(string $lang, string $formKey): ResponseInterface
     {
         return $this->handleRequest(
             function () use ($lang, $formKey): mixed {
-                /** @var FormService $svc */
-                $svc = service('formService');
-                return $svc->getPublicDefinition($lang, $formKey)->toArray();
+                /** @var FormPublicDefinitionAssembler $svc */
+                $svc = service('formPublicDefinitionAssembler');
+                return $svc->getDefinition($lang, $formKey)->toArray();
             }
         );
     }
