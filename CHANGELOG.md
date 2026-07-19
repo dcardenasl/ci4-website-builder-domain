@@ -8,6 +8,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- **Translated menu name in public menu endpoint** — `GET /api/v1/public/menus/{key}` now resolves and returns a `name` field via `Services::translationResolver()`, localized by the requested language, falling back to `menu_key` when no translation exists; also fixes the locale fallback to use `config('App')->defaultLocale` instead of a hardcoded `'es'`.
 - **Queue-backed cache invalidation** — `CacheInvalidationClient` dispatches `CacheInvalidationJob` through the shared queue instead of making a blocking HTTP call to the public website inline with the request; falls back to an immediate synchronous call when no queue manager is configured.
 - **Canonical media reference system** — image-based blocks use the single `media_reference` shape (`source_kind`, `file_id`, `url`) from their initial seed data; `FileUrlResolver` supports Hub-managed files and external URLs with one caching strategy, and the base block migration creates the Domain file-reference registry directly.
 - **Non-translatable field types export** — `WizardConfigController` now exports `NON_TRANSLATABLE_TYPES` constant in configuration response, enabling admin panel to dynamically determine which block field types should not be duplicated across language translations without hardcoding
