@@ -8,6 +8,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- **Queue-backed cache invalidation** — `CacheInvalidationClient` dispatches `CacheInvalidationJob` through the shared queue instead of making a blocking HTTP call to the public website inline with the request; falls back to an immediate synchronous call when no queue manager is configured.
 - **Canonical media reference system** — image-based blocks use the single `media_reference` shape (`source_kind`, `file_id`, `url`) from their initial seed data; `FileUrlResolver` supports Hub-managed files and external URLs with one caching strategy, and the base block migration creates the Domain file-reference registry directly.
 - **Non-translatable field types export** — `WizardConfigController` now exports `NON_TRANSLATABLE_TYPES` constant in configuration response, enabling admin panel to dynamically determine which block field types should not be duplicated across language translations without hardcoding
 - **Dynamic social links block system** — refactored social links from hardcoded network fields to a flexible container + child block pattern; `social_links` block now acts as a container for individual `social_link_item` children with configurable network type, URL, and handle per link; `CmsSocialLinksChildrenSeeder` populates example links for the contact page with multilingual data support
