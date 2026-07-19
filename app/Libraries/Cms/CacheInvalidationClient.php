@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace App\Libraries\Cms;
 
+use dcardenasl\Ci4ApiCore\Queue\QueueManagerInterface;
+
 /**
  * Notifies the public website to invalidate its server-side cache after content changes.
  *
@@ -15,10 +17,24 @@ class CacheInvalidationClient
     private string $webUrl;
     private string $invalidateKey;
 
-    public function __construct(string $webUrl = '', string $invalidateKey = '')
-    {
+    private ?QueueManagerInterface $queueManager;
+
+    private bool $dispatch;
+
+    private string $queueName;
+
+    public function __construct(
+        string $webUrl = '',
+        string $invalidateKey = '',
+        ?QueueManagerInterface $queueManager = null,
+        bool $dispatch = true,
+        string $queueName = 'default',
+    ) {
         $this->webUrl        = rtrim($webUrl ?: (string) env('WEB_CACHE_INVALIDATE_URL', ''), '/');
         $this->invalidateKey = $invalidateKey ?: (string) env('WEB_CACHE_INVALIDATE_KEY', '');
+        $this->queueManager = $queueManager;
+        $this->dispatch     = $dispatch;
+        $this->queueName    = $queueName;
     }
 
     /**
@@ -27,6 +43,27 @@ class CacheInvalidationClient
      * @param list<string> $scopes e.g. ['pages', 'menus']
      */
     public function invalidate(array $scopes): void
+    {
+        if ($this->dispatch && $this->queueManager !== null) {
+            try {
+                $this->queueManager->push(
+                    \App\Jobs\CacheInvalidationJob::class,
+                    ['scopes' => $scopes],
+                    $this->queueName,
+                );
+            } catch (\Throwable $exception) {
+                log_message('error', '[CacheInvalidationClient] Could not dispatch invalidation job: ' . $exception->getMessage());
+            }
+
+            return;
+        }
+
+        $this->invalidateNow($scopes);
+    }
+
+    /** Execute the HTTP invalidation, normally from the queue worker. */
+    /** @param list<string> $scopes */
+    public function invalidateNow(array $scopes): void
     {
         if ($this->webUrl === '' || $this->invalidateKey === '' || empty($scopes)) {
             return;

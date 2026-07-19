@@ -399,7 +399,10 @@ trait CmsDomainServices
             return static::getSharedInstance('cacheInvalidationClient');
         }
 
-        return new \App\Libraries\Cms\CacheInvalidationClient();
+        return new \App\Libraries\Cms\CacheInvalidationClient(
+            queueManager: static::queueManager(),
+            queueName: config('Queue')->defaultQueue,
+        );
     }
 
     public static function formService(bool $getShared = true): \App\Services\Cms\FormService
