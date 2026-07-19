@@ -6,6 +6,7 @@ namespace App\Services\Cms;
 
 use App\Entities\MenuEntity;
 use App\Interfaces\Cms\MenuServiceInterface;
+use App\Traits\Services\HasDeferredTranslations;
 use dcardenasl\Ci4ApiCore\Dto\SecurityContext;
 use dcardenasl\Ci4ApiCore\Exceptions\ValidationException;
 use dcardenasl\Ci4ApiCore\Mappers\ResponseMapperInterface;
@@ -17,8 +18,7 @@ use dcardenasl\Ci4ApiCore\Services\BaseCrudService;
  */
 class MenuService extends BaseCrudService implements MenuServiceInterface
 {
-    /** @var array<mixed>|null */
-    private ?array $tempTranslations = null;
+    use HasDeferredTranslations;
 
     private \App\Libraries\Cms\CacheInvalidationClient $cacheInvalidator;
 
@@ -47,19 +47,14 @@ class MenuService extends BaseCrudService implements MenuServiceInterface
             );
         }
 
-        $this->tempTranslations = $data['translations'] ?? null;
-        unset($data['translations']);
-        return $data;
+        return $this->deferTranslationsFromCreate($data);
     }
 
     protected function afterStore(object $entity, ?SecurityContext $context): void
     {
         parent::afterStore($entity, $context);
-        if ($this->tempTranslations !== null) {
-            $this->saveTranslations((int) $entity->id, $this->tempTranslations);
-        }
+        $this->flushDeferredTranslations(fn (array $t) => $this->saveTranslations((int) $entity->id, $t));
         $this->cacheInvalidator->invalidate(['menus']);
-        $this->tempTranslations = null;
     }
 
     protected function beforeUpdate(int $id, array $data, ?SecurityContext $context): array
@@ -76,24 +71,14 @@ class MenuService extends BaseCrudService implements MenuServiceInterface
             }
         }
 
-        if (array_key_exists('translations', $data)) {
-            $this->tempTranslations = $data['translations'];
-            unset($data['translations']);
-        } else {
-            $this->tempTranslations = null;
-        }
-
-        return $data;
+        return $this->deferTranslationsFromUpdate($data);
     }
 
     protected function afterUpdate(object $entity, ?SecurityContext $context): void
     {
         parent::afterUpdate($entity, $context);
-        if ($this->tempTranslations !== null) {
-            $this->saveTranslations((int) $entity->id, $this->tempTranslations);
-        }
+        $this->flushDeferredTranslations(fn (array $t) => $this->saveTranslations((int) $entity->id, $t));
         $this->cacheInvalidator->invalidate(['menus']);
-        $this->tempTranslations = null;
     }
 
     protected function afterDelete(object $entity, ?SecurityContext $context): void

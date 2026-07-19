@@ -13,6 +13,7 @@ use App\Entities\EntryEntity;
 use App\Interfaces\Cms\EntryServiceInterface;
 use App\Libraries\Cms\FileReferenceSynchronizer;
 use App\Libraries\Cms\FileUrlResolver;
+use App\Traits\Services\HasDeferredTranslations;
 use dcardenasl\Ci4ApiCore\Dto\Common\PayloadResponseDTO;
 use dcardenasl\Ci4ApiCore\Dto\DataTransferObjectInterface;
 use dcardenasl\Ci4ApiCore\Dto\SecurityContext;
@@ -27,8 +28,7 @@ use dcardenasl\Ci4ApiCore\Services\BaseCrudService;
  */
 class EntryService extends BaseCrudService implements EntryServiceInterface
 {
-    /** @var array<mixed>|null */
-    private ?array $tempTranslations = null;
+    use HasDeferredTranslations;
 
     private \App\Libraries\Cms\SlugRedirectRecorder $slugRedirectRecorder;
 
@@ -89,9 +89,7 @@ class EntryService extends BaseCrudService implements EntryServiceInterface
             $data = $this->applyCreationDefaults($data, $collection);
         }
 
-        $this->tempTranslations = $data['translations'] ?? null;
-        unset($data['translations']);
-        return $data;
+        return $this->deferTranslationsFromCreate($data);
     }
 
     /**
@@ -138,9 +136,7 @@ class EntryService extends BaseCrudService implements EntryServiceInterface
     {
         parent::afterStore($entity, $context);
 
-        if ($this->tempTranslations !== null) {
-            $this->saveTranslations((int) $entity->id, $this->tempTranslations);
-        }
+        $this->flushDeferredTranslations(fn (array $t) => $this->saveTranslations((int) $entity->id, $t));
 
         // wizard_extra is a transient payload: pre-fill matching block fields, then clear it.
         $rawExtra = ($entity instanceof EntryEntity) ? $entity->wizard_extra : null;
@@ -170,7 +166,6 @@ class EntryService extends BaseCrudService implements EntryServiceInterface
         $this->fileReferenceSynchronizer->syncEntry((int) $entity->id);
         $this->createVersionSnapshot((int) $entity->id, 'Initial creation');
         $this->cacheInvalidator->invalidate(['entries']);
-        $this->tempTranslations = null;
     }
 
     protected function beforeUpdate(int $id, array $data, ?SecurityContext $context): array
@@ -191,26 +186,16 @@ class EntryService extends BaseCrudService implements EntryServiceInterface
             }
         }
 
-        if (array_key_exists('translations', $data)) {
-            $this->tempTranslations = $data['translations'];
-            unset($data['translations']);
-        } else {
-            $this->tempTranslations = null;
-        }
-
-        return $data;
+        return $this->deferTranslationsFromUpdate($data);
     }
 
     protected function afterUpdate(object $entity, ?SecurityContext $context): void
     {
         parent::afterUpdate($entity, $context);
-        if ($this->tempTranslations !== null) {
-            $this->saveTranslations((int) $entity->id, $this->tempTranslations);
-        }
+        $this->flushDeferredTranslations(fn (array $t) => $this->saveTranslations((int) $entity->id, $t));
         $this->fileReferenceSynchronizer->syncEntry((int) $entity->id);
         $this->createVersionSnapshot((int) $entity->id, 'Update entry');
         $this->cacheInvalidator->invalidate(['entries']);
-        $this->tempTranslations = null;
     }
 
     protected function afterDelete(object $entity, ?SecurityContext $context): void

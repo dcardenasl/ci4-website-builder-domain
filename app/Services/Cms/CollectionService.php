@@ -6,6 +6,7 @@ namespace App\Services\Cms;
 
 use App\Entities\CollectionEntity;
 use App\Interfaces\Cms\CollectionServiceInterface;
+use App\Traits\Services\HasDeferredTranslations;
 use dcardenasl\Ci4ApiCore\Dto\SecurityContext;
 use dcardenasl\Ci4ApiCore\Exceptions\ValidationException;
 use dcardenasl\Ci4ApiCore\Mappers\ResponseMapperInterface;
@@ -17,8 +18,7 @@ use dcardenasl\Ci4ApiCore\Services\BaseCrudService;
  */
 class CollectionService extends BaseCrudService implements CollectionServiceInterface
 {
-    /** @var array<mixed>|null */
-    private ?array $tempTranslations = null;
+    use HasDeferredTranslations;
 
     private \App\Libraries\Cms\CacheInvalidationClient $cacheInvalidator;
 
@@ -48,8 +48,7 @@ class CollectionService extends BaseCrudService implements CollectionServiceInte
             );
         }
 
-        $this->tempTranslations = $data['translations'] ?? null;
-        unset($data['translations']);
+        $data = $this->deferTranslationsFromCreate($data);
 
         if ($this->tempTranslations !== null) {
             $this->assertTranslationSlugsAreAvailable($this->tempTranslations);
@@ -61,11 +60,8 @@ class CollectionService extends BaseCrudService implements CollectionServiceInte
     protected function afterStore(object $entity, ?SecurityContext $context): void
     {
         parent::afterStore($entity, $context);
-        if ($this->tempTranslations !== null) {
-            $this->saveTranslations((int) $entity->id, $this->tempTranslations);
-        }
+        $this->flushDeferredTranslations(fn (array $t) => $this->saveTranslations((int) $entity->id, $t));
         $this->cacheInvalidator->invalidate(['collections', 'entries']);
-        $this->tempTranslations = null;
     }
 
     protected function beforeUpdate(int $id, array $data, ?SecurityContext $context): array
@@ -83,12 +79,7 @@ class CollectionService extends BaseCrudService implements CollectionServiceInte
             }
         }
 
-        if (array_key_exists('translations', $data)) {
-            $this->tempTranslations = $data['translations'];
-            unset($data['translations']);
-        } else {
-            $this->tempTranslations = null;
-        }
+        $data = $this->deferTranslationsFromUpdate($data);
 
         if ($this->tempTranslations !== null) {
             $this->assertTranslationSlugsAreAvailable($this->tempTranslations, $id);
@@ -100,11 +91,8 @@ class CollectionService extends BaseCrudService implements CollectionServiceInte
     protected function afterUpdate(object $entity, ?SecurityContext $context): void
     {
         parent::afterUpdate($entity, $context);
-        if ($this->tempTranslations !== null) {
-            $this->saveTranslations((int) $entity->id, $this->tempTranslations);
-        }
+        $this->flushDeferredTranslations(fn (array $t) => $this->saveTranslations((int) $entity->id, $t));
         $this->cacheInvalidator->invalidate(['collections', 'entries']);
-        $this->tempTranslations = null;
     }
 
     protected function afterDelete(object $entity, ?SecurityContext $context): void

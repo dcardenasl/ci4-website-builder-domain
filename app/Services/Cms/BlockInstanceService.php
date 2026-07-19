@@ -9,6 +9,7 @@ use App\Interfaces\Cms\BlockInstanceServiceInterface;
 use App\Libraries\Cms\FileReferenceSynchronizer;
 use App\Libraries\Cms\FileUrlResolver;
 use App\Libraries\Cms\HtmlSanitizer;
+use App\Traits\Services\HasDeferredTranslations;
 use dcardenasl\Ci4ApiCore\Dto\SecurityContext;
 use dcardenasl\Ci4ApiCore\Mappers\ResponseMapperInterface;
 use dcardenasl\Ci4ApiCore\Repositories\RepositoryInterface;
@@ -19,8 +20,7 @@ use dcardenasl\Ci4ApiCore\Services\BaseCrudService;
  */
 class BlockInstanceService extends BaseCrudService implements BlockInstanceServiceInterface
 {
-    /** @var array<mixed>|null */
-    private ?array $tempTranslations = null;
+    use HasDeferredTranslations;
 
     private ?string $filterOwnerType = null;
     private ?int $filterOwnerId = null;
@@ -57,23 +57,15 @@ class BlockInstanceService extends BaseCrudService implements BlockInstanceServi
     {
         $data = parent::beforeStore($data, $context);
         $data = $this->normalizeBlockConfig($data);
-        if (array_key_exists('translations', $data)) {
-            $this->tempTranslations = $data['translations'];
-            unset($data['translations']);
-        } else {
-            $this->tempTranslations = null;
-        }
-        return $data;
+
+        return $this->deferTranslationsFromUpdate($data);
     }
 
     protected function afterStore(object $entity, ?SecurityContext $context): void
     {
         parent::afterStore($entity, $context);
-        if ($this->tempTranslations !== null) {
-            $this->saveTranslations((int) $entity->id, $this->tempTranslations);
-        }
+        $this->flushDeferredTranslations(fn (array $t) => $this->saveTranslations((int) $entity->id, $t));
         $this->fileReferenceSynchronizer->syncBlockInstance((int) $entity->id);
-        $this->tempTranslations = null;
         $this->cacheInvalidator->invalidate($this->cacheScopesForEntity($entity));
     }
 
@@ -81,23 +73,15 @@ class BlockInstanceService extends BaseCrudService implements BlockInstanceServi
     {
         $data = parent::beforeUpdate($id, $data, $context);
         $data = $this->normalizeBlockConfig($data);
-        if (array_key_exists('translations', $data)) {
-            $this->tempTranslations = $data['translations'];
-            unset($data['translations']);
-        } else {
-            $this->tempTranslations = null;
-        }
-        return $data;
+
+        return $this->deferTranslationsFromUpdate($data);
     }
 
     protected function afterUpdate(object $entity, ?SecurityContext $context): void
     {
         parent::afterUpdate($entity, $context);
-        if ($this->tempTranslations !== null) {
-            $this->saveTranslations((int) $entity->id, $this->tempTranslations);
-        }
+        $this->flushDeferredTranslations(fn (array $t) => $this->saveTranslations((int) $entity->id, $t));
         $this->fileReferenceSynchronizer->syncBlockInstance((int) $entity->id);
-        $this->tempTranslations = null;
         $this->cacheInvalidator->invalidate($this->cacheScopesForEntity($entity));
     }
 
