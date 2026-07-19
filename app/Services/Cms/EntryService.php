@@ -489,54 +489,18 @@ class EntryService extends BaseCrudService implements EntryServiceInterface
         EntrySetCategoriesRequestDTO $dto,
         ?SecurityContext $context = null
     ): DataTransferObjectInterface {
+        /** @var EntryEntity|null $entry */
         $entry = $this->repository->find($entryId);
         if (! $entry) {
             throw new NotFoundException(lang('Api.resourceNotFound'));
         }
 
         return $this->wrapInTransaction(function () use ($entryId, $dto, $entry): DataTransferObjectInterface {
-            $categoryIds = $dto->category_ids;
-
-            if (!empty($categoryIds)) {
-                /** @var \App\Models\CategoryModel $categoryModel */
-                $categoryModel = model(\App\Models\CategoryModel::class);
-                $found = $categoryModel->whereIn('id', $categoryIds)->findAll();
-                if (count($found) !== count(array_unique($categoryIds))) {
-                    throw new ValidationException(
-                        lang('Entries.invalid_categories'),
-                        ['category_ids' => lang('Entries.some_categories_not_found')]
-                    );
-                }
-
-                $entryCollectionId = (int) ($entry->collection_id ?? 0);
-                foreach ($found as $category) {
-                    if ((int) ($category->collection_id ?? 0) !== $entryCollectionId) {
-                        throw new ValidationException(
-                            lang('Entries.invalid_categories'),
-                            ['category_ids' => lang('Entries.some_categories_not_found')]
-                        );
-                    }
-                }
-            }
-
-            $db = \Config\Database::connect();
-            $db->table('cms_entry_categories')->where('entry_id', $entryId)->delete();
-
-            if (!empty($categoryIds)) {
-                $rows = [];
-                foreach ($categoryIds as $order => $catId) {
-                    $rows[] = [
-                        'entry_id'    => $entryId,
-                        'category_id' => $catId,
-                        'sort_order'  => $order,
-                    ];
-                }
-                $db->table('cms_entry_categories')->insertBatch($rows);
-            }
+            $this->replaceEntryCategories($entryId, $dto->category_ids, $entry);
 
             return PayloadResponseDTO::fromArray([
                 'entry_id'     => $entryId,
-                'category_ids' => $categoryIds,
+                'category_ids' => $dto->category_ids,
             ]);
         });
     }
@@ -551,37 +515,11 @@ class EntryService extends BaseCrudService implements EntryServiceInterface
         }
 
         return $this->wrapInTransaction(function () use ($entryId, $dto): DataTransferObjectInterface {
-            $tagIds = $dto->tag_ids;
-
-            if (!empty($tagIds)) {
-                /** @var \App\Models\TagModel $tagModel */
-                $tagModel = model(\App\Models\TagModel::class);
-                $found = $tagModel->whereIn('id', $tagIds)->findAll();
-                if (count($found) !== count(array_unique($tagIds))) {
-                    throw new ValidationException(
-                        lang('Entries.invalid_tags'),
-                        ['tag_ids' => lang('Entries.some_tags_not_found')]
-                    );
-                }
-            }
-
-            $db = \Config\Database::connect();
-            $db->table('cms_entry_tags')->where('entry_id', $entryId)->delete();
-
-            if (!empty($tagIds)) {
-                $rows = [];
-                foreach ($tagIds as $tagId) {
-                    $rows[] = [
-                        'entry_id' => $entryId,
-                        'tag_id'   => $tagId,
-                    ];
-                }
-                $db->table('cms_entry_tags')->insertBatch($rows);
-            }
+            $this->replaceEntryTags($entryId, $dto->tag_ids);
 
             return PayloadResponseDTO::fromArray([
                 'entry_id' => $entryId,
-                'tag_ids'  => $tagIds,
+                'tag_ids'  => $dto->tag_ids,
             ]);
         });
     }
@@ -591,79 +529,103 @@ class EntryService extends BaseCrudService implements EntryServiceInterface
         EntrySyncTaxonomyRequestDTO $dto,
         ?SecurityContext $context = null
     ): DataTransferObjectInterface {
+        /** @var EntryEntity|null $entry */
         $entry = $this->repository->find($entryId);
         if (! $entry) {
             throw new NotFoundException(lang('Api.resourceNotFound'));
         }
 
         return $this->wrapInTransaction(function () use ($entryId, $dto, $entry): DataTransferObjectInterface {
-            $categoryIds = $dto->category_ids;
-            $tagIds = $dto->tag_ids;
+            $this->replaceEntryCategories($entryId, $dto->category_ids, $entry);
+            $this->replaceEntryTags($entryId, $dto->tag_ids);
 
-            if (! empty($categoryIds)) {
-                /** @var \App\Models\CategoryModel $categoryModel */
-                $categoryModel = model(\App\Models\CategoryModel::class);
-                $foundCategories = $categoryModel->whereIn('id', $categoryIds)->findAll();
-                if (count($foundCategories) !== count($categoryIds)) {
+            return PayloadResponseDTO::fromArray([
+                'entry_id' => $entryId,
+                'category_ids' => $dto->category_ids,
+                'tag_ids' => $dto->tag_ids,
+            ]);
+        });
+    }
+
+    /**
+     * Validate that every id in $categoryIds exists and belongs to the
+     * entry's own collection, then replace the entry's category pivot rows
+     * with exactly that set (preserving array order as sort_order). Shared
+     * by syncCategories() and syncTaxonomy() so the two never drift.
+     *
+     * @param list<int> $categoryIds
+     */
+    private function replaceEntryCategories(int $entryId, array $categoryIds, EntryEntity $entry): void
+    {
+        if ($categoryIds !== []) {
+            /** @var \App\Models\CategoryModel $categoryModel */
+            $categoryModel = model(\App\Models\CategoryModel::class);
+            $found = $categoryModel->whereIn('id', $categoryIds)->findAll();
+            if (count($found) !== count($categoryIds)) {
+                throw new ValidationException(
+                    lang('Entries.invalid_categories'),
+                    ['category_ids' => lang('Entries.some_categories_not_found')]
+                );
+            }
+
+            $entryCollectionId = (int) ($entry->collection_id ?? 0);
+            foreach ($found as $category) {
+                if ((int) ($category->collection_id ?? 0) !== $entryCollectionId) {
                     throw new ValidationException(
                         lang('Entries.invalid_categories'),
                         ['category_ids' => lang('Entries.some_categories_not_found')]
                     );
                 }
-
-                $entryCollectionId = (int) ($entry->collection_id ?? 0);
-                foreach ($foundCategories as $category) {
-                    if ((int) ($category->collection_id ?? 0) !== $entryCollectionId) {
-                        throw new ValidationException(
-                            lang('Entries.invalid_categories'),
-                            ['category_ids' => lang('Entries.some_categories_not_found')]
-                        );
-                    }
-                }
             }
+        }
 
-            if (! empty($tagIds)) {
-                /** @var \App\Models\TagModel $tagModel */
-                $tagModel = model(\App\Models\TagModel::class);
-                $foundTags = $tagModel->whereIn('id', $tagIds)->findAll();
-                if (count($foundTags) !== count($tagIds)) {
-                    throw new ValidationException(
-                        lang('Entries.invalid_tags'),
-                        ['tag_ids' => lang('Entries.some_tags_not_found')]
-                    );
-                }
+        $db = \Config\Database::connect();
+        $db->table('cms_entry_categories')->where('entry_id', $entryId)->delete();
+
+        if ($categoryIds !== []) {
+            $rows = [];
+            foreach ($categoryIds as $order => $categoryId) {
+                $rows[] = [
+                    'entry_id'    => $entryId,
+                    'category_id' => $categoryId,
+                    'sort_order'  => $order,
+                ];
             }
+            $db->table('cms_entry_categories')->insertBatch($rows);
+        }
+    }
 
-            $db = \Config\Database::connect();
-            $db->table('cms_entry_categories')->where('entry_id', $entryId)->delete();
-            $db->table('cms_entry_tags')->where('entry_id', $entryId)->delete();
-
-            if (! empty($categoryIds)) {
-                $categoryRows = [];
-                foreach ($categoryIds as $order => $categoryId) {
-                    $categoryRows[] = [
-                        'entry_id' => $entryId,
-                        'category_id' => $categoryId,
-                        'sort_order' => $order,
-                    ];
-                }
-                $db->table('cms_entry_categories')->insertBatch($categoryRows);
+    /**
+     * Validate that every id in $tagIds exists, then replace the entry's tag
+     * pivot rows with exactly that set. Shared by syncTags() and
+     * syncTaxonomy() so the two never drift.
+     *
+     * @param list<int> $tagIds
+     */
+    private function replaceEntryTags(int $entryId, array $tagIds): void
+    {
+        if ($tagIds !== []) {
+            /** @var \App\Models\TagModel $tagModel */
+            $tagModel = model(\App\Models\TagModel::class);
+            $found = $tagModel->whereIn('id', $tagIds)->findAll();
+            if (count($found) !== count($tagIds)) {
+                throw new ValidationException(
+                    lang('Entries.invalid_tags'),
+                    ['tag_ids' => lang('Entries.some_tags_not_found')]
+                );
             }
+        }
 
-            if (! empty($tagIds)) {
-                $tagRows = [];
-                foreach ($tagIds as $tagId) {
-                    $tagRows[] = ['entry_id' => $entryId, 'tag_id' => $tagId];
-                }
-                $db->table('cms_entry_tags')->insertBatch($tagRows);
+        $db = \Config\Database::connect();
+        $db->table('cms_entry_tags')->where('entry_id', $entryId)->delete();
+
+        if ($tagIds !== []) {
+            $rows = [];
+            foreach ($tagIds as $tagId) {
+                $rows[] = ['entry_id' => $entryId, 'tag_id' => $tagId];
             }
-
-            return PayloadResponseDTO::fromArray([
-                'entry_id' => $entryId,
-                'category_ids' => $categoryIds,
-                'tag_ids' => $tagIds,
-            ]);
-        });
+            $db->table('cms_entry_tags')->insertBatch($rows);
+        }
     }
 
     public function listPublic(PublicEntryIndexRequestDTO $dto): DataTransferObjectInterface
