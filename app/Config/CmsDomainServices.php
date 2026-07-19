@@ -219,7 +219,8 @@ trait CmsDomainServices
             new \dcardenasl\Ci4ApiCore\Repositories\GenericRepository(model(\App\Models\BlockTypeModel::class)),
             static::blockTypeResponseMapper(),
             \Config\Database::connect(),
-            static::fileReferenceSynchronizer()
+            static::fileReferenceSynchronizer(),
+            static::ownerUsageResolver()
         );
     }
     public static function blockTemplateCatalog(bool $getShared = true): \App\Libraries\Cms\BlockTemplateCatalog
@@ -403,6 +404,15 @@ trait CmsDomainServices
             queueManager: static::queueManager(),
             queueName: config('Queue')->defaultQueue,
         );
+    }
+
+    public static function ownerUsageResolver(bool $getShared = true): \App\Libraries\Cms\OwnerUsageResolver
+    {
+        if ($getShared) {
+            return static::getSharedInstance('ownerUsageResolver');
+        }
+
+        return new \App\Libraries\Cms\OwnerUsageResolver(\Config\Database::connect());
     }
 
     public static function formService(bool $getShared = true): \App\Services\Cms\FormService

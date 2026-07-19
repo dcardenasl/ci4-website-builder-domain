@@ -35,6 +35,7 @@ class BlockTypeService extends BaseCrudService implements BlockTypeServiceInterf
         ResponseMapperInterface $responseMapper,
         BaseConnection $db,
         private readonly \App\Libraries\Cms\FileReferenceSynchronizer $fileReferenceSynchronizer,
+        private readonly \App\Libraries\Cms\OwnerUsageResolver $ownerUsageResolver,
     ) {
         parent::__construct($blockTypeRepository, $responseMapper);
         $this->db = $db;
@@ -86,7 +87,16 @@ class BlockTypeService extends BaseCrudService implements BlockTypeServiceInterf
         /** @var list<array{id: int|string, owner_type: string, owner_id: int|string}> $instances */
         $instances = $instancesResult ? $instancesResult->getResultArray() : [];
 
-        return array_map(function (array $instance): array {
+        $owners = array_map(
+            static fn (array $instance): array => [
+                'owner_type' => (string) $instance['owner_type'],
+                'owner_id'   => (int) $instance['owner_id'],
+            ],
+            $instances
+        );
+        $ownerTitles = $this->ownerUsageResolver->resolveTitles($owners);
+
+        return array_map(function (array $instance) use ($ownerTitles): array {
             $ownerType = (string) $instance['owner_type'];
             $ownerId   = (int) $instance['owner_id'];
 
@@ -94,32 +104,13 @@ class BlockTypeService extends BaseCrudService implements BlockTypeServiceInterf
                 'resource'    => 'block_instances',
                 'resource_id' => (int) $instance['id'],
                 'role'        => $ownerType,
-                'label'       => $this->resolveOwnerTitle($ownerType, $ownerId),
+                'label'       => $ownerTitles[$ownerType . ':' . $ownerId] ?? null,
                 'context'     => [
                     'owner_type' => $ownerType,
                     'owner_id'   => $ownerId,
                 ],
             ];
         }, $instances);
-    }
-
-    private function resolveOwnerTitle(string $ownerType, int $ownerId): ?string
-    {
-        $table = match ($ownerType) {
-            'page' => 'cms_page_translations',
-            'entry' => 'cms_entry_translations',
-            default => null,
-        };
-
-        if ($table === null) {
-            return null;
-        }
-
-        $fkColumn = $ownerType === 'page' ? 'page_id' : 'entry_id';
-        $result   = $this->db->table($table)->select('title')->where($fkColumn, $ownerId)->get();
-        $row      = $result ? $result->getRowArray() : null;
-
-        return $row['title'] ?? null;
     }
 
     /**
