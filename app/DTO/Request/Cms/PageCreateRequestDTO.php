@@ -15,7 +15,7 @@ readonly class PageCreateRequestDTO extends BaseRequestDTO
     public ?int $parent_id;
     #[OA\Property(description: 'collection_id', type: 'integer', nullable: true)]
     public ?int $collection_id;
-    #[OA\Property(description: 'page_type', type: 'string', enum: ['home', 'generic', 'contact', 'privacy', 'terms', '404', '500', 'maintenance', 'about', 'history', 'events', 'components', 'media', 'collection_index', 'portfolio'])]
+    #[OA\Property(description: 'page_type', type: 'string', enum: ['home', 'generic', 'contact', 'privacy', 'terms', '404', '500', 'maintenance', 'collection_index'])]
     public string $page_type;
     #[OA\Property(description: 'status', type: 'string', nullable: true, enum: ['draft', 'published', 'archived'])]
     public string $status;
@@ -46,7 +46,7 @@ readonly class PageCreateRequestDTO extends BaseRequestDTO
         return [
             'parent_id' => 'permit_empty|is_natural_no_zero',
             'collection_id' => 'permit_empty|is_natural_no_zero',
-            'page_type' => 'required|' . CmsEnums::inListRule(CmsEnums::PAGE_TYPE),
+            'page_type' => 'permit_empty|' . CmsEnums::inListRule(CmsEnums::PAGE_TYPE),
             'status' => 'permit_empty|' . CmsEnums::inListRule(CmsEnums::PAGE_STATUS),
             'published_at' => 'permit_empty|valid_date',
             'scheduled_at' => 'permit_empty|valid_date',
@@ -78,7 +78,7 @@ readonly class PageCreateRequestDTO extends BaseRequestDTO
     {
         $this->parent_id = isset($data['parent_id']) && $data['parent_id'] !== '' ? (int) $data['parent_id'] : null;
         $this->collection_id = isset($data['collection_id']) && $data['collection_id'] !== '' ? (int) $data['collection_id'] : null;
-        $this->page_type = (string) ($data['page_type'] ?? '');
+        $this->page_type = (string) ($data['page_type'] ?? 'generic');
         $this->status = (string) ($data['status'] ?? 'draft');
         $this->published_at = $data['published_at'] ?? null;
         $this->scheduled_at = $data['scheduled_at'] ?? null;

@@ -545,9 +545,15 @@ class SiteAboutPageSeeder extends Seeder
 
     private function upsertPage(): int
     {
-        $pageId = $this->upsertRecord('cms_pages', [
-            'page_type' => 'about',
-        ], [
+        $existing = $this->db->table('cms_pages')
+            ->select('cms_pages.id')
+            ->join('cms_page_translations', 'cms_page_translations.page_id = cms_pages.id')
+            ->whereIn('cms_page_translations.slug', ['nosotros', 'about'])
+            ->where('cms_pages.deleted_at IS NULL', null, false)
+            ->orderBy('cms_pages.id', 'ASC')
+            ->get()->getRowArray();
+        $data = [
+            'page_type'          => 'generic',
             'status'             => 'published',
             'published_at'       => date('Y-m-d H:i:s'),
             'scheduled_at'       => null,
@@ -556,7 +562,13 @@ class SiteAboutPageSeeder extends Seeder
             'sitemap_changefreq' => 'monthly',
             'is_in_sitemap'      => 1,
             'deleted_at'         => null,
-        ]);
+        ];
+        if ($existing !== null) {
+            $pageId = (int) $existing['id'];
+            $this->db->table('cms_pages')->where('id', $pageId)->update($data);
+        } else {
+            $pageId = $this->createRecord('cms_pages', $data);
+        }
 
         if ($pageId === null) {
             throw new \RuntimeException('SiteAboutPageSeeder: unable to seed about page.');

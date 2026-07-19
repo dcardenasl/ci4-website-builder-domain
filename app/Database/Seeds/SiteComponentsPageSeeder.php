@@ -267,28 +267,18 @@ class SiteComponentsPageSeeder extends Seeder
     private function upsertPage(): int
     {
         $existing = $this->db->table('cms_pages')
-            ->select('id')
-            ->where('page_type', 'components')
-            ->where('deleted_at IS NULL', null, false)
-            ->orderBy('id', 'ASC')
+            ->select('cms_pages.id')
+            ->join('cms_page_translations', 'cms_page_translations.page_id = cms_pages.id')
+            ->where('cms_pages.deleted_at IS NULL', null, false)
+            ->whereIn('cms_page_translations.slug', ['bloques', 'components'])
+            ->orderBy('cms_pages.id', 'ASC')
             ->get()
             ->getRowArray();
-
-        if ($existing === null) {
-            $existing = $this->db->table('cms_pages')
-                ->select('cms_pages.id')
-                ->join('cms_page_translations', 'cms_page_translations.page_id = cms_pages.id')
-                ->where('cms_pages.deleted_at IS NULL', null, false)
-                ->whereIn('cms_page_translations.slug', ['bloques', 'components'])
-                ->orderBy('cms_pages.id', 'ASC')
-                ->get()
-                ->getRowArray();
-        }
 
         if ($existing !== null) {
             $pageId = (int) $existing['id'];
             $updatePayload = [
-                'page_type'          => 'components',
+                'page_type'          => 'generic',
                 'status'             => 'published',
                 'published_at'       => date('Y-m-d H:i:s'),
                 'scheduled_at'       => null,
@@ -313,7 +303,7 @@ class SiteComponentsPageSeeder extends Seeder
         // That keeps this seeder stable even when the starter already contains
         // other generic pages from the base site bootstrap.
         $pageId = $this->createRecord('cms_pages', [
-            'page_type'          => 'components',
+                'page_type'          => 'generic',
             'status'             => 'published',
             'published_at'       => date('Y-m-d H:i:s'),
             'scheduled_at'       => null,

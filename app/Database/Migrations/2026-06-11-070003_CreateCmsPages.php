@@ -16,14 +16,14 @@ class CreateCmsPages extends Migration
             'collection_id' => ['type' => 'INT', 'constraint' => 10, 'unsigned' => true, 'null' => true],
             'page_type'     => [
                 'type' => 'ENUM',
-                'constraint' => ['home', 'generic', 'contact', 'privacy', 'terms', '404', '500', 'maintenance', 'about', 'history', 'events', 'components', 'media', 'collection_index', 'portfolio'],
+                'constraint' => ['home', 'generic', 'contact', 'privacy', 'terms', '404', '500', 'maintenance', 'collection_index'],
                 'default' => 'generic',
             ],
         ]);
         // Generated column — forge doesn't support GENERATED ALWAYS AS syntax
         $this->forge->addField(
             "`type_singleton` VARCHAR(20) GENERATED ALWAYS AS (" .
-            "CASE WHEN `page_type` IN ('home','404','500','maintenance','contact','privacy','terms','portfolio') " .
+            "CASE WHEN `page_type` IN ('home','404','500','maintenance','contact','privacy','terms') " .
             "AND `deleted_at` IS NULL THEN `page_type` ELSE NULL END) STORED"
         );
         $this->forge->addField([

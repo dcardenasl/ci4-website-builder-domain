@@ -15,7 +15,7 @@ readonly class PageUpdateRequestDTO extends BaseRequestDTO
     public ?int $parent_id;
     #[OA\Property(description: 'collection_id', type: 'integer', nullable: true)]
     public ?int $collection_id;
-    #[OA\Property(description: 'page_type', type: 'string', nullable: true, enum: ['home', 'generic', 'contact', 'privacy', 'terms', '404', '500', 'maintenance', 'about', 'history', 'events', 'components', 'media', 'collection_index', 'portfolio'])]
+    #[OA\Property(description: 'page_type', type: 'string', nullable: true, enum: ['home', 'generic', 'contact', 'privacy', 'terms', '404', '500', 'maintenance', 'collection_index'])]
     public ?string $page_type;
     #[OA\Property(description: 'status', type: 'string', nullable: true, enum: ['draft', 'published', 'archived'])]
     public ?string $status;
