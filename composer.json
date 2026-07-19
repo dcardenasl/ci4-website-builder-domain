@@ -61,7 +61,7 @@
         ],
         "test:dynamic": [
             "@test:prepare-db",
-            "phpunit --testsuite=Unit --testsuite=Architecture --testsuite=Integration --testsuite=Feature --configuration=phpunit.xml --no-coverage --testdox"
+            "phpunit --testsuite=Unit,Architecture,Integration,Feature --configuration=phpunit.xml --no-coverage --testdox"
         ],
         "test:seed-contracts": [
             "@test:prepare-db",
@@ -69,12 +69,12 @@
         ],
         "test:fixture-policy": "php scripts/check-test-fixture-policy.php",
         "test": [
-            "@test:prepare-db",
-            "phpunit --configuration=phpunit.xml --no-coverage --testdox"
+            "@test:dynamic",
+            "@test:seed-contracts"
         ],
         "test:coverage": [
             "@test:prepare-db",
-            "phpunit --configuration=phpunit.xml --testdox"
+            "phpunit --testsuite=Unit,Architecture,Integration,Feature --configuration=phpunit.xml --testdox"
         ],
         "coverage:check": "php scripts/check-coverage.php 35.05 tests/coverage/clover.xml",
         "phpstan": "phpstan analyse --memory-limit=512M",
