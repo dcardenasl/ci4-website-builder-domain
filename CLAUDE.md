@@ -206,7 +206,7 @@ composer quality
   `CIUnitTestCase`-based test (which switches the DB group itself), or write a dedicated command
   like `PrepareTestDatabase` that calls `Database::connect('tests')` explicitly. (Root-caused
   2026-07-18 after this exact pattern produced a seemingly "flaky" row count in an earlier audit —
-  see `docs/audits/2026-07-10-hardening-execution-log.md`.)
+  see the monorepo root's docs/audits/2026-07-10-hardening-execution-log.md.)
 
 ## Where to read next
 
