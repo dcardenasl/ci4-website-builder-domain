@@ -40,6 +40,12 @@ class PublicMenuController extends ApiController
                     throw new NotFoundException(lang('Menus.not_found'));
                 }
 
+                $menuTranslation = Services::translationResolver()->resolve(
+                    'menu',
+                    (int) $menu->id,
+                    $lang,
+                );
+
                 // Fetch menu items
                 $menuItemModel = model(\App\Models\MenuItemModel::class);
                 $items = $menuItemModel->where('menu_id', $menu->id)
@@ -82,6 +88,7 @@ class PublicMenuController extends ApiController
                     'data'   => [
                         'menu_key' => $menu->menu_key,
                         'location' => $menu->location,
+                        'name'     => $menuTranslation['name'] ?? $menu->menu_key,
                         'items'    => $tree,
                     ],
                 ])->setStatusCode(200);
@@ -134,6 +141,8 @@ class PublicMenuController extends ApiController
             ->where('is_default', 1)
             ->first();
 
-        return $default !== null ? (string) $default->code : 'es';
+        return $default !== null
+            ? (string) $default->code
+            : (string) config('App')->defaultLocale;
     }
 }
