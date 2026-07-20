@@ -8,6 +8,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Fixed
+- **`TranslationSynchronizer` deleted historical translations for deactivated languages** — syncing a resource's translations now rejects any incoming row targeting an inactive language, and only prunes rows for languages that are still active and simply omitted from the payload; previously any language missing from the incoming payload was deleted outright, including inactive/historical ones.
 - **`BlockTypeService::getUsages()` N+1 query** — resolved page/entry owner titles one query per block instance instead of batching; now shares `Libraries/Cms/OwnerUsageResolver` with `FormService`, which already batched correctly.
 - **Menu items linking to entries only resolved when a translation existed in the exact requested language** — `MenuItemService::resolveEntryLink()` now reuses `TranslationResolver` (already used for the collection prefix) instead of a bespoke query, so entry slugs get the same default-language fallback pages and collections already had.
 
