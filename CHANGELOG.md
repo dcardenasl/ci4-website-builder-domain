@@ -7,6 +7,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+- **Real `outdated` translation status and resource names in `TranslationAuditService`** — `evaluateTranslationState()` now accepts the source resource's `updated_at` and flags a complete translation as `outdated` when it predates the latest source update; `buildSimpleResourceDescriptors()` resolves `reference_name` from the resource's own translation rows (Page/Menu/MenuItem/Collection/Form have no canonical `title`/`name` column) instead of a technical `Page #12`-style placeholder; `getMissingTranslationsReport()` now supports `resource`, `status`, and `search` filters.
+
 ### Fixed
 - **`TranslationSynchronizer` deleted historical translations for deactivated languages** — syncing a resource's translations now rejects any incoming row targeting an inactive language, and only prunes rows for languages that are still active and simply omitted from the payload; previously any language missing from the incoming payload was deleted outright, including inactive/historical ones.
 - **`BlockTypeService::getUsages()` N+1 query** — resolved page/entry owner titles one query per block instance instead of batching; now shares `Libraries/Cms/OwnerUsageResolver` with `FormService`, which already batched correctly.
