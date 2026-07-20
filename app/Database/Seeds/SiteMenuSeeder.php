@@ -39,8 +39,8 @@ class SiteMenuSeeder extends Seeder
         }
 
         $homePageId            = $this->pageIdByType('home');
-        $aboutPageId           = $this->pageIdByType('about');
-        $historyPageId         = $this->pageIdByType('history');
+        $aboutPageId           = $this->pageIdBySlug(['nosotros', 'about']);
+        $historyPageId         = $this->pageIdBySlug(['historia', 'history']);
         $portfolioCollectionId = $this->collectionIdByKey('portafolio');
         $portfolioPageId       = $portfolioCollectionId !== null ? $this->pageIdByCollectionId($portfolioCollectionId) : null;
         $componentsPageId      = $this->pageIdBySlug(['bloques', 'components']);

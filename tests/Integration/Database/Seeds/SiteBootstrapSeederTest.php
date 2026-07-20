@@ -135,7 +135,9 @@ final class SiteBootstrapSeederTest extends CIUnitTestCase
         $this->assertNotEmpty($newsCollection['wizard_config']);
 
         $aboutPage = $this->db->table('cms_pages')
-            ->where('page_type', 'about')
+            ->select('cms_pages.id')
+            ->join('cms_page_translations', 'cms_page_translations.page_id = cms_pages.id')
+            ->whereIn('cms_page_translations.slug', ['nosotros', 'about'])
             ->get()
             ->getRowArray();
         $this->assertNotNull($aboutPage);
@@ -150,7 +152,9 @@ final class SiteBootstrapSeederTest extends CIUnitTestCase
         $this->assertSame('page_header', $this->blockKeyForInstance((int) $aboutBlocks[0]['block_id']));
 
         $historyPage = $this->db->table('cms_pages')
-            ->where('page_type', 'history')
+            ->select('cms_pages.id')
+            ->join('cms_page_translations', 'cms_page_translations.page_id = cms_pages.id')
+            ->whereIn('cms_page_translations.slug', ['historia', 'history'])
             ->get()
             ->getRowArray();
         $this->assertNotNull($historyPage);

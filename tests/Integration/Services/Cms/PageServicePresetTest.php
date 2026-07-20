@@ -73,7 +73,7 @@ final class PageServicePresetTest extends CIUnitTestCase
 
         $service = Services::pageService(false);
         $service->store($this->dto([
-            'page_type' => 'events',
+            'page_type' => 'generic',
             'parent_id' => null,
             'published_at' => date('Y-m-d H:i:s'),
             'scheduled_at' => null,
@@ -90,7 +90,7 @@ final class PageServicePresetTest extends CIUnitTestCase
         ]));
 
         $page = $db->table('cms_pages')
-            ->where('page_type', 'events')
+            ->where('page_type', 'generic')
             ->get()
             ->getRowArray();
 

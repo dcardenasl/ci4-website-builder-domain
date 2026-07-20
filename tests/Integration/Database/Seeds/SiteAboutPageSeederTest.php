@@ -48,17 +48,22 @@ final class SiteAboutPageSeederTest extends CIUnitTestCase
         $seeder->call(\App\Database\Seeds\SiteAboutPageSeeder::class);
 
         $aboutPage = $this->db->table('cms_pages')
-            ->where('page_type', 'about')
+            ->select('cms_pages.id')
+            ->join('cms_page_translations', 'cms_page_translations.page_id = cms_pages.id')
+            ->join('cms_languages', 'cms_languages.id = cms_page_translations.language_id')
+            ->whereIn('cms_page_translations.slug', ['nosotros', 'about'])
+            ->where('cms_languages.code', 'es')
             ->get()
             ->getRowArray();
 
         $this->assertNotNull($aboutPage);
 
         $galleryBlock = $this->db->table('cms_block_instances')
+            ->select('cms_block_instances.*')
+            ->join('cms_content_blocks', 'cms_content_blocks.id = cms_block_instances.block_id')
             ->where('owner_type', 'page')
             ->where('owner_id', (int) $aboutPage['id'])
-            ->where('parent_instance_id IS NULL', null, false)
-            ->where('sort_order', 8)
+            ->where('cms_content_blocks.block_key', 'gallery')
             ->get()
             ->getRowArray();
 
@@ -91,17 +96,22 @@ final class SiteAboutPageSeederTest extends CIUnitTestCase
         $seeder->call(\App\Database\Seeds\SiteAboutPageSeeder::class);
 
         $aboutPage = $this->db->table('cms_pages')
-            ->where('page_type', 'about')
+            ->select('cms_pages.id')
+            ->join('cms_page_translations', 'cms_page_translations.page_id = cms_pages.id')
+            ->join('cms_languages', 'cms_languages.id = cms_page_translations.language_id')
+            ->whereIn('cms_page_translations.slug', ['nosotros', 'about'])
+            ->where('cms_languages.code', 'es')
             ->get()
             ->getRowArray();
 
         $this->assertNotNull($aboutPage);
 
         $teamGrid = $this->db->table('cms_block_instances')
+            ->select('cms_block_instances.*')
+            ->join('cms_content_blocks', 'cms_content_blocks.id = cms_block_instances.block_id')
             ->where('owner_type', 'page')
             ->where('owner_id', (int) $aboutPage['id'])
-            ->where('parent_instance_id IS NULL', null, false)
-            ->where('sort_order', 11)
+            ->where('cms_content_blocks.block_key', 'team_grid')
             ->get()
             ->getRowArray();
 
