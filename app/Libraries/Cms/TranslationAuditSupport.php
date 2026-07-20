@@ -127,7 +127,8 @@ class TranslationAuditSupport
         array $translationsByLanguage,
         array $fieldDefinitions,
         int $languageId,
-        callable $valueResolver
+        callable $valueResolver,
+        ?string $resourceUpdatedAt = null
     ): array {
         if ($translation === null) {
             return ['missing', 'Translation is missing completely'];
@@ -171,6 +172,14 @@ class TranslationAuditSupport
         $mismatchedOptional = array_values(array_unique($mismatchedOptional));
         if ($mismatchedOptional !== []) {
             return ['mismatch', 'Inconsistent fields: ' . implode(', ', $mismatchedOptional)];
+        }
+
+        if ($resourceUpdatedAt !== null) {
+            $sourceTimestamp = strtotime($resourceUpdatedAt);
+            $translationTimestamp = strtotime((string) ($row['updated_at'] ?? ''));
+            if ($sourceTimestamp !== false && $translationTimestamp !== false && $translationTimestamp < $sourceTimestamp) {
+                return ['outdated', 'Translation predates the latest source update'];
+            }
         }
 
         return ['complete', ''];

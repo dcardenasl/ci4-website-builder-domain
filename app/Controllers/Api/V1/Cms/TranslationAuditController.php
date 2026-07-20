@@ -48,6 +48,12 @@ class TranslationAuditController extends ApiController
                     /** @var int $langId */
                     $filters['language_id'] = (int) $langId;
                 }
+                foreach (['resource', 'status', 'search'] as $filter) {
+                    $value = $this->request->getGet($filter);
+                    if (is_string($value) && trim($value) !== '') {
+                        $filters[$filter] = trim($value);
+                    }
+                }
 
                 $report = $this->auditService->getMissingTranslationsReport($filters);
                 return $this->response->setJSON([

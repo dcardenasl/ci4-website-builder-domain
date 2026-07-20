@@ -63,7 +63,8 @@ class BlockInstanceTranslationAuditor
                     $langId,
                     function (array $row, string $fieldKey, array $fieldDefinition): mixed {
                         return $this->extractBlockFieldValue($row, $fieldKey, $fieldDefinition);
-                    }
+                    },
+                    isset($instance['updated_at']) ? (string) $instance['updated_at'] : null
                 );
                 if ($status === 'complete') {
                     continue;

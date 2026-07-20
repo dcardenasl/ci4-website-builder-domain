@@ -20,6 +20,11 @@ Las tareas están ordenadas por fases de dependencias para asegurar la integrida
 
 ---
 
+## ✅ Completadas (2026-07-20)
+
+- [TRN-006] `outdated` real en `TranslationAuditService`/`TranslationAuditSupport` (ver `../TASKS.md`, `../ci4-website-builder-admin/TASKS.md`): el admin ya calculaba `outdated` client-side para las vistas "Ver", pero la tabla de auditoría del workbench nunca podía recibir ese estado desde el backend (el diccionario/color ya existían en la UI pero eran código muerto). `evaluateTranslationState()` ahora acepta `$resourceUpdatedAt` opcional y compara contra `updated_at` de la traducción tras confirmar `complete`; cableado en los 4 call sites. Test nuevo cubre el caso. `composer quality` completo (PHPStan, CS-Fixer, Unit+Architecture+Integration+Feature+SeederContracts) en verde.
+- [TRN-002] `reference_name` mostraba "Page #12"/"Menu #3"/etc. en vez del nombre real, reportado por David tras usar la auditoría en el navegador. Causa: `buildSimpleResourceDescriptors()->reference` solo miraba campos del recurso base (`$row['title']`), pero Page/Menu/MenuItem/Collection/Form no tienen columna `title`/`name` propia — todo vive en su tabla de traducciones (mismo patrón de bug que el de `TranslationStatus::evaluate()` en el admin). El resolver ahora recibe también las traducciones agrupadas del recurso y cae a `title`/`name`/`label` de cualquier traducción disponible antes de usar el placeholder técnico. Test existente (`testGetMissingTranslationsReport`) ampliado para afirmar `reference_name === 'Inicio'`; el test de filtros de búsqueda se actualizó para buscar por el nombre real en vez de por el placeholder que ya no existe. Verificado en navegador: la auditoría ahora muestra "Contacto", "Página no encontrada", etc. `composer quality` completo en verde.
+
 ## ✅ Completadas (2026-07-19)
 
 - [ARCH-DEEP-01] Auditoría profunda de arquitectura de servicios (`app/Services/Cms`) y remediación completa de los hallazgos, sin deuda pendiente:

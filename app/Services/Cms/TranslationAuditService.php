@@ -43,7 +43,7 @@ class TranslationAuditService implements TranslationAuditServiceInterface
      *   repository: RepositoryInterface<object>,
      *   translationRepository: RepositoryInterface<object>,
      *   fk: string,
-     *   reference: callable(array<string, mixed>): string,
+     *   reference: callable(array<string, mixed>, array<int, array<string, mixed>>): string,
      *   extra: null|callable(array<string, mixed>): array<string, mixed>,
      *   fetch: callable(): list<mixed>,
      *   count: callable(): int,
@@ -160,7 +160,31 @@ class TranslationAuditService implements TranslationAuditServiceInterface
         $issues = array_merge($issues, $this->auditSettingTranslations($activeLanguages, $filters));
         $issues = array_merge($issues, $this->blockAuditor->audit($activeLanguages, $filters));
 
-        return $issues;
+        return array_values(array_filter($issues, function (array $issue) use ($filters): bool {
+            $resource = (string) ($filters['resource'] ?? '');
+            $status = (string) ($filters['status'] ?? '');
+            $search = mb_strtolower((string) ($filters['search'] ?? ''));
+
+            if ($resource !== '' && (string) ($issue['resource'] ?? '') !== $resource) {
+                return false;
+            }
+            if ($status !== '' && (string) ($issue['status'] ?? '') !== $status) {
+                return false;
+            }
+            if ($search !== '') {
+                $haystack = mb_strtolower(implode(' ', [
+                    (string) ($issue['reference_name'] ?? ''),
+                    (string) ($issue['resource'] ?? ''),
+                    (string) ($issue['language_code'] ?? ''),
+                    (string) ($issue['detail'] ?? ''),
+                ]));
+                if (! str_contains($haystack, $search)) {
+                    return false;
+                }
+            }
+
+            return true;
+        }));
     }
 
     /**
@@ -190,6 +214,7 @@ class TranslationAuditService implements TranslationAuditServiceInterface
                 $descriptor['fk']
             )[$resourceId] ?? [];
             $fieldDefinitions = TranslationResourceCatalog::fields($resourceType);
+            $resourceRow = $this->support->toArray($resource);
         } elseif ($resourceType === 'setting') {
             $resource = $this->settingRepository->getModel()->where('is_translatable', 1)->find($resourceId);
             if ($resource === null) {
@@ -213,6 +238,7 @@ class TranslationAuditService implements TranslationAuditServiceInterface
             }
 
             [$resource, $fieldDefinitions, $translations, $valueResolver] = $resolved;
+            $resourceRow = $this->support->toArray($resource);
         } else {
             return [];
         }
@@ -225,12 +251,14 @@ class TranslationAuditService implements TranslationAuditServiceInterface
             } else {
                 $translation = $translations[$langId] ?? null;
             }
+            $isSettingDefaultLanguage = $resourceType === 'setting' && $defaultLanguageId === $langId;
             [$status, $detail] = $this->support->evaluateTranslationState(
                 $translation,
                 $translations,
                 $fieldDefinitions,
                 $langId,
-                $valueResolver
+                $valueResolver,
+                $isSettingDefaultLanguage ? null : (isset($resourceRow['updated_at']) ? (string) $resourceRow['updated_at'] : null)
             );
 
             $report[$lang->code] = [
@@ -268,7 +296,7 @@ class TranslationAuditService implements TranslationAuditServiceInterface
      *   repository: RepositoryInterface<object>,
      *   translationRepository: RepositoryInterface<object>,
      *   fk: string,
-     *   reference: callable(array<string, mixed>): string,
+     *   reference: callable(array<string, mixed>, array<int, array<string, mixed>>): string,
      *   extra: null|callable(array<string, mixed>): array<string, mixed>,
      *   fetch: callable(): list<mixed>,
      *   count: callable(): int,
@@ -276,13 +304,40 @@ class TranslationAuditService implements TranslationAuditServiceInterface
      */
     private function buildSimpleResourceDescriptors(): array
     {
+        $reference = static function (array $row, string $fallback, array $translations = []): string {
+            foreach (['title', 'name', 'label', 'setting_key', 'form_key', 'field_key', 'collection_key', 'menu_key', 'slug'] as $field) {
+                $value = trim((string) ($row[$field] ?? ''));
+                if ($value !== '') {
+                    return $value;
+                }
+            }
+
+            // Pages, Menus, Menu Items, Collections and Forms have no
+            // canonical title/name column on their own table at all — their
+            // content lives purely in the translation rows (confirmed
+            // against their response DTOs), so the loop above always misses
+            // and would otherwise fall back to a technical "Page #12"
+            // placeholder even when a real title exists in any language.
+            foreach ($translations as $translation) {
+                $translationRow = is_array($translation) ? $translation : (array) $translation;
+                foreach (['title', 'name', 'label'] as $field) {
+                    $value = trim((string) ($translationRow[$field] ?? ''));
+                    if ($value !== '') {
+                        return $value;
+                    }
+                }
+            }
+
+            return $fallback;
+        };
+
         return [
             [
                 'type' => 'page',
                 'repository' => $this->pageRepository,
                 'translationRepository' => $this->pageTranslationRepository,
                 'fk' => 'page_id',
-                'reference' => static fn (array $r): string => 'Page #' . (int) ($r['id'] ?? 0) . ' (Type: ' . (string) ($r['page_type'] ?? 'generic') . ')',
+                'reference' => static fn (array $r, array $t = []): string => $reference($r, 'Page #' . (int) ($r['id'] ?? 0), $t),
                 'extra' => null,
                 'fetch' => fn (): array => $this->pageRepository->getModel()->findAll(),
                 'count' => fn (): int => (int) $this->pageRepository->getModel()->countAllResults(),
@@ -292,7 +347,7 @@ class TranslationAuditService implements TranslationAuditServiceInterface
                 'repository' => $this->menuRepository,
                 'translationRepository' => $this->menuTranslationRepository,
                 'fk' => 'menu_id',
-                'reference' => static fn (array $r): string => 'Menu #' . (int) ($r['id'] ?? 0) . ' (' . (string) ($r['menu_key'] ?? '') . ')',
+                'reference' => static fn (array $r, array $t = []): string => $reference($r, 'Menu #' . (int) ($r['id'] ?? 0), $t),
                 'extra' => null,
                 'fetch' => fn (): array => $this->menuRepository->getModel()->findAll(),
                 'count' => fn (): int => (int) $this->menuRepository->getModel()->countAllResults(),
@@ -302,7 +357,7 @@ class TranslationAuditService implements TranslationAuditServiceInterface
                 'repository' => $this->menuItemRepository,
                 'translationRepository' => $this->menuItemTranslationRepository,
                 'fk' => 'menu_item_id',
-                'reference' => static fn (array $r): string => 'Menu Item #' . (int) ($r['id'] ?? 0),
+                'reference' => static fn (array $r, array $t = []): string => $reference($r, 'Menu Item #' . (int) ($r['id'] ?? 0), $t),
                 'extra' => static fn (array $r): array => ['menu_id' => (int) ($r['menu_id'] ?? 0)],
                 'fetch' => fn (): array => $this->menuItemRepository->getModel()
                     ->join('cms_menus m', 'm.id = cms_menu_items.menu_id')
@@ -319,7 +374,7 @@ class TranslationAuditService implements TranslationAuditServiceInterface
                 'repository' => $this->collectionRepository,
                 'translationRepository' => $this->collectionTranslationRepository,
                 'fk' => 'collection_id',
-                'reference' => static fn (array $r): string => 'Collection #' . (int) ($r['id'] ?? 0) . ' (' . (string) ($r['collection_key'] ?? '') . ')',
+                'reference' => static fn (array $r, array $t = []): string => $reference($r, 'Collection #' . (int) ($r['id'] ?? 0), $t),
                 'extra' => null,
                 'fetch' => fn (): array => $this->collectionRepository->getModel()->findAll(),
                 'count' => fn (): int => (int) $this->collectionRepository->getModel()->countAllResults(),
@@ -329,7 +384,7 @@ class TranslationAuditService implements TranslationAuditServiceInterface
                 'repository' => $this->categoryRepository,
                 'translationRepository' => $this->categoryTranslationRepository,
                 'fk' => 'category_id',
-                'reference' => static fn (array $r): string => 'Category #' . (int) ($r['id'] ?? 0),
+                'reference' => static fn (array $r, array $t = []): string => $reference($r, 'Category #' . (int) ($r['id'] ?? 0), $t),
                 'extra' => null,
                 'fetch' => fn (): array => $this->categoryRepository->getModel()->findAll(),
                 'count' => fn (): int => (int) $this->categoryRepository->getModel()->countAllResults(),
@@ -339,7 +394,7 @@ class TranslationAuditService implements TranslationAuditServiceInterface
                 'repository' => $this->tagRepository,
                 'translationRepository' => $this->tagTranslationRepository,
                 'fk' => 'tag_id',
-                'reference' => static fn (array $r): string => 'Tag #' . (int) ($r['id'] ?? 0),
+                'reference' => static fn (array $r, array $t = []): string => $reference($r, 'Tag #' . (int) ($r['id'] ?? 0), $t),
                 'extra' => null,
                 'fetch' => fn (): array => $this->tagRepository->getModel()->findAll(),
                 'count' => fn (): int => (int) $this->tagRepository->getModel()->countAllResults(),
@@ -349,7 +404,7 @@ class TranslationAuditService implements TranslationAuditServiceInterface
                 'repository' => $this->entryRepository,
                 'translationRepository' => $this->entryTranslationRepository,
                 'fk' => 'entry_id',
-                'reference' => static fn (array $r): string => 'Entry #' . (int) ($r['id'] ?? 0),
+                'reference' => static fn (array $r, array $t = []): string => $reference($r, 'Entry #' . (int) ($r['id'] ?? 0), $t),
                 'extra' => static fn (array $r): array => ['collection_id' => (int) ($r['collection_id'] ?? 0)],
                 'fetch' => fn (): array => $this->entryRepository->getModel()->findAll(),
                 'count' => fn (): int => (int) $this->entryRepository->getModel()->countAllResults(),
@@ -359,7 +414,7 @@ class TranslationAuditService implements TranslationAuditServiceInterface
                 'repository' => $this->formRepository,
                 'translationRepository' => $this->formTranslationRepository,
                 'fk' => 'form_id',
-                'reference' => static fn (array $r): string => 'Form #' . (int) ($r['id'] ?? 0) . ' (' . (string) ($r['form_key'] ?? '') . ')',
+                'reference' => static fn (array $r, array $t = []): string => $reference($r, 'Form #' . (int) ($r['id'] ?? 0), $t),
                 'extra' => null,
                 'fetch' => fn (): array => $this->formRepository->getModel()->findAll(),
                 'count' => fn (): int => (int) $this->formRepository->getModel()->countAllResults(),
@@ -369,7 +424,7 @@ class TranslationAuditService implements TranslationAuditServiceInterface
                 'repository' => $this->formFieldRepository,
                 'translationRepository' => $this->formFieldTranslationRepository,
                 'fk' => 'form_field_id',
-                'reference' => static fn (array $r): string => 'Form Field #' . (int) ($r['id'] ?? 0) . ' (' . (string) ($r['field_key'] ?? '') . ')',
+                'reference' => static fn (array $r, array $t = []): string => $reference($r, 'Form Field #' . (int) ($r['id'] ?? 0), $t),
                 'extra' => static fn (array $r): array => ['form_id' => (int) ($r['form_id'] ?? 0)],
                 'fetch' => fn (): array => $this->formFieldRepository->getModel()->findAll(),
                 'count' => fn (): int => (int) $this->formFieldRepository->getModel()->countAllResults(),
@@ -383,7 +438,7 @@ class TranslationAuditService implements TranslationAuditServiceInterface
      *   repository: RepositoryInterface<object>,
      *   translationRepository: RepositoryInterface<object>,
      *   fk: string,
-     *   reference: callable(array<string, mixed>): string,
+     *   reference: callable(array<string, mixed>, array<int, array<string, mixed>>): string,
      *   extra: null|callable(array<string, mixed>): array<string, mixed>,
      *   fetch: callable(): list<mixed>,
      *   count: callable(): int,
@@ -406,7 +461,7 @@ class TranslationAuditService implements TranslationAuditServiceInterface
      *   repository: RepositoryInterface<object>,
      *   translationRepository: RepositoryInterface<object>,
      *   fk: string,
-     *   reference: callable(array<string, mixed>): string,
+     *   reference: callable(array<string, mixed>, array<int, array<string, mixed>>): string,
      *   extra: null|callable(array<string, mixed>): array<string, mixed>,
      *   fetch: callable(): list<mixed>,
      *   count: callable(): int,
@@ -448,7 +503,8 @@ class TranslationAuditService implements TranslationAuditServiceInterface
                     $translations,
                     $fieldDefinitions,
                     $langId,
-                    $valueResolver
+                    $valueResolver,
+                    isset($resourceRow['updated_at']) ? (string) $resourceRow['updated_at'] : null
                 );
                 if ($status === 'complete') {
                     continue;
@@ -457,7 +513,7 @@ class TranslationAuditService implements TranslationAuditServiceInterface
                 $issues[] = $this->support->buildIssue(
                     $descriptor['type'],
                     $resourceId,
-                    ($descriptor['reference'])($resourceRow),
+                    ($descriptor['reference'])($resourceRow, $translations),
                     $langId,
                     (string) ($lang->code ?? ''),
                     $status,
@@ -516,7 +572,8 @@ class TranslationAuditService implements TranslationAuditServiceInterface
                     $translations,
                     $fieldDefinitions,
                     $langId,
-                    $valueResolver
+                    $valueResolver,
+                    $langId === $defaultLanguageId ? null : (isset($settingRow['updated_at']) ? (string) $settingRow['updated_at'] : null)
                 );
                 if ($status === 'complete') {
                     continue;

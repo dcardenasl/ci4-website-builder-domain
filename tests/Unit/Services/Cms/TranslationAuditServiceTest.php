@@ -147,6 +147,41 @@ final class TranslationAuditServiceTest extends CIUnitTestCase
         $this->assertEquals($pageId, $report[0]['resource_id']);
         $this->assertEquals($this->langEnId, $report[0]['language_id']);
         $this->assertEquals('missing', $report[0]['status']);
+        // Pages have no canonical `title` column at all (it only lives in
+        // cms_page_translations) — the reference name must come from the
+        // ES translation's title, never a technical "Page #N" placeholder.
+        $this->assertSame('Inicio', $report[0]['reference_name']);
+    }
+
+    public function testMissingTranslationsReportFiltersByResourceStatusAndSearch(): void
+    {
+        $this->db->table('cms_pages')->insert([
+            'page_type' => 'generic',
+            'status' => 'published',
+            'sort_order' => 1,
+        ]);
+        $pageId = $this->db->insertID();
+        $this->db->table('cms_page_translations')->insert([
+            'page_id' => $pageId,
+            'language_id' => $this->langEsId,
+            'slug' => 'inicio',
+            'title' => 'Inicio',
+        ]);
+
+        $service = Services::translationAuditService(false);
+
+        // Searching by the real title (not a technical "Page #N" placeholder
+        // that no longer exists once a translation supplies a real name).
+        $report = $service->getMissingTranslationsReport([
+            'resource' => 'page',
+            'status' => 'missing',
+            'search' => 'inicio',
+        ]);
+
+        $this->assertCount(1, $report);
+        $this->assertSame('page', $report[0]['resource']);
+        $this->assertSame('missing', $report[0]['status']);
+        $this->assertSame('Inicio', $report[0]['reference_name']);
     }
 
     public function testMissingSettingTranslationRowsAreReportedOnlyForNonDefaultLanguages(): void
@@ -199,6 +234,41 @@ final class TranslationAuditServiceTest extends CIUnitTestCase
 
         $this->assertEquals('incomplete', $audit['es']['status']);
         $this->assertEquals('missing', $audit['en']['status']);
+    }
+
+    public function testAuditResourceFlagsACompleteTranslationOlderThanTheSourceAsOutdated(): void
+    {
+        $this->db->table('cms_pages')->insert([
+            'page_type' => 'generic',
+            'status' => 'published',
+            'sort_order' => 1,
+            'updated_at' => '2026-07-20 12:00:00',
+        ]);
+        $pageId = $this->db->insertID();
+
+        // Complete, but translated before the page's latest update.
+        $this->db->table('cms_page_translations')->insert([
+            'page_id' => $pageId,
+            'language_id' => $this->langEsId,
+            'slug' => 'inicio',
+            'title' => 'Inicio',
+            'updated_at' => '2026-07-19 08:00:00',
+        ]);
+
+        // Complete and translated after the page's latest update: stays complete.
+        $this->db->table('cms_page_translations')->insert([
+            'page_id' => $pageId,
+            'language_id' => $this->langEnId,
+            'slug' => 'home',
+            'title' => 'Home',
+            'updated_at' => '2026-07-20 13:00:00',
+        ]);
+
+        $service = Services::translationAuditService(false);
+        $audit = $service->auditResource('page', $pageId);
+
+        $this->assertEquals('outdated', $audit['es']['status']);
+        $this->assertEquals('complete', $audit['en']['status']);
     }
 
     public function testGetMissingTranslationsReportCoversCmsContent(): void
