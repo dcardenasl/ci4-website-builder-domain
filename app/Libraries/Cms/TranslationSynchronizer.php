@@ -38,6 +38,7 @@ final class TranslationSynchronizer
         array $translations,
         callable $mapRow,
     ): void {
+        $managedLanguageIds = $this->activeLanguageIds();
         $incomingByLanguage = [];
         foreach ($translations as $translation) {
             if (! is_array($translation)) {
@@ -48,6 +49,9 @@ final class TranslationSynchronizer
             $languageId = (int) ($row['language_id'] ?? 0);
             if ($languageId <= 0) {
                 throw new \InvalidArgumentException('A translation must have a valid language_id.');
+            }
+            if (! isset($managedLanguageIds[$languageId])) {
+                throw new \InvalidArgumentException('A translation must target an active language.');
             }
             if (isset($incomingByLanguage[$languageId])) {
                 throw new \InvalidArgumentException('A resource cannot contain duplicate language translations.');
@@ -70,7 +74,11 @@ final class TranslationSynchronizer
 
         $deleteIds = [];
         foreach ($existingByLanguage as $languageId => $existing) {
-            if (! isset($incomingByLanguage[$languageId]) && $existing['id'] > 0) {
+            // Inactive language content is historical data and must not be
+            // deleted merely because the editor only submits active languages.
+            if (isset($managedLanguageIds[$languageId])
+                && ! isset($incomingByLanguage[$languageId])
+                && $existing['id'] > 0) {
                 $deleteIds[] = $existing['id'];
             }
         }
@@ -106,6 +114,32 @@ final class TranslationSynchronizer
         if ($this->database->transStatus() === false) {
             throw new \RuntimeException('Could not persist resource translations.');
         }
+    }
+
+    /** @return array<int, true> */
+    private function activeLanguageIds(): array
+    {
+        $result = $this->database->table('cms_languages')
+            ->select('id')
+            ->where('is_active', 1)
+            ->get()
+        ;
+
+        if ($result === false) {
+            return [];
+        }
+
+        $rows = $result->getResultArray();
+
+        $ids = [];
+        foreach ($rows as $row) {
+            $id = (int) ($row['id'] ?? 0);
+            if ($id > 0) {
+                $ids[$id] = true;
+            }
+        }
+
+        return $ids;
     }
 
     /**
