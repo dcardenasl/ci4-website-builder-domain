@@ -8,7 +8,8 @@ use dcardenasl\Ci4ApiCore\Services\CrudServiceContract;
 
 interface MenuServiceInterface extends CrudServiceContract
 {
-    // Declare resource-specific service methods here.
-    // Implement them in MenuService; until ready, throw:
-    //   throw new \BadMethodCallException(__METHOD__ . ' not implemented');
+    /**
+     * @return array<string, mixed>
+     */
+    public function showPublic(string $menuKey, string $lang): array;
 }
