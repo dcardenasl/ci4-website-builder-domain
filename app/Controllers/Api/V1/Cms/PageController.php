@@ -8,7 +8,6 @@ use App\DTO\Request\Cms\PageCreateRequestDTO;
 use App\DTO\Request\Cms\PageIndexRequestDTO;
 use App\DTO\Request\Cms\PageUpdateRequestDTO;
 use App\Interfaces\Cms\PageServiceInterface;
-use App\Models\PageTranslationModel;
 use CodeIgniter\HTTP\ResponseInterface;
 use Config\Services;
 use dcardenasl\Ci4ApiCore\Dto\SecurityContext;
@@ -107,7 +106,7 @@ class PageController extends ApiController
                     return ['available' => false];
                 }
 
-                $available = (new PageTranslationModel())->isSlugAvailable($slug, $languageId, $currentId);
+                $available = $this->pageService->isSlugAvailable($slug, $languageId, $currentId);
                 return ['available' => $available];
             }
         );

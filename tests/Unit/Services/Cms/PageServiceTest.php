@@ -56,7 +56,8 @@ final class PageServiceTest extends CIUnitTestCase
             $this->createMock(\App\Libraries\Cms\SlugRedirectRecorder::class),
             $cacheMock,
             $this->createMock(\App\Libraries\Cms\FileUrlResolver::class),
-            $referenceSynchronizer
+            $referenceSynchronizer,
+            $this->createMock(\App\Services\Cms\PublicPageReader::class)
         );
         $result = $service->destroy(10, null);
 

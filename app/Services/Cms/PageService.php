@@ -42,6 +42,7 @@ class PageService extends BaseCrudService implements PageServiceInterface
         \App\Libraries\Cms\CacheInvalidationClient $cacheInvalidator,
         FileUrlResolver $fileUrlResolver,
         FileReferenceSynchronizer $fileReferenceSynchronizer,
+        private readonly PublicPageReader $publicPageReader,
         ?\App\Libraries\Cms\TranslationSynchronizer $translationSynchronizer = null
     ) {
         parent::__construct($pageRepository, $responseMapper);
@@ -50,6 +51,22 @@ class PageService extends BaseCrudService implements PageServiceInterface
         $this->fileUrlResolver      = $fileUrlResolver;
         $this->fileReferenceSynchronizer = $fileReferenceSynchronizer;
         $this->translationSynchronizer = $translationSynchronizer;
+    }
+
+    /**
+     * @return list<array<string, mixed>>
+     */
+    public function listPublic(string $lang): array
+    {
+        return $this->publicPageReader->listPublic($lang);
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    public function showPublic(string $lang, string $slug, bool $preview): array
+    {
+        return $this->publicPageReader->showPublic($lang, $slug, $preview);
     }
 
     protected function beforeStore(array $data, ?SecurityContext $context): array
@@ -439,5 +456,10 @@ class PageService extends BaseCrudService implements PageServiceInterface
                 ['collection_id' => lang('Pages.collection_index_already_exists')]
             );
         }
+    }
+
+    public function isSlugAvailable(string $slug, int $languageId, ?int $currentId = null): bool
+    {
+        return (new \App\Models\PageTranslationModel())->isSlugAvailable($slug, $languageId, $currentId);
     }
 }

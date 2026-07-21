@@ -4,17 +4,22 @@ declare(strict_types=1);
 
 namespace App\Controllers\Api\V1\Cms;
 
+use App\Interfaces\Cms\PageServiceInterface;
 use App\Libraries\Cms\PreviewToken;
 use CodeIgniter\HTTP\ResponseInterface;
 use Config\Services;
-use dcardenasl\Ci4ApiCore\Exceptions\NotFoundException;
+use dcardenasl\Ci4ApiCore\Dto\SecurityContext;
 use dcardenasl\Ci4ApiCore\Http\ApiController;
 
 class PublicPageController extends ApiController
 {
-    protected function resolveDefaultService(): object
+    protected PageServiceInterface $pageService;
+
+    protected function resolveDefaultService(): PageServiceInterface
     {
-        return Services::pageService();
+        $this->pageService = Services::pageService();
+
+        return $this->pageService;
     }
 
     /**
@@ -26,44 +31,12 @@ class PublicPageController extends ApiController
     public function index(string $lang): ResponseInterface
     {
         return $this->handleRequest(
-            function () use ($lang): ResponseInterface {
-                $slugRouter = Services::slugRouter();
-                $translationResolver = Services::translationResolver();
-
-                // Get all published pages
-                $pageModel = model(\App\Models\PageModel::class);
-                $pages = $pageModel->where('status', 'published')
-                    ->orderBy('sort_order', 'ASC')
-                    ->findAll();
-
-                $result = [];
-
-                foreach ($pages as $page) {
-                    if ($page instanceof \App\Entities\PageEntity) {
-                        // Get slug for this page
-                        $slug = $slugRouter->resolveSlug($lang, 'page', (int) $page->id);
-
-                        if (!$slug) {
-                            continue; // Skip if no slug found for this language
-                        }
-
-                        // Get translation for SEO data
-                        $translation = $translationResolver->resolve('page', (int) $page->id, $lang);
-
-                        $result[] = [
-                            'slug'                 => $slug,
-                            'title'                => $translation['title'] ?? '',
-                            'sitemap_priority'    => $page->sitemap_priority ?? 0.5,
-                            'sitemap_changefreq'  => $page->sitemap_changefreq ?? 'weekly',
-                            'is_in_sitemap'       => $page->is_in_sitemap ?? true,
-                            'updated_at'          => $page->updated_at,
-                        ];
-                    }
-                }
+            function (array $dto, SecurityContext $context) use ($lang): ResponseInterface {
+                $data = $this->pageService->listPublic($lang);
 
                 return $this->response->setJSON([
                     'status' => 'success',
-                    'data'   => $result,
+                    'data'   => $data,
                 ])->setStatusCode(200);
             }
         );
@@ -78,9 +51,7 @@ class PublicPageController extends ApiController
     public function show(string $lang, string $slug): ResponseInterface
     {
         return $this->handleRequest(
-            function () use ($lang, $slug): ResponseInterface {
-                $slugRouter = Services::slugRouter();
-
+            function (array $dto, SecurityContext $context) use ($lang, $slug): ResponseInterface {
                 // Slug resolution itself is published-only (findPageBySlugAndParent),
                 // so a signed preview link must be verified against lang+slug —
                 // before we even know the page ID — to be allowed to bypass it.
@@ -94,38 +65,7 @@ class PublicPageController extends ApiController
                         is_string($previewSigRaw) ? $previewSigRaw : null
                     );
 
-                $pageId = $slugRouter->resolve($lang, 'page', $slug, $preview);
-
-                if ($pageId === null) {
-                    throw new NotFoundException(lang('Pages.not_found'));
-                }
-
-                // Verify page exists and is published (or a validly-signed preview link)
-                $pageModel = model(\App\Models\PageModel::class);
-                $page = $pageModel->find($pageId);
-                if (!$page || (!$preview && $page->status !== 'published')) {
-                    throw new NotFoundException(lang('Pages.not_found'));
-                }
-
-                $translationResolver = Services::translationResolver();
-                $translation = $translationResolver->resolve('page', $pageId, $lang);
-
-                // Load blocks
-                $blockSerializer = Services::blockInstanceSerializer();
-                $blocks = $blockSerializer->forContent('page', $pageId, $lang);
-
-                // Build response structure
-                $data = array_merge($page->toArray(), $translation);
-                $data['blocks'] = $blocks;
-
-                // Resolve localized slugs for all supported active languages
-                $localizedSlugs = [];
-                $languageModel = model(\App\Models\LanguageModel::class);
-                $languages = $languageModel->where('is_active', 1)->findAll();
-                foreach ($languages as $l) {
-                    $localizedSlugs[$l->code] = $slugRouter->resolveSlug($l->code, 'page', $pageId);
-                }
-                $data['localized_slugs'] = $localizedSlugs;
+                $data = $this->pageService->showPublic($lang, $slug, $preview);
 
                 return $this->response->setJSON([
                     'status' => 'success',
