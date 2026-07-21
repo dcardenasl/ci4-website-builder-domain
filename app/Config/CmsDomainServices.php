@@ -51,7 +51,21 @@ trait CmsDomainServices
             static::settingResponseMapper(),
             static::cacheInvalidationClient(),
             static::fileReferenceSynchronizer(),
+            static::translationResolver(),
+            static::fileUrlResolver(),
+            static::publicLocaleResolver(),
             static::translationSynchronizer()
+        );
+    }
+
+    public static function settingConnectionService(bool $getShared = true): \App\Interfaces\Cms\SettingConnectionServiceInterface
+    {
+        if ($getShared) {
+            return static::getSharedInstance('settingConnectionService');
+        }
+
+        return new \App\Services\Cms\SettingConnectionService(
+            new \dcardenasl\Ci4ApiCore\Repositories\GenericRepository(model(\App\Models\SettingConnectionModel::class))
         );
     }
 
@@ -173,7 +187,23 @@ trait CmsDomainServices
             static::cacheInvalidationClient(),
             static::fileUrlResolver(),
             static::fileReferenceSynchronizer(),
+            static::publicPageReader(),
             static::translationSynchronizer()
+        );
+    }
+
+    public static function publicPageReader(bool $getShared = true): \App\Services\Cms\PublicPageReader
+    {
+        if ($getShared) {
+            return static::getSharedInstance('publicPageReader');
+        }
+
+        return new \App\Services\Cms\PublicPageReader(
+            new \dcardenasl\Ci4ApiCore\Repositories\GenericRepository(model(\App\Models\PageModel::class)),
+            new \dcardenasl\Ci4ApiCore\Repositories\GenericRepository(model(\App\Models\LanguageModel::class)),
+            static::slugRouter(),
+            static::translationResolver(),
+            static::blockInstanceSerializer()
         );
     }
 
@@ -197,7 +227,15 @@ trait CmsDomainServices
         if ($getShared) {
             return static::getSharedInstance('menuService');
         }
-        return new \App\Services\Cms\MenuService(new \dcardenasl\Ci4ApiCore\Repositories\GenericRepository(model(\App\Models\MenuModel::class)), static::menuResponseMapper(), static::cacheInvalidationClient(), static::translationSynchronizer());
+        return new \App\Services\Cms\MenuService(
+            new \dcardenasl\Ci4ApiCore\Repositories\GenericRepository(model(\App\Models\MenuModel::class)),
+            static::menuResponseMapper(),
+            static::cacheInvalidationClient(),
+            new \dcardenasl\Ci4ApiCore\Repositories\GenericRepository(model(\App\Models\MenuItemModel::class)),
+            static::translationResolver(),
+            static::menuItemService(),
+            static::translationSynchronizer()
+        );
     }
     public static function menuItemResponseMapper(bool $getShared = true): \dcardenasl\Ci4ApiCore\Mappers\ResponseMapperInterface
     {
@@ -273,7 +311,27 @@ trait CmsDomainServices
         if ($getShared) {
             return static::getSharedInstance('collectionService');
         }
-        return new \App\Services\Cms\CollectionService(new \dcardenasl\Ci4ApiCore\Repositories\GenericRepository(model(\App\Models\CollectionModel::class)), static::collectionResponseMapper(), static::cacheInvalidationClient(), static::translationSynchronizer());
+        return new \App\Services\Cms\CollectionService(
+            new \dcardenasl\Ci4ApiCore\Repositories\GenericRepository(model(\App\Models\CollectionModel::class)),
+            static::collectionResponseMapper(),
+            static::cacheInvalidationClient(),
+            new \dcardenasl\Ci4ApiCore\Repositories\GenericRepository(model(\App\Models\LanguageModel::class)),
+            static::publicCollectionReader(),
+            static::translationSynchronizer()
+        );
+    }
+
+    public static function publicCollectionReader(bool $getShared = true): \App\Services\Cms\PublicCollectionReader
+    {
+        if ($getShared) {
+            return static::getSharedInstance('publicCollectionReader');
+        }
+
+        return new \App\Services\Cms\PublicCollectionReader(
+            new \dcardenasl\Ci4ApiCore\Repositories\GenericRepository(model(\App\Models\PageModel::class)),
+            static::translationResolver(),
+            static::slugRouter()
+        );
     }
     public static function entryResponseMapper(bool $getShared = true): \dcardenasl\Ci4ApiCore\Mappers\ResponseMapperInterface
     {
@@ -347,7 +405,25 @@ trait CmsDomainServices
         if ($getShared) {
             return static::getSharedInstance('redirectService');
         }
-        return new \App\Services\Cms\RedirectService(new \dcardenasl\Ci4ApiCore\Repositories\GenericRepository(model(\App\Models\RedirectModel::class)), static::redirectResponseMapper(), static::cacheInvalidationClient());
+        return new \App\Services\Cms\RedirectService(
+            new \dcardenasl\Ci4ApiCore\Repositories\GenericRepository(model(\App\Models\RedirectModel::class)),
+            static::redirectResponseMapper(),
+            static::cacheInvalidationClient(),
+            static::publicRedirectResolver()
+        );
+    }
+
+    public static function publicRedirectResolver(bool $getShared = true): \App\Libraries\Cms\PublicRedirectResolver
+    {
+        if ($getShared) {
+            return static::getSharedInstance('publicRedirectResolver');
+        }
+
+        return new \App\Libraries\Cms\PublicRedirectResolver(
+            \Config\Database::connect(),
+            static::translationResolver(),
+            static::slugRouter()
+        );
     }
 
     public static function slugRedirectRecorder(bool $getShared = true): \App\Libraries\Cms\SlugRedirectRecorder
@@ -417,6 +493,15 @@ trait CmsDomainServices
         );
     }
 
+    public static function publicLocaleResolver(bool $getShared = true): \App\Libraries\Cms\PublicLocaleResolver
+    {
+        if ($getShared) {
+            return static::getSharedInstance('publicLocaleResolver');
+        }
+
+        return new \App\Libraries\Cms\PublicLocaleResolver(\Config\Database::connect());
+    }
+
     public static function ownerUsageResolver(bool $getShared = true): \App\Libraries\Cms\OwnerUsageResolver
     {
         if ($getShared) {
@@ -424,6 +509,43 @@ trait CmsDomainServices
         }
 
         return new \App\Libraries\Cms\OwnerUsageResolver(\Config\Database::connect());
+    }
+
+    public static function fieldPrimitiveRegistry(bool $getShared = true): \App\Libraries\Cms\FieldPrimitiveRegistry
+    {
+        if ($getShared) {
+            return static::getSharedInstance('fieldPrimitiveRegistry');
+        }
+
+        return new \App\Libraries\Cms\FieldPrimitiveRegistry();
+    }
+
+    public static function blockSchemaIntrospector(bool $getShared = true): \App\Libraries\Cms\BlockSchemaIntrospector
+    {
+        if ($getShared) {
+            return static::getSharedInstance('blockSchemaIntrospector');
+        }
+
+        return new \App\Libraries\Cms\BlockSchemaIntrospector(static::fieldPrimitiveRegistry());
+    }
+
+    public static function wizardConfigService(bool $getShared = true): \App\Interfaces\Cms\WizardConfigServiceInterface
+    {
+        if ($getShared) {
+            return static::getSharedInstance('wizardConfigService');
+        }
+
+        return new \App\Services\Cms\WizardConfigService(
+            new \dcardenasl\Ci4ApiCore\Repositories\GenericRepository(model(\App\Models\LanguageModel::class)),
+            new \dcardenasl\Ci4ApiCore\Repositories\GenericRepository(model(\App\Models\CollectionModel::class)),
+            new \dcardenasl\Ci4ApiCore\Repositories\GenericRepository(model(\App\Models\PageModel::class)),
+            new \dcardenasl\Ci4ApiCore\Repositories\GenericRepository(model(\App\Models\PageTranslationModel::class)),
+            new \dcardenasl\Ci4ApiCore\Repositories\GenericRepository(model(\App\Models\MenuModel::class)),
+            new \dcardenasl\Ci4ApiCore\Repositories\GenericRepository(model(\App\Models\BlockTypeModel::class)),
+            static::ownerUsageResolver(),
+            static::blockSchemaIntrospector(),
+            static::fieldPrimitiveRegistry()
+        );
     }
 
     public static function formService(bool $getShared = true): \App\Services\Cms\FormService
