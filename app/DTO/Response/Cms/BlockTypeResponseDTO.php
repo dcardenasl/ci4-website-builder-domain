@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\DTO\Response\Cms;
 
+use App\Libraries\Cms\JsonCastNormalizer;
 use dcardenasl\Ci4ApiCore\Dto\DataTransferObjectInterface;
 use OpenApi\Attributes as OA;
 
@@ -60,11 +61,7 @@ final readonly class BlockTypeResponseDTO implements DataTransferObjectInterface
      */
     public static function fromArray(array $data): static
     {
-        $raw = $data['schema_definition'] ?? [];
-        if (is_string($raw)) {
-            $raw = json_decode($raw, true) ?? [];
-        }
-        $schema = (array) $raw;
+        $schema = JsonCastNormalizer::toArray($data['schema_definition'] ?? []);
 
         return new static(
             id: (int) ($data['id'] ?? 0),

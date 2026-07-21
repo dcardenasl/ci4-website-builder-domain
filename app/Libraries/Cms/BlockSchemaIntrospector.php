@@ -11,7 +11,13 @@ final class BlockSchemaIntrospector
     }
 
     /**
-     * @param array<string, mixed> $schema
+     * Accepts anything JsonCastNormalizer::toArray() accepts — not just a
+     * plain array — so a caller handing over a raw `json`-cast Entity
+     * property (stdClass, possibly nested) can never silently produce an
+     * empty result here. This is the single choke point for reading a block
+     * type's schema_definition; normalizing here means callers don't each
+     * need to remember to pre-normalize.
+     *
      * @return array{
      *     contains_richtext: bool,
      *     contains_image: bool,
@@ -22,8 +28,9 @@ final class BlockSchemaIntrospector
      *     fields: array<string, array<string, mixed>>
      * }
      */
-    public function introspect(array $schema): array
+    public function introspect(mixed $schema): array
     {
+        $schema = JsonCastNormalizer::toArray($schema);
         $fields = is_array($schema['fields'] ?? null) ? $schema['fields'] : [];
         $normalizedFields = [];
         $required = [];

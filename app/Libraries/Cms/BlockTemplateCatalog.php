@@ -101,22 +101,15 @@ final class BlockTemplateCatalog
     /**
      * BlockTypeEntity casts schema_definition as `json` (stdClass), but some
      * callers (repository/mapper layers) already hand it over pre-decoded as
-     * a raw JSON string or a plain array — normalize all three shapes the
-     * same defensive way BlockTypeResponseDTO::fromArray() does.
+     * a raw JSON string or a plain array — JsonCastNormalizer handles all
+     * three shapes the same defensive way BlockTypeResponseDTO::fromArray()
+     * and BlockSchemaIntrospector::introspect() do.
      *
      * @return array<string, mixed>
      */
     private function normalizeSchema(mixed $raw): array
     {
-        if (is_string($raw)) {
-            return (array) (json_decode($raw, true) ?? []);
-        }
-
-        if (is_object($raw)) {
-            return (array) (json_decode((string) json_encode($raw), true) ?? []);
-        }
-
-        return (array) $raw;
+        return JsonCastNormalizer::toArray($raw);
     }
 
     /**
