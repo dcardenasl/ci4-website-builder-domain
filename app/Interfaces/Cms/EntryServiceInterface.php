@@ -36,4 +36,6 @@ interface EntryServiceInterface extends CrudServiceContract
     public function listPublic(PublicEntryIndexRequestDTO $dto): DataTransferObjectInterface;
 
     public function showPublic(PublicEntryShowRequestDTO $dto): DataTransferObjectInterface;
+
+    public function isSlugAvailable(string $slug, int $languageId, ?int $currentId = null): bool;
 }

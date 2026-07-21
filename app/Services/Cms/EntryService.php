@@ -607,4 +607,9 @@ class EntryService extends BaseCrudService implements EntryServiceInterface
             'note'           => $note,
         ]);
     }
+
+    public function isSlugAvailable(string $slug, int $languageId, ?int $currentId = null): bool
+    {
+        return (new \App\Models\EntryTranslationModel())->isSlugAvailable($slug, $languageId, $currentId);
+    }
 }

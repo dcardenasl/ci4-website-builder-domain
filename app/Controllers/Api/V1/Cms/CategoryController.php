@@ -8,7 +8,6 @@ use App\DTO\Request\Cms\CategoryCreateRequestDTO;
 use App\DTO\Request\Cms\CategoryIndexRequestDTO;
 use App\DTO\Request\Cms\CategoryUpdateRequestDTO;
 use App\Interfaces\Cms\CategoryServiceInterface;
-use App\Models\CategoryTranslationModel;
 use CodeIgniter\HTTP\ResponseInterface;
 use Config\Services;
 use dcardenasl\Ci4ApiCore\Dto\SecurityContext;
@@ -107,7 +106,7 @@ class CategoryController extends ApiController
                     return ['available' => false];
                 }
 
-                $available = (new CategoryTranslationModel())->isSlugAvailable($slug, $languageId, $currentId);
+                $available = $this->categoryService->isSlugAvailable($slug, $languageId, $currentId);
                 return ['available' => $available];
             }
         );

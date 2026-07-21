@@ -11,7 +11,6 @@ use App\DTO\Request\Cms\EntrySetTagsRequestDTO;
 use App\DTO\Request\Cms\EntrySyncTaxonomyRequestDTO;
 use App\DTO\Request\Cms\EntryUpdateRequestDTO;
 use App\Interfaces\Cms\EntryServiceInterface;
-use App\Models\EntryTranslationModel;
 use CodeIgniter\HTTP\ResponseInterface;
 use Config\Services;
 use dcardenasl\Ci4ApiCore\Dto\SecurityContext;
@@ -150,7 +149,7 @@ class EntryController extends ApiController
                     return ['available' => false];
                 }
 
-                $available = (new EntryTranslationModel())->isSlugAvailable($slug, $languageId, $currentId);
+                $available = $this->entryService->isSlugAvailable($slug, $languageId, $currentId);
                 return ['available' => $available];
             }
         );

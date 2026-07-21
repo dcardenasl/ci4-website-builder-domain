@@ -12,4 +12,6 @@ interface CategoryServiceInterface extends CrudServiceContract
      * @return array<int, array{id: int, slug: string, name: string, description: string|null}>
      */
     public function listPublic(string $lang, string $collectionKey): array;
+
+    public function isSlugAvailable(string $slug, int $languageId, ?int $currentId = null): bool;
 }

@@ -179,4 +179,9 @@ class CategoryService extends BaseCrudService implements CategoryServiceInterfac
             ],
         );
     }
+
+    public function isSlugAvailable(string $slug, int $languageId, ?int $currentId = null): bool
+    {
+        return (new \App\Models\CategoryTranslationModel())->isSlugAvailable($slug, $languageId, $currentId);
+    }
 }
