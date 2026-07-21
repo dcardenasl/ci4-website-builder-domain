@@ -6,6 +6,7 @@ namespace App\Services\Cms;
 
 use App\Entities\RedirectEntity;
 use App\Interfaces\Cms\RedirectServiceInterface;
+use App\Libraries\Cms\PublicRedirectResolver;
 use dcardenasl\Ci4ApiCore\Dto\SecurityContext;
 use dcardenasl\Ci4ApiCore\Mappers\ResponseMapperInterface;
 use dcardenasl\Ci4ApiCore\Repositories\RepositoryInterface;
@@ -24,10 +25,20 @@ class RedirectService extends BaseCrudService implements RedirectServiceInterfac
     public function __construct(
         RepositoryInterface $redirectRepository,
         ResponseMapperInterface $responseMapper,
-        \App\Libraries\Cms\CacheInvalidationClient $cacheInvalidator
+        \App\Libraries\Cms\CacheInvalidationClient $cacheInvalidator,
+        private readonly PublicRedirectResolver $publicRedirectResolver
     ) {
         parent::__construct($redirectRepository, $responseMapper);
         $this->cacheInvalidator = $cacheInvalidator;
+    }
+
+    /**
+     * @param list<string> $segments
+     * @return array{new_url: string, redirect_type: int}
+     */
+    public function resolvePublic(array $segments): array
+    {
+        return $this->publicRedirectResolver->resolve($segments);
     }
 
     protected function afterStore(object $entity, ?SecurityContext $context): void

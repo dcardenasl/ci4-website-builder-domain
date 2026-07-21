@@ -46,7 +46,12 @@ final class RedirectServiceTest extends CIUnitTestCase
             ->method('invalidate')
             ->with(['redirects']);
 
-        $service = new \App\Services\Cms\RedirectService($repository, $responseMapper, $cacheMock);
+        $service = new \App\Services\Cms\RedirectService(
+            $repository,
+            $responseMapper,
+            $cacheMock,
+            $this->createMock(\App\Libraries\Cms\PublicRedirectResolver::class)
+        );
         $result = $service->destroy(10, null);
 
         $this->assertTrue($result);

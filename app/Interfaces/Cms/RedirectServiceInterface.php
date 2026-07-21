@@ -8,7 +8,9 @@ use dcardenasl\Ci4ApiCore\Services\CrudServiceContract;
 
 interface RedirectServiceInterface extends CrudServiceContract
 {
-    // Declare resource-specific service methods here.
-    // Implement them in RedirectService; until ready, throw:
-    //   throw new \BadMethodCallException(__METHOD__ . ' not implemented');
+    /**
+     * @param list<string> $segments
+     * @return array{new_url: string, redirect_type: int}
+     */
+    public function resolvePublic(array $segments): array;
 }
