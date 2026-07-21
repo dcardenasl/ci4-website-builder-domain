@@ -184,4 +184,38 @@ class TranslationAuditSupport
 
         return ['complete', ''];
     }
+
+    /**
+     * Collapses the full audit vocabulary (missing, incomplete, mismatch,
+     * outdated, complete) into the 4-state vocabulary the admin's
+     * block-scoped UI uses (badges in the block list + status dots on the
+     * block editor's language tabs) — the same missing/incomplete/complete
+     * set every other resource's "Ver" panel uses via
+     * TranslationStatus::badgeClasses() (admin, PHP), which has no
+     * 'mismatch' case.
+     *
+     * 'mismatch' collapses to 'incomplete': still needs editorial attention.
+     *
+     * 'outdated' collapses to 'complete' (2026-07-21, confirmed with David
+     * after a false-positive report): `cms_block_instances` uses CI4's
+     * automatic timestamps, so routine actions with zero content
+     * implication — reordering, toggling `is_active` — bump the block's
+     * `updated_at` and would otherwise flag every other-language
+     * translation as "outdated" even though the translated copy itself
+     * never changed. `evaluateTranslationState()` only ever returns
+     * 'outdated' after the field-completeness checks above already
+     * passed, so collapsing it here never hides a real missing/incomplete
+     * field — only a staleness signal that fires too eagerly for blocks
+     * specifically. The sitewide audit table (`report`/`stats`) is
+     * unaffected — it calls `evaluateTranslationState()` directly and
+     * keeps showing 'outdated'/'mismatch' verbatim.
+     */
+    public static function collapseForBlockBadge(string $status): string
+    {
+        return match ($status) {
+            'mismatch' => 'incomplete',
+            'outdated' => 'complete',
+            default => $status,
+        };
+    }
 }

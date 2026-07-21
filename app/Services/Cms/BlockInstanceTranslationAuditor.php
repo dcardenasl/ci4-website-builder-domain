@@ -117,6 +117,97 @@ class BlockInstanceTranslationAuditor
         return [$instance, $fieldDefinitions, $translations, $valueResolver];
     }
 
+    /**
+     * Per-owner audit used by TranslationAuditService::auditOwnerBlocks() to
+     * power the admin's contextual block-translation badges on a single
+     * page/entry (and its "blocks" builder view), without pulling — or
+     * paginating — the sitewide report just to filter it down client-side.
+     *
+     * Unlike audit()/countAuditable() (which only look at active blocks,
+     * because they answer "what needs fixing on the live site"), this
+     * includes inactive block instances too: the contextual views render a
+     * card for every block regardless of active state, so every card needs a
+     * status to show. It also keeps 'complete' results (audit() only
+     * collects issues) since the caller needs to render green badges too,
+     * and runs every status through TranslationAuditSupport::collapseForBlockBadge()
+     * — see that method's docblock for why 'mismatch' and 'outdated' both
+     * collapse away for this admin surface; the sitewide audit table
+     * remains the only place either is shown verbatim.
+     *
+     * @param list<object> $activeLanguages
+     * @return array{
+     *   blocks: array<int, array<string, array{language_id:int,status:string,detail:string}>>,
+     *   summary: array<string, array{complete:int,total:int}>,
+     * }
+     */
+    public function auditForOwner(string $ownerType, int $ownerId, array $activeLanguages): array
+    {
+        $summary = [];
+        foreach ($activeLanguages as $lang) {
+            $summary[(string) $lang->code] = ['complete' => 0, 'total' => 0];
+        }
+
+        $instances = $this->getBlockInstancesForOwner($ownerType, $ownerId);
+        if ($instances === []) {
+            return ['blocks' => [], 'summary' => $summary];
+        }
+
+        $instanceIds = array_map(static fn (array $i): int => (int) $i['id'], $instances);
+        $translationsByInstance = $this->support->groupTranslationsByResource(
+            $this->blockInstanceTranslationModel->whereIn('instance_id', $instanceIds)->findAll(),
+            'instance_id'
+        );
+
+        $blocks = [];
+        foreach ($instances as $instance) {
+            $instanceId = (int) ($instance['id'] ?? 0);
+            if ($instanceId <= 0) {
+                continue;
+            }
+
+            $translatableFields = $this->getTranslatableBlockFieldDefinitions($instance['schema_definition'] ?? null);
+            if ($translatableFields === []) {
+                continue;
+            }
+
+            $translations = $translationsByInstance[$instanceId] ?? [];
+            $perLanguage = [];
+            foreach ($activeLanguages as $lang) {
+                $langId = (int) $lang->id;
+                $langCode = (string) $lang->code;
+
+                $translation = $translations[$langId] ?? null;
+                [$status, $detail] = $this->support->evaluateTranslationState(
+                    $translation,
+                    $translations,
+                    $translatableFields,
+                    $langId,
+                    function (array $row, string $fieldKey, array $fieldDefinition): mixed {
+                        return $this->extractBlockFieldValue($row, $fieldKey, $fieldDefinition);
+                    },
+                    isset($instance['updated_at']) ? (string) $instance['updated_at'] : null
+                );
+
+                $status = $this->support->collapseForBlockBadge($status);
+
+                $perLanguage[$langCode] = [
+                    'language_id' => $langId,
+                    'status' => $status,
+                    'detail' => $detail,
+                ];
+
+                $summary[$langCode] = [
+                    'complete' => $summary[$langCode]['complete'] + ($status === 'complete' ? 1 : 0),
+                    'total' => $summary[$langCode]['total'] + 1,
+                ];
+            }
+
+            $blocks[$instanceId] = $perLanguage;
+        }
+
+        return ['blocks' => $blocks, 'summary' => $summary];
+    }
+
     public function countAuditable(): int
     {
         $instances = $this->getBlockInstancesWithTypes();
@@ -141,6 +232,26 @@ class BlockInstanceTranslationAuditor
             ->select('i.*, b.block_key, b.schema_definition')
             ->join('cms_content_blocks b', 'b.id = i.block_id')
             ->where('i.is_active', 1)
+            ->orderBy('i.sort_order', 'ASC')
+            ->get();
+
+        /** @var list<array<string, mixed>> $rows */
+        $rows = $query ? $query->getResultArray() : [];
+
+        return $rows;
+    }
+
+    /**
+     * @return list<array<string, mixed>>
+     */
+    private function getBlockInstancesForOwner(string $ownerType, int $ownerId): array
+    {
+        $db = \Config\Database::connect();
+        $query = $db->table('cms_block_instances i')
+            ->select('i.*, b.block_key, b.schema_definition')
+            ->join('cms_content_blocks b', 'b.id = i.block_id')
+            ->where('i.owner_type', $ownerType)
+            ->where('i.owner_id', $ownerId)
             ->orderBy('i.sort_order', 'ASC')
             ->get();
 

@@ -37,7 +37,13 @@ class ServiceModelDependencyConventionsTest extends CIUnitTestCase
     private const BASELINE = [
         'app/Services/Cms/AnalyticsService.php' => ['use_model' => 1],
         'app/Services/Cms/BlockInstanceService.php' => ['model_call' => 4],
-        'app/Services/Cms/BlockInstanceTranslationAuditor.php' => ['model_call' => 1, 'db_connect' => 2],
+        // 2026-07-21: db_connect grew from 2 to 3 for auditForOwner()'s
+        // getBlockInstancesForOwner() — same join-based raw query pattern as
+        // the file's other two db_connect call sites (join against
+        // cms_content_blocks for schema_definition), just filtered by
+        // owner_type/owner_id instead of id/is_active. Not new coupling, the
+        // same justified exception applied a third time.
+        'app/Services/Cms/BlockInstanceTranslationAuditor.php' => ['model_call' => 1, 'db_connect' => 3],
         'app/Services/Cms/CategoryService.php' => ['model_call' => 5],
         'app/Services/Cms/CollectionService.php' => ['model_call' => 4],
         'app/Services/Cms/EntryBlockTemplateInitializer.php' => ['model_call' => 5, 'db_connect' => 1],

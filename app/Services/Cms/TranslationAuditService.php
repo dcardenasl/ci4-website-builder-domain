@@ -272,6 +272,19 @@ class TranslationAuditService implements TranslationAuditServiceInterface
     }
 
     /**
+     * {@inheritdoc}
+     */
+    public function auditOwnerBlocks(string $ownerType, int $ownerId): array
+    {
+        $activeLanguages = $this->getActiveLanguages();
+        if ($activeLanguages === []) {
+            return ['blocks' => [], 'summary' => []];
+        }
+
+        return $this->blockAuditor->auditForOwner($ownerType, $ownerId, $activeLanguages);
+    }
+
+    /**
      * @return list<\App\Entities\LanguageEntity>
      */
     private function getActiveLanguages(): array

@@ -596,6 +596,181 @@ final class TranslationAuditServiceTest extends CIUnitTestCase
         $this->assertSame('mismatch', $audit['en']['status']);
     }
 
+    public function testAuditOwnerBlocksReturnsPerLanguageStatusAndCollapsesMismatchToIncomplete(): void
+    {
+        $this->db->table('cms_pages')->insert([
+            'page_type' => 'generic',
+            'status' => 'published',
+            'sort_order' => 1,
+        ]);
+        $pageId = $this->db->insertID();
+
+        $this->db->table('cms_content_blocks')->insert([
+            'block_key' => 'hero',
+            'name' => 'Hero',
+            'category' => 'marketing',
+            'schema_definition' => json_encode([
+                'fields' => [
+                    'heading' => ['type' => 'string', 'required' => true],
+                    'subheading' => ['type' => 'string', 'required' => false],
+                ],
+            ]),
+            'supports_pages' => 1,
+            'supports_entries' => 1,
+            'is_container' => 0,
+            'is_active' => 1,
+            'sort_order' => 1,
+        ]);
+        $blockTypeId = $this->db->insertID();
+
+        // Top-level block: ES complete, EN's optional field is blank while
+        // ES has it filled -> mismatch, which must surface as 'incomplete'
+        // here (this admin-facing endpoint keeps the same 4-state vocabulary
+        // as every other resource's "Ver" panel).
+        $this->db->table('cms_block_instances')->insert([
+            'block_id' => $blockTypeId,
+            'owner_type' => 'page',
+            'owner_id' => $pageId,
+            'sort_order' => 1,
+            'is_active' => 1,
+        ]);
+        $parentInstanceId = $this->db->insertID();
+        $this->db->table('cms_block_instance_translations')->insert([
+            'instance_id' => $parentInstanceId,
+            'language_id' => $this->langEsId,
+            'block_data' => json_encode(['heading' => 'Hola', 'subheading' => 'Sub']),
+            'is_published' => 1,
+        ]);
+        $this->db->table('cms_block_instance_translations')->insert([
+            'instance_id' => $parentInstanceId,
+            'language_id' => $this->langEnId,
+            'block_data' => json_encode(['heading' => 'Hello', 'subheading' => '']),
+            'is_published' => 1,
+        ]);
+
+        // Child block (same owner via parent_instance_id): both languages
+        // complete.
+        $this->db->table('cms_block_instances')->insert([
+            'block_id' => $blockTypeId,
+            'owner_type' => 'page',
+            'owner_id' => $pageId,
+            'parent_instance_id' => $parentInstanceId,
+            'sort_order' => 1,
+            'is_active' => 1,
+        ]);
+        $childInstanceId = $this->db->insertID();
+        $this->db->table('cms_block_instance_translations')->insert([
+            'instance_id' => $childInstanceId,
+            'language_id' => $this->langEsId,
+            'block_data' => json_encode(['heading' => 'Hijo']),
+            'is_published' => 1,
+        ]);
+        $this->db->table('cms_block_instance_translations')->insert([
+            'instance_id' => $childInstanceId,
+            'language_id' => $this->langEnId,
+            'block_data' => json_encode(['heading' => 'Child']),
+            'is_published' => 1,
+        ]);
+
+        $service = Services::translationAuditService(false);
+        $result = $service->auditOwnerBlocks('page', $pageId);
+
+        $this->assertArrayHasKey($parentInstanceId, $result['blocks']);
+        $this->assertArrayHasKey($childInstanceId, $result['blocks']);
+        $this->assertSame('complete', $result['blocks'][$parentInstanceId]['es']['status']);
+        $this->assertSame('incomplete', $result['blocks'][$parentInstanceId]['en']['status']);
+        $this->assertSame('complete', $result['blocks'][$childInstanceId]['es']['status']);
+        $this->assertSame('complete', $result['blocks'][$childInstanceId]['en']['status']);
+
+        $this->assertSame(['complete' => 2, 'total' => 2], $result['summary']['es']);
+        $this->assertSame(['complete' => 1, 'total' => 2], $result['summary']['en']);
+    }
+
+    public function testAuditOwnerBlocksIsolatesByOwnerTypeAndOwnerId(): void
+    {
+        $this->db->table('cms_pages')->insert([
+            'page_type' => 'generic',
+            'status' => 'published',
+            'sort_order' => 1,
+        ]);
+        $pageId = $this->db->insertID();
+
+        $this->db->table('cms_content_blocks')->insert([
+            'block_key' => 'rich_text',
+            'name' => 'Rich Text',
+            'category' => 'content',
+            'schema_definition' => json_encode([
+                'fields' => ['body' => ['type' => 'text', 'required' => true]],
+            ]),
+            'supports_pages' => 1,
+            'supports_entries' => 1,
+            'is_container' => 0,
+            'is_active' => 1,
+            'sort_order' => 1,
+        ]);
+        $blockTypeId = $this->db->insertID();
+
+        // Belongs to our page — must be included.
+        $this->db->table('cms_block_instances')->insert([
+            'block_id' => $blockTypeId,
+            'owner_type' => 'page',
+            'owner_id' => $pageId,
+            'sort_order' => 1,
+            'is_active' => 1,
+        ]);
+        $ownBlockId = $this->db->insertID();
+        $this->db->table('cms_block_instance_translations')->insert([
+            'instance_id' => $ownBlockId,
+            'language_id' => $this->langEsId,
+            'block_data' => json_encode(['body' => 'Texto']),
+            'is_published' => 1,
+        ]);
+
+        // Same owner_id but owner_type='entry' — a different polymorphic
+        // owner entirely, must NOT leak into the page's result.
+        $this->db->table('cms_block_instances')->insert([
+            'block_id' => $blockTypeId,
+            'owner_type' => 'entry',
+            'owner_id' => $pageId,
+            'sort_order' => 1,
+            'is_active' => 1,
+        ]);
+        $otherOwnerTypeBlockId = $this->db->insertID();
+
+        // A different page entirely — must NOT leak either.
+        $this->db->table('cms_pages')->insert([
+            'page_type' => 'generic',
+            'status' => 'published',
+            'sort_order' => 2,
+        ]);
+        $otherPageId = $this->db->insertID();
+        $this->db->table('cms_block_instances')->insert([
+            'block_id' => $blockTypeId,
+            'owner_type' => 'page',
+            'owner_id' => $otherPageId,
+            'sort_order' => 1,
+            'is_active' => 1,
+        ]);
+        $otherPageBlockId = $this->db->insertID();
+
+        $service = Services::translationAuditService(false);
+        $result = $service->auditOwnerBlocks('page', $pageId);
+
+        $this->assertArrayHasKey($ownBlockId, $result['blocks']);
+        $this->assertArrayNotHasKey($otherOwnerTypeBlockId, $result['blocks']);
+        $this->assertArrayNotHasKey($otherPageBlockId, $result['blocks']);
+    }
+
+    public function testAuditOwnerBlocksReturnsEmptyBlocksWithZeroedSummaryWhenOwnerHasNoBlocks(): void
+    {
+        $service = Services::translationAuditService(false);
+        $result = $service->auditOwnerBlocks('page', 999999);
+
+        $this->assertSame([], $result['blocks']);
+        $this->assertSame(['complete' => 0, 'total' => 0], $result['summary']['es']);
+        $this->assertSame(['complete' => 0, 'total' => 0], $result['summary']['en']);
+    }
+
     public function testOverallCompletenessIncludesExpandedCmsResources(): void
     {
         $this->db->table('cms_collections')->insert([

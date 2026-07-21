@@ -56,6 +56,7 @@ $routes->group('cms', ['namespace' => '\App\Controllers\Api\V1\Cms'], function (
         $routes->get('translations/audit/stats', 'TranslationAuditController::stats', ['filter' => 'permission:cms.languages.read']);
         $routes->get('translations/audit/report', 'TranslationAuditController::report', ['filter' => 'permission:cms.languages.read']);
         $routes->get('translations/audit/resource/(:segment)/(:num)', 'TranslationAuditController::resource/$1/$2', ['filter' => 'permission:cms.languages.read']);
+        $routes->get('translations/audit/owner/(:segment)/(:num)', 'TranslationAuditController::owner/$1/$2', ['filter' => 'permission:cms.languages.read']);
         $routes->get('menus/(:num)', 'MenuController::show/$1', ['filter' => 'permission:cms.menus.read']);
         $routes->put('menus/(:num)', 'MenuController::update/$1', ['filter' => 'permission:cms.menus.write']);
         $routes->delete('menus/(:num)', 'MenuController::delete/$1', ['filter' => 'permission:cms.menus.write']);

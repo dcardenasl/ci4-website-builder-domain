@@ -14,11 +14,17 @@
 
 ## 🟡 Próximo
 
-*(vacío — backlog abajo)*
+*(vacío — TRN-008 cerrado, ver Completadas)*
+
+*(resto del backlog abajo)*
 
 Las tareas están ordenadas por fases de dependencias para asegurar la integridad de la base de datos (30 tablas de `erd_cms_v4.html`) y las APIs.
 
 ---
+
+## ✅ Completadas (2026-07-21)
+
+- [TRN-008] Endpoint "auditoría por propietario" para bloques (cross-repo con `ci4-website-builder-admin`, ver `../TASKS.md` y `../ci4-website-builder-admin/TASKS.md`). Objetivo: que el admin pinte estado de traducción por idioma en las vistas de bloques de una page/entry concreta sin N+1 (antes `BlockInstanceTranslationAuditor` solo auditaba "todo el sitio"). Nuevo `BlockInstanceTranslationAuditor::auditForOwner(string $ownerType, int $ownerId, array $activeLanguages): array` — variante de `getBlockInstancesWithTypes()` filtrada por `owner_type`/`owner_id` (incluye hijos automáticamente vía `parent_instance_id` compartiendo owner); conserva `complete` (a diferencia de `audit()`, que solo junta issues); colapsa `mismatch`→`incomplete` (decisión de vocabulario confirmada con David, no toca TRN-006). Nuevo `TranslationAuditServiceInterface::auditOwnerBlocks()`, nuevo `TranslationAuditController::owner($ownerType, $ownerId)`, nueva ruta `GET translations/audit/owner/(:segment)/(:num)` con el mismo filtro `permission:cms.languages.read` que sus hermanas. Tests nuevos: aislamiento por owner (no filtra bloques de otro dueño), bloques hijos incluidos, colapso de `mismatch`, owner sin bloques. Guardrail `ServiceModelDependencyConventionsTest::BASELINE` actualizado deliberadamente (db_connect 2→3 en `BlockInstanceTranslationAuditor.php`, mismo patrón de query join ya usado por los otros dos call sites del archivo). `composer quality` completo (PHPStan, CS-Fixer, arch-drift, i18n-check, docs-i18n-check, fixture-policy, suite completa) en verde.
 
 ## ✅ Completadas (2026-07-20)
 

@@ -7,6 +7,7 @@ namespace App\Controllers\Api\V1\Cms;
 use App\Interfaces\Cms\TranslationAuditServiceInterface;
 use CodeIgniter\HTTP\ResponseInterface;
 use Config\Services;
+use dcardenasl\Ci4ApiCore\Exceptions\ValidationException;
 use dcardenasl\Ci4ApiCore\Http\ApiController;
 
 class TranslationAuditController extends ApiController
@@ -72,6 +73,28 @@ class TranslationAuditController extends ApiController
         return $this->handleRequest(
             function () use ($type, $id): ResponseInterface {
                 $report = $this->auditService->auditResource($type, $id);
+                return $this->response->setJSON([
+                    'status' => 'success',
+                    'data'   => $report,
+                ])->setStatusCode(200);
+            }
+        );
+    }
+
+    /**
+     * Audit every block instance belonging to a single page/entry — the
+     * contextual counterpart to resource(), used by the admin's block list
+     * and "Ver" views instead of the sitewide report/stats.
+     */
+    public function owner(string $ownerType, int $ownerId): ResponseInterface
+    {
+        return $this->handleRequest(
+            function () use ($ownerType, $ownerId): ResponseInterface {
+                if (! in_array($ownerType, ['page', 'entry'], true)) {
+                    throw new ValidationException(null, ['owner_type' => 'Must be "page" or "entry".']);
+                }
+
+                $report = $this->auditService->auditOwnerBlocks($ownerType, $ownerId);
                 return $this->response->setJSON([
                     'status' => 'success',
                     'data'   => $report,
