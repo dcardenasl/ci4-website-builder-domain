@@ -46,7 +46,13 @@ final class CollectionServiceTest extends CIUnitTestCase
             ->method('invalidate')
             ->with(['collections', 'entries']);
 
-        $service = new \App\Services\Cms\CollectionService($repository, $responseMapper, $cacheMock);
+        $service = new \App\Services\Cms\CollectionService(
+            $repository,
+            $responseMapper,
+            $cacheMock,
+            $this->createMock(RepositoryInterface::class),
+            $this->createMock(\App\Services\Cms\PublicCollectionReader::class)
+        );
         $result = $service->destroy(10, null);
 
         $this->assertTrue($result);

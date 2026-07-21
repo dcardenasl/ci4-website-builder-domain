@@ -8,7 +8,6 @@ use App\DTO\Request\Cms\CollectionCreateRequestDTO;
 use App\DTO\Request\Cms\CollectionIndexRequestDTO;
 use App\DTO\Request\Cms\CollectionUpdateRequestDTO;
 use App\Interfaces\Cms\CollectionServiceInterface;
-use App\Models\CollectionTranslationModel;
 use CodeIgniter\HTTP\ResponseInterface;
 use Config\Services;
 use dcardenasl\Ci4ApiCore\Dto\SecurityContext;
@@ -108,7 +107,7 @@ class CollectionController extends ApiController
                     return ['available' => false];
                 }
 
-                $available = (new CollectionTranslationModel())->isSlugAvailable($slug, $languageId, $currentId);
+                $available = $this->collectionService->isSlugAvailable($slug, $languageId, $currentId);
 
                 return ['available' => $available];
             }

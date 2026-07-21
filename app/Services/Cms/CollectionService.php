@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Services\Cms;
 
 use App\Entities\CollectionEntity;
+use App\Entities\LanguageEntity;
 use App\Interfaces\Cms\CollectionServiceInterface;
 use App\Traits\Services\HasDeferredTranslations;
 use dcardenasl\Ci4ApiCore\Dto\SecurityContext;
@@ -26,16 +27,40 @@ class CollectionService extends BaseCrudService implements CollectionServiceInte
 
     /**
      * @param RepositoryInterface<CollectionEntity> $collectionRepository
+     * @param RepositoryInterface<LanguageEntity> $languageRepository
      */
     public function __construct(
         RepositoryInterface $collectionRepository,
         ResponseMapperInterface $responseMapper,
         \App\Libraries\Cms\CacheInvalidationClient $cacheInvalidator,
+        private readonly RepositoryInterface $languageRepository,
+        private readonly PublicCollectionReader $publicCollectionReader,
         ?\App\Libraries\Cms\TranslationSynchronizer $translationSynchronizer = null
     ) {
         parent::__construct($collectionRepository, $responseMapper);
         $this->cacheInvalidator = $cacheInvalidator;
         $this->translationSynchronizer = $translationSynchronizer;
+    }
+
+    /**
+     * List all active collections resolved by the request language.
+     *
+     * @return list<array<string, mixed>>
+     */
+    public function listPublic(string $lang): array
+    {
+        /** @var list<CollectionEntity> $collections */
+        $collections = $this->repository->getModel()
+            ->where('is_active', 1)
+            ->orderBy('sort_order', 'ASC')
+            ->findAll();
+
+        /** @var list<LanguageEntity> $activeLanguages */
+        $activeLanguages = $this->languageRepository->getModel()
+            ->where('is_active', 1)
+            ->findAll();
+
+        return $this->publicCollectionReader->listPublic($collections, $activeLanguages, $lang);
     }
 
     protected function beforeStore(array $data, ?SecurityContext $context): array
@@ -210,5 +235,10 @@ class CollectionService extends BaseCrudService implements CollectionServiceInte
                 );
             }
         }
+    }
+
+    public function isSlugAvailable(string $slug, int $languageId, ?int $currentId = null): bool
+    {
+        return (new \App\Models\CollectionTranslationModel())->isSlugAvailable($slug, $languageId, $currentId);
     }
 }
