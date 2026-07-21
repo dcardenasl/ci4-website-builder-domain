@@ -182,6 +182,37 @@ Run before pushing:
 composer quality
 ```
 
+## Architecture guardrail tests
+
+`tests/Unit/Architecture/` is the authoritative source for structural rules this
+codebase enforces beyond PHPStan — always check it before assuming a pattern is
+"just a convention." Two rules of this shape exist and both follow the same
+ratchet philosophy (a violation can shrink or disappear silently, but growing
+one or adding a new offender requires editing the test's `BASELINE`/assertion
+deliberately, with a dated comment):
+
+- `ServiceModelDependencyConventionsTest` — Services (`app/Services/**`) must not
+  call `model()`, import `App\Models\*`, or call `Database::connect()` directly;
+  use the injected repository (`$this->repository`/constructor-injected
+  `RepositoryInterface`) instead. Currently has baselined exceptions (documented
+  per-file, per-pattern).
+- `ControllerModelDependencyConventionsTest` — same three patterns, scoped to
+  `app/Controllers`. **Zero-tolerance as of 2026-07-21** (DOM-112..DOM-124) — no
+  baselined exceptions remain. A Controller must delegate to a Service; see
+  `PublicEntryController` for the reference shape (constructor-injected
+  interface, `resolveDefaultService()`, action methods that only call the
+  service and shape the response).
+
+Both patterns are regex scans over token-stripped source (comments/strings
+removed first), so they also silently miss `new App\Models\X()` (no `use`
+import, no `model()` call) — an already-accepted escape hatch used a few places
+in this codebase specifically to get a concretely-typed Model instance for a
+custom method the generic `RepositoryInterface`/`getModel(): \CodeIgniter\Model`
+return type doesn't expose (e.g. `BlockInstanceService::blockTypeById()`,
+`*Service::isSlugAvailable()`). Don't reach for that pattern to dodge the
+guardrail on a *new* violation — it's for this one specific typing problem, not
+a loophole.
+
 ## Common pitfalls
 
 - ❌ Issuing JWTs from this app — that's the hub's job, always.
@@ -207,6 +238,22 @@ composer quality
   like `PrepareTestDatabase` that calls `Database::connect('tests')` explicitly. (Root-caused
   2026-07-18 after this exact pattern produced a seemingly "flaky" row count in an earlier audit —
   see the monorepo root's docs/audits/2026-07-10-hardening-execution-log.md.)
+- ❌ **Shallow `(array) $entity->someJsonField` casting on any Entity property cast as
+  `'json'`** (`schema_definition`, `wizard_config`, `block_template`, etc. — grep
+  Entities for `=> 'json'` to find the full list). CI4's `json` cast decodes to
+  `stdClass` **recursively at every nesting level**, not just the top one — a
+  shallow cast only converts the outer object, leaving nested values (e.g.
+  `$schema['fields']['heading']`) as `stdClass`, which then silently fail any
+  downstream `is_array()` check and get treated as empty. Always go through
+  `App\Libraries\Cms\JsonCastNormalizer::toArray()` instead, which handles the
+  string/object/array shapes correctly via a full `json_encode`/`json_decode`
+  round-trip. (Root-caused 2026-07-21 during DOM-122: this exact bug shipped in
+  `WizardConfigService`'s first draft and would have made the wizard's block
+  editor always see empty `fields`/`config_fields` — caught only because a
+  characterization test with real fixtures was written before trusting the
+  refactor. `BlockSchemaIntrospector::introspect()` now self-normalizes via this
+  helper too, so passing it a raw un-normalized Entity property can no longer
+  silently misbehave.)
 
 ## Where to read next
 
