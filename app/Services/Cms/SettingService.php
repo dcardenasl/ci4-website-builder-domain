@@ -6,6 +6,9 @@ namespace App\Services\Cms;
 
 use App\Entities\SettingEntity;
 use App\Interfaces\Cms\SettingServiceInterface;
+use App\Libraries\Cms\FileUrlResolver;
+use App\Libraries\Cms\PublicLocaleResolver;
+use App\Libraries\Cms\TranslationResolver;
 use App\Traits\Services\HasDeferredTranslations;
 use dcardenasl\Ci4ApiCore\Dto\SecurityContext;
 use dcardenasl\Ci4ApiCore\Exceptions\ValidationException;
@@ -37,12 +40,57 @@ class SettingService extends BaseCrudService implements SettingServiceInterface
         ResponseMapperInterface $responseMapper,
         \App\Libraries\Cms\CacheInvalidationClient $cacheInvalidator,
         \App\Libraries\Cms\FileReferenceSynchronizer $fileReferenceSynchronizer,
+        private readonly TranslationResolver $translationResolver,
+        private readonly FileUrlResolver $fileUrlResolver,
+        private readonly PublicLocaleResolver $publicLocaleResolver,
         ?\App\Libraries\Cms\TranslationSynchronizer $translationSynchronizer = null
     ) {
         parent::__construct($settingRepository, $responseMapper);
         $this->cacheInvalidator = $cacheInvalidator;
         $this->fileReferenceSynchronizer = $fileReferenceSynchronizer;
         $this->translationSynchronizer = $translationSynchronizer;
+    }
+
+    /**
+     * List public+active settings keyed by setting_key, with translation and
+     * file_id resolution applied.
+     *
+     * @return array<string, mixed>
+     */
+    public function listPublic(?string $acceptLanguageHeader): array
+    {
+        $lang = $this->publicLocaleResolver->resolve($acceptLanguageHeader);
+
+        /** @var list<SettingEntity> $settings */
+        $settings = $this->repository->getModel()
+            ->where('is_public', 1)
+            ->where('is_active', 1)
+            ->orderBy('sort_order', 'ASC')
+            ->findAll();
+
+        $result = [];
+        foreach ($settings as $setting) {
+            if ($setting->is_translatable) {
+                $translation = $this->translationResolver->resolve('setting', (int) $setting->id, $lang);
+                $value = $translation['setting_value'] ?? $setting->setting_value;
+            } else {
+                $value = $setting->setting_value;
+            }
+
+            if ($setting->setting_type === 'file_id') {
+                $meta = is_array($setting->setting_meta) ? $setting->setting_meta : [];
+                $resolvedUrl = $this->fileUrlResolver->resolve((int) ($setting->setting_value ?? 0), 'original');
+                $value = [
+                    'file_id'   => (int) ($setting->setting_value ?? 0),
+                    'url'       => $resolvedUrl ?? ($meta['url'] ?? null),
+                    'mime_type' => $meta['mime_type'] ?? null,
+                ];
+            }
+
+            $result[$setting->setting_key] = $value;
+        }
+
+        return $result;
     }
 
     /** @param list<array{id: int, payload: array<string, mixed>}> $updates */

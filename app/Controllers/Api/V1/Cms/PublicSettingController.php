@@ -4,15 +4,21 @@ declare(strict_types=1);
 
 namespace App\Controllers\Api\V1\Cms;
 
+use App\Interfaces\Cms\SettingServiceInterface;
 use CodeIgniter\HTTP\ResponseInterface;
 use Config\Services;
+use dcardenasl\Ci4ApiCore\Dto\SecurityContext;
 use dcardenasl\Ci4ApiCore\Http\ApiController;
 
 class PublicSettingController extends ApiController
 {
-    protected function resolveDefaultService(): object
+    protected SettingServiceInterface $settingService;
+
+    protected function resolveDefaultService(): SettingServiceInterface
     {
-        return Services::settingService();
+        $this->settingService = Services::settingService();
+
+        return $this->settingService;
     }
 
     /**
@@ -22,43 +28,8 @@ class PublicSettingController extends ApiController
     public function index(): ResponseInterface
     {
         return $this->handleRequest(
-            function (): ResponseInterface {
-                $header = trim($this->request->getHeaderLine('Accept-Language'));
-                $lang = strtolower(trim((string) explode(',', $header)[0]));
-
-                // Get all active, public settings
-                $settingModel = model(\App\Models\SettingModel::class);
-                $settings = $settingModel->where('is_public', 1)
-                    ->where('is_active', 1)
-                    ->orderBy('sort_order', 'ASC')
-                    ->findAll();
-
-                $translationResolver = Services::translationResolver();
-                $result = [];
-
-                foreach ($settings as $setting) {
-                    if ($setting instanceof \App\Entities\SettingEntity) {
-                        if ($setting->is_translatable) {
-                            $translation = $translationResolver->resolve('setting', (int) $setting->id, $lang);
-                            $value = $translation['setting_value'] ?? $setting->setting_value;
-                        } else {
-                            $value = $setting->setting_value;
-                        }
-
-                        if ($setting->setting_type === 'file_id') {
-                            $meta = is_array($setting->setting_meta) ? $setting->setting_meta : [];
-                            $resolver = Services::fileUrlResolver();
-                            $resolvedUrl = $resolver->resolve((int) ($setting->setting_value ?? 0), 'original');
-                            $value = [
-                                'file_id'   => (int) ($setting->setting_value ?? 0),
-                                'url'       => $resolvedUrl ?? ($meta['url'] ?? null),
-                                'mime_type' => $meta['mime_type'] ?? null,
-                            ];
-                        }
-
-                        $result[$setting->setting_key] = $value;
-                    }
-                }
+            function (array $dto, SecurityContext $context): mixed {
+                $result = $this->settingService->listPublic($this->request->getHeaderLine('Accept-Language'));
 
                 return $this->response->setJSON([
                     'status' => 'success',

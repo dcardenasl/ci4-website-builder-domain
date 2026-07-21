@@ -53,7 +53,10 @@ final class SettingServiceTest extends CIUnitTestCase
             $repository,
             $responseMapper,
             $cacheMock,
-            $referenceSynchronizer
+            $referenceSynchronizer,
+            $this->createMock(\App\Libraries\Cms\TranslationResolver::class),
+            $this->createMock(\App\Libraries\Cms\FileUrlResolver::class),
+            $this->createMock(\App\Libraries\Cms\PublicLocaleResolver::class)
         );
         $result = $service->destroy(10, null);
 
