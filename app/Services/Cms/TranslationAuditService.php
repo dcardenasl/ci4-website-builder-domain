@@ -261,6 +261,16 @@ class TranslationAuditService implements TranslationAuditServiceInterface
                 $isSettingDefaultLanguage ? null : (isset($resourceRow['updated_at']) ? (string) $resourceRow['updated_at'] : null)
             );
 
+            // The admin's block-editor tab dots consume this same endpoint
+            // (auditResource('block_instance', $id)) and use the same
+            // 4-state vocabulary as auditOwnerBlocks() — see
+            // TranslationAuditSupport::collapseForBlockBadge() for why.
+            // Every other resource type (page, entry, setting, ...) keeps
+            // the full vocabulary verbatim here, unaffected.
+            if ($resourceType === 'block_instance') {
+                $status = $this->support->collapseForBlockBadge($status);
+            }
+
             $report[$lang->code] = [
                 'language_id' => $langId,
                 'status' => $status,

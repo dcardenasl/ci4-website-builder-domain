@@ -472,9 +472,11 @@ final class TranslationAuditServiceTest extends CIUnitTestCase
         $this->assertSame('complete', $menuAudit['es']['status']);
         $this->assertSame('missing', $menuAudit['en']['status']);
 
+        // 'mismatch' collapses to 'incomplete' for block_instance specifically
+        // — see TranslationAuditSupport::collapseForBlockBadge().
         $audit = $service->auditResource('block_instance', $blockInstanceId);
         $this->assertSame('complete', $audit['es']['status']);
-        $this->assertSame('mismatch', $audit['en']['status']);
+        $this->assertSame('incomplete', $audit['en']['status']);
     }
 
     public function testOptionalFieldsMismatchesAreDetectedOnPageTranslations(): void
@@ -532,7 +534,7 @@ final class TranslationAuditServiceTest extends CIUnitTestCase
         $this->assertSame('missing', $audit['en']['status']);
     }
 
-    public function testOptionalBlockFieldsMismatchIsDetected(): void
+    public function testOptionalBlockFieldsMismatchCollapsesToIncompleteViaAuditResource(): void
     {
         $this->db->table('cms_content_blocks')->insert([
             'block_key' => 'cta',
@@ -593,7 +595,9 @@ final class TranslationAuditServiceTest extends CIUnitTestCase
         $audit = $service->auditResource('block_instance', $blockInstanceId);
 
         $this->assertSame('complete', $audit['es']['status']);
-        $this->assertSame('mismatch', $audit['en']['status']);
+        // 'mismatch' collapses to 'incomplete' for block_instance specifically
+        // — see TranslationAuditSupport::collapseForBlockBadge().
+        $this->assertSame('incomplete', $audit['en']['status']);
     }
 
     public function testAuditOwnerBlocksReturnsPerLanguageStatusAndCollapsesMismatchToIncomplete(): void
@@ -684,6 +688,78 @@ final class TranslationAuditServiceTest extends CIUnitTestCase
 
         $this->assertSame(['complete' => 2, 'total' => 2], $result['summary']['es']);
         $this->assertSame(['complete' => 1, 'total' => 2], $result['summary']['en']);
+    }
+
+    /**
+     * Reproduces the false positive David reported 2026-07-21: a fully
+     * translated block whose instance row was touched afterwards (e.g. by
+     * reordering, which bumps cms_block_instances.updated_at for every
+     * sibling regardless of content) must not show as anything other than
+     * 'complete' in the block-scoped badges/tab dots — 'outdated' collapses
+     * away here specifically (see collapseForBlockBadge()), unlike pages,
+     * entries, etc. where 'outdated' is still a real, surfaced signal.
+     */
+    public function testOutdatedBlockTranslationCollapsesToCompleteInBothBlockScopedEndpoints(): void
+    {
+        $this->db->table('cms_pages')->insert([
+            'page_type' => 'generic',
+            'status' => 'published',
+            'sort_order' => 1,
+        ]);
+        $pageId = $this->db->insertID();
+
+        $this->db->table('cms_content_blocks')->insert([
+            'block_key' => 'image',
+            'name' => 'Imagen',
+            'category' => 'media',
+            'schema_definition' => json_encode([
+                'fields' => ['alt_text' => ['type' => 'string', 'required' => true]],
+            ]),
+            'supports_pages' => 1,
+            'supports_entries' => 1,
+            'is_container' => 0,
+            'is_active' => 1,
+            'sort_order' => 1,
+        ]);
+        $blockTypeId = $this->db->insertID();
+
+        $this->db->table('cms_block_instances')->insert([
+            'block_id' => $blockTypeId,
+            'owner_type' => 'page',
+            'owner_id' => $pageId,
+            'sort_order' => 1,
+            'is_active' => 1,
+            'updated_at' => '2026-07-21 03:50:41',
+        ]);
+        $instanceId = $this->db->insertID();
+
+        // Fully translated, but saved a day before the instance's last
+        // touch (e.g. a reorder) — this is what 'outdated' detects.
+        $this->db->table('cms_block_instance_translations')->insert([
+            'instance_id' => $instanceId,
+            'language_id' => $this->langEsId,
+            'block_data' => json_encode(['alt_text' => 'Plataforma E-commerce Nacional']),
+            'is_published' => 1,
+            'updated_at' => '2026-07-20 04:26:05',
+        ]);
+        $this->db->table('cms_block_instance_translations')->insert([
+            'instance_id' => $instanceId,
+            'language_id' => $this->langEnId,
+            'block_data' => json_encode(['alt_text' => 'National E-commerce Platform']),
+            'is_published' => 1,
+            'updated_at' => '2026-07-21 03:50:41',
+        ]);
+
+        $service = Services::translationAuditService(false);
+
+        $owner = $service->auditOwnerBlocks('page', $pageId);
+        $this->assertSame('complete', $owner['blocks'][$instanceId]['es']['status']);
+        $this->assertSame('complete', $owner['blocks'][$instanceId]['en']['status']);
+        $this->assertSame(['complete' => 1, 'total' => 1], $owner['summary']['es']);
+
+        $resource = $service->auditResource('block_instance', $instanceId);
+        $this->assertSame('complete', $resource['es']['status']);
+        $this->assertSame('complete', $resource['en']['status']);
     }
 
     public function testAuditOwnerBlocksIsolatesByOwnerTypeAndOwnerId(): void
