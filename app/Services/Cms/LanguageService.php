@@ -110,6 +110,26 @@ class LanguageService extends BaseCrudService implements LanguageServiceInterfac
         }
     }
 
+    /**
+     * @return list<array{code: string, name: string, native_name: string, is_default: bool}>
+     */
+    public function listPublic(): array
+    {
+        /** @var list<LanguageEntity> $languages */
+        $languages = $this->repository->getModel()
+            ->where('is_active', 1)
+            ->orderBy('sort_order', 'ASC')
+            ->orderBy('code', 'ASC')
+            ->findAll();
+
+        return array_map(static fn (LanguageEntity $language): array => [
+            'code' => (string) $language->code,
+            'name' => (string) $language->name,
+            'native_name' => (string) $language->native_name,
+            'is_default' => (bool) $language->is_default,
+        ], $languages);
+    }
+
     private function resetDefaults(?int $exceptId = null): void
     {
         /** @var \App\Models\LanguageModel $model */
