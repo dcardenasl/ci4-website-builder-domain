@@ -89,10 +89,57 @@ class BlockInstanceService extends BaseCrudService implements BlockInstanceServi
         $this->cacheInvalidator->invalidate($this->cacheScopesForEntity($entity));
     }
 
+    protected function beforeDelete(int $id, ?SecurityContext $context): void
+    {
+        parent::beforeDelete($id, $context);
+        $this->assertBlockNotLocked($id);
+    }
+
     protected function afterDelete(object $entity, ?SecurityContext $context): void
     {
         parent::afterDelete($entity, $context);
         $this->cacheInvalidator->invalidate($this->cacheScopesForEntity($entity));
+    }
+
+    /**
+     * Throws AuthorizationException when the block instance is locked by its
+     * collection's block_template. Only applies to entry-owned instances.
+     * destroy() already guarantees the instance exists before this hook runs.
+     *
+     * @throws \dcardenasl\Ci4ApiCore\Exceptions\AuthorizationException
+     */
+    private function assertBlockNotLocked(int $instanceId): void
+    {
+        /** @var BlockInstanceEntity|null $instance */
+        $instance = $this->repository->find($instanceId);
+        if (!$instance instanceof BlockInstanceEntity || $instance->owner_type !== 'entry') {
+            return;
+        }
+
+        /** @var \App\Models\EntryModel $entryModel */
+        $entryModel = model(\App\Models\EntryModel::class);
+        $entry = $entryModel->find((int) $instance->owner_id);
+        if (!$entry instanceof \App\Entities\EntryEntity) {
+            return;
+        }
+
+        /** @var \App\Models\CollectionModel $collectionModel */
+        $collectionModel = model(\App\Models\CollectionModel::class);
+        $collection = $collectionModel->find((int) $entry->collection_id);
+        if (!$collection instanceof \App\Entities\CollectionEntity) {
+            return;
+        }
+
+        $blockType = $this->blockTypeById((int) $instance->block_id);
+        if ($blockType === null) {
+            return;
+        }
+
+        if ($collection->isBlockLocked((string) $blockType->block_key)) {
+            throw new \dcardenasl\Ci4ApiCore\Exceptions\AuthorizationException(
+                lang('BlockInstances.locked_by_template')
+            );
+        }
     }
 
     protected function enrichEntities(array $entities): array
@@ -274,12 +321,8 @@ class BlockInstanceService extends BaseCrudService implements BlockInstanceServi
      */
     private function blockSchemaDefinition(int $blockId): array
     {
-        if ($blockId <= 0) {
-            return [];
-        }
-
-        $blockType = (new \App\Models\BlockTypeModel())->find($blockId);
-        if (! $blockType instanceof \App\Entities\BlockTypeEntity) {
+        $blockType = $this->blockTypeById($blockId);
+        if ($blockType === null) {
             return [];
         }
 
@@ -290,6 +333,17 @@ class BlockInstanceService extends BaseCrudService implements BlockInstanceServi
         }
 
         return is_array($schemaDefinition) ? $schemaDefinition : [];
+    }
+
+    private function blockTypeById(int $blockId): ?\App\Entities\BlockTypeEntity
+    {
+        if ($blockId <= 0) {
+            return null;
+        }
+
+        $blockType = (new \App\Models\BlockTypeModel())->find($blockId);
+
+        return $blockType instanceof \App\Entities\BlockTypeEntity ? $blockType : null;
     }
 
     /**

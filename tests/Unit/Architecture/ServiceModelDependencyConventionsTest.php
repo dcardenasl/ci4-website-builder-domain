@@ -36,7 +36,15 @@ class ServiceModelDependencyConventionsTest extends CIUnitTestCase
      */
     private const BASELINE = [
         'app/Services/Cms/AnalyticsService.php' => ['use_model' => 1],
-        'app/Services/Cms/BlockInstanceService.php' => ['model_call' => 4],
+        // 2026-07-21 (DOM-114): model_call grew from 3 to 5 — moved the
+        // instance->entry->collection->blockType lock-check inline from
+        // BlockInstanceController::assertBlockNotLocked() into
+        // beforeDelete()/assertBlockNotLocked() here (2 new call sites:
+        // EntryModel, CollectionModel; the block_type lookup reuses the
+        // existing blockTypeById() helper, no new call site). Same coupling,
+        // now correctly owned by the service instead of leaking into the
+        // controller.
+        'app/Services/Cms/BlockInstanceService.php' => ['model_call' => 5],
         // 2026-07-21: db_connect grew from 2 to 3 for auditForOwner()'s
         // getBlockInstancesForOwner() — same join-based raw query pattern as
         // the file's other two db_connect call sites (join against
