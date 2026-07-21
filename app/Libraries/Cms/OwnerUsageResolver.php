@@ -18,10 +18,12 @@ use CodeIgniter\Database\BaseConnection;
  */
 class OwnerUsageResolver
 {
-    /** @var array<string, array{table: string, fk: string}> */
+    /** @var array<string, array{table: string, fk: string, column: string}> */
     private const OWNER_TABLES = [
-        'page' => ['table' => 'cms_page_translations', 'fk' => 'page_id'],
-        'entry' => ['table' => 'cms_entry_translations', 'fk' => 'entry_id'],
+        'page' => ['table' => 'cms_page_translations', 'fk' => 'page_id', 'column' => 'title'],
+        'entry' => ['table' => 'cms_entry_translations', 'fk' => 'entry_id', 'column' => 'title'],
+        'collection' => ['table' => 'cms_collection_translations', 'fk' => 'collection_id', 'column' => 'name'],
+        'menu' => ['table' => 'cms_menu_translations', 'fk' => 'menu_id', 'column' => 'name'],
     ];
 
     /**
@@ -68,7 +70,7 @@ class OwnerUsageResolver
             }
 
             $result = $this->db->table($definition['table'])
-                ->select($definition['fk'] . ' as owner_id, language_id, title')
+                ->select($definition['fk'] . ' as owner_id, language_id, ' . $definition['column'] . ' as title')
                 ->whereIn($definition['fk'], $ownerIds)
                 ->orderBy('language_id', 'ASC')
                 ->get();
