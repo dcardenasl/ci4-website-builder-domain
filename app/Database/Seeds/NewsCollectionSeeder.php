@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Database\Seeds;
 
+use App\Database\Seeds\Concerns\CollectionBlockPresets;
 use App\Database\Seeds\Concerns\IdempotentSeederSupport;
 use CodeIgniter\Database\Seeder;
 
@@ -25,74 +26,7 @@ class NewsCollectionSeeder extends Seeder
         }
 
         // $this->db->transStart();
-        $preset = [
-            'block_template' => [
-                'version' => '1.0',
-                'blocks' => [
-                    [
-                        'block_key' => 'rich_text',
-                        'label' => 'Titular',
-                        'help_text' => 'Bloque principal de la noticia',
-                        'required' => true,
-                        'locked' => true,
-                        'block_config_defaults' => new \stdClass(),
-                        'sort_order' => 1,
-                    ],
-                    [
-                        'block_key' => 'image',
-                        'label' => 'Imagen de portada',
-                        'help_text' => 'Acompaña la noticia con una imagen',
-                        'required' => false,
-                        'locked' => false,
-                        'block_config_defaults' => new \stdClass(),
-                        'sort_order' => 2,
-                    ],
-                    [
-                        'block_key' => 'page_header',
-                        'label' => 'Encabezado editorial',
-                        'help_text' => 'Presenta la entrada con contexto y jerarquía visual',
-                        'required' => false,
-                        'locked' => false,
-                        'block_config_defaults' => new \stdClass(),
-                        'sort_order' => 3,
-                    ],
-                    [
-                        'block_key' => 'hero_banner',
-                        'label' => 'Hero de la noticia',
-                        'help_text' => 'Destaca la historia con imagen, bajada y llamada a la acción',
-                        'required' => false,
-                        'locked' => false,
-                        'block_config_defaults' => new \stdClass(),
-                        'sort_order' => 4,
-                    ],
-                    [
-                        'block_key' => 'cta',
-                        'label' => 'Cierre y llamada a la acción',
-                        'help_text' => 'Invita a explorar más contenido del sitio',
-                        'required' => false,
-                        'locked' => false,
-                        'block_config_defaults' => new \stdClass(),
-                        'sort_order' => 5,
-                    ],
-                    [
-                        'block_key' => 'alert',
-                        'label' => 'Dato destacado',
-                        'help_text' => 'Resalta una idea, cifra o aprendizaje de la noticia',
-                        'required' => false,
-                        'locked' => false,
-                        'block_config_defaults' => new \stdClass(),
-                        'sort_order' => 6,
-                    ],
-                ],
-            ],
-            'wizard_config' => [
-                'type' => 'news',
-                'steps' => [
-                    ['step_title' => 'Titular', 'step_hint' => 'Título visible para la noticia', 'fields' => [['key' => 'title', 'label' => 'Titular', 'type' => 'text', 'required' => true]]],
-                    ['step_title' => 'Resumen', 'step_hint' => 'Una breve bajada informativa', 'fields' => [['key' => 'excerpt', 'label' => 'Resumen', 'type' => 'textarea', 'required' => false]]],
-                ],
-            ],
-        ];
+        $preset = CollectionBlockPresets::news();
 
         // ── 1. Collection ──────────────────────────────────────────────────────
         $collectionPayload = [

@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Database\Seeds;
 
+use App\Database\Seeds\Concerns\CollectionBlockPresets;
 use App\Database\Seeds\Concerns\IdempotentSeederSupport;
 use CodeIgniter\Database\Seeder;
 
@@ -25,74 +26,7 @@ class PortfolioCollectionSeeder extends Seeder
         }
 
         // $this->db->transStart();
-        $preset = [
-            'block_template' => [
-                'version' => '1.0',
-                'blocks' => [
-                    [
-                        'block_key' => 'image',
-                        'label' => 'Imagen del Proyecto',
-                        'help_text' => 'Imagen principal del proyecto realizado',
-                        'required' => true,
-                        'locked' => false,
-                        'block_config_defaults' => new \stdClass(),
-                        'sort_order' => 1,
-                    ],
-                    [
-                        'block_key' => 'rich_text',
-                        'label' => 'Detalle del Proyecto',
-                        'help_text' => 'Descripción detallada del caso de estudio',
-                        'required' => false,
-                        'locked' => false,
-                        'block_config_defaults' => new \stdClass(),
-                        'sort_order' => 2,
-                    ],
-                    [
-                        'block_key' => 'page_header',
-                        'label' => 'Encabezado del caso',
-                        'help_text' => 'Introduce el proyecto y su contexto',
-                        'required' => false,
-                        'locked' => false,
-                        'block_config_defaults' => new \stdClass(),
-                        'sort_order' => 3,
-                    ],
-                    [
-                        'block_key' => 'hero_banner',
-                        'label' => 'Hero del proyecto',
-                        'help_text' => 'Muestra el resultado con una imagen y un mensaje principal',
-                        'required' => false,
-                        'locked' => false,
-                        'block_config_defaults' => new \stdClass(),
-                        'sort_order' => 4,
-                    ],
-                    [
-                        'block_key' => 'cta',
-                        'label' => 'CTA del caso de éxito',
-                        'help_text' => 'Conecta el caso con una acción comercial',
-                        'required' => false,
-                        'locked' => false,
-                        'block_config_defaults' => new \stdClass(),
-                        'sort_order' => 5,
-                    ],
-                    [
-                        'block_key' => 'alert',
-                        'label' => 'Resultado destacado',
-                        'help_text' => 'Resalta una métrica, aprendizaje o decisión del proyecto',
-                        'required' => false,
-                        'locked' => false,
-                        'block_config_defaults' => new \stdClass(),
-                        'sort_order' => 6,
-                    ],
-                ],
-            ],
-            'wizard_config' => [
-                'type' => 'portfolio',
-                'steps' => [
-                    ['step_title' => 'Proyecto', 'step_hint' => 'Nombre o título del proyecto', 'fields' => [['key' => 'title', 'label' => 'Proyecto', 'type' => 'text', 'required' => true]]],
-                    ['step_title' => 'Resumen', 'step_hint' => 'Una breve descripción del trabajo realizado', 'fields' => [['key' => 'excerpt', 'label' => 'Resumen', 'type' => 'textarea', 'required' => false]]],
-                ],
-            ],
-        ];
+        $preset = CollectionBlockPresets::portfolio();
 
         // ── 1. Collection ──────────────────────────────────────────────────────
         $collectionId = $this->upsertRecord('cms_collections', [
