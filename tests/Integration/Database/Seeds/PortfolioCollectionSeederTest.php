@@ -10,7 +10,7 @@ use CodeIgniter\Test\DatabaseTestTrait;
 /**
  * @internal
  */
-final class NewsCollectionSeederTest extends CIUnitTestCase
+final class PortfolioCollectionSeederTest extends CIUnitTestCase
 {
     use DatabaseTestTrait;
 
@@ -29,10 +29,14 @@ final class NewsCollectionSeederTest extends CIUnitTestCase
             'cms_block_instance_translations',
             'cms_block_instances',
             'cms_content_blocks',
+            'cms_entry_tags',
+            'cms_entry_categories',
             'cms_entry_translations',
             'cms_entries',
-            'cms_page_translations',
-            'cms_pages',
+            'cms_tag_translations',
+            'cms_tags',
+            'cms_category_translations',
+            'cms_categories',
             'cms_collection_translations',
             'cms_collections',
             'cms_languages',
@@ -44,15 +48,15 @@ final class NewsCollectionSeederTest extends CIUnitTestCase
         $this->db->enableForeignKeyChecks();
     }
 
-    public function testNewsSeederCreatesEntriesWithFeaturedImages(): void
+    public function testPortfolioSeederCreatesEntriesWithoutLandingPageBlocks(): void
     {
         $seeder = \Config\Database::seeder();
         $seeder->call(\App\Database\Seeds\CmsLanguageSeeder::class);
         $seeder->call(\App\Database\Seeds\CmsBlockTypeSeeder::class);
-        $seeder->call(\App\Database\Seeds\NewsCollectionSeeder::class);
+        $seeder->call(\App\Database\Seeds\PortfolioCollectionSeeder::class);
 
         $collection = $this->db->table('cms_collections')
-            ->where('collection_key', 'noticias')
+            ->where('collection_key', 'portafolio')
             ->get()
             ->getRowArray();
 
@@ -60,31 +64,22 @@ final class NewsCollectionSeederTest extends CIUnitTestCase
 
         // Regression guard for the 2026-07-22 bug: the collection's own
         // block_template previously kept page_header/hero_banner/cta/alert
-        // (landing-page blocks) even though the seeded sample entries below
-        // were always pruned down to just rich_text+image — causing the
-        // Wizard to ask for 4 irrelevant blocks on every new noticia.
+        // even though the seeded sample entries below were always pruned
+        // down to just image+rich_text — causing the Wizard to ask for 4
+        // irrelevant blocks on every new portfolio entry.
         $blockTemplate = json_decode((string) $collection['block_template'], true);
         $this->assertIsArray($blockTemplate);
         $this->assertSame(
-            ['rich_text', 'image'],
+            ['image', 'rich_text'],
             array_column($blockTemplate['blocks'], 'block_key')
         );
 
         $entries = $this->db->table('cms_entries')
             ->where('collection_id', (int) $collection['id'])
-            ->orderBy('sort_order', 'ASC')
             ->get()
             ->getResultArray();
 
-        $this->assertCount(3, $entries);
-
-        $entryTranslations = $this->db->table('cms_entry_translations')
-            ->where('entry_id', (int) $entries[0]['id'])
-            ->get()
-            ->getResultArray();
-
-        $this->assertNotEmpty($entryTranslations);
-        $this->assertNotEmpty($entryTranslations[0]['featured_image_url'] ?? null);
+        $this->assertCount(2, $entries);
 
         $blockInstances = $this->db->table('cms_block_instances')
             ->where('owner_type', 'entry')
@@ -105,9 +100,5 @@ final class NewsCollectionSeederTest extends CIUnitTestCase
                 return (string) ($type['block_key'] ?? '');
             }, $blockInstances)
         );
-
-        $this->assertSame(4, $this->db->table('cms_block_instance_translations')
-            ->whereIn('instance_id', array_column($blockInstances, 'id'))
-            ->countAllResults());
     }
 }
