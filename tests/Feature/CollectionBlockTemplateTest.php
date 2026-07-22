@@ -18,6 +18,7 @@ final class CollectionBlockTemplateTest extends ApiTestCase
     private int $langEsId = 0;
     private int $langEnId = 0;
     private int $activeBlockId = 0;
+    private int $secondActiveBlockId = 0;
     private int $inactiveBlockId = 0;
 
     protected function setUp(): void
@@ -107,6 +108,25 @@ final class CollectionBlockTemplateTest extends ApiTestCase
             'sort_order' => 1,
         ]);
         $this->activeBlockId = (int) $db->insertID();
+
+        $db->table('cms_content_blocks')->insert([
+            'block_key' => 'image',
+            'name' => 'Image',
+            'description' => null,
+            'category' => 'media',
+            'icon' => 'image',
+            'schema_definition' => json_encode([
+                'fields' => [
+                    'alt' => ['type' => 'string']
+                ]
+            ]),
+            'supports_pages' => 1,
+            'supports_entries' => 1,
+            'is_container' => 0,
+            'is_active' => 1,
+            'sort_order' => 2,
+        ]);
+        $this->secondActiveBlockId = (int) $db->insertID();
 
         $db->table('cms_content_blocks')->insert([
             'block_key' => 'inactive_block',
@@ -277,6 +297,91 @@ final class CollectionBlockTemplateTest extends ApiTestCase
 
         // 2 active languages seeded -> 2 translations
         $this->assertCount(2, $translations);
+    }
+
+    /**
+     * TEM-010: entries of a collection with a multi-block template (the real
+     * shape for content types like TeatroMuseo's Exposiciones/Eventos, not
+     * just the single-block demo case above) must get every block
+     * initialized in the template's declared `sort_order`, regardless of the
+     * order blocks appear in the `blocks` array.
+     */
+    public function testAutoInitializeMultipleBlocksPreservesSortOrder(): void
+    {
+        $db = Database::connect();
+        $template = [
+            'version' => '1.0',
+            'blocks' => [
+                // Declared out of sort_order to prove ordering comes from
+                // sort_order, not array position.
+                [
+                    'block_key' => 'image',
+                    'sort_order' => 2,
+                    'required' => false,
+                    'locked' => false,
+                    'block_config_defaults' => [],
+                ],
+                [
+                    'block_key' => 'rich_text',
+                    'sort_order' => 1,
+                    'required' => true,
+                    'locked' => true,
+                    'block_config_defaults' => [],
+                ],
+            ],
+        ];
+
+        $db->table('cms_collections')->insert([
+            'collection_type' => 'post',
+            'collection_key' => 'exhibits',
+            'is_active' => 1,
+            'requires_approval' => 0,
+            'enables_categories' => 0,
+            'enables_tags' => 0,
+            'sort_order' => 4,
+            'block_template' => json_encode($template),
+        ]);
+        $collectionId = (int) $db->insertID();
+
+        $payload = [
+            'collection_id' => (string) $collectionId,
+            'workflow_status' => 'published',
+            'is_featured' => 'false',
+            'translations' => [
+                [
+                    'language_id' => (string) $this->langEsId,
+                    'slug' => 'exhibit-1',
+                    'title' => 'Exhibit 1',
+                ],
+            ],
+        ];
+
+        $result = $this->post('/api/v1/cms/entries', $payload);
+        $result->assertStatus(200);
+
+        $body = $this->getResponseJson($result);
+        $entryId = (int) $body['data']['id'];
+
+        $instances = $db->table('cms_block_instances')
+            ->where('owner_type', 'entry')
+            ->where('owner_id', $entryId)
+            ->orderBy('sort_order', 'ASC')
+            ->get()
+            ->getResultArray();
+
+        $this->assertCount(2, $instances);
+        $this->assertSame(1, (int) $instances[0]['sort_order']);
+        $this->assertSame($this->activeBlockId, (int) $instances[0]['block_id']);
+        $this->assertSame(2, (int) $instances[1]['sort_order']);
+        $this->assertSame($this->secondActiveBlockId, (int) $instances[1]['block_id']);
+
+        $translations = $db->table('cms_block_instance_translations')
+            ->whereIn('instance_id', array_column($instances, 'id'))
+            ->get()
+            ->getResultArray();
+
+        // 2 blocks x 2 active languages -> 4 translations
+        $this->assertCount(4, $translations);
     }
 
     public function testDeleteLockedBlockReturns403(): void

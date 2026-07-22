@@ -120,6 +120,16 @@ class EntryBlockTemplateInitializer
             if (!$db->transStatus()) {
                 throw new \RuntimeException(lang('Entries.block_template_init_tx_failed'));
             }
+
+            $blockCount = count($blocks);
+            log_message('info', "[EntryBlockTemplateInitializer] Initialized {$blockCount} block(s) for entry {$entry->id} (collection {$collectionId}).");
+
+            if ($wizardExtra !== null && $wizardExtra !== []) {
+                $unconsumed = array_diff(array_keys($wizardExtra), $consumedKeys);
+                if ($unconsumed !== []) {
+                    log_message('warning', '[EntryBlockTemplateInitializer] wizard_extra key(s) with no matching block field for entry ' . $entry->id . ': ' . implode(', ', $unconsumed));
+                }
+            }
         } catch (\Exception $e) {
             $db->transRollback();
             log_message('error', "[EntryBlockTemplateInitializer] Block template init failed for entry {$entry->id}: {$e->getMessage()}");

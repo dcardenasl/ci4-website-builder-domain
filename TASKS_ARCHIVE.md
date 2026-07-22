@@ -76,6 +76,14 @@ Sin ID de tarea — trabajo derivado del runtime decoupling de ci4-api-core:
 
 ### Auditoría de traducciones y arquitectura
 
+- **DOM-127 / TEM-010** — publicación del Wizard respetando plantillas de bloques (2026-07-22).
+  Ya existía cobertura feature (`testAutoInitializeBlocksOnEntryCreation`) contra el endpoint HTTP
+  real; se agregó `testAutoInitializeMultipleBlocksPreservesSortOrder` (2 bloques declarados fuera
+  de orden, confirma que `sort_order` —no la posición en el array— determina el orden final) y
+  logging operativo en `EntryBlockTemplateInitializer::initialize()`: info al inicializar N
+  bloques, warning si algún key de `wizard_extra` no encontró campo de bloque coincidente.
+  `WizardConfigValidator`/`WizardStepFieldCatalog` (soporte domain de WIZ-STEPS-EDITOR-01, admin)
+  también cerrados en este ciclo. `composer analyse`/`format:check` limpios, suite completa verde.
 - **DOM-126** — corrección de presets de colecciones `news` y `portfolio`, fuente única de verdad,
   repair seeder y regresiones cubiertas.
 - **DOM-125** — normalizador JSON compartido, endurecimiento de introspección de schemas y
