@@ -45,7 +45,7 @@ readonly class CollectionCreateRequestDTO extends BaseRequestDTO
     public ?array $wizard_config;
 
     /**
-     * @var array<array{language_id: int, slug?: string, name: string, description?: string, listing_title?: string, listing_intro?: string, default_meta_title?: string, default_meta_description?: string}>
+     * @var array<array{language_id: int, slug?: string, name: string, description?: string, listing_title?: string, listing_intro?: string, default_meta_title?: string, default_meta_description?: string, entry_cta_label?: string}>
      */
     #[OA\Property(description: 'translations', type: 'array', items: new OA\Items(type: 'object'))]
     public array $translations;
@@ -74,6 +74,7 @@ readonly class CollectionCreateRequestDTO extends BaseRequestDTO
             'translations.*.listing_intro' => 'permit_empty|string',
             'translations.*.default_meta_title' => 'permit_empty|string|max_length[255]',
             'translations.*.default_meta_description' => 'permit_empty|string|max_length[500]',
+            'translations.*.entry_cta_label' => 'permit_empty|string|max_length[100]',
         ];
     }
 

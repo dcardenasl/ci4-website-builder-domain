@@ -78,6 +78,39 @@ final class PublicCollectionControllerTest extends CIUnitTestCase
         $this->assertArrayNotHasKey('url_prefix', $body['data'][0]);
     }
 
+    /**
+     * COL-002: a custom `entry_cta_label` per language must reach the public API response
+     * (consumed by the web app's collection_listing block instead of its collection_type-based
+     * default).
+     */
+    public function testGetPublicCollectionsExposesEntryCtaLabel(): void
+    {
+        $ctaLabel = $this->fixtures->text('cta-label', $this->languages[0]['code']);
+
+        $this->db->table('cms_collection_translations')
+            ->where('collection_id', $this->collection['id'])
+            ->where('language_id', $this->languages[0]['id'])
+            ->update(['entry_cta_label' => $ctaLabel]);
+
+        $result = $this->get('/api/v1/public/' . $this->languages[0]['code'] . '/collections');
+
+        $result->assertStatus(200);
+        $body = json_decode($result->getJSON(), true);
+
+        $this->assertSame($ctaLabel, $body['data'][0]['entry_cta_label']);
+    }
+
+    public function testGetPublicCollectionsExposesNullEntryCtaLabelWhenUnset(): void
+    {
+        $result = $this->get('/api/v1/public/' . $this->languages[0]['code'] . '/collections');
+
+        $result->assertStatus(200);
+        $body = json_decode($result->getJSON(), true);
+
+        $this->assertArrayHasKey('entry_cta_label', $body['data'][0]);
+        $this->assertNull($body['data'][0]['entry_cta_label']);
+    }
+
     public function testGetPublicCollectionsFallsBackToNameWhenListingTitleIsEmpty(): void
     {
         $fallbackName = $this->fixtures->text('fallback-name');

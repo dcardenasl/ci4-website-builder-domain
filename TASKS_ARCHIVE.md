@@ -39,6 +39,41 @@ Sin ID de tarea — trabajo derivado del runtime decoupling de ci4-api-core:
 
 ## 📦 Migrado desde `TASKS.md` — 2026-07-21
 
+### Escalabilidad de colecciones — COL-001/002 lado Domain (2026-07-22)
+
+- **COL-001** — `CollectionResponseDTO` no exponía `collection_type` en absoluto (constructor,
+  `fromArray()`, `toArray()`); el formulario de edición del admin siempre lo mostraba vacío y el
+  fallback "mantener valor actual" de `updateStructure()` lo reseteaba silenciosamente a `'other'`.
+  Corregido agregando el campo al DTO. Nuevo test feature (`CollectionControllerTest::testShowExposesCollectionType`).
+- **COL-002** — nueva columna `entry_cta_label` en `cms_collection_translations`, agregada
+  directamente en la migración canónica `CreateCmsCollections.php` (no como migración
+  incremental — este repo tiene un guardarraíl, `CleanDatabaseBootstrapConventionsTest`, que
+  prohíbe migraciones que no sean `Create*` puras; la primera versión como migración `Add*`
+  independiente falló ese test). Cableado en `CollectionEntity`, `CollectionTranslationModel`,
+  `CollectionService::enrichEntities()`/`saveTranslations()`, ambos Request DTOs,
+  `TranslationResourceCatalog` y `PublicCollectionReader` (el path que consume la web pública).
+  Tests nuevos en `PublicCollectionControllerTest`.
+- **Bug de infraestructura de tests encontrado y corregido**: CI4 cachea `fieldExists()`/
+  `getFieldNames()` por conexión, y ni `addColumn()` ni `dropColumn()` invalidan ese caché — una
+  migración `Add*`/`Drop*` guardada por `fieldExists()` se rompe en una corrida larga de PHPUnit
+  que la ejecuta más de una vez contra la misma conexión (ej. `DatabaseTestTrait` refrescando
+  muchas clases de test). Ya no aplica tras mover la columna a `CreateCmsCollections`, pero quedó
+  documentado por si se repite el patrón.
+- **Bug de fuga de mocks entre tests, encontrado y corregido**: `ApiTestCase::tearDown()` nunca
+  reseteaba el singleton `hubClient` (solo `request`), así que un stub de `HubClient` inyectado
+  por una clase sobrevivía como singleton compartido para el resto del proceso de PHPUnit y
+  autenticaba silenciosamente tests de OTRAS clases que esperaban 401. Corregido con
+  `Services::resetSingle('hubClient')` en `tearDown()` — beneficia a las 9 clases que extienden
+  `ApiTestCase`. Segunda fuga relacionada: `ContextHolder` (registro estático de
+  `dcardenasl/ci4-api-core`) tampoco se limpiaba fuera de `ApiTestCase`; `CollectionControllerTest`
+  (que no extiende `ApiTestCase`) ahora también llama `ContextHolder::flush()` en su `tearDown()`.
+- **Incidente de datos, ya resuelto**: depurando el bug de caché de `fieldExists()` arriba, un
+  `migrate:refresh -g tests --force` vació por error la BD **dev** en vez de la de test. A pedido
+  de David: `migrate:refresh` + `db:seed SiteBootstrapSeeder` completo desde cero en dev (en vez
+  de recuperación parcial), confirmado funcionando de punta a punta.
+- `composer analyse`/`format:check` limpios; suite completa (Unit+Architecture+Integration+Feature,
+  474 tests) en verde. Detalle completo en `../ARCHIVE.md`.
+
 ### Auditoría de traducciones y arquitectura
 
 - **DOM-126** — corrección de presets de colecciones `news` y `portfolio`, fuente única de verdad,

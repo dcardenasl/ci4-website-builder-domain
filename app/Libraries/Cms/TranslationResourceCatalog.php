@@ -66,6 +66,7 @@ final class TranslationResourceCatalog
                 'listing_intro' => ['required' => false],
                 'default_meta_title' => ['required' => false],
                 'default_meta_description' => ['required' => false],
+                'entry_cta_label' => ['required' => false],
             ],
         ],
         'category' => [

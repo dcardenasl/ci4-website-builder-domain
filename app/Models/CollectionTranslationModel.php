@@ -25,6 +25,7 @@ class CollectionTranslationModel extends BaseAuditableModel
         'listing_intro',
         'default_meta_title',
         'default_meta_description',
+        'entry_cta_label',
     ];
 
     protected $validationRules = [
@@ -37,6 +38,7 @@ class CollectionTranslationModel extends BaseAuditableModel
         'listing_intro'            => 'permit_empty|string',
         'default_meta_title'       => 'permit_empty|string|max_length[255]',
         'default_meta_description' => 'permit_empty|string|max_length[500]',
+        'entry_cta_label'          => 'permit_empty|string|max_length[100]',
     ];
 
     public function isSlugAvailable(string $slug, int $languageId, ?int $currentCollectionId = null): bool

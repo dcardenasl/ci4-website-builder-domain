@@ -71,6 +71,7 @@ class PublicCollectionReader
                 'listing_intro'            => $resolved['listing_intro'] ?? null,
                 'default_meta_title'       => $resolved['default_meta_title'] ?? null,
                 'default_meta_description' => $resolved['default_meta_description'] ?? null,
+                'entry_cta_label'          => $resolved['entry_cta_label'] ?? null,
                 'localized_slugs'          => $localizedSlugs,
                 'is_fallback'              => $resolved['is_fallback'] ?? false,
                 'index_page'               => $indexPageData,

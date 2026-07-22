@@ -19,5 +19,6 @@ class CollectionTranslationEntity extends Entity
         'listing_intro'            => 'string',
         'default_meta_title'       => 'string',
         'default_meta_description' => 'string',
+        'entry_cta_label'          => 'string',
     ];
 }

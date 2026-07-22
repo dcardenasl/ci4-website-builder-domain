@@ -171,6 +171,7 @@ class CollectionService extends BaseCrudService implements CollectionServiceInte
                     'listing_intro'            => $translation->listing_intro,
                     'default_meta_title'       => $translation->default_meta_title,
                     'default_meta_description' => $translation->default_meta_description,
+                    'entry_cta_label'          => $translation->entry_cta_label,
                 ];
             }
         }
@@ -204,6 +205,7 @@ class CollectionService extends BaseCrudService implements CollectionServiceInte
                 'listing_intro'            => $translation['listing_intro'] ?? null,
                 'default_meta_title'       => $translation['default_meta_title'] ?? null,
                 'default_meta_description' => $translation['default_meta_description'] ?? null,
+                'entry_cta_label'          => $translation['entry_cta_label'] ?? null,
             ],
         );
     }

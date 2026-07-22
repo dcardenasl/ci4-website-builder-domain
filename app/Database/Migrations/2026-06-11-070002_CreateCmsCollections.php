@@ -49,6 +49,7 @@ class CreateCmsCollections extends Migration
                 'listing_intro'            => ['type' => 'TEXT', 'null' => true],
                 'default_meta_title'       => ['type' => 'VARCHAR', 'constraint' => 255, 'null' => true],
                 'default_meta_description' => ['type' => 'VARCHAR', 'constraint' => 500, 'null' => true],
+                'entry_cta_label'          => ['type' => 'VARCHAR', 'constraint' => 100, 'null' => true],
             ]);
 
             $this->forge->addPrimaryKey('id');
