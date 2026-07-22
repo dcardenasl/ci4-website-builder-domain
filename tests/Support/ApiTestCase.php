@@ -51,6 +51,14 @@ abstract class ApiTestCase extends CIUnitTestCase
         \dcardenasl\Ci4ApiCore\Http\ContextHolder::flush();
         $this->resetCacheState();
         $this->resetState();
+        // Several subclasses inject a permissive HubClient stub (auth always valid) via
+        // Services::injectMock('hubClient', ...) to authenticate their own requests.
+        // resetState() only resets 'request', so without this the stub survives as the shared
+        // singleton for the rest of the PHPUnit process and silently authenticates every
+        // subsequent unauthenticated-request test in any other class (real bug found 2026-07-22:
+        // it turned "expects 401" assertions into unexpected 200/403 in unrelated test classes
+        // that merely happened to run afterward).
+        Services::resetSingle('hubClient');
         parent::tearDown();
     }
 
