@@ -7,6 +7,7 @@ namespace App\DTO\Request\Cms;
 use App\Libraries\Cms\BlockTemplateNormalizer;
 use App\Libraries\Cms\CmsEnums;
 use App\Validators\BlockTemplateValidator;
+use App\Validators\WizardConfigValidator;
 use dcardenasl\Ci4ApiCore\Dto\BaseRequestDTO;
 use OpenApi\Attributes as OA;
 
@@ -94,16 +95,9 @@ readonly class CollectionUpdateRequestDTO extends BaseRequestDTO
         $this->block_template = array_key_exists('block_template', $data)
             ? $this->parseBlockTemplate($data['block_template'])
             : null;
-        if (array_key_exists('wizard_config', $data)) {
-            $raw = $data['wizard_config'];
-            if (is_string($raw)) {
-                $decoded = json_decode($raw, true);
-                $raw = is_array($decoded) ? $decoded : null;
-            }
-            $this->wizard_config = is_array($raw) ? $raw : null;
-        } else {
-            $this->wizard_config = null;
-        }
+        $this->wizard_config = array_key_exists('wizard_config', $data)
+            ? $this->parseWizardConfig($data['wizard_config'])
+            : null;
         $this->translations = $data['translations'] ?? null;
     }
 
@@ -150,5 +144,23 @@ readonly class CollectionUpdateRequestDTO extends BaseRequestDTO
         (new BlockTemplateValidator())->validate($normalized);
 
         return $normalized;
+    }
+
+    /**
+     * @param mixed $raw
+     * @return array<string, mixed>|null
+     */
+    private function parseWizardConfig(mixed $raw): ?array
+    {
+        if (is_string($raw)) {
+            $decoded = json_decode($raw, true);
+            $raw = is_array($decoded) ? $decoded : null;
+        }
+
+        $wizardConfig = is_array($raw) ? $raw : null;
+
+        (new WizardConfigValidator())->validate($wizardConfig);
+
+        return $wizardConfig;
     }
 }
