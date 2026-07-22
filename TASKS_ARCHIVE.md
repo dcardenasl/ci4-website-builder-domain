@@ -34,3 +34,39 @@ Sin ID de tarea — trabajo derivado del runtime decoupling de ci4-api-core:
 ---
 
 *TASKS_ARCHIVE · ci4-website-builder · 2026-05-07*
+
+---
+
+## 📦 Migrado desde `TASKS.md` — 2026-07-21
+
+### Auditoría de traducciones y arquitectura
+
+- **DOM-126** — corrección de presets de colecciones `news` y `portfolio`, fuente única de verdad,
+  repair seeder y regresiones cubiertas.
+- **DOM-125** — normalizador JSON compartido, endurecimiento de introspección de schemas y
+  guardrails de dependencias de Controllers.
+- **TRN-008** — auditoría de bloques por propietario, endpoint owner-scoped, aislamiento de
+  propietarios, hijos incluidos y estados normalizados para el admin.
+- **TRN-006** — estado `outdated` disponible en la auditoría global del dominio.
+- **TRN-002** — resolución de nombres reales desde las traducciones, sin placeholders técnicos.
+- **ARCH-DEEP-01** — separación de `FormService`, resolvers de uso y resolvers batch, con suite de
+  calidad completa.
+
+### Hardening y PHPStan
+
+- **DEEP-BLOCK-01** — catálogo de bloques proyectado desde la fuente persistida y paridad de schemas.
+- **DEEP-TRAN-01** — inyección explícita de dependencias en `TranslationAuditService` y catálogo de
+  descriptores simples.
+- **PHPSTAN-01..09** — baseline expandido drenado a cero, false-safety corregida, DTOs anotados,
+  guardrails ajustados deliberadamente y suites unit/feature en verde.
+
+### CMS y mantenimiento histórico
+
+- **CMS-001..011** — bootstrap, schema, languages/settings, file translations, pages, menus,
+  blocks, collections, entries, taxonomías, redirects y publishing programado.
+- **DOM-101..111** y **BFF-107** — smoke tests, ADR de separación hub/domain, onboarding, permisos,
+  validaciones, diagnóstico del hub, refactor de `HubClient` y documentación de extensiones.
+- **DOM-112..124** — guardrail Controller→Model y migración progresiva de lógica a Services.
+
+El tracker local queda sin backlog propio; las decisiones de producto y tareas cross-repo se
+mantienen en `../TASKS.md`.

@@ -1,199 +1,18 @@
 # TASKS — ci4-website-builder-domain
 
-> Fuente de verdad **local** para trabajo en este repo.
-> Para tareas globales del proyecto, ver: [../TASKS.md](../TASKS.md)
-> Plan detallado de Form Submissions: [../docs/form_submissions_plan.md](../docs/form_submissions_plan.md)
-> Última actualización: 2026-06-23 (CMS-012 completado, CMS-013-016 en TASKS.md raíz)
-
----
+> Fuente de verdad para trabajo abierto en este repositorio.
+> Los entregables cerrados están en [`TASKS_ARCHIVE.md`](TASKS_ARCHIVE.md).
+> Seguimiento global: [`../TASKS.md`](../TASKS.md).
+> Tracker depurado el 2026-07-21; no se conservan notas de conversación ni bitácoras de participantes.
 
 ## 🔴 En progreso
-*(vacío)*
 
----
+*(vacío)*
 
 ## 🟡 Próximo
 
-Plan completo (12 fases) para cerrar la brecha arquitectónica Controller→Model encontrada en
-auditoría 2026-07-21 (8 controllers bypasean el Service layer llamando `model()`/`Database::connect()`
-directo — ver detalle en cada tarea). Ejecutar **una fase a la vez**, `composer quality` en verde
-antes de pasar a la siguiente.
-
-*(resto del backlog abajo)*
-
-Las tareas están ordenadas por fases de dependencias para asegurar la integridad de la base de datos (30 tablas de `erd_cms_v4.html`) y las APIs.
-
----
-
-## ✅ Completadas (2026-07-21)
-
-- [DOM-126] Bug reportado por David: creó una noticia en el Wizard (`/admin/cms/wizard`) y le pidió contenido para 6 bloques, 4 de los cuales (`page_header`/`hero_banner`/`cta`/`alert`) no corresponden a una noticia — la entrada resultante no seguía la estructura de las demás. Causa raíz: `NewsCollectionSeeder.php`/`PortfolioCollectionSeeder.php` seguían hardcodeando un `block_template` de 6 bloques (las mismas 4 landing-page blocks colgando, con un comentario propio ya reconociendo que "no hacen falta"), mientras `WizardConfigSeeder.php` tenía por separado la versión correcta de 2 bloques (solo para 'news') — dos fuentes de verdad para la misma colección, listas para divergir cada vez que `NewsCollectionSeeder`/`PortfolioCollectionSeeder` corrieran solos (exactamente lo que pasó: la colección "Noticias" en la BD dev tenía el `block_template` viejo de 6, y "Portafolio" tenía el mismo problema sin que nadie lo hubiera reportado aún). Corrección de raíz (no solo el dato): nuevo `App\Database\Seeds\Concerns\CollectionBlockPresets` — única fuente de verdad para el preset de cada tipo de colección starter (news/portfolio), consumida por los 3 seeders (`NewsCollectionSeeder`, `PortfolioCollectionSeeder` ya no hardcodean su propio array; `WizardConfigSeeder` generalizado para reparar *ambas* colecciones, no solo news, contra esta misma fuente). Regresión cubierta con 3 tests nuevos/actualizados: `NewsCollectionSeederTest` (assert `block_template` = 2 bloques), `PortfolioCollectionSeederTest` (nuevo, mismo assert), `WizardConfigSeederTest` (nuevo, simula un `block_template` corrupto de 6 bloques y confirma que el repair-seeder lo colapsa a 2 para ambos tipos). Aplicado en vivo: `php spark db:seed WizardConfigSeeder` corrigió Noticias y Portafolio en la BD dev; limpiadas a mano las 4 instancias de bloque sobrantes (`page_header`/`hero_banner`/`cta`/`alert`) de la entrada de prueba de David ("Otro ejemplo", entry_id=7) para que quede igual que el resto de noticias. Verificado en el navegador: el Wizard ahora muestra "Paso 1 de 4" para Noticias (antes "Paso 1 de 8") y solo pide Titular (rich_text) + Imagen de portada (image). `composer analyse` limpio, `composer format:check` limpio, `test:dynamic` (458 tests, 1772 assertions) + `test:seed-contracts` (15 tests, 3874 assertions) en verde.
-- [DOM-125] Auditoría de robustez post-cierre, a pedido de David ("revisa si quedó todo bien estructurado y limitado para que en el futuro no se vuelvan a cometer estos errores"). Encontré que el bug de DOM-122 (cast `json` de CI4 → `stdClass` anidado) no era un caso aislado: **tres implementaciones casi idénticas** del mismo normalizador ya convivían en el repo (`BlockTemplateCatalog::normalizeSchema()`, `BlockTypeResponseDTO::fromArray()`, y mi propio `WizardConfigService::decodeJson()` recién escrito) — la de `BlockTypeResponseDTO` tenía la misma clase de bug latente (nunca ejecutado porque nada hace `is_array()` sobre su resultado, solo se serializa a JSON, que no distingue `stdClass` de array). Consolidé las tres en `App\Libraries\Cms\JsonCastNormalizer::toArray()` (nuevo, con test unitario propio) y **endurecí `BlockSchemaIntrospector::introspect()` para auto-normalizar su propio input** — la corrección de raíz: ahora ningún caller futuro puede repetir este bug pasándole un `stdClass` sin decodificar, sin importar si se acuerda de normalizar antes. Test de regresión nuevo en `BlockSchemaIntrospectorTest` con el escenario exacto (stdClass anidado). Verifiqué que no quedan otros `(array) $entity->campoJson` shallow en el resto del código. También verifiqué que el guardarraíl `ControllerModelDependencyConventionsTest` no tiene `new App\Models\X()` sin detectar en ningún controller (el único punto ciego conocido del regex, ya documentado, no explotado). Documenté ambos hallazgos en `CLAUDE.md` (sección nueva "Architecture guardrail tests" + un pitfall nuevo sobre el cast `json`) para que una sesión futura los vea antes de tocar código relacionado. `composer quality` completo en verde tras la consolidación.
-- [DOM-123/DOM-124] Cierre del plan de cierre Controller→Model (DOM-112..DOM-124). DOM-124: `CategoryController`/`CollectionController`/`EntryController`/`PageController::checkSlug()` — el `new XTranslationModel()->isSlugAvailable()` inline ahora vive en un método `isSlugAvailable()` de una línea en el Service correspondiente (mismo patrón de delegación a `new XModel()` ya usado en `BlockInstanceService::blockTypeById()` de DOM-114), y el controller llama a `$this->xService->isSlugAvailable(...)`. DOM-123: con las 13 violaciones originales (9 controllers + los 4 de DOM-124) todas corregidas, `ControllerModelDependencyConventionsTest::BASELINE` queda vacío — convertido a tolerancia cero permanente (mismo estilo que `ServicePurityConventionsTest`, no un simple array vacío temporal). **Balance final del plan completo (DOM-112 a DOM-124)**: 9 controllers migrados al patrón `Controller → Service → Model` (`PublicEntryController` como referencia), 4 servicios nuevos desde cero (`SettingConnectionService`, `WizardConfigService`) o con lectura pública nueva añadida a servicios existentes (`LanguageService`, `SettingService`, `MenuService`, `CollectionService`, `PageService`, `RedirectService`), 4 nuevos "Reader"/librería (`PublicCollectionReader`, `PublicPageReader`, `PublicRedirectResolver`, `PublicLocaleResolver`) siguiendo el patrón ya establecido por `PublicEntryReader`, y 3 bugs reales encontrados y corregidos en el camino (fallback de idioma faltante en colecciones del wizard, reconstrucción de slug de página sin fallback en redirects, y el más serio: el cast `json` de CI4 devolviendo `stdClass` anidado que dejaba `fields`/`config_fields` del wizard siempre vacíos — atrapado por el test de caracterización nuevo, no por nada preexistente). `composer quality` completo (PHPStan, CS-Fixer, arch-drift, i18n-check, docs-i18n-check, fixture-policy, suite completa) en verde de punta a punta.
-- [DOM-122] `WizardConfigController` → nuevo `WizardConfigService` (el peor caso original: 240 líneas, 8 modelos resueltos a mano). Extendí `OwnerUsageResolver::OWNER_TABLES` (de `{table,fk}` a `{table,fk,column}`) para soportar `collection`/`menu` (columna `name`, no `title`) y unificar los 3 bucles duplicados de "resolver nombre por idioma default" en 1-2 llamadas a `resolveTitles()`. **Bugs reales encontrados y corregidos de paso**: (1) el bucle de colecciones original no filtraba por idioma en absoluto (tomaba la primera traducción de cualquier idioma que encontrara), inconsistente con páginas/menús que sí filtraban por `defaultLangId` — ahora las 3 usan la misma resolución correcta con fallback; (2) páginas se mantuvieron con su propia consulta batch (título+slug) porque `resolveTitles()` solo devuelve título, no slug — usarlo ahí habría perdido el campo `slug` silenciosamente. **Bug más serio, atrapado por el test de caracterización nuevo** (no existía ninguno antes): el cast `json` de CodeIgniter decodifica a `stdClass` recursivamente en todos los niveles anidados, no solo el superior — un `(array)` shallow dejaba `wizard_config->fields`/`schema_definition->fields` como `stdClass`, y `BlockSchemaIntrospector::introspect()` los descartaba silenciosamente vía `is_array()` porque no lo eran, devolviendo `fields`/`config_fields` siempre vacíos. Sin el test nuevo esto habría roto el editor de bloques del wizard en producción sin que ningún `composer quality` lo detectara. Corregido con un helper `decodeJson()` que hace round-trip `json_encode`→`json_decode(...,true)` para conversión recursiva real. Nuevo `tests/Feature/Controllers/Cms/WizardConfigControllerTest.php` (2 tests: shape completo con fixtures reales de idioma/colección/página/menú/block type, y 403 sin permiso). `BlockSchemaIntrospector`/`FieldPrimitiveRegistry` ganan wiring nuevo en `CmsDomainServices` (no lo tenían). Entrada de `ControllerModelDependencyConventionsTest` eliminada — con esto el `BASELINE` solo retiene los 4 casos de DOM-124. Regresión verificada en `FormServiceUsageTest`/`BlockTypeServiceDeleteTest` (consumidores existentes de `OwnerUsageResolver`) — sin cambios. `composer phpstan`/`composer cs-fix` limpios.
-- [DOM-121] `PublicRedirectController` → nuevo `App\Libraries\Cms\PublicRedirectResolver` + `RedirectService::resolvePublic()`. Era el peor caso original (único controller con `Database::connect()` crudo, sin Model alguno). El resolver vive en `Libraries/Cms` (no `Services/Cms`) usando `BaseConnection` directo — mismo patrón ya establecido por `TranslationResolver`/`OwnerUsageResolver`/`SlugRedirectRecorder` para tablas de historial/pivote sin Model propio (`cms_slug_redirects` nunca tuvo uno); al vivir en Libraries, ni siquiera necesita entrada en ningún guardarraíl. **Bug real encontrado y corregido de paso**: `buildPageSlugPath()` reimplementaba a mano el recorrido `parent_id` sin fallback a idioma default por segmento (si una página intermedia no tenía traducción exacta al idioma pedido, el segmento se omitía silenciosamente, acortando la URL reconstruida); reemplazado por `SlugRouter::resolveSlug()`, que ya tenía ese fallback correcto y es la misma función que usa `PublicPageController`. El hit-count de `cms_redirects` se preserva igual. Entrada de `ControllerModelDependencyConventionsTest` eliminada — era el archivo con más severidad del baseline original. Los 4 tests feature existentes (redirect manual + hit-count, historial de página, historial de entry + prefijo de colección, not-found) pasan sin cambios. `composer phpstan`/`composer cs-fix` limpios.
-- [DOM-120] `PublicPageController` → nuevo `PublicPageReader` (mismo rol que `PublicEntryReader`) + `PageService::listPublic()`/`showPublic(bool $preview)`. **Decisión de seguridad deliberada**: la verificación del preview token (`PreviewToken::verify()` contra `lang:slug`, antes de conocer el ID de página) se queda tal cual en el controller — lee GET params (`preview`, `preview_expires`, `preview_sig`), es un concern de borde HTTP, y moverla al service la alejaría de donde un revisor de seguridad la busca. Solo el booleano `$preview` ya verificado cruza hacia `PageService`/`PublicPageReader`. 100% DI (repos para Page/Language, sin `model()` nuevo) — `PageService.php` se mantiene en 8 model_call, `PublicPageReader.php` no necesitó entrada nueva en el baseline. Los 8 tests existentes de `PublicPageControllerTest` (firma manipulada, expirada, para otro slug, sin firma, etc.) pasan exactamente igual — es la prueba de que el reordenamiento de responsabilidades no tocó el camino de seguridad. `composer phpstan`/`composer cs-fix` limpios.
-- [DOM-119] `PublicCollectionController` → nuevo `PublicCollectionReader` (mismo rol que `PublicEntryReader` para entries) + `CollectionService::listPublic()`. A diferencia de `PublicEntryReader` (que usa `model()` lazy, ya baseline-ado), el nuevo reader usa 100% repositorios inyectados (`RepositoryInterface<PageEntity>`) — cero coupling nuevo, no necesitó entrada en `ServiceModelDependencyConventionsTest` (`CollectionService.php` se mantiene en 4). Micro-optimización incidental: `resolveIndexPageData()` ya no re-consulta `cms_languages` (recibe `$activeLanguages` ya cargado por el caller) — mismo resultado, una query menos por request. Entrada de `ControllerModelDependencyConventionsTest` eliminada; `CollectionServiceTest` actualizado para el nuevo constructor. Los 2 tests feature existentes (incluyendo el fallback de `listing_title`/`listing_intro`) pasan sin cambios. `composer phpstan`/`composer cs-fix` limpios.
-- [DOM-118] `PublicMenuController` → `MenuService::showPublic()`, usando `PublicLocaleResolver` (vía `Services::publicLocaleResolver()`) en vez de `publicLocale()` inline, y reutilizando `MenuItemService::resolveLink()` (ya era el único colaborador correcto en el controller). `MenuService` gana 3 deps nuevas (`RepositoryInterface` para menu items, `TranslationResolver`, `MenuItemServiceInterface`); `enrichEntities()`/`saveTranslations()` siguen igual, `model_call` del baseline de Services no cambia (sigue en 2 — la nueva query de items usa `$this->menuItemRepository->getModel()`, no `model()`). Reconstrucción de árbol (`buildTree()`) movida tal cual. Entrada de `ControllerModelDependencyConventionsTest` eliminada; `MenuServiceTest::testDestroyInvalidatesCache` actualizado para el nuevo constructor. **Hallazgo fuera de alcance, documentado, no corregido**: `tests/Unit/Controllers/Cms/PublicMenuControllerTest.php` (2 tests) está mal ubicado/nombrado — en realidad ejercita `MenuItemService::resolvePageUrl()` vía reflection, no `PublicMenuController`; no lo tocamos porque no está roto y renombrarlo/moverlo es limpieza de tests, no parte de esta corrección arquitectónica. Los 5 tests feature existentes (incluyendo traducción de items, slug de colección traducido, home localizado) + los 2 tests unit "huérfanos" + 2 tests de `MenuService` pasan sin cambios. `composer phpstan`/`composer cs-fix` limpios.
-- [DOM-117] `PublicSettingController` → `SettingService::listPublic()`, usando la nueva `PublicLocaleResolver` (DOM-116) en vez del parseo inline de `Accept-Language`. Constructor de `SettingService` gana 3 deps nuevas (`TranslationResolver`, `FileUrlResolver`, `PublicLocaleResolver`); no suma al baseline de `ServiceModelDependencyConventionsTest` (sigue en 2 — la query usa `$this->repository->getModel()`, no `model()`). El controller sigue armando el JSON explícitamente (`{status,data}`) en vez de dejar que `handleRequest()` envuelva el array plano, para no arriesgar el heurístico de paginación de `ApiResponse::handleArray()` si algún `setting_key` coincidiera con `total`/`page`/`per_page`. Sin test previo — nuevo `tests/Feature/Controllers/Cms/PublicSettingControllerTest.php` (4 casos: valor plano, traducción con fallback, `file_id` con metadata, filtrado is_public/is_active) caracterizando el comportamiento antes del refactor; también actualicé `SettingServiceTest::testDestroyInvalidatesCache` para el nuevo constructor. Entrada de `ControllerModelDependencyConventionsTest` eliminada. `composer phpstan`/`composer cs-fix` limpios (nota: `app/Config` y `tests/` no están en el `paths` de PHPStan — analizar archivos ahí manualmente da ruido falso, usar siempre `composer phpstan`). Suite Architecture (19 tests) + 4 tests nuevos + 2 tests de `SettingService` en verde.
-- [DOM-116] Nueva `App\Libraries\Cms\PublicLocaleResolver` (extracción 1:1 de `PublicMenuController::publicLocale()`, sin cambios de comportamiento), lista para que DOM-117/DOM-118 la reutilicen en vez de reimplementar Accept-Language parsing. Wiring en `CmsDomainServices::publicLocaleResolver()`. **Nota para backlog, fuera de alcance de esta tarea**: al escribir el test descubrí que el parseo actual no elimina el subtag de región (`"en-US"` se compara literalmente contra códigos de 2 letras como `"en"` y nunca calza), así que en producción probablemente cae siempre al idioma default salvo que el cliente mande el código pelado — preservado tal cual por ahora, documentado en el test con comentario explicando por qué el caso de prueba usa un código sin región. Nuevo test de integración (5 casos) en verde, PHPStan limpio, CS-Fixer limpio.
-- [DOM-115] `SettingConnectionController` → nuevo `SettingConnectionService`/`SettingConnectionServiceInterface` desde cero (no existía ningún service; `resolveDefaultService()` devolvía el modelo directo). Interfaz custom (no extiende `CrudServiceContract` — es un recurso anidado bajo `setting_id`, no encaja en el shape genérico index/show/store/update/destroy). Repository inyectado vía `CmsDomainServices::settingConnectionService()`, mismo patrón que el resto. Se preservó exactamente el shape de respuesta `{ok, data}` (distinto del sobre estándar `{status,data}` de `ApiResponse` — inconsistencia preexistente, fuera de alcance de esta tarea, no tocada para no romper clientes). Sin tests previos — nuevo `tests/Feature/Controllers/Cms/SettingConnectionControllerTest.php` (5 tests: listado vacío, crear+listar, duplicado→422, borrar, borrar inexistente→404) caracterizando el comportamiento antes del refactor. Entrada de `ControllerModelDependencyConventionsTest` eliminada. PHPStan limpio, CS-Fixer limpio, suite Architecture (19 tests) + los 5 tests nuevos en verde.
-- [DOM-114] `BlockInstanceController::assertBlockNotLocked` → movido a `BlockInstanceService::beforeDelete()` (`BaseCrudService` ya expone este hook, y `destroy()` garantiza que la entidad existe antes de que corra, así que ya no hace falta re-chequear NotFound). El lookup de `block_key` reutiliza el `blockTypeById()` extraído de `blockSchemaDefinition()` (mismo call site, cero coupling nuevo); solo `EntryModel`/`CollectionModel` son 2 llamadas `model()` genuinamente nuevas. `ServiceModelDependencyConventionsTest::BASELINE['BlockInstanceService.php']` sube de 3→5 (documentado, fechado) — no es acoplamiento nuevo, es el mismo que tenía el controller, ahora correctamente ubicado en el service. Entrada de `ControllerModelDependencyConventionsTest` eliminada. Tests de seguridad existentes (`testDeleteLockedBlockReturns403`, `testDeleteUnlockedBlockSucceeds`) pasan sin cambios — verifican vía HTTP, no el método privado. PHPStan limpio, CS-Fixer limpio, suite Architecture (19 tests) + los 8 tests feature relevantes en verde.
-- [DOM-113] `PublicLanguageController` → `LanguageService::listPublic()`. Primer caso del plan de cierre Controller→Model (DOM-112..DOM-124), el más simple, para validar el patrón end-to-end. Nuevo `LanguageServiceInterface::listPublic()`/`LanguageService::listPublic()` usando `$this->repository->getModel()` (no `model()` — respeta el repository pattern, no suma al baseline de `ServiceModelDependencyConventionsTest`). Controller ahora inyecta `LanguageServiceInterface` vía `resolveDefaultService()` (mismo patrón que `PublicEntryController`) y el action delega, dejando que `handleRequest()`/`ApiResponse::fromResult()` envuelva el array plano en el sobre `{status,data}` — mismo shape exacto que antes (test existente sin cambios). Entrada de `ControllerModelDependencyConventionsTest::BASELINE` eliminada. PHPStan limpio, CS-Fixer limpio, test feature + suite Architecture completa (19 tests) en verde.
-- [DOM-112] Guardarraíl `ControllerModelDependencyConventionsTest` (Fase 0 del plan de cierre Controller→Model, plan completo DOM-113..DOM-124 arriba en Próximo). Auditoría de arquitectura encontró que, a diferencia de la capa Services (que ya tenía `ServiceModelDependencyConventionsTest`), ningún guardarraíl detectaba Controllers llamando `model()`/`Database::connect()` directo sin pasar por Service — el peor caso, `WizardConfigController::config()`, resuelve 8 modelos a mano en 240 líneas. Nuevo test (mismo shape que su análogo de Services, mismo `token_get_all` para ignorar comentarios/strings) congela el estado actual de 13 archivos violando el patrón (9 de la auditoría original + 4 encontrados solo al medir el conteo exacto con el mismo regex del test — no con grep manual: `CategoryController`/`CollectionController`/`EntryController`/`PageController::checkSlug()` instancian `new XTranslationModel()` directo para un chequeo de `isSlugAvailable()`, agregado como DOM-124). Es un ratchet puro, cero cambios de comportamiento — cada fase siguiente (DOM-113..DOM-124) debe reducir/eliminar su entrada del `BASELINE`, nunca subirla; DOM-123 lo convierte a tolerancia cero cuando quede vacío. `composer quality` completo (PHPStan, CS-Fixer, arch-drift, i18n-check, docs-i18n-check, fixture-policy, suite completa: 3864 assertions) en verde.
-- [TRN-008] Endpoint "auditoría por propietario" para bloques (cross-repo con `ci4-website-builder-admin`, ver `../TASKS.md` y `../ci4-website-builder-admin/TASKS.md`). Objetivo: que el admin pinte estado de traducción por idioma en las vistas de bloques de una page/entry concreta sin N+1 (antes `BlockInstanceTranslationAuditor` solo auditaba "todo el sitio"). Nuevo `BlockInstanceTranslationAuditor::auditForOwner(string $ownerType, int $ownerId, array $activeLanguages): array` — variante de `getBlockInstancesWithTypes()` filtrada por `owner_type`/`owner_id` (incluye hijos automáticamente vía `parent_instance_id` compartiendo owner); conserva `complete` (a diferencia de `audit()`, que solo junta issues); colapsa `mismatch`→`incomplete` (decisión de vocabulario confirmada con David, no toca TRN-006). Nuevo `TranslationAuditServiceInterface::auditOwnerBlocks()`, nuevo `TranslationAuditController::owner($ownerType, $ownerId)`, nueva ruta `GET translations/audit/owner/(:segment)/(:num)` con el mismo filtro `permission:cms.languages.read` que sus hermanas. Tests nuevos: aislamiento por owner (no filtra bloques de otro dueño), bloques hijos incluidos, colapso de `mismatch`, owner sin bloques. Guardrail `ServiceModelDependencyConventionsTest::BASELINE` actualizado deliberadamente (db_connect 2→3 en `BlockInstanceTranslationAuditor.php`, mismo patrón de query join ya usado por los otros dos call sites del archivo). `composer quality` completo (PHPStan, CS-Fixer, arch-drift, i18n-check, docs-i18n-check, fixture-policy, suite completa) en verde.
-  - **2026-07-21 — falso positivo real encontrado tras probar en navegador (reportado por David):** un badge ES aparecía "Desactualizado" (naranja) para un bloque con contenido 100% completo. Causa raíz confirmada en BD: `cms_block_instances` usa `useTimestamps=true`, así que CUALQUIER `update()` de la instancia (reordenar, activar/desactivar) bumpea `updated_at` sin que el contenido traducido haya cambiado — `evaluateTranslationState()` compara ese timestamp contra el de cada traducción y marca `outdated` aunque el texto siga vigente. Decisión con David: para el uso admin de bloques (badges + puntos de pestaña), `outdated` colapsa a `complete` igual que `mismatch` ya colapsaba a `incomplete` — nuevo `TranslationAuditSupport::collapseForBlockBadge()` centraliza ambos colapsos, aplicado en `auditForOwner()` y en la rama `block_instance` de `TranslationAuditService::auditResource()` (usada por los puntos de estado del editor de bloque en el admin). La auditoría global (`report`/`stats`) sigue mostrando `outdated`/`mismatch` sin colapsar — solo afecta las dos superficies admin-facing de bloques. Test nuevo `testOutdatedBlockTranslationCollapsesToCompleteInBothBlockScopedEndpoints`; 2 tests existentes actualizados (esperaban `mismatch` literal en `auditResource('block_instance', ...)`, ahora esperan `incomplete`). `composer quality` completo en verde tras el cambio.
-
-## ✅ Completadas (2026-07-20)
-
-- [TRN-006] `outdated` real en `TranslationAuditService`/`TranslationAuditSupport` (ver `../TASKS.md`, `../ci4-website-builder-admin/TASKS.md`): el admin ya calculaba `outdated` client-side para las vistas "Ver", pero la tabla de auditoría del workbench nunca podía recibir ese estado desde el backend (el diccionario/color ya existían en la UI pero eran código muerto). `evaluateTranslationState()` ahora acepta `$resourceUpdatedAt` opcional y compara contra `updated_at` de la traducción tras confirmar `complete`; cableado en los 4 call sites. Test nuevo cubre el caso. `composer quality` completo (PHPStan, CS-Fixer, Unit+Architecture+Integration+Feature+SeederContracts) en verde.
-- [TRN-002] `reference_name` mostraba "Page #12"/"Menu #3"/etc. en vez del nombre real, reportado por David tras usar la auditoría en el navegador. Causa: `buildSimpleResourceDescriptors()->reference` solo miraba campos del recurso base (`$row['title']`), pero Page/Menu/MenuItem/Collection/Form no tienen columna `title`/`name` propia — todo vive en su tabla de traducciones (mismo patrón de bug que el de `TranslationStatus::evaluate()` en el admin). El resolver ahora recibe también las traducciones agrupadas del recurso y cae a `title`/`name`/`label` de cualquier traducción disponible antes de usar el placeholder técnico. Test existente (`testGetMissingTranslationsReport`) ampliado para afirmar `reference_name === 'Inicio'`; el test de filtros de búsqueda se actualizó para buscar por el nombre real en vez de por el placeholder que ya no existe. Verificado en navegador: la auditoría ahora muestra "Contacto", "Página no encontrada", etc. `composer quality` completo en verde.
-
-## ✅ Completadas (2026-07-19)
-
-- [ARCH-DEEP-01] Auditoría profunda de arquitectura de servicios (`app/Services/Cms`) y remediación completa de los hallazgos, sin deuda pendiente:
-  - **`FormService` (900 líneas, 4 responsabilidades) partido en tres clases de responsabilidad única**: `FormService` (CRUD del form + reporte de uso, 323 líneas), `FormFieldService` (CRUD de campos + saneo/poda de `option_labels`, 336 líneas) y `FormPublicDefinitionAssembler` (ensamblador de lectura pública, mismo rol que `PublicEntryReader` para entries, 169 líneas). `FormController`/`PublicFormController` actualizados para resolver el servicio correcto por endpoint; nuevas factories `formFieldService()`/`formPublicDefinitionAssembler()` en `CmsDomainServices`.
-  - **Duplicación real eliminada — "usage resolver" compartido**: `FormService::getUsages()` y `BlockTypeService::getUsages()` reimplementaban independientemente la resolución de títulos de páginas/entries; unificado en `Libraries/Cms/OwnerUsageResolver`. De paso corrige un N+1 real en `BlockTypeService::resolveOwnerTitle()` (una query por instancia) que `FormService` ya evitaba.
-  - **`EntryService::syncCategories/syncTags/syncTaxonomy` desduplicados**: `syncTaxonomy` reimplementaba byte-a-byte la lógica de los otros dos; ahora los tres delegan en `replaceEntryCategories()`/`replaceEntryTags()` privados.
-  - **`MenuItemService::resolveEntryLink` dejó de reinventar resolución de slugs**: usaba queries manuales a `cms_languages`/`EntryTranslationModel` en vez de la misma abstracción `TranslationResolver` ya inyectada para el prefijo de colección; de paso los slugs de entry ganan el mismo fallback a idioma por defecto que páginas/colecciones ya tenían (antes solo resolvía si existía traducción exacta en el idioma pedido).
-  - **Batch-resolvers de taxonomía consolidados**: `EntryService::batchResolveEntryCategories/Tags` (solo ids, para admin) y `PublicEntryReader::batchResolveCategoryPivot/TagPivot` (localizado, para público) reimplementaban el mismo patrón de query batch sobre `cms_entry_categories`/`cms_entry_tags`; unificados en `Libraries/Cms/EntryTaxonomyPivotResolver` con métodos separados para cada necesidad real.
-  - Nuevas utilidades pequeñas y puras extraídas a `Libraries/Cms`: `ModelResultNormalizer` (Entity[]|array[] → list<array>) y `FormOptionLabelsCodec` (decode de `option_labels`), ambas usadas por más de un consumidor para no reintroducir la misma duplicación que motivó el resto de este trabajo.
-  - Guardrail `ServiceModelDependencyConventionsTest::BASELINE` actualizado deliberadamente (no relajado a ciegas): la entrada de `FormService.php` se reemplazó por tres entradas nuevas reflejando el coupling redistribuido, y las de `EntryService.php`/`PublicEntryReader.php`/`MenuItemService.php` se ajustaron hacia abajo (nunca hacia arriba) para reflejar coupling real removido.
-  - Verificado en cada paso: PHPStan nivel 8 sin errores nuevos, CS-Fixer limpio, `composer quality` completo (cs-check + phpstan + swagger-validate sin drift + arch-drift + i18n-check + 438 tests) en verde de principio a fin. Cero regresiones de comportamiento — los tests existentes no se debilitaron, solo se ajustó el mock/constructor de `EntryServiceTest` a la nueva dependencia inyectada.
-
-## ✅ Completadas (2026-07-11)
-
-- [DEEP-BLOCK-01] Unificada la fuente de verdad del catálogo de bloques (H-010). `BlockTemplateCatalog` dejó de ser un array estático duplicado y ahora proyecta `default_schema` directamente desde `cms_content_blocks` (repositorio inyectado, wired en `CmsDomainServices::blockTemplateCatalog()`); `preview_sample`/`config_sample` quedan como sugar presentacional autolimpiante (`array_intersect_key` contra los campos reales, nunca puede mentir sobre el schema). Corrige `hero_slider` (era 3 slides planos, es contenedor + hijos `slide_banner`) e `image` (usa el campo canónico `image` tipo `media_reference`, con `{source_kind,file_id,url}`), y de paso expone los 13 block_key que el catálogo nunca tuvo. Bonus: el preview parcial de imagen en Admin leía una clave obsoleta y nunca mostraba la URL canónica. 6 tests de paridad nuevos + 2 tests nuevos en Admin.
-- [DEEP-TRAN-01] `TranslationAuditService` dejó de resolver 20 Models vía `model()` en su propio constructor (H-011). Ahora recibe todo por DI explícita (wiring movido a `CmsDomainServices::translationAuditService()`) y las 9 auditorías de "recurso simple" (antes 9 métodos privados casi idénticos + switch de 9 casos en `auditResource()`) se colapsaron a un catálogo interno de descriptores (`buildSimpleResourceDescriptors()`) recorrido con un loop. `setting` y `block_instance` siguen separados porque su lógica es genuinamente distinta (fallback de idioma por defecto / schema-driven). Guardrail `ServiceModelDependencyConventionsTest` y `architecture-baseline.json` raíz actualizados (entrada de 21 `model_call` eliminada, confirmado en 0). Las 18 pruebas de comportamiento existentes (Unit+Feature, con DB real) pasan sin cambios — preserva la interfaz pública exacta.
-- [PHPSTAN-01..09] Remediación completa de PHPStan tras ampliar `paths` a `app/DTO`, `app/Repositories`, `app/Commands`. El baseline temporal `phpstan-expanded-baseline.neon` (825 errores) se redujo a 0 y fue eliminado — `phpstan.neon` vuelve a incluir solo `phpstan-baseline.neon` (36 entradas, deuda preexistente sin tocar, fuera de este scope). Cambios:
-  - Bootstrap: `EXIT_SUCCESS`/`EXIT_ERROR` stubbeados en `phpstan-bootstrap.php`.
-  - `ignoreErrors` documentado y acotado a `app/DTO/*` para el mismo falso positivo de `BaseRequestDTO::map()` que en el hub.
-  - **Bug funcional real encontrado y corregido**: `FormUpdateRequestDTO::toArray()` comprobaba `array_key_exists('notify_email', $data)` sobre el `$data` *local* de `toArray()` (recién construido) en vez del `$data` original de `map()`. Efecto: si el cliente enviaba `{"notify_email": null}` para limpiar el campo, la intención se perdía silenciosamente al serializar — el forms API nunca propagaba el `null`. Corregido rastreando `providedFields` desde `map()`.
-  - False-safety: `?->getRowArray()`/`file()`/`json_encode()`/`strtotime()` sin chequear `false` en `SyncPermissions` y `CollectionResponseDTO`.
-  - `AuditRepository`: generic `@extends BaseRepository<object>` (debe coincidir con `AuditRepositoryInterface`), `@var list<AuditLogEntity>` tras `findAll()`, `array_values()` para garantizar `list` en los facets.
-  - `QueueWork`: guard `method_exists($queueManager, 'getStats')` agregado junto al de `process()` ya existente (mismo patrón, PHPStan reconoce `method_exists()` como narrowing).
-  - ~25 anotaciones `array<string,mixed>`/`list<...>` agregadas en DTOs de Cms/Audit.
-  - Verificado: PHPStan 0 errores, CS-Fixer limpio, 220 tests unitarios + 99 tests feature en verde (incluye `PublicFormControllerTest`, que ejercita el DTO corregido).
-
----
-
----
-
-> **Nota:** Las tareas CMS-012 a CMS-016 (Form Submissions) ahora se rastrean en [`../TASKS.md`](../TASKS.md) en la raíz del proyecto.
-> Este archivo es solo para tareas locales del domain (DOM-xxx, bug fixes, optimizaciones arquitectónicas).
-
----
-
-## ✅ Completadas
-
-### CMS-010 (#9) — Redirects & Slug history
-- Implementado CRUD de redirecciones manuales y automáticas (historial de slugs).
-- Creado módulo `SlugRedirectRecorder` para registrar cambios de slugs históricos de páginas y entradas.
-- Implementado endpoint público de resolución de redirecciones con soporte para múltiples segmentos de path.
-- Agregados tests unitarios y de integración con cobertura del 100% de calidad.
-
-### CMS-005 (#4) — Menus API
-- Implementado CRUD de menús y de sus items de menú (anidados, ordenados, traducibles).
-- Implementado el árbol público de menús con traducción por `Accept-Language` y `is_fallback`.
-- Agregados tests de feature e integración para admin, público y `TranslationResolver`.
-
-### CMS-006 (#5) — Block system
-- Implementado CRUD de block types (`cms_content_blocks`) con seeds (`rich_text`, `image`, `cta`).
-- Implementado CRUD de block instances con `block_config` / `block_data` y serialización para páginas y entradas.
-- Agregados tests de integración para `BlockInstanceSerializer`, block types y consumo público de páginas/entries.
-
-### CMS-004 (#3) — Pages API
-- Implementado CRUD de páginas con persistencia de campos traducibles e historial de versiones.
-- Creado módulo `SlugRouter` para enrutamiento de páginas jerárquicas multilingües.
-- Agregados tests unitarios y de integración con cobertura del 100% de calidad.
-
-### CMS-002 (#2) — Languages & Settings API
-- CRUD de idiomas y settings
-- Crear el deep module `TranslationResolver` con unit tests
-
-### CMS-003 (#10) — File translations
-- CRUD de traducciones de archivos (`cms_file_translations`)
-- Integrar metadatos en `BlockInstanceSerializer`
-
-### CMS-001 (#1) — Bootstrap & Schema completo
-- Registrar la app CMS en el hub (`php spark apps:bootstrap cms --create-api-key`)
-- Definir permisos `cms.*` en `DomainPermissions.php`
-- Crear e integrar la migración única con las 30 tablas del ERD v4
-- Adaptar `init.sh` para la orquestación desatendida
-- Proteger endpoints `/api/v1/cms/*` y abrir `/api/v1/public/*`
-
-### Fase 3: Composable Block System
-
-### Fase 4: Collections & Entries
-- [x] **CMS-007 (#6) — Collections API**
-  - CRUD de colecciones personalizables (`collection_key`)
-- [x] **CMS-008 (#7) — Entries API**
-  - CRUD de entries vinculando instancias de bloques de contenido por entry
-- [x] **CMS-009 (#8) — Taxonomías: Categories & Tags**
-  - CRUD de categorías scoped y tags globales + pivots + filtros en listado de entries
-
-### Fase 5: Publishing & Utilities
-- [x] **CMS-011 (#11) — Scheduled publishing**
-  - Queue job `ScheduledPublishingJob` para publicar páginas y entries en segundo plano
-
----
-
-## ✅ Completadas
-
-### DOM-110 — Automatización de Sync de Permisos en Desarrollo (DX)
-- Modificar `app/Commands/SyncPermissions.php` para resolver automáticamente el token de administración en local usando la DB de IAM local en desarrollo.
-- Implementar borrado automático de caché (`cache:clear`) al terminar la sincronización local.
-
-### DOM-111 — Documentación de Arquitectura de Seguridad
-- Agregar `docs/architecture/permissions.md` detallando el flujo de permisos cruzados y la caché de introspección.
-
-### DOM-109 — `domain:sync-permissions`: fail-loud + HubClient role lookup fix (KICK-027)
-- **Qué**: (1) `HubClient::findRoleByCode` ahora parsea `{items:[...]}` en vez de `$data[0]` — el API devuelve una colección paginada, no un array plano; (2) `SyncPermissions` ahora termina con `exit≠0` cuando `--assign-to-role` está seteado pero el rol no se encontró/enlazó (`$roleLinkFailed` flag); (3) composer.lock actualizado a ci4-api-core v0.9.3 que incluye `registerPermission(3 params)` para reenviar `applicationId` correctamente; (4) tests añadidos en `HubClientTest` y `SyncPermissionsTest` para los dos behaviors corregidos.
-- **Por qué**: en el POC E2E (2026-06-03) `domain:sync-permissions --assign-to-role superadmin` reportaba éxito pero no enlazaba nada al rol: (a) `findRoleByCode` retornaba null porque intentaba `$data[0]` sobre un `{items:[...]}` paginado, y (b) la firma de 2 parámetros en la versión bloqueada de api-core descartaba el `application_id` del mirror.
-- **Verificado**: PHP lint limpio, bash -n limpio, tests pasan.
-
-### DOM-103 — `php spark domain:doctor` diagnóstico del hub
-- **Qué**: se añadió `php spark domain:doctor` para auditar el enlace del domain starter con el hub. El comando reporta tres checks: `service-token`, `introspect` cuando se pasa `--token`, y `register-permission` cuando se pasa `--admin-token`. El probe de registro usa un payload inválido a propósito para mantenerse read-only y solo validar reachability/autenticación.
-- **Por qué**: la tarea pedía un diagnóstico operativo que ayudara a detectar problemas de conectividad y auth sin tener que lanzar manualmente varios comandos de setup.
-- **Verificado**: `vendor/bin/phpunit tests/Unit/Commands/DoctorTest.php --testdox --no-coverage` ✅ (2 tests, 17 assertions).
-
-### DOM-105 — Strip `AuthTokenSchema` leftover (2026-05-26)
-- **Qué**: se eliminó `app/Documentation/Common/AuthTokenSchema.php`, un leftover heredado del clone de `ci4-api-starter` que ya no correspondía al contrato actual del domain starter. Durante la verificación también se tipó `app/Services/Example/ItemService.php` con el genérico `ItemEntity` y se regeneró `public/swagger.json` para aceptar la salida real del generador OpenAPI.
-- **Por qué**: el archivo referenciaba un schema inexistente y hacía más frágil la validación OpenAPI del repo sin aportar valor funcional. El ajuste de generics cerró un drift de PHPStan que apareció al correr `composer quality`.
-- **Verificado**: `composer quality` limpio en el repo (PHPStan, CS-Fixer, OpenAPI y PHPUnit).
-
-### DOM-108 — Onboarding desatendido y vinculación de roles (2026-05-25)
-- **Qué**: `init.sh` ahora acepta `--assign-to-role=ID|code` y lo pasa a `domain:sync-permissions`. `HubClient` captura `ValidationException` para tratar 422 como éxito idempotente. `init.sh` corre `php spark core:install` automáticamente.
-- **Por qué**: (Bulletproof V2) Permitir despliegues 100% automáticos desde el orquestador, vinculando nuevos permisos al rol `superadmin` sin intervención manual. Garantizar que el runtime del core esté listo tras el bootstrap.
-- **Verificado**: `php -l` limpio. Scripts probados en flujo de kickstart.
-
-### DOM-107 — Patrón de aggregate extension documentado
-- **Qué**: `docs/architecture/EXTENSION_GUIDE.{md,es.md}` ahora documenta cuándo `make:crud` deja de alcanzar y cómo evolucionar el módulo generado hacia un aggregate con custom actions, nested resources, relation sync y response enrichment. `README.md` y `docs/README.md` enlazan explícitamente ese patrón.
-- **Por qué**: la auditoría del bootstrap `ci4-catalog` mostró que el problema no era solo generar menos código, sino no tener una guía canónica para el salto desde CRUD plano a aggregate real.
-- **Verificado**: documentación enlazada desde los entry points principales del repo (`README.md`, `docs/README.md`) y alineada con el playbook de scaffolding existente.
-
-### DOM-106 — Paridad `boolean_like` con el scaffolder
-- **Qué**: `App\Validations\Rules\CustomRules` ahora implementa `boolean_like()` con el mismo contrato esperado por `ci4-api-scaffolding`: acepta bools, `0/1`, y strings `true/false/yes/no/on/off` de forma case-insensitive. Se añadieron los strings de validación en `app/Language/en/Validation.php` y `app/Language/es/Validation.php`.
-- **Por qué**: el scaffolder emite `boolean_like` para fields `bool`, pero `ci4-website-builder` no exponía esa regla. Eso rompía CRUDs generados con booleanos y obligaba a parchear DTOs/modelos a mano.
-- **Verificado**: `vendor/bin/phpunit tests/Unit/Validations/CustomRulesTest.php --configuration=phpunit.xml --no-coverage --testdox` ✅ (10 tests, 28 assertions).
-
-### BFF-107 — Refactor `HubClient` sobre `AbstractServiceClient`
-- **Qué**: `app/Libraries/Hub/HubClient.php` pasó de 220 a 155 líneas extendiendo `dcardenasl\Ci4ApiCore\Http\Client\AbstractServiceClient`. Paths del hub movidos a `Config\Hub::$introspectPath/$serviceTokenPath/$permissionsPath`. `RuntimeException` reemplazado por `ServiceUnavailableException`/`AuthenticationException`/`AuthorizationException` canónicas. `registerPermission()` ahora trata 422 igual que 409 como duplicado idempotente. Heredada gratis: propagación de `X-Request-Id`, retry 1× en 5xx/network, allow-list de headers en `forward()`.
-- **Por qué**: eliminar drift entre los dos `HubClient.php` (BFF-102 hizo el mismo refactor en el BFF). Cualquier ajuste futuro a timeout/retry/headers se hace una vez, en el core.
-- **Verificado**: `DomainAuthFilter` consume `HubClient::introspect()` que mantuvo su firma (devuelve `IntrospectResult`) — cero cambios necesarios en el filter. `composer quality` limpio en domain (PHPStan L8 + CS-Fixer + 145 tests / 353 assertions). 10 tests nuevos en `HubClientTest` (cache hit, refresh, 5xx con retry, introspect downgrade, registerPermission idempotente, 401/403 → excepciones canónicas).
-- **Cross-repo**: ver `../TASKS.md` milestone "ci4-bff-starter v1.1".
-
-### DOM-102 — ADR-001: Hub-Domain Split Architecture (2026-05-26)
-- **Qué**: Documentación centralizada en `TASKS.md` y `README.md` sobre la delegación de autenticación, propiedad de permisos y la prohibición explícita de tablas de usuarios en dominios.
-- **Por qué**: Establecer la arquitectura canónica para evitar deuda técnica al escalar dominios.
-- **Verificado**: Arquitectura documentada en "Contratos de arquitectura".
-
-### DOM-101 — Suite de Smoke tests (2026-05-26)
-- **Qué**: Implementación de tests críticos (`DomainAuthFilterTest`, `HubClientTest`, `CreateItemTest`) garantizando la integridad del flujo principal.
-- **Por qué**: Asegurar que la delegación de auth y la comunicación con el hub son robustas antes de despliegue.
-- **Verificado**: Suite de 145 tests / 353 assertions activa y pasando en `composer quality`.
-
----
+*(vacío — las fases Controller→Model y la auditoría de bloques owner-scoped quedaron cerradas;
+las decisiones de producto pendientes se mantienen en el tracker global.)*
 
 ## ⚪ Backlog
 
@@ -201,16 +20,18 @@ Las tareas están ordenadas por fases de dependencias para asegurar la integrida
 
 ## 🏗️ Contratos de arquitectura
 
-- **DTO-First:** todo Controller in/out usa DTOs. Request DTOs extienden `BaseRequestDTO`. Nunca arrays raw.
-- **Services puros:** no conocen HTTP. Reciben DTOs, devuelven DTOs o lanzan excepciones de dominio.
-- **Controllers delgados:** usar `ApiController::handleRequest()`. Sin lógica de negocio.
-- **Separador de permisos:** punto `.` (NO `:`).
-- **Hub delegation:** nunca validar JWTs localmente. Siempre `HubClient::introspect()`.
-- **No tabla users:** si estás agregando una migración de usuarios, para — esos datos viven en el hub.
-- **Rutas por dominio:** `app/Config/Routes/v1/<dominio>.php`.
-- **Tests:** todo endpoint nuevo necesita al menos un Feature test (o waiver explícito en TASKS.md).
-- **`composer cs-fix` antes de commitear.** No bypasear el pre-commit hook con `--no-verify`.
+- **DTO-First:** todo Controller in/out usa DTOs; evitar arrays sin contrato.
+- **Services puros:** no conocen HTTP; reciben DTOs y devuelven DTOs o excepciones de dominio.
+- **Controllers delgados:** usar `ApiController::handleRequest()`.
+- **Autenticación:** este repositorio delega introspección y emisión de tokens al hub.
+- **HubClient:** es el único punto de comunicación con el hub.
+- **Permisos:** usar separador `.` y rutas por dominio en `app/Config/Routes/v1/`.
+- **No tabla users:** usuarios e IAM viven en el hub.
+- **Tests:** todo endpoint nuevo necesita Feature test.
+- **CRUD nuevo:** preferir `php spark make:crud {Resource} --domain {Domain} --route {slug}`.
+- **Calidad:** ejecutar `composer quality` antes de cerrar una tarea.
 
-### 🚧 Technical Debt (Orchestration)
-- [x] **Clean .env Management**: Migrate init.sh from appending to .env to using bootstrap_env.php to prevent duplicate keys. ✅ (Verificado en Bulletproof V2)
-- [x] **Permission Assignment**: Add --assign-to-role=superadmin option to domain:sync-permissions to automate linking new permissions. ✅ 2026-05-25
+## 🔧 Referencias
+
+- Histórico: [`TASKS_ARCHIVE.md`](TASKS_ARCHIVE.md)
+- Tracker global: [`../TASKS.md`](../TASKS.md)
