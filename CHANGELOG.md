@@ -8,6 +8,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- **`WizardConfigValidator` enforces the native field catalog on `wizard_config.steps`** — `CollectionCreateRequestDTO`/`CollectionUpdateRequestDTO` now reject a `wizard_config` payload whose steps reference a field key outside `WizardStepFieldCatalog`, use a wrong `type` for a known key, reuse a key across steps, or omit the required anchor field, instead of silently accepting arbitrary step/field shapes.
 - **`GET /cms/translations/audit/owner/{ownerType}/{ownerId}`** — audits every block instance (including children) belonging to a single page/entry in one query batch, so the admin's block-list and detail views can render per-language translation badges without pulling the sitewide report; `TranslationAuditServiceInterface::auditOwnerBlocks()` and `BlockInstanceTranslationAuditor::auditForOwner()`.
 - **Real `outdated` translation status and resource names in `TranslationAuditService`** — `evaluateTranslationState()` now accepts the source resource's `updated_at` and flags a complete translation as `outdated` when it predates the latest source update; `buildSimpleResourceDescriptors()` resolves `reference_name` from the resource's own translation rows (Page/Menu/MenuItem/Collection/Form have no canonical `title`/`name` column) instead of a technical `Page #12`-style placeholder; `getMissingTranslationsReport()` now supports `resource`, `status`, and `search` filters.
 
