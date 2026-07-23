@@ -56,7 +56,8 @@ final class SettingServiceTest extends CIUnitTestCase
             $referenceSynchronizer,
             $this->createMock(\App\Libraries\Cms\TranslationResolver::class),
             $this->createMock(\App\Libraries\Cms\FileUrlResolver::class),
-            $this->createMock(\App\Libraries\Cms\PublicLocaleResolver::class)
+            $this->createMock(\App\Libraries\Cms\PublicLocaleResolver::class),
+            new \dcardenasl\Ci4ApiCore\Support\RequestDtoFactory()
         );
         $result = $service->destroy(10, null);
 

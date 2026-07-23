@@ -15,6 +15,7 @@ use dcardenasl\Ci4ApiCore\Exceptions\ValidationException;
 use dcardenasl\Ci4ApiCore\Mappers\ResponseMapperInterface;
 use dcardenasl\Ci4ApiCore\Repositories\RepositoryInterface;
 use dcardenasl\Ci4ApiCore\Services\BaseCrudService;
+use dcardenasl\Ci4ApiCore\Support\RequestDtoFactory;
 
 /**
  * @extends BaseCrudService<SettingEntity>
@@ -43,6 +44,7 @@ class SettingService extends BaseCrudService implements SettingServiceInterface
         private readonly TranslationResolver $translationResolver,
         private readonly FileUrlResolver $fileUrlResolver,
         private readonly PublicLocaleResolver $publicLocaleResolver,
+        private readonly RequestDtoFactory $requestDtoFactory,
         ?\App\Libraries\Cms\TranslationSynchronizer $translationSynchronizer = null
     ) {
         parent::__construct($settingRepository, $responseMapper);
@@ -101,9 +103,9 @@ class SettingService extends BaseCrudService implements SettingServiceInterface
             $updated = $this->wrapInTransaction(function () use ($updates, $context): array {
                 $updated = [];
                 foreach ($updates as $update) {
-                    $dto = new \App\DTO\Request\Cms\SettingUpdateRequestDTO(
-                        $update['payload'],
-                        service('validation')
+                    $dto = $this->requestDtoFactory->make(
+                        \App\DTO\Request\Cms\SettingUpdateRequestDTO::class,
+                        $update['payload']
                     );
                     $this->update((int) $update['id'], $dto, $context);
                     $updated[] = (int) $update['id'];

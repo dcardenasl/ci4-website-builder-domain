@@ -54,6 +54,7 @@ trait CmsDomainServices
             static::translationResolver(),
             static::fileUrlResolver(),
             static::publicLocaleResolver(),
+            static::requestDtoFactory(),
             static::translationSynchronizer()
         );
     }
