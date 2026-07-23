@@ -47,6 +47,7 @@ class CmsPageBlockSeeder extends Seeder
                 'config'    => [
                     'autoplay'          => true,
                     'interval'          => 5000,
+                    'transition'        => 'fade',
                     'overlay_opacity'   => '20',
                     'caption_position'  => 'below',
                     'controls_position' => 'below',

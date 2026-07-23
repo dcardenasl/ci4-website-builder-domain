@@ -35,6 +35,13 @@ class CmsBlockTypeSeeder extends Seeder
                     'config_fields' => [
                         'autoplay'        => ['type' => 'boolean', 'label' => 'Reproducción automática', 'required' => false, 'default' => true],
                         'interval'        => ['type' => 'number',  'label' => 'Intervalo (ms)',           'required' => false, 'default' => 6000],
+                        'transition'      => [
+                            'type'     => 'select',
+                            'label'    => 'Animación de transición',
+                            'options'  => ['none', 'fade', 'slide', 'zoom'],
+                            'default'  => 'fade',
+                            'required' => false,
+                        ],
                         'overlay_opacity' => [
                             'type'     => 'select',
                             'label'    => 'Opacidad del overlay',
