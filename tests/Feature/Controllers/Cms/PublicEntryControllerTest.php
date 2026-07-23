@@ -8,6 +8,7 @@ use CodeIgniter\Test\CIUnitTestCase;
 use CodeIgniter\Test\DatabaseTestTrait;
 use CodeIgniter\Test\FeatureTestTrait;
 use Tests\Support\Fixtures\CmsFixtureFactory;
+use Tests\Support\Traits\WithWebAppKeyTrait;
 
 /**
  * @internal
@@ -16,6 +17,7 @@ final class PublicEntryControllerTest extends CIUnitTestCase
 {
     use DatabaseTestTrait;
     use FeatureTestTrait;
+    use WithWebAppKeyTrait;
 
     protected $migrate     = true;
     protected $migrateOnce = true;
@@ -39,6 +41,7 @@ final class PublicEntryControllerTest extends CIUnitTestCase
     protected function setUp(): void
     {
         parent::setUp();
+        $this->configureWebAppKey();
 
         $this->db->disableForeignKeyChecks();
         $this->db->query("DELETE FROM `cms_entry_translations`");
@@ -71,6 +74,12 @@ final class PublicEntryControllerTest extends CIUnitTestCase
         $this->langEsId = $this->languages[0]['id'];
         $this->langEnId = $this->languages[1]['id'];
         $this->collectionId = $this->collection['id'];
+    }
+
+    protected function tearDown(): void
+    {
+        $this->restoreWebAppKey();
+        parent::tearDown();
     }
 
     public function testGetPublicEntriesSuccess(): void

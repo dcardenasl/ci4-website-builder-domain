@@ -13,15 +13,52 @@ use PHPUnit\Framework\Attributes\CoversClass;
 #[CoversClass(WebAppKeyRequiredFilter::class)]
 final class WebAppKeyRequiredFilterTest extends CIUnitTestCase
 {
+    private bool $hadOriginalValue;
+    private string|false $originalValue;
+
+    protected function setUp(): void
+    {
+        parent::setUp();
+        // env('WEB_API_KEY') reads $_ENV, then $_SERVER, then getenv() (see
+        // Common.php's env() helper), and CI4's DotEnv bootstrap loads a
+        // real clone's .env into BOTH $_ENV and $_SERVER — putenv() alone
+        // (this codebase's usual filter-test pattern, e.g.
+        // FeatureToggleFilterTest) only reaches getenv() and can't override
+        // either superglobal. Save/restore both directly instead.
+        $this->hadOriginalValue = array_key_exists('WEB_API_KEY', $_ENV);
+        $this->originalValue    = $_ENV['WEB_API_KEY'] ?? false;
+    }
+
     protected function tearDown(): void
     {
-        putenv('WEB_API_KEY');
+        if ($this->hadOriginalValue) {
+            $_ENV['WEB_API_KEY']    = $this->originalValue;
+            $_SERVER['WEB_API_KEY'] = $this->originalValue;
+            putenv('WEB_API_KEY=' . $this->originalValue);
+        } else {
+            unset($_ENV['WEB_API_KEY'], $_SERVER['WEB_API_KEY']);
+            putenv('WEB_API_KEY');
+        }
         parent::tearDown();
+    }
+
+    private function setConfiguredKey(?string $key): void
+    {
+        if ($key === null) {
+            unset($_ENV['WEB_API_KEY'], $_SERVER['WEB_API_KEY']);
+            putenv('WEB_API_KEY');
+
+            return;
+        }
+
+        $_ENV['WEB_API_KEY']    = $key;
+        $_SERVER['WEB_API_KEY'] = $key;
+        putenv('WEB_API_KEY=' . $key);
     }
 
     public function testFailsClosedWhenKeyIsNotConfigured(): void
     {
-        putenv('WEB_API_KEY');
+        $this->setConfiguredKey(null);
 
         $request = $this->makeRequest('anything');
         $filter  = new WebAppKeyRequiredFilter();
@@ -37,7 +74,7 @@ final class WebAppKeyRequiredFilterTest extends CIUnitTestCase
 
     public function testRejectsMissingAppKeyHeaderWhenConfigured(): void
     {
-        putenv('WEB_API_KEY=configured-secret');
+        $this->setConfiguredKey('configured-secret');
 
         $request = $this->makeRequest('');
         $filter  = new WebAppKeyRequiredFilter();
@@ -50,7 +87,7 @@ final class WebAppKeyRequiredFilterTest extends CIUnitTestCase
 
     public function testRejectsMismatchedAppKeyHeader(): void
     {
-        putenv('WEB_API_KEY=configured-secret');
+        $this->setConfiguredKey('configured-secret');
 
         $request = $this->makeRequest('wrong-secret');
         $filter  = new WebAppKeyRequiredFilter();
@@ -63,7 +100,7 @@ final class WebAppKeyRequiredFilterTest extends CIUnitTestCase
 
     public function testAllowsMatchingAppKeyHeader(): void
     {
-        putenv('WEB_API_KEY=configured-secret');
+        $this->setConfiguredKey('configured-secret');
 
         $request = $this->makeRequest('configured-secret');
         $filter  = new WebAppKeyRequiredFilter();

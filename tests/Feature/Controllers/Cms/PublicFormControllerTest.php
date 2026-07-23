@@ -8,6 +8,7 @@ use CodeIgniter\Test\CIUnitTestCase;
 use CodeIgniter\Test\DatabaseTestTrait;
 use CodeIgniter\Test\FeatureTestTrait;
 use Tests\Support\Fixtures\CmsFixtureFactory;
+use Tests\Support\Traits\WithWebAppKeyTrait;
 
 /**
  * @internal
@@ -16,6 +17,7 @@ final class PublicFormControllerTest extends CIUnitTestCase
 {
     use DatabaseTestTrait;
     use FeatureTestTrait;
+    use WithWebAppKeyTrait;
 
     protected $migrate     = true;
     protected $migrateOnce = true;
@@ -34,6 +36,7 @@ final class PublicFormControllerTest extends CIUnitTestCase
     protected function setUp(): void
     {
         parent::setUp();
+        $this->configureWebAppKey();
 
         $this->db->disableForeignKeyChecks();
         $this->db->query("DELETE FROM `cms_form_field_translations`");
@@ -47,6 +50,12 @@ final class PublicFormControllerTest extends CIUnitTestCase
         $this->languages = $this->fixtures->languages(3);
         $this->formKey = $this->fixtures->slug('form');
         $this->fieldKey = $this->fixtures->slug('field');
+    }
+
+    protected function tearDown(): void
+    {
+        $this->restoreWebAppKey();
+        parent::tearDown();
     }
 
     public function testGetPublicFormDefinitionSuccess(): void

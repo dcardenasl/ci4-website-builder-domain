@@ -8,6 +8,7 @@ use CodeIgniter\Test\CIUnitTestCase;
 use CodeIgniter\Test\DatabaseTestTrait;
 use CodeIgniter\Test\FeatureTestTrait;
 use Tests\Support\Fixtures\CmsFixtureFactory;
+use Tests\Support\Traits\WithWebAppKeyTrait;
 
 /**
  * Characterization coverage for PublicSettingController::index(), written
@@ -22,6 +23,7 @@ final class PublicSettingControllerTest extends CIUnitTestCase
 {
     use DatabaseTestTrait;
     use FeatureTestTrait;
+    use WithWebAppKeyTrait;
 
     protected $migrate     = true;
     protected $migrateOnce = true;
@@ -34,6 +36,7 @@ final class PublicSettingControllerTest extends CIUnitTestCase
     protected function setUp(): void
     {
         parent::setUp();
+        $this->configureWebAppKey();
 
         $this->db->disableForeignKeyChecks();
         $this->db->query('DELETE FROM `cms_setting_translations`');
@@ -42,6 +45,12 @@ final class PublicSettingControllerTest extends CIUnitTestCase
         $this->db->enableForeignKeyChecks();
 
         $this->languages = (new CmsFixtureFactory($this->db, self::class))->languages(2);
+    }
+
+    protected function tearDown(): void
+    {
+        $this->restoreWebAppKey();
+        parent::tearDown();
     }
 
     private function insertSetting(array $overrides = []): int

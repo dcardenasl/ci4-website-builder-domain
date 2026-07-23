@@ -9,6 +9,7 @@ use CodeIgniter\Test\DatabaseTestTrait;
 use CodeIgniter\Test\FeatureTestTrait;
 use Config\Database;
 use Tests\Support\Fixtures\CmsFixtureFactory;
+use Tests\Support\Traits\WithWebAppKeyTrait;
 
 /**
  * @internal
@@ -17,6 +18,7 @@ final class PublicRedirectControllerTest extends CIUnitTestCase
 {
     use DatabaseTestTrait;
     use FeatureTestTrait;
+    use WithWebAppKeyTrait;
 
     protected $migrate     = true;
     protected $migrateOnce = true;
@@ -45,6 +47,7 @@ final class PublicRedirectControllerTest extends CIUnitTestCase
     protected function setUp(): void
     {
         parent::setUp();
+        $this->configureWebAppKey();
 
         $db = Database::connect();
         $db->disableForeignKeyChecks();
@@ -88,6 +91,12 @@ final class PublicRedirectControllerTest extends CIUnitTestCase
             'slug' => $this->entrySlug,
             'title' => $this->fixtures->text('entry-title', $language['code']),
         ]);
+    }
+
+    protected function tearDown(): void
+    {
+        $this->restoreWebAppKey();
+        parent::tearDown();
     }
 
     public function testResolveManualRedirect(): void

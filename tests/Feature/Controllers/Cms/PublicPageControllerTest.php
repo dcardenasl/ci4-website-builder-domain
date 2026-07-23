@@ -8,6 +8,7 @@ use CodeIgniter\Test\CIUnitTestCase;
 use CodeIgniter\Test\DatabaseTestTrait;
 use CodeIgniter\Test\FeatureTestTrait;
 use Tests\Support\Fixtures\CmsFixtureFactory;
+use Tests\Support\Traits\WithWebAppKeyTrait;
 
 /**
  * @internal
@@ -16,6 +17,7 @@ final class PublicPageControllerTest extends CIUnitTestCase
 {
     use DatabaseTestTrait;
     use FeatureTestTrait;
+    use WithWebAppKeyTrait;
 
     protected $migrate     = true;
     protected $migrateOnce = true;
@@ -34,6 +36,7 @@ final class PublicPageControllerTest extends CIUnitTestCase
     protected function setUp(): void
     {
         parent::setUp();
+        $this->configureWebAppKey();
 
         $this->db->disableForeignKeyChecks();
         $this->db->query("DELETE FROM `cms_page_translations`");
@@ -45,6 +48,12 @@ final class PublicPageControllerTest extends CIUnitTestCase
         $this->languages = $this->fixtures->languages(3);
         $this->draftPageSlug = $this->fixtures->slug('draft-page', $this->languages[0]['code']);
         $this->draftPageTitle = $this->fixtures->text('draft-title', $this->languages[0]['code']);
+    }
+
+    protected function tearDown(): void
+    {
+        $this->restoreWebAppKey();
+        parent::tearDown();
     }
 
     public function testGetPublicPageSuccess(): void

@@ -7,6 +7,7 @@ namespace Tests\Feature\Controllers\Cms;
 use CodeIgniter\Test\CIUnitTestCase;
 use CodeIgniter\Test\DatabaseTestTrait;
 use CodeIgniter\Test\FeatureTestTrait;
+use Tests\Support\Traits\WithWebAppKeyTrait;
 
 /**
  * @internal
@@ -15,6 +16,7 @@ final class PublicMenuControllerTest extends CIUnitTestCase
 {
     use DatabaseTestTrait;
     use FeatureTestTrait;
+    use WithWebAppKeyTrait;
 
     protected $migrate     = true;
     protected $migrateOnce = true;
@@ -32,6 +34,7 @@ final class PublicMenuControllerTest extends CIUnitTestCase
     protected function setUp(): void
     {
         parent::setUp();
+        $this->configureWebAppKey();
 
         $token = bin2hex(random_bytes(4));
         $this->fixturePrefix = 'fixture' . $token;
@@ -70,6 +73,12 @@ final class PublicMenuControllerTest extends CIUnitTestCase
             'is_active' => 1,
         ]);
         $this->menuId = $this->db->insertID();
+    }
+
+    protected function tearDown(): void
+    {
+        $this->restoreWebAppKey();
+        parent::tearDown();
     }
 
     public function testGetPublicMenuTreeSuccess(): void
@@ -112,7 +121,7 @@ final class PublicMenuControllerTest extends CIUnitTestCase
         ]);
 
         // Call the public menu endpoint
-        $result = $this->withHeaders(['Accept-Language' => $this->primaryCode])->get('/api/v1/public/menus/' . $this->menuKey);
+        $result = $this->withHeaders(['Accept-Language' => $this->primaryCode, ...$this->webAppKeyHeader()])->get('/api/v1/public/menus/' . $this->menuKey);
 
         $result->assertStatus(200);
         $body = json_decode($result->getJSON(), true);
@@ -171,11 +180,11 @@ final class PublicMenuControllerTest extends CIUnitTestCase
             ],
         ]);
 
-        $primary = $this->withHeaders(['Accept-Language' => $this->primaryCode])
+        $primary = $this->withHeaders(['Accept-Language' => $this->primaryCode, ...$this->webAppKeyHeader()])
             ->get('/api/v1/public/menus/' . $this->menuKey);
         $primaryBody = json_decode($primary->getJSON(), true);
 
-        $secondary = $this->withHeaders(['Accept-Language' => $this->secondaryCode])
+        $secondary = $this->withHeaders(['Accept-Language' => $this->secondaryCode, ...$this->webAppKeyHeader()])
             ->get('/api/v1/public/menus/' . $this->menuKey);
         $secondaryBody = json_decode($secondary->getJSON(), true);
 
@@ -256,7 +265,7 @@ final class PublicMenuControllerTest extends CIUnitTestCase
             'label'        => $entryTitle,
         ]);
 
-        $result = $this->withHeaders(['Accept-Language' => $this->primaryCode])->get('/api/v1/public/menus/' . $this->menuKey);
+        $result = $this->withHeaders(['Accept-Language' => $this->primaryCode, ...$this->webAppKeyHeader()])->get('/api/v1/public/menus/' . $this->menuKey);
 
         $result->assertStatus(200);
         $body = json_decode($result->getJSON(), true);
@@ -307,7 +316,7 @@ final class PublicMenuControllerTest extends CIUnitTestCase
             'label' => $this->fixtureText('home-item'),
         ]);
 
-        $result = $this->withHeaders(['Accept-Language' => $this->primaryCode])->get('/api/v1/public/menus/' . $this->menuKey);
+        $result = $this->withHeaders(['Accept-Language' => $this->primaryCode, ...$this->webAppKeyHeader()])->get('/api/v1/public/menus/' . $this->menuKey);
 
         $result->assertStatus(200);
         $body = json_decode($result->getJSON(), true);
