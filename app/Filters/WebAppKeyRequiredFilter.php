@@ -23,7 +23,18 @@ class WebAppKeyRequiredFilter implements FilterInterface
     {
         $configuredKey = (string) env('WEB_API_KEY', '');
         if ($configuredKey === '') {
-            return null;
+            // Fail closed: an unconfigured gate is a misconfiguration, not
+            // "no gate" — the old `return null` here let every request
+            // through unauthenticated whenever WEB_API_KEY was unset, which
+            // is exactly the case today (confirmed absent from .env and
+            // .env.example). Same fail-closed posture as Config\Hub's
+            // constructor for the equivalent hub.url/apiKey/appCode gates.
+            return \Config\Services::response()
+                ->setStatusCode(403)
+                ->setJSON([
+                    'status'   => 'error',
+                    'messages' => ['WEB_API_KEY is not configured.'],
+                ]);
         }
 
         $incomingKey = (string) $request->getHeaderLine('X-App-Key');
