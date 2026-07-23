@@ -341,6 +341,14 @@ trait CmsDomainServices
         }
         return new \dcardenasl\Ci4ApiCore\Mappers\DtoResponseMapper(\App\DTO\Response\Cms\EntryResponseDTO::class);
     }
+    public static function entryBlockTemplateInitializer(bool $getShared = true): \App\Services\Cms\EntryBlockTemplateInitializer
+    {
+        if ($getShared) {
+            return static::getSharedInstance('entryBlockTemplateInitializer');
+        }
+
+        return new \App\Services\Cms\EntryBlockTemplateInitializer();
+    }
     public static function entryService(bool $getShared = true): \App\Interfaces\Cms\EntryServiceInterface
     {
         if ($getShared) {
@@ -356,7 +364,7 @@ trait CmsDomainServices
             static::translationResolver(),
             static::publicEntryReader(),
             static::entryTaxonomyPivotResolver(),
-            null,
+            static::entryBlockTemplateInitializer(),
             static::translationSynchronizer()
         );
     }

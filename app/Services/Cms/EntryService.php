@@ -62,7 +62,7 @@ class EntryService extends BaseCrudService implements EntryServiceInterface
         \App\Libraries\Cms\TranslationResolver $translationResolver,
         PublicEntryReader $publicReader,
         EntryTaxonomyPivotResolver $taxonomyPivotResolver,
-        ?EntryBlockTemplateInitializer $blockTemplateInitializer = null,
+        EntryBlockTemplateInitializer $blockTemplateInitializer,
         ?\App\Libraries\Cms\TranslationSynchronizer $translationSynchronizer = null
     ) {
         parent::__construct($entryRepository, $responseMapper);
@@ -73,7 +73,7 @@ class EntryService extends BaseCrudService implements EntryServiceInterface
         $this->translationResolver = $translationResolver;
         $this->publicReader = $publicReader;
         $this->taxonomyPivotResolver = $taxonomyPivotResolver;
-        $this->blockTemplateInitializer = $blockTemplateInitializer ?? new EntryBlockTemplateInitializer();
+        $this->blockTemplateInitializer = $blockTemplateInitializer;
         $this->translationSynchronizer = $translationSynchronizer;
     }
 
