@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.0.0] — 2026-07-23
+
 ### Added
 - **`transition` config field on the hero slider block type** — `CmsBlockTypeSeeder` adds a `transition` select (`none`/`fade`/`slide`/`zoom`, default `fade`) to the hero slider's `config_fields`, and `CmsPageBlockSeeder` seeds the demo hero slider with `transition: fade`; consumed by the public web app's carousel to animate slide changes.
 - **`entry_cta_label` per collection translation** — new `cms_collection_translations.entry_cta_label` column wired through `CollectionEntity`, `CollectionTranslationModel`, `CollectionService`, both Request DTOs, `TranslationResourceCatalog`, and `PublicCollectionReader`, so the public web app's collection listing can show a custom "view more" CTA text per collection instead of a hardcoded `news`/`portfolio` label (COL-002).
