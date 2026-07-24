@@ -5,7 +5,7 @@
 [![PHPStan](https://img.shields.io/badge/PHPStan-level%208-2563EB)](phpstan.neon)
 [![License](https://img.shields.io/badge/License-MIT-green)](LICENSE)
 
-> **Status:** v1.4.0 — Spanish version: [README.es.md](README.es.md)
+> **Status:** v1.0.0 — Spanish version: [README.es.md](README.es.md)
 
 CodeIgniter 4 template for the **website builder** app: a service that owns its own content and delivery logic, but **delegates authentication, users, and IAM to a central hub** (`ci4-api-starter`). One hub can stand in front of many apps without re-implementing auth in each.
 
