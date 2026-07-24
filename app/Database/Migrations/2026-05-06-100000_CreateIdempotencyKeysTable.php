@@ -23,6 +23,13 @@ class CreateIdempotencyKeysTable extends Migration
 {
     public function up(): void
     {
+        /** @var \CodeIgniter\Database\BaseConnection $db */
+        $db = $this->db;
+
+        if ($db->tableExists('idempotency_keys')) {
+            return;
+        }
+
         $this->forge->addField([
             'idempotency_key' => [
                 'type'       => 'VARCHAR',
@@ -78,6 +85,13 @@ class CreateIdempotencyKeysTable extends Migration
 
     public function down(): void
     {
+        /** @var \CodeIgniter\Database\BaseConnection $db */
+        $db = $this->db;
+
+        if (! $db->tableExists('idempotency_keys')) {
+            return;
+        }
+
         $this->forge->dropTable('idempotency_keys', true);
     }
 }

@@ -1,0 +1,54 @@
+<?php
+
+declare(strict_types=1);
+
+namespace App\DTO\Request\Cms;
+
+use dcardenasl\Ci4ApiCore\Dto\BaseRequestDTO;
+use OpenApi\Attributes as OA;
+
+#[OA\Schema(schema: 'BlockInstanceIndexRequest')]
+readonly class BlockInstanceIndexRequestDTO extends BaseRequestDTO
+{
+    public int $page;
+    public int $per_page;
+    public ?string $search;
+    public string $sort;
+
+    /**
+     * @return array<string, string>
+     */
+    public function rules(): array
+    {
+        return [
+            'page'      => 'permit_empty|is_natural_no_zero',
+            'per_page'  => 'permit_empty|is_natural_no_zero|less_than[10001]',
+            'search'    => 'permit_empty|string|max_length[100]',
+            'sort'      => 'permit_empty|max_length[100]',
+        ];
+    }
+
+    /**
+     * @param array<string, mixed> $data
+     */
+    protected function map(array $data): void
+    {
+        $this->page = isset($data['page']) ? (int) $data['page'] : 1;
+        $this->per_page = isset($data['per_page']) ? (int) $data['per_page'] : 1000;
+        $this->search = $data['search'] ?? null;
+        $this->sort = (string) ($data['sort'] ?? '');
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    public function toArray(): array
+    {
+        return [
+            'page' => $this->page,
+            'per_page' => $this->per_page,
+            'search' => $this->search,
+            'sort' => $this->sort,
+        ];
+    }
+}

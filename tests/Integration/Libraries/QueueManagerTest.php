@@ -42,6 +42,11 @@ class QueueManagerTest extends CIUnitTestCase
         $_SERVER['QUEUE_MAX_ATTEMPTS'] = '2';
         $_SERVER['QUEUE_DATABASE_CONNECTION'] = 'tests';
 
+        // Clear tables to avoid pollution
+        $db = Database::connect();
+        $db->query("DELETE FROM `jobs`");
+        $db->query("DELETE FROM `failed_jobs`");
+
         TestQueueSuccessJob::$handled = 0;
         TestQueueAlwaysFailJob::$failedCalls = 0;
     }

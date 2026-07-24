@@ -2,7 +2,7 @@
 
 > English version: [AUTHENTICATION.md](AUTHENTICATION.md). Para un resumen alto-nivel ver [`../tech/jwt-auth.es.md`](../tech/jwt-auth.es.md).
 
-Esta app de dominio delega **todas** las preocupaciones de identidad y acceso al hub (`ci4-api-starter`). Login, refresh, reseteo de contraseña, verificación de email, emisión de JWT, listas de revocación de JTI y las tablas `users` / `roles` / `permissions` viven en el hub. Este documento describe el contrato entre ambos.
+Esta app website builder delega **todas** las preocupaciones de identidad y acceso al hub (`ci4-api-starter`). Login, refresh, reseteo de contraseña, verificación de email, emisión de JWT, listas de revocación de JTI y las tablas `users` / `roles` / `permissions` viven en el hub. Este documento describe el contrato entre ambos.
 
 ## Frontera
 
@@ -11,7 +11,7 @@ Cliente (browser / SPA / CLI / servicio)
         │
         │  Authorization: Bearer <jwt>
         ▼
-   App de dominio (este repo, :8090)
+   App website builder (este repo, :8090)
         │
         │  POST /api/v1/auth/introspect          (valida JWT de usuario)
         │  POST /api/v1/auth/service-token       (M2M cuando esta app llama al hub)
@@ -23,19 +23,19 @@ Cliente (browser / SPA / CLI / servicio)
         users / roles / permissions / role_permissions / user_roles
 ```
 
-El contrato es **HTTP, no secretos compartidos**. La app de dominio no tiene la clave de firma del JWT; la confianza fluye a través del endpoint de introspección.
+El contrato es **HTTP, no secretos compartidos**. La app website builder no tiene la clave de firma del JWT; la confianza fluye a través del endpoint de introspección.
 
 ## Login (lo emite el hub)
 
-La app de dominio no tiene endpoint `/login`. El cliente se loguea directamente contra el hub:
+La app website builder no tiene endpoint `/login`. El cliente se loguea directamente contra el hub:
 
 ```
 POST <hub>/api/v1/auth/login
-X-App-Key: <hub.apiKey>          # el X-App-Key de ESTA app de dominio, no del hub
+X-App-Key: <hub.apiKey>          # el X-App-Key de ESTA app website builder, no del hub
 { "email": "...", "password": "..." }
 ```
 
-El hub responde con `{ access_token, refresh_token, user: { id, email, permissions: [...] } }`. El array `permissions` lo computa `EffectivePermissionsResolver(user_id, application_id)` donde `application_id` es la fila que coincide con el `X-App-Key` — es decir, **los permisos para esta app de dominio**, no los del hub. Esto es lo que permite usar el mismo token de login en varias apps de dominio con conjuntos de permisos diferentes.
+El hub responde con `{ access_token, refresh_token, user: { id, email, permissions: [...] } }`. El array `permissions` lo computa `EffectivePermissionsResolver(user_id, application_id)` donde `application_id` es la fila que coincide con el `X-App-Key` — es decir, **los permisos para esta app website builder**, no los del hub. Esto es lo que permite usar el mismo token de login en varias apps website builder con conjuntos de permisos diferentes.
 
 ## Validar una petición (`DomainAuthFilter`)
 

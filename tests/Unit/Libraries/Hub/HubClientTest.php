@@ -218,6 +218,53 @@ class HubClientTest extends CIUnitTestCase
         $this->assertNull($result);
     }
 
+    public function testQueueEmailReturnsJobIdOnSuccess(): void
+    {
+        $http = $this->createMock(CURLRequest::class);
+        $http->method('request')
+            ->with('POST', $this->stringContains('/api/v1/internal/email/queue'))
+            ->willReturn($this->jsonResponse(200, [
+                'status' => 'success',
+                'data'   => ['job_id' => 128],
+            ]));
+
+        $client = new HubClient($this->makeConfig(), $http, $this->createMock(CacheInterface::class));
+
+        $this->assertSame(
+            128,
+            $client->queueEmail('user@example.com', 'Subject', '<p>Body</p>')
+        );
+    }
+
+    public function testQueueEmailReturnsZeroOnHubFailure(): void
+    {
+        $http = $this->createMock(CURLRequest::class);
+        $http->method('request')->willThrowException(new RuntimeException('connection refused'));
+
+        $client = new HubClient($this->makeConfig(), $http, $this->createMock(CacheInterface::class));
+
+        $this->assertSame(
+            0,
+            $client->queueEmail('user@example.com', 'Subject', '<p>Body</p>')
+        );
+    }
+
+    public function testQueueEmailReturnsZeroOnMalformedResponse(): void
+    {
+        $http = $this->createMock(CURLRequest::class);
+        $http->method('request')->willReturn($this->jsonResponse(200, [
+            'status' => 'success',
+            'data'   => ['unexpected' => 'shape'],
+        ]));
+
+        $client = new HubClient($this->makeConfig(), $http, $this->createMock(CacheInterface::class));
+
+        $this->assertSame(
+            0,
+            $client->queueEmail('user@example.com', 'Subject', '<p>Body</p>')
+        );
+    }
+
     /**
      * @param array<string, mixed> $body
      */

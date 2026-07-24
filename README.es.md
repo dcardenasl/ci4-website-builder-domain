@@ -1,11 +1,11 @@
-# ci4-domain-starter
+# ci4-website-builder
 
 [![CI4](https://img.shields.io/badge/CodeIgniter-4.5-EF4223)](https://codeigniter.com/)
 [![PHP](https://img.shields.io/badge/PHP-8.2%2B-777BB4)](https://www.php.net/)
 [![PHPStan](https://img.shields.io/badge/PHPStan-level%208-2563EB)](phpstan.neon)
 [![License](https://img.shields.io/badge/License-MIT-green)](LICENSE)
 
-> **Estado:** v1.4.0 — English version: [README.md](README.md)
+> **Estado:** v1.0.0 — English version: [README.md](README.md)
 
 Plantilla de CodeIgniter 4 para **apps de dominio**: servicios que poseen su propia lógica de negocio y base de datos, pero **delegan autenticación, usuarios e IAM a un hub central** (`ci4-api-starter`). Un único hub puede atender a varias apps de dominio sin re-implementar autenticación en cada una.
 
@@ -40,7 +40,7 @@ El reparto:
 ./init.sh
 # Pregunta: URL del hub, X-App-Key, código de app, credenciales de BD,
 # JWT de superadmin opcional.
-# Ejecuta: composer install → migrate → domain:sync-permissions.
+# Ejecuta: composer install → migrate → db:seed SiteBootstrapSeeder → domain:sync-permissions.
 
 php spark serve --port 8090
 ```
@@ -90,6 +90,7 @@ php spark serve --port 8090
 
 # Base de datos
 php spark migrate                    # Solo migraciones locales — nunca toca la BD del hub
+php spark db:seed SiteBootstrapSeeder # Contenido base en español: idiomas, configuración, páginas, menús, bloques
 php spark tests:prepare-db           # Sincroniza la BD de tests antes de feature tests
 
 # Sincronización de permisos con el hub (idempotente — se puede reintentar)

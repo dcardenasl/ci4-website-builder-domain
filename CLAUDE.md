@@ -18,7 +18,7 @@ For cross-repo context, read `../TASKS.md`.
 
 ## What this is
 
-`ci4-domain-starter` is a CodeIgniter 4 **domain app** template. It owns its own
+`ci4-website-builder` is a CodeIgniter 4 **website builder** template. It owns its own
 business logic and database tables, but **delegates auth and IAM to a central
 hub** — a separate `ci4-api-starter` instance that stores users, applications,
 roles and permissions.
@@ -26,21 +26,21 @@ roles and permissions.
 The split:
 
 ```
-Browser/SPA → Domain App (here)        → Database (this app's tables)
+Browser/SPA → Website Builder (here)    → Database (this app's tables)
                 ↓ JWT validation
               Hub (ci4-api-starter)    → Database (users, roles, perms)
                 ↑ Service token (M2M)
-              Domain App  ─────────────┘
+              Website Builder ──────────┘
 ```
 
 **Boundaries:**
 
-- Domain app **never issues JWTs**. The hub does.
-- Domain app **validates JWTs** by calling `POST /api/v1/auth/introspect` on the hub.
-- Domain app **registers its permissions** in the hub via `POST /api/v1/iam/self-permissions`
+- Website builder app **never issues JWTs**. The hub does.
+- Website builder app **validates JWTs** by calling `POST /api/v1/auth/introspect` on the hub.
+- Website builder app **registers its permissions** in the hub via `POST /api/v1/iam/self-permissions`
   using its own X-App-Key (`hub.apiKey`). No superadmin JWT required for the primary registration.
   `--admin-token` is only needed when `--mirror-to-self` or `--assign-to-role` is also set.
-- Domain app **does not store users**. There is no `users` table here.
+- Website builder app **does not store users**. There is no `users` table here.
 
 ## Essential commands
 
@@ -52,6 +52,10 @@ Browser/SPA → Domain App (here)        → Database (this app's tables)
 php spark serve --port 8090
 
 # Tests
+# Prefer `composer test*` (passes --no-coverage). Bare `vendor/bin/phpunit` triggers a
+# harmless XDEBUG_MODE=coverage warning (phpunit.xml declares a <coverage> block for
+# test:coverage but xdebug isn't active by default) and returns a non-zero exit code on
+# an otherwise-passing run — add --no-coverage yourself if running it directly.
 vendor/bin/phpunit
 vendor/bin/phpunit tests/Unit
 vendor/bin/phpunit tests/Integration
@@ -63,6 +67,7 @@ composer cs-fix           # auto-fix style
 
 # Database
 php spark migrate         # idempotency_keys, audit_logs, request_logs, metrics, jobs
+php spark db:seed SiteBootstrapSeeder # OPTIONAL demo content (languages, settings, pages, menus, blocks) — NOT required. See README.md "Required vs. optional bootstrap".
 
 # Hub permission sync (idempotent — safe to rerun). Needs a superadmin JWT.
 php spark domain:sync-permissions --admin-token=<jwt>     # or set hub.adminToken in .env
@@ -135,11 +140,11 @@ module needs distinct read/write codes.
 | Variable | Purpose |
 |---|---|
 | `hub.url` | Base URL of the hub (e.g. `http://localhost:8080`) |
-| `hub.apiKey` | X-App-Key bound to this domain app's `applications` row in the hub |
+| `hub.apiKey` | X-App-Key bound to this app's `applications` row in the hub |
 | `hub.appCode` | Application code as registered in the hub |
-| `hub.introspectCacheTtl` | (optional) TTL in seconds for cached introspect responses, default 60 |
+| `hub.introspectCacheTtl` | (optional) TTL in seconds for cached introspect responses, default 30 |
 | `hub.adminToken` | (optional) Superadmin JWT. Only needed when running `domain:sync-permissions --mirror-to-self` or `--assign-to-role`. |
-| `database.default.*` | Domain app's own MySQL connection |
+| `database.default.*` | Website builder app's own MySQL connection |
 | `encryption.key` | CI4 encryption key (32 bytes after `hex2bin:` decode) |
 
 ## Setup prerequisite
@@ -166,11 +171,47 @@ You can re-run `domain:sync-permissions` at any time — it is idempotent.
 
 ## Static analysis
 
-PHPStan runs at level 8 with no baseline. Run before pushing:
+PHPStan runs at level 8 with a `phpstan-baseline.neon` that tracks historical type-debt.
+**Rule:** the baseline entry count can only decrease. New code must not introduce new errors.
+Current count: **0 baselined entries** (drained on 2026-07-15 — clean slate). Keep it
+that way: new code must ship with zero PHPStan errors and no new baseline entries.
+
+Run before pushing:
 
 ```bash
 composer quality
 ```
+
+## Architecture guardrail tests
+
+`tests/Unit/Architecture/` is the authoritative source for structural rules this
+codebase enforces beyond PHPStan — always check it before assuming a pattern is
+"just a convention." Two rules of this shape exist and both follow the same
+ratchet philosophy (a violation can shrink or disappear silently, but growing
+one or adding a new offender requires editing the test's `BASELINE`/assertion
+deliberately, with a dated comment):
+
+- `ServiceModelDependencyConventionsTest` — Services (`app/Services/**`) must not
+  call `model()`, import `App\Models\*`, or call `Database::connect()` directly;
+  use the injected repository (`$this->repository`/constructor-injected
+  `RepositoryInterface`) instead. Currently has baselined exceptions (documented
+  per-file, per-pattern).
+- `ControllerModelDependencyConventionsTest` — same three patterns, scoped to
+  `app/Controllers`. **Zero-tolerance as of 2026-07-21** (DOM-112..DOM-124) — no
+  baselined exceptions remain. A Controller must delegate to a Service; see
+  `PublicEntryController` for the reference shape (constructor-injected
+  interface, `resolveDefaultService()`, action methods that only call the
+  service and shape the response).
+
+Both patterns are regex scans over token-stripped source (comments/strings
+removed first), so they also silently miss `new App\Models\X()` (no `use`
+import, no `model()` call) — an already-accepted escape hatch used a few places
+in this codebase specifically to get a concretely-typed Model instance for a
+custom method the generic `RepositoryInterface`/`getModel(): \CodeIgniter\Model`
+return type doesn't expose (e.g. `BlockInstanceService::blockTypeById()`,
+`*Service::isSlugAvailable()`). Don't reach for that pattern to dodge the
+guardrail on a *new* violation — it's for this one specific typing problem, not
+a loophole.
 
 ## Common pitfalls
 
@@ -180,6 +221,39 @@ composer quality
   (admin/web layer) or pass via Authorization header (SPAs).
 - ❌ Hardcoding permission strings — use `DomainPermissions::PERMISSIONS` and
   `domain:sync-permissions` so the hub stays in sync.
+- ❌ **Running `php spark migrate` (or any migration/refresh command) without checking which
+  database you're targeting.** With no `-g` flag it targets `database.default` — the persistent
+  **dev** database — not `database.tests`. Test-only workflows must use
+  `php spark tests:prepare-db` (which explicitly connects to the `tests` group) or pass
+  `-g tests` yourself. Running an untargeted `migrate --all`/`migrate:refresh` against a database
+  you didn't mean to touch can drop and recreate its schema empty. If this happens, the app keeps
+  working (see "Required vs. optional bootstrap" in README.md) — just re-run
+  `db:seed SiteBootstrapSeeder` to restore the demo content, or accept the empty state and rebuild
+  through the admin UI. There is no way to recover data that wasn't part of that seeder.
+- ❌ **Typing `php spark db:seed SeederName -g tests` expecting it to target the tests database.**
+  Unlike `migrate`, CI4's stock `db:seed` command does not read any `-g`/`--group` option — it
+  always seeds `database.default` (dev), silently ignoring the flag with no warning. There is no
+  CLI-level way to seed the `tests` group directly. If you need test data, either seed inside a
+  `CIUnitTestCase`-based test (which switches the DB group itself), or write a dedicated command
+  like `PrepareTestDatabase` that calls `Database::connect('tests')` explicitly. (Root-caused
+  2026-07-18 after this exact pattern produced a seemingly "flaky" row count in an earlier audit —
+  see the monorepo root's docs/audits/2026-07-10-hardening-execution-log.md.)
+- ❌ **Shallow `(array) $entity->someJsonField` casting on any Entity property cast as
+  `'json'`** (`schema_definition`, `wizard_config`, `block_template`, etc. — grep
+  Entities for `=> 'json'` to find the full list). CI4's `json` cast decodes to
+  `stdClass` **recursively at every nesting level**, not just the top one — a
+  shallow cast only converts the outer object, leaving nested values (e.g.
+  `$schema['fields']['heading']`) as `stdClass`, which then silently fail any
+  downstream `is_array()` check and get treated as empty. Always go through
+  `App\Libraries\Cms\JsonCastNormalizer::toArray()` instead, which handles the
+  string/object/array shapes correctly via a full `json_encode`/`json_decode`
+  round-trip. (Root-caused 2026-07-21 during DOM-122: this exact bug shipped in
+  `WizardConfigService`'s first draft and would have made the wizard's block
+  editor always see empty `fields`/`config_fields` — caught only because a
+  characterization test with real fixtures was written before trusting the
+  refactor. `BlockSchemaIntrospector::introspect()` now self-normalizes via this
+  helper too, so passing it a raw un-normalized Entity property can no longer
+  silently misbehave.)
 
 ## Where to read next
 

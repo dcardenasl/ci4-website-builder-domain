@@ -8,7 +8,7 @@ Accepted
 
 ## Context
 
-Initially, our `BaseCrudService` and domain services directly depended on `CodeIgniter\Model` and `QueryBuilder`. While functional, this tightly coupled our business logic to CodeIgniter's specific Active Record implementation. This made pure unit testing difficult without touching a database, and prevented us from easily swapping out storage mechanisms (like an external API or Doctrine) without rewriting the Service layer.
+Initially, our `BaseCrudService` and website builder services directly depended on `CodeIgniter\Model` and `QueryBuilder`. While functional, this tightly coupled our business logic to CodeIgniter's specific Active Record implementation. This made pure unit testing difficult without touching a database, and prevented us from easily swapping out storage mechanisms (like an external API or Doctrine) without rewriting the Service layer.
 
 ## Decision
 

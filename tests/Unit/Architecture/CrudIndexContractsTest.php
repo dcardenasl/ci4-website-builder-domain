@@ -21,7 +21,7 @@ class CrudIndexContractsTest extends CIUnitTestCase
             \dcardenasl\Ci4ApiCore\Services\CrudServiceContract::class,
             \dcardenasl\Ci4ApiCore\Services\AuditServiceInterface::class,
             \dcardenasl\Ci4ApiCore\Services\BaseCrudService::class,
-            \App\Interfaces\Example\ItemServiceInterface::class,
+            \App\Interfaces\Cms\EntryServiceInterface::class,
         ];
     }
 

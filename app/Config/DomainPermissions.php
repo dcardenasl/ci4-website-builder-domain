@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace Config;
 
 /**
- * Source of truth for the permissions exposed by this domain app.
+ * Source of truth for the permissions exposed by this website builder app.
  *
  * Add an entry here, then run:
  *
@@ -73,5 +73,17 @@ class DomainPermissions
         ['code' => 'cms.redirects.read', 'resource' => 'redirects', 'action' => 'read', 'description' => 'Read CMS redirects'],
         ['code' => 'cms.redirects.write', 'resource' => 'redirects', 'action' => 'write', 'description' => 'Create/Edit CMS redirects'],
         ['code' => 'cms.redirects.admin', 'resource' => 'redirects', 'action' => 'admin', 'description' => 'Full administration of CMS redirects'],
+
+        // Form Submissions
+        ['code' => 'cms.submissions.read', 'resource' => 'submissions', 'action' => 'read', 'description' => 'Read CMS form submissions'],
+        ['code' => 'cms.submissions.write', 'resource' => 'submissions', 'action' => 'write', 'description' => 'Manage CMS form submissions (update status)'],
+
+        // Forms
+        ['code' => 'cms.forms.read', 'resource' => 'forms', 'action' => 'read', 'description' => 'Read CMS dynamic forms'],
+        ['code' => 'cms.forms.write', 'resource' => 'forms', 'action' => 'write', 'description' => 'Create/Edit CMS dynamic forms and fields'],
+        ['code' => 'cms.forms.admin', 'resource' => 'forms', 'action' => 'admin', 'description' => 'Full administration of CMS dynamic forms (delete)'],
+
+        // Analytics
+        ['code' => 'cms.analytics.read', 'resource' => 'analytics', 'action' => 'read', 'description' => 'View website analytics and visit statistics'],
     ];
 }

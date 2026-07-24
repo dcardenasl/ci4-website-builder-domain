@@ -1,20 +1,20 @@
-# ci4-domain-starter
+# ci4-website-builder
 
 [![CI4](https://img.shields.io/badge/CodeIgniter-4.7-EF4223)](https://codeigniter.com/)
 [![PHP](https://img.shields.io/badge/PHP-8.2%2B-777BB4)](https://www.php.net/)
 [![PHPStan](https://img.shields.io/badge/PHPStan-level%208-2563EB)](phpstan.neon)
 [![License](https://img.shields.io/badge/License-MIT-green)](LICENSE)
 
-> **Status:** v1.4.0 — Spanish version: [README.es.md](README.es.md)
+> **Status:** v1.0.0 — Spanish version: [README.es.md](README.es.md)
 
-CodeIgniter 4 template for **domain apps**: services that own their own business logic and database, but **delegate authentication, users, and IAM to a central hub** (`ci4-api-starter`). One hub can stand in front of many domain apps without re-implementing auth in each.
+CodeIgniter 4 template for the **website builder** app: a service that owns its own content and delivery logic, but **delegates authentication, users, and IAM to a central hub** (`ci4-api-starter`). One hub can stand in front of many apps without re-implementing auth in each.
 
 ```mermaid
 flowchart LR
     Client["Browser / SPA"]
-    Domain["Domain App<br/>(this repo) :8090"]
+    Domain["Website Builder<br/>(this repo) :8090"]
     Hub["Hub<br/>(ci4-api-starter) :8080"]
-    DDB[("Domain DB<br/>business tables")]
+    DDB[("Website Builder DB<br/>business tables")]
     HDB[("Hub DB<br/>users · roles · perms")]
 
     Client -->|"Bearer JWT"| Domain
@@ -29,8 +29,8 @@ Solid arrows = traffic on every request. Dashed = upstream calls to the hub, bot
 The split:
 
 - The **hub** issues JWTs, owns the `users` / `roles` / `permissions` tables, and resolves effective permissions per `(user, application)`.
-- The **domain app** validates incoming JWTs by calling `POST /api/v1/auth/introspect` on the hub, then enforces permissions locally with the `permission:<code>` filter.
-- The domain app **never** stores users, never issues JWTs, never reads the hub's database directly.
+- The **website builder app** validates incoming JWTs by calling `POST /api/v1/auth/introspect` on the hub, then enforces permissions locally with the `permission:<code>` filter.
+- The website builder app **never** stores users, never issues JWTs, never reads the hub's database directly.
 
 ---
 
@@ -39,7 +39,7 @@ The split:
 ```bash
 ./init.sh
 # Prompts for: hub URL, X-App-Key, app code, DB credentials, optional superadmin JWT.
-# Runs: composer install → migrate → domain:sync-permissions.
+# Runs: composer install → migrate → db:seed SiteBootstrapSeeder → domain:sync-permissions.
 
 php spark serve --port 8090
 ```
@@ -72,7 +72,7 @@ If any of these are missing, `domain:sync-permissions` will fail with a clear me
 
 ## What's NOT in the box
 
-This is a domain app, not the hub. The following are **out of scope** here and live in the hub instead:
+This is the website builder app, not the hub. The following are **out of scope** here and live in the hub instead:
 
 - `users` / `roles` / `permissions` tables and admin endpoints (`/api/v1/iam/*`)
 - Login, logout, password reset, email verification, Google OAuth
@@ -89,10 +89,13 @@ php spark serve --port 8090
 
 # Database
 php spark migrate                    # Local migrations only — never touches the hub DB
+php spark db:seed SiteBootstrapSeeder # OPTIONAL: Spanish-first demo content (languages, settings, pages, menus, blocks). Safe to skip or re-run at any time — see "Required vs. optional bootstrap" below.
 php spark tests:prepare-db           # Sync the test DB before feature tests
 
 # Hub permission sync (idempotent — safe to rerun)
 php spark domain:sync-permissions --admin-token=<jwt>     # or set hub.adminToken in .env
+
+This command traverses the full manifest, so `created`, `existing`, and `rejected` can all appear in the result. In this stack, `self-permissions` only accepts permissions that match the app namespace, so a `rejected: 21` count is expected when the manifest also includes shared, non-namespaced permissions that are handled separately during role attachment.
 
 # Tests
 vendor/bin/phpunit                   # All
@@ -107,6 +110,24 @@ composer cs-fix                      # Auto-fix style — run before committing
 # OpenAPI
 php spark swagger:generate
 ```
+
+### Required vs. optional bootstrap
+
+**Only two things are actually required for this app to function:**
+
+1. `php spark migrate` — creates the schema. Without this, nothing works.
+2. `php spark domain:sync-permissions` (with the hub's `RbacBootstrapSeeder` already run on the hub side) —
+   registers this app's permission codes so RBAC gating on domain routes works.
+
+**Everything under `db:seed SiteBootstrapSeeder` is optional demo content**, not structural setup:
+languages, site identity/contact settings, block type examples, the "noticias"/"cartelera"/"portafolio"
+demo collections, and the demo pages (home, about, history, portfolio) and menus it builds from them. A
+fresh install with *only* migrations run (no seeders) is a fully working, empty CMS: the admin panel lets
+you create your first language, block type, page, and collection from scratch through its own CRUD screens
+— none of that requires seed data to exist first. Losing or resetting this content (e.g. by re-running
+`php spark migrate:refresh` against a database you didn't mean to touch) does not break the application; it
+just leaves you with an empty CMS. Re-run `php spark db:seed SiteBootstrapSeeder` at any time to restore the
+demo content, or build your own content from the empty state.
 
 ### Adding a new CRUD module
 
@@ -149,6 +170,16 @@ Required environment variables (see `.env.example`):
 | `encryption.key` | CI4 encryption key (32 bytes after `hex2bin:` decode) |
 
 > **Tokens are server-side only.** Pass them via `Authorization: Bearer …` headers (SPA) or PHP sessions (server-rendered admin). Never store JWTs in `localStorage` or non-HttpOnly cookies.
+
+### Docker configuration
+
+`docker compose config --quiet` works on a clean checkout using non-production
+development defaults. To override them, copy `.env.docker.example` to the
+gitignored `.env.docker`, replace every placeholder, and start the stack with
+`docker compose --env-file .env.docker up`. The standalone Domain stack uses ports `8086` (application), `3308`
+(MySQL), and `8087` (phpMyAdmin profile) by default; override them with
+`DOMAIN_HOST_PORT`, `DOMAIN_DB_HOST_PORT`, and
+`DOMAIN_PHPMYADMIN_HOST_PORT`.
 
 ---
 

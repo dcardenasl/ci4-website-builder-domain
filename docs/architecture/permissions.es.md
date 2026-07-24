@@ -4,15 +4,15 @@ Este documento detalla la estructura y el comportamiento de la seguridad en el e
 
 ## Flujo de Permisos Cruzados
 
-La arquitectura de seguridad separa la **interfaz de administración** (Admin/BFF) del **servicio de dominio** (Domain App). Esto introduce una distinción fundamental en el registro de permisos:
+La arquitectura de seguridad separa la **interfaz de administración** (Admin/BFF) del **servicio website builder** (website builder app). Esto introduce una distinción fundamental en el registro de permisos:
 
 1. **Aplicación `self` (ID 1 - Hub/Admin UI)**:
    - Se encarga de controlar si el usuario logueado en la interfaz tiene autorización para ver/navegar en los diferentes módulos (por ejemplo, pintar el enlace de "Plantillas de Correo" en el menú lateral).
    - Los controles de la UI usan la directiva `has_permission('mi.permiso')` buscando este registro bajo la app con ID 1.
 
-2. **Aplicación del Dominio (ID > 1 - e.g. `newsletter` / `catalog`)**:
+2. **Aplicación website builder (ID > 1 - e.g. `newsletter` / `catalog`)**:
    - Se encarga de proteger la API real contra la cual opera el BFF o el Admin.
-   - El middleware del Dominio (`DomainAuthFilter`) intercepta el token JWT enviado y lo introspecta contra el Hub pidiendo los permisos específicos de esa aplicación de dominio (e.g. `newsletter`).
+   - El middleware de website builder (`DomainAuthFilter`) intercepta el token JWT enviado y lo introspecta contra el Hub pidiendo los permisos específicos de esa aplicación website builder (e.g. `newsletter`).
 
 > [!IMPORTANT]
 > Para que un módulo de dominio funcione de extremo a extremo, sus permisos (e.g. `newsletter.emailtemplates.read`) **deben estar registrados bajo ambas aplicaciones** (ID 1 para el Admin UI y el ID del dominio para la API) y vinculados a los roles correspondientes de los usuarios.

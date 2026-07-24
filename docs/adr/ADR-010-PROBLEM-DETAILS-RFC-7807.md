@@ -38,7 +38,7 @@ We don't want to break every existing consumer of the default envelope, but we w
    - `errors` is an additive non-RFC field that preserves the per-field validation map. RFC 7807 explicitly allows extension members (§3.2), so this is compliant.
 
 2. **Add `ApiResponse::negotiateError()` as the opt-in entry point.** Takes an `Accept` header value and returns either:
-   - The legacy shape (`status` / `message` / `errors` / `code`) under `Content-Type: application/json`, OR
+   - The default shape (`status` / `message` / `errors` / `code`) under `Content-Type: application/json`, OR
    - The 7807 shape under `Content-Type: application/problem+json`,
 
    based on whether the Accept header explicitly mentions `application/problem+json`. Returns a small `{body, content_type}` array so the calling controller can set the correct `Content-Type` header on the response.
@@ -64,7 +64,7 @@ We don't want to break every existing consumer of the default envelope, but we w
 
 ## Implementation pointers
 
-- Builder + negotiator: `app/Libraries/ApiResponse.php` — methods `problemDetails`, `negotiateError`, `clientPrefersProblemJson`.
+- Builder + negotiator: `vendor/dcardenasl/ci4-api-core/src/Http/ApiResponse.php` — methods `problemDetails`, `negotiateError`, `clientPrefersProblemJson`.
 - Tests: `tests/Unit/Libraries/ApiResponseTest.php` — 6 cases covering the new builders.
 
 ## Future work

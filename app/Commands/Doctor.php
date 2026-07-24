@@ -200,6 +200,9 @@ class Doctor extends BaseCommand
         }
     }
 
+    /**
+     * @param array<int|string, mixed> $params
+     */
     private function resolveOption(array $params, string $name): string
     {
         $prefix = '--' . $name . '=';

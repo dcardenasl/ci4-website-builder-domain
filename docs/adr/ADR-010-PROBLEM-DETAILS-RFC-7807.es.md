@@ -38,7 +38,7 @@ No queremos romper a todos los consumidores actuales del sobre default, pero que
    - `errors` es un campo aditivo no-RFC que preserva el mapa de validación por campo. RFC 7807 explícitamente permite miembros extension (§3.2), así que es compliant.
 
 2. **Agregar `ApiResponse::negotiateError()` como el entry point opt-in.** Toma un valor del header `Accept` y retorna:
-   - El sobre legacy (`status` / `message` / `errors` / `code`) bajo `Content-Type: application/json`, O
+   - El sobre por defecto (`status` / `message` / `errors` / `code`) bajo `Content-Type: application/json`, O
    - El sobre 7807 bajo `Content-Type: application/problem+json`,
 
    según si el header Accept menciona explícitamente `application/problem+json`. Retorna un pequeño array `{body, content_type}` para que el controller que llama pueda fijar el `Content-Type` correcto en la respuesta.
@@ -64,7 +64,7 @@ No queremos romper a todos los consumidores actuales del sobre default, pero que
 
 ## Punteros de implementación
 
-- Builder + negotiator: `app/Libraries/ApiResponse.php` — métodos `problemDetails`, `negotiateError`, `clientPrefersProblemJson`.
+- Builder + negotiator: `vendor/dcardenasl/ci4-api-core/src/Http/ApiResponse.php` — métodos `problemDetails`, `negotiateError`, `clientPrefersProblemJson`.
 - Tests: `tests/Unit/Libraries/ApiResponseTest.php` — 6 casos cubriendo los nuevos builders.
 
 ## Trabajo futuro

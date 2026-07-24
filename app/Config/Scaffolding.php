@@ -28,12 +28,13 @@ class Scaffolding extends BaseScaffoldingConfig
             responseMapperImplementation: $defaults->responseMapperImplementation,
             servicesFactoryClass: $defaults->servicesFactoryClass,
             paths: $defaults->paths,
-            // Override: domain apps delegate auth to the hub via DomainAuthFilter,
-            // and gate by domain-local permission codes (`items.read` etc.).
-            protectedRouteFilters: ['domainauth', 'permission:items.read', 'throttle'],
+            // Override: the website builder app delegates auth to the hub via DomainAuthFilter.
+            // Resource-level gates are emitted by the scaffolder.
+            protectedRouteFilters: ['domainauth', 'throttle'],
             appNamespace: $defaults->appNamespace,
             openApiTagPrefix: $defaults->openApiTagPrefix,
             conditionalControllerTraits: $defaults->conditionalControllerTraits,
+            permissionCodePrefix: 'cms',
         );
     }
 }

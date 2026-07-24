@@ -86,7 +86,7 @@ else
 fi
 printf "Init log: %s\n" "$LOG_FILE"
 
-print_header "CI4 Domain Starter — Environment Setup"
+print_header "CI4 Website Builder — Environment Setup"
 
 # ---------------------------------------------------------------------------
 # Requirements
@@ -108,7 +108,7 @@ print_ok "Dependencies found (php, composer)"
 # ---------------------------------------------------------------------------
 
 print_header "Hub coordinates"
-printf "This domain app delegates auth to a running ci4-api-starter (the hub).\n"
+printf "This website builder app delegates auth to a running ci4-api-starter (the hub).\n"
 printf "You need: hub URL, an X-App-Key bound to a registered application,\n"
 printf "and the application code.\n\n"
 
@@ -130,8 +130,8 @@ DB_HOST="${CI4_DOMAIN_DB_HOST:-127.0.0.1}"
 DB_PORT="${CI4_DOMAIN_DB_PORT:-3306}"
 DB_USER="${CI4_DOMAIN_DB_USER:-root}"
 DB_PASS="${CI4_DOMAIN_DB_PASS-}"
-DB_NAME="${CI4_DOMAIN_DB_NAME:-ci4_domain}"
-TEST_DB_NAME="${CI4_DOMAIN_TEST_DB_NAME:-ci4_domain_test}"
+DB_NAME="${CI4_DOMAIN_DB_NAME:-ci4_website_builder_domain}"
+TEST_DB_NAME="${CI4_DOMAIN_TEST_DB_NAME:-ci4_website_builder_domain_test}"
 
 [ -n "$DETECTED_DOCKER_PORT" ] && [ -z "${CI4_DOMAIN_DB_PORT:-}" ] && DB_PORT="$DETECTED_DOCKER_PORT"
 
@@ -191,6 +191,12 @@ if [ "$SKIP_DB" = false ]; then
   php spark db:create "$TEST_DB_NAME" || true
   php spark migrate
   print_ok "Migrations applied"
+  if php spark db:seed SiteBootstrapSeeder; then
+    print_ok "Site bootstrap seeded"
+  else
+    print_error "Site bootstrap seeding failed. Run 'php spark db:seed SiteBootstrapSeeder' manually."
+    exit 1
+  fi
 fi
 
 print_header "Validating ci4-api-core service wiring"
@@ -249,7 +255,7 @@ fi
 # ---------------------------------------------------------------------------
 
 print_header "Done"
-printf "Domain app ready at: %s\n" "$(pwd)"
+printf "Website builder app ready at: %s\n" "$(pwd)"
 printf "Hub: %s (app=%s)\n" "$HUB_URL" "$HUB_APP_CODE"
 
 if [ "$SKIP_SERVER" = false ]; then

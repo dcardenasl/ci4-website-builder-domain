@@ -31,7 +31,7 @@ class Database extends Config
         'hostname'    => 'localhost',
         'username'    => 'root',
         'password'    => 'root',
-        'database'    => 'ci4_api',
+        'database'    => 'ci4_website_builder_domain',
         'DBDriver'    => 'MySQLi',
         'DBPrefix'    => '',
         'pConnect'    => false,
@@ -190,6 +190,14 @@ class Database extends Config
     public function __construct()
     {
         parent::__construct();
+
+        if (ENVIRONMENT !== 'testing') {
+            $this->default['hostname'] = (string) (env('DB_HOST', $this->default['hostname']) ?? $this->default['hostname']);
+            $this->default['port'] = (int) (env('DB_PORT', $this->default['port']) ?? $this->default['port']);
+            $this->default['database'] = (string) (env('MYSQL_DATABASE', $this->default['database']) ?? $this->default['database']);
+            $this->default['username'] = (string) (env('MYSQL_USER', $this->default['username']) ?? $this->default['username']);
+            $this->default['password'] = (string) (env('MYSQL_PASSWORD', $this->default['password']) ?? $this->default['password']);
+        }
 
         // Ensure that we always set the database group to 'tests' if
         // we are currently running an automated test suite, so that

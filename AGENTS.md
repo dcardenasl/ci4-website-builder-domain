@@ -1,6 +1,6 @@
-# ci4-domain-starter
+# ci4-website-builder
 
-Domain app template (port 8090). Owns its own business logic and database tables.
+Website builder app template (port 8090). Owns its own business logic and database tables.
 Delegates auth and IAM to a central hub (`ci4-api-starter`). Never issues JWTs.
 
 ## Entry Points
@@ -13,7 +13,7 @@ Delegates auth and IAM to a central hub (`ci4-api-starter`). Never issues JWTs.
 
 ## Contracts & Invariants
 
-- Domain app never issues JWTs — that's the hub's job, always.
+- Website builder app never issues JWTs — that's the hub's job, always.
 - `DomainAuthFilter` (alias `domainauth`) replaces `jwtauth` on all protected routes.
 - `HubClient` is the only place that calls the hub — never call hub URLs directly from controllers.
 - Permission codes use `.` separator — never `:` (CI4 filter parser splits on `:`).

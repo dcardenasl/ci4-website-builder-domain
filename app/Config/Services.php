@@ -7,7 +7,7 @@ namespace Config;
 use CodeIgniter\Config\BaseService;
 
 require_once __DIR__ . '/ApiCoreServices.php';
-require_once __DIR__ . '/ExampleDomainServices.php';
+require_once __DIR__ . '/CmsDomainServices.php';
 require_once __DIR__ . '/SystemMonitoringServices.php';
 require_once __DIR__ . '/RepositoryModelServices.php';
 
@@ -17,7 +17,7 @@ require_once __DIR__ . '/RepositoryModelServices.php';
 class Services extends BaseService
 {
     use ApiCoreServices;
-    use ExampleDomainServices;
+    use CmsDomainServices;
     use SystemMonitoringServices;
     use RepositoryModelServices;
 

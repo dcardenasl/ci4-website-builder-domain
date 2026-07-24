@@ -24,8 +24,12 @@ FROM php:8.2-apache
 LABEL maintainer="CodeIgniter 4 API Starter"
 LABEL description="Production-ready CI4 API with JWT authentication"
 
-# Install system deps, PHP extensions, and enable Apache modules in one layer
+# Install system deps, PHP extensions, and enable Apache modules in one layer.
+# `apt-get upgrade` first so transitive OS packages (e.g. linux-libc-dev) pick
+# up any patch released after this base image tag was last rebuilt, instead
+# of trusting whatever was baked in.
 RUN apt-get update \
+    && apt-get upgrade -y \
     && apt-get install -y --no-install-recommends \
         git \
         curl \
@@ -77,8 +81,11 @@ HEALTHCHECK --interval=30s --timeout=3s --start-period=40s --retries=3 \
 # Expose port 80
 EXPOSE 80
 
+COPY --chmod=755 docker/entrypoint.sh /usr/local/bin/ci4-domain-entrypoint
+
 # Switch to www-data user
 USER www-data
 
 # Start Apache
+ENTRYPOINT ["ci4-domain-entrypoint"]
 CMD ["apache2-foreground"]

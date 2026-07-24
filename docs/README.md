@@ -1,12 +1,12 @@
 # Documentation Index
 
-Documentation for **ci4-domain-starter** — a CodeIgniter 4 template for domain apps that delegate auth and IAM to a central hub. This index only lists files that exist in the template.
+Documentation for **ci4-website-builder** — a CodeIgniter 4 template for the website builder app that delegates auth and IAM to a central hub. This index only lists files that exist in the template.
 
 > **New here?** Start with the root [`README.md`](../README.md) for quickstart and the architecture diagram, then [`CLAUDE.md`](../CLAUDE.md) for working agreements. Spanish version: [README.es.md](README.es.md).
 
-## 🔑 Hub integration (specific to domain apps)
+## 🔑 Hub integration (specific to the website builder app)
 
-The defining feature of this template — how the domain app delegates auth to the hub and registers its permissions.
+The defining feature of this template — how the website builder app delegates auth to the hub and registers its permissions.
 
 - [Authentication & Hub Delegation](architecture/AUTHENTICATION.md) — `DomainAuthFilter`, `HubClient`, introspect / service-token flow.
 - [JWT Validation](tech/jwt-auth.md) — pointer to the hub-side JWT contract.
@@ -37,6 +37,7 @@ If you've never scaffolded a CRUD in this kit, follow this order:
 - [Testing](architecture/TESTING.md)
 - [Drift Guide](architecture/DRIFT_GUIDE.md)
 - [Extension Guide](architecture/EXTENSION_GUIDE.md)
+- [Files](architecture/FILES.md)
   Includes the aggregate-extension pattern: when to stop treating a scaffold as flat CRUD and how to evolve it into custom actions, nested resources, relation sync, and response enrichment.
 
 ## ⚙️ Technical guides

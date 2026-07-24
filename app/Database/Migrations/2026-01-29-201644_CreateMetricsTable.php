@@ -10,6 +10,13 @@ class CreateMetricsTable extends Migration
 {
     public function up(): void
     {
+        /** @var \CodeIgniter\Database\BaseConnection $db */
+        $db = $this->db;
+
+        if ($db->tableExists('metrics')) {
+            return;
+        }
+
         $this->forge->addField([
             'id' => [
                 'type' => 'BIGINT',
@@ -43,6 +50,13 @@ class CreateMetricsTable extends Migration
 
     public function down(): void
     {
-        $this->forge->dropTable('metrics');
+        /** @var \CodeIgniter\Database\BaseConnection $db */
+        $db = $this->db;
+
+        if (! $db->tableExists('metrics')) {
+            return;
+        }
+
+        $this->forge->dropTable('metrics', true);
     }
 }

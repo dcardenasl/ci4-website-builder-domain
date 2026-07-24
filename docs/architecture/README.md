@@ -103,10 +103,16 @@ Welcome to the architecture documentation. This directory contains detailed, foc
     - Locale detection
 
 13. **[EXTENSION_GUIDE.md](EXTENSION_GUIDE.md)** (~20 min read)
-    - How to add new resources
-    - How to add new filters
-    - How to add new exceptions
-    - Best practices
+   - How to add new resources
+   - How to add new filters
+   - How to add new exceptions
+   - Best practices
+
+14. **[FILES.md](FILES.md)** (~15 min read)
+   - Canonical file identity
+   - File references and usages
+   - URL resolution rules
+   - Backfill and anti-patterns
 
 **Time investment:** ~1 hour 45 minutes
 **You'll know:** All advanced features and how to extend the system
@@ -130,6 +136,7 @@ Welcome to the architecture documentation. This directory contains detailed, foc
 | [PATTERNS.md](PATTERNS.md) | Design patterns | ~200 | Advanced |
 | [I18N.md](I18N.md) | Internationalization | ~150 | Advanced |
 | [EXTENSION_GUIDE.md](EXTENSION_GUIDE.md) | Extending the system | ~250 | Advanced |
+| [FILES.md](FILES.md) | Canonical file architecture | ~120 | Advanced |
 
 **Total:** ~2,700 lines
 **Benefit:** Focused, digestible documents
@@ -179,6 +186,9 @@ Welcome to the architecture documentation. This directory contains detailed, foc
 **...see all design patterns**
 → Read [PATTERNS.md](PATTERNS.md)
 
+**...work with CMS files**
+→ Read [FILES.md](FILES.md)
+
 ---
 
 ## 🎯 Quick Reference
@@ -193,10 +203,10 @@ For hands-on, step-by-step tutorial:
 
 Use ADRs for non-negotiable cross-cutting decisions:
 
-1. [ADR-004-OBSERVABILITY-GOVERNANCE.md](ADR-004-OBSERVABILITY-GOVERNANCE.md)
-2. [ADR-005-SERVICE-PURITY-DI.md](ADR-005-SERVICE-PURITY-DI.md)
-3. [ADR-006-FEATURE-TOGGLE-POLICY.md](ADR-006-FEATURE-TOGGLE-POLICY.md)
-4. [ADR-007-SERVICE-RETURN-CONTRACTS.md](ADR-007-SERVICE-RETURN-CONTRACTS.md)
+1. [ADR-004-OBSERVABILITY-GOVERNANCE.md](../adr/ADR-004-OBSERVABILITY-GOVERNANCE.md)
+2. [ADR-005-SERVICE-PURITY-DI.md](../adr/ADR-005-SERVICE-PURITY-DI.md)
+3. [ADR-006-FEATURE-TOGGLE-POLICY.md](../adr/ADR-006-FEATURE-TOGGLE-POLICY.md)
+4. [ADR-007-SERVICE-RETURN-CONTRACTS.md](../adr/ADR-007-SERVICE-RETURN-CONTRACTS.md)
 
 ## 🚨 Handling Architecture Drift
 
@@ -232,7 +242,7 @@ Once you've completed the roadmap:
 
 ## 🧪 Living Example
 
-Walk through the generated `DemoProduct` module in `app/Services/Catalog`, `app/Controllers/Api/V1/Catalog`, and its DTO/tests to see the template structure applied with DTO validation, service orchestration, and documentation artifacts in one place.
+Walk through the maintained `Page` resource in `app/Services/Cms`, `app/Controllers/Api/V1/Cms`, `app/DTO/*/Cms`, and its tests to see DTO validation, service orchestration, and documentation artifacts applied in production code.
 
 ---
 

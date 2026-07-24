@@ -17,6 +17,12 @@ class RequestLogModelTest extends CIUnitTestCase
     protected $refresh     = true;
     protected $namespace   = 'App';
 
+    protected function setUp(): void
+    {
+        parent::setUp();
+        \Config\Database::connect()->query("DELETE FROM `request_logs`");
+    }
+
     public function testGetStatsReturnsSloAndBreakdownMetrics(): void
     {
         $model = new RequestLogModel();

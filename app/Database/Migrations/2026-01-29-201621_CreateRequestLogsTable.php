@@ -10,6 +10,13 @@ class CreateRequestLogsTable extends Migration
 {
     public function up(): void
     {
+        /** @var \CodeIgniter\Database\BaseConnection $db */
+        $db = $this->db;
+
+        if ($db->tableExists('request_logs')) {
+            return;
+        }
+
         $this->forge->addField([
             'id' => [
                 'type' => 'BIGINT',
@@ -61,6 +68,13 @@ class CreateRequestLogsTable extends Migration
 
     public function down(): void
     {
-        $this->forge->dropTable('request_logs');
+        /** @var \CodeIgniter\Database\BaseConnection $db */
+        $db = $this->db;
+
+        if (! $db->tableExists('request_logs')) {
+            return;
+        }
+
+        $this->forge->dropTable('request_logs', true);
     }
 }

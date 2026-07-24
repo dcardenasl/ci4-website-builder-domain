@@ -17,9 +17,13 @@
         </testsuite>
         <testsuite name="Integration">
             <directory>tests/Integration</directory>
+            <exclude>tests/Integration/Database/Seeds</exclude>
         </testsuite>
         <testsuite name="Feature">
             <directory>tests/Feature</directory>
+        </testsuite>
+        <testsuite name="SeederContracts">
+            <directory>tests/Integration/Database/Seeds</directory>
         </testsuite>
     </testsuites>
 
@@ -53,5 +57,6 @@
 
         <env name="JWT_SECRET_KEY" value="testing-secret-key-at-least-32-characters-long"/>
         <env name="JWT_ALGORITHM" value="HS256"/>
+        <env name="CMS_PREVIEW_SECRET" value="testing-preview-secret-at-least-32-characters"/>
     </php>
 </phpunit>

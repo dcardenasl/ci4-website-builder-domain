@@ -6,6 +6,7 @@ parameters:
     bootstrapFiles:
         - phpstan-bootstrap.php
     paths:
+        - app/Common.php
         - app/Controllers
         - app/Services
         - app/Models
@@ -13,6 +14,9 @@ parameters:
         - app/Entities
         - app/Filters
         - app/Interfaces
+        - app/DTO
+        - app/Repositories
+        - app/Commands
     parallel:
         jobSize: 20
         processTimeout: 600.0
@@ -25,7 +29,6 @@ parameters:
         - tests/_support (?)
         - app/Config
         - app/Views
-        - app/Commands
     reportUnmatchedIgnoredErrors: false
     treatPhpDocTypesAsCertain: false
     # ignoreErrors limited to CI4 framework-dynamic patterns (not real bugs).
@@ -47,3 +50,17 @@ parameters:
         # untyped data; should be progressively typed but not blocking.
         - '#Call to an undefined method object::#'
         - '#Access to an undefined property object::#'
+        # dcardenasl\Ci4ApiCore\Dto\BaseRequestDTO::__construct() calls the
+        # abstract map() method to assign every readonly property. map() is
+        # only ever invoked from that constructor, so the object is fully
+        # immutable once built — but PHPStan's readonly analysis only
+        # recognizes assignment written literally inside __construct(), not a
+        # method called exclusively from it. Every generated Request DTO hits
+        # this false positive; scoped to app/DTO so a real "readonly assigned
+        # somewhere unexpected" bug elsewhere still fails the build.
+        -
+            identifier: property.readOnlyAssignNotInConstructor
+            path: app/DTO/*
+        -
+            identifier: property.uninitializedReadonly
+            path: app/DTO/*

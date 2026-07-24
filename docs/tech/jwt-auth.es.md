@@ -2,7 +2,7 @@
 
 > English version: [jwt-auth.md](jwt-auth.md). Para el flujo de delegación completo ver [`../architecture/AUTHENTICATION.es.md`](../architecture/AUTHENTICATION.es.md).
 
-Esta app de dominio **no emite, refresca ni revoca JWT**. Todas las operaciones del ciclo de vida del token viven en el hub (`ci4-api-starter`).
+Esta app website builder **no emite, refresca ni revoca JWT**. Todas las operaciones del ciclo de vida del token viven en el hub (`ci4-api-starter`).
 
 ## Qué hace esta app
 

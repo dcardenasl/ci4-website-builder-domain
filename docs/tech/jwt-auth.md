@@ -2,7 +2,7 @@
 
 > Spanish version: [jwt-auth.es.md](jwt-auth.es.md). For the full delegation flow see [`../architecture/AUTHENTICATION.md`](../architecture/AUTHENTICATION.md).
 
-This domain app **does not issue, refresh, or revoke JWTs**. All token lifecycle operations live on the hub (`ci4-api-starter`).
+This website builder app **does not issue, refresh, or revoke JWTs**. All token lifecycle operations live on the hub (`ci4-api-starter`).
 
 ## What this app does
 

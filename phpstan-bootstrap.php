@@ -26,6 +26,18 @@ foreach ([
     }
 }
 
+// Same treatment as app/Config/Constants.php (excluded from PHPStan's paths):
+// CLI commands reference these exit-code constants, but that file is never
+// scanned, so PHPStan sees them as undefined without this stub.
+foreach ([
+    'EXIT_SUCCESS' => 0,
+    'EXIT_ERROR'   => 1,
+] as $constant => $value) {
+    if (! defined($constant)) {
+        define($constant, $value);
+    }
+}
+
 if (! function_exists('service')) {
     function service(string $name, mixed ...$params): mixed
     {
@@ -171,5 +183,25 @@ if (! function_exists('csrf_meta')) {
     function csrf_meta(?string $id = null): string
     {
         return '';
+    }
+}
+
+if (! function_exists('cms_block_preview_samples')) {
+    /**
+     * @return array<string, array<string, mixed>>
+     */
+    function cms_block_preview_samples(): array
+    {
+        return [];
+    }
+}
+
+if (! function_exists('cms_block_preview_sample')) {
+    /**
+     * @return array<string, mixed>
+     */
+    function cms_block_preview_sample(string $blockKey): array
+    {
+        return [];
     }
 }

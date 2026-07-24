@@ -10,6 +10,13 @@ class CreateFailedJobsTable extends Migration
 {
     public function up(): void
     {
+        /** @var \CodeIgniter\Database\BaseConnection $db */
+        $db = $this->db;
+
+        if ($db->tableExists('failed_jobs')) {
+            return;
+        }
+
         $this->forge->addField([
             'id' => [
                 'type' => 'BIGINT',
@@ -43,6 +50,13 @@ class CreateFailedJobsTable extends Migration
 
     public function down(): void
     {
+        /** @var \CodeIgniter\Database\BaseConnection $db */
+        $db = $this->db;
+
+        if (! $db->tableExists('failed_jobs')) {
+            return;
+        }
+
         $this->forge->dropTable('failed_jobs', true);
     }
 }

@@ -19,6 +19,7 @@ class App extends BaseConfig
      * E.g., http://example.com/
      */
     public string $baseURL = '';
+    public string $recaptchaSecretKey = '';
 
     /**
      * Allowed Hostnames in the Site URL other than the hostname in the baseURL.
@@ -182,6 +183,14 @@ class App extends BaseConfig
     public function __construct()
     {
         parent::__construct();
+
+        // Environment variables containing dots are not propagated reliably
+        // through every Apache/PHP runtime. Keep the standard CI4 key, but
+        // support an explicit container-friendly alias as well.
+        $baseUrl = trim((string) (env('APP_BASE_URL', '') ?? ''));
+        if ($baseUrl !== '') {
+            $this->baseURL = rtrim($baseUrl, '/') . '/';
+        }
 
         // Allow comma-separated `cidr=header` pairs in .env so deployments
         // behind ALB / nginx / Cloudflare can whitelist their proxy without

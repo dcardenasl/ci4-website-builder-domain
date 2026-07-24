@@ -2,7 +2,7 @@
 
 > Spanish version: [AUTHENTICATION.es.md](AUTHENTICATION.es.md). For a high-level summary see [`../tech/jwt-auth.md`](../tech/jwt-auth.md).
 
-This domain app delegates **all** identity and access concerns to the hub (`ci4-api-starter`). Login, refresh, password reset, email verification, JWT issuance, JTI revocation lists, and the `users` / `roles` / `permissions` tables live on the hub. This document describes the contract between the two.
+This website builder app delegates **all** identity and access concerns to the hub (`ci4-api-starter`). Login, refresh, password reset, email verification, JWT issuance, JTI revocation lists, and the `users` / `roles` / `permissions` tables live on the hub. This document describes the contract between the two.
 
 ## Boundary
 
@@ -11,7 +11,7 @@ Client (browser / SPA / CLI / service)
         │
         │  Authorization: Bearer <jwt>
         ▼
-   Domain app (this repo, :8090)
+   Website builder app (this repo, :8090)
         │
         │  POST /api/v1/auth/introspect          (validates user JWTs)
         │  POST /api/v1/auth/service-token       (M2M when this app calls back)
@@ -23,19 +23,19 @@ Client (browser / SPA / CLI / service)
         users / roles / permissions / role_permissions / user_roles
 ```
 
-The contract is **HTTP, not shared secrets**. The domain app does not have the JWT signing key; trust flows through the introspection endpoint.
+The contract is **HTTP, not shared secrets**. The website builder app does not have the JWT signing key; trust flows through the introspection endpoint.
 
 ## Login (issued by the hub)
 
-The domain app does not own a `/login` endpoint. The client logs in directly against the hub:
+The website builder app does not own a `/login` endpoint. The client logs in directly against the hub:
 
 ```
 POST <hub>/api/v1/auth/login
-X-App-Key: <hub.apiKey>          # the X-App-Key of THIS domain app, not the hub
+X-App-Key: <hub.apiKey>          # the X-App-Key of THIS website builder app, not the hub
 { "email": "...", "password": "..." }
 ```
 
-The hub returns `{ access_token, refresh_token, user: { id, email, permissions: [...] } }`. The `permissions` array is computed by `EffectivePermissionsResolver(user_id, application_id)` where `application_id` is the row matching the `X-App-Key` — i.e. **this domain app's permissions**, not the hub's. This is what makes the same login token usable across many domain apps with different permission sets.
+The hub returns `{ access_token, refresh_token, user: { id, email, permissions: [...] } }`. The `permissions` array is computed by `EffectivePermissionsResolver(user_id, application_id)` where `application_id` is the row matching the `X-App-Key` — i.e. **this website builder app's permissions**, not the hub's. This is what makes the same login token usable across many website builder apps with different permission sets.
 
 ## Validating a request (`DomainAuthFilter`)
 
@@ -55,11 +55,11 @@ Wire the filter on every protected route group. The scaffolder does this automat
 
 ### Cache invalidation
 
-There is **no push invalidation** between hub and domain. If a user's permissions change on the hub, the domain app will continue serving the cached `permissions[]` until TTL expires (default 60s). For most flows this is acceptable; if your domain needs faster fan-out, lower `hub.introspectCacheTtl` or call `php spark cache:clear` on a hook.
+There is **no push invalidation** between hub and website builder app. If a user's permissions change on the hub, the website builder app will continue serving the cached `permissions[]` until TTL expires (default 60s). For most flows this is acceptable; if your website builder needs faster fan-out, lower `hub.introspectCacheTtl` or call `php spark cache:clear` on a hook.
 
 ## Calling back into the hub (service tokens)
 
-If the domain app needs to call privileged hub endpoints (e.g. fetching user metadata for an audit report), it does so with a **service token**:
+If the website builder app needs to call privileged hub endpoints (e.g. fetching user metadata for an audit report), it does so with a **service token**:
 
 ```
 1. HubClient::getServiceToken() → cached in-memory until exp - serviceTokenSafetyMargin.
@@ -84,7 +84,7 @@ The command is idempotent and safe to re-run after fixing hub-side state (missin
 
 ## What lives where
 
-| Concern | Hub | Domain app |
+| Concern | Hub | Website builder app |
 |---|---|---|
 | User accounts (`users` table) | ✅ | ❌ |
 | Login / logout / refresh | ✅ | ❌ |
@@ -101,7 +101,7 @@ The command is idempotent and safe to re-run after fixing hub-side state (missin
 
 ## Pitfalls
 
-- **Wrong `hub.apiKey`** — every introspect call returns 401 from the hub. The X-App-Key must match the `applications.code` of THIS domain app, not the hub itself.
+- **Wrong `hub.apiKey`** — every introspect call returns 401 from the hub. The X-App-Key must match the `applications.code` of THIS website builder app, not the hub itself.
 - **Trying to validate JWTs locally** — there's no shared signing key on purpose. Always go through `HubClient::introspect()`.
 - **Storing tokens in `localStorage`** — server-side only (PHP session for server-rendered admin, header for SPAs).
 - **Adding a `users` migration here** — stop. That data lives in the hub.

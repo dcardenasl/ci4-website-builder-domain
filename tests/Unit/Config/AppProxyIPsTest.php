@@ -15,6 +15,23 @@ use Config\App;
  */
 class AppProxyIPsTest extends CIUnitTestCase
 {
+    public function testContainerFriendlyBaseUrlAliasIsApplied(): void
+    {
+        $previous = getenv('APP_BASE_URL');
+        putenv('APP_BASE_URL=http://domain.test:8190');
+
+        try {
+            $config = new App();
+            $this->assertSame('http://domain.test:8190/', $config->baseURL);
+        } finally {
+            if ($previous === false) {
+                putenv('APP_BASE_URL');
+            } else {
+                putenv('APP_BASE_URL=' . $previous);
+            }
+        }
+    }
+
     private function withProxyIpsEnv(string $value, callable $fn): void
     {
         $previous = getenv('app.proxyIPs');

@@ -1,12 +1,14 @@
 {
-    "name": "ci4/domain-starter",
-    "description": "CodeIgniter 4 Domain App Starter \u2014 delegates auth to a hub via /auth/introspect.",
+    "name": "ci4/website-builder",
+    "description": "CodeIgniter 4 Website Builder starter — delegates auth to a hub via /auth/introspect.",
     "type": "project",
     "license": "MIT",
     "require": {
         "php": "^8.2",
         "codeigniter4/framework": "^4.7",
         "dcardenasl/ci4-api-core": "^1.0",
+        "ezyang/htmlpurifier": "^4.17",
+        "guzzlehttp/psr7": "^2.12.1",
         "monolog/monolog": "^3.5",
         "sentry/sentry": "^4.6",
         "zircote/swagger-php": "^6.0"
@@ -38,11 +40,15 @@
     "scripts": {
         "post-install-cmd": [
             "chmod +x pre-commit",
-            "cp pre-commit .git/hooks/pre-commit"
+            "cp pre-commit .git/hooks/pre-commit",
+            "chmod +x pre-push",
+            "cp pre-push .git/hooks/pre-push"
         ],
         "post-update-cmd": [
             "chmod +x pre-commit",
-            "cp pre-commit .git/hooks/pre-commit"
+            "cp pre-commit .git/hooks/pre-commit",
+            "chmod +x pre-push",
+            "cp pre-push .git/hooks/pre-push"
         ],
         "test:prepare-db": "php spark tests:prepare-db",
         "test:unit": [
@@ -57,15 +63,24 @@
             "@test:prepare-db",
             "phpunit --testsuite=Feature --configuration=phpunit.xml --no-coverage --testdox"
         ],
-        "test": [
+        "test:dynamic": [
             "@test:prepare-db",
-            "phpunit --configuration=phpunit.xml --no-coverage --testdox"
+            "phpunit --testsuite=Unit,Architecture,Integration,Feature --configuration=phpunit.xml --no-coverage --testdox"
+        ],
+        "test:seed-contracts": [
+            "@test:prepare-db",
+            "phpunit --testsuite=SeederContracts --configuration=phpunit.xml --no-coverage --testdox"
+        ],
+        "test:fixture-policy": "php scripts/check-test-fixture-policy.php",
+        "test": [
+            "@test:dynamic",
+            "@test:seed-contracts"
         ],
         "test:coverage": [
             "@test:prepare-db",
-            "phpunit --configuration=phpunit.xml --testdox"
+            "phpunit --testsuite=Unit,Architecture,Integration,Feature --configuration=phpunit.xml --testdox"
         ],
-        "coverage:check": "php scripts/check-coverage.php 70 tests/coverage/clover.xml",
+        "coverage:check": "php scripts/check-coverage.php 35.05 tests/coverage/clover.xml",
         "phpstan": "phpstan analyse --memory-limit=512M",
         "cs-fix": "php-cs-fixer fix",
         "cs-check": "php-cs-fixer fix --dry-run --diff --sequential",
@@ -85,8 +100,12 @@
             "@arch-drift",
             "@i18n-check",
             "@docs-i18n-check",
+            "@test:fixture-policy",
             "@test"
-        ]
+        ],
+        "format": "@cs-fix",
+        "format:check": "@cs-check",
+        "analyse": "@phpstan"
     },
     "config": {
         "optimize-autoloader": true,

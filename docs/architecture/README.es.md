@@ -187,10 +187,10 @@ Para tutorial paso a paso, práctico:
 
 Usa ADRs para decisiones transversales no negociables:
 
-1. [ADR-004-OBSERVABILITY-GOVERNANCE.es.md](ADR-004-OBSERVABILITY-GOVERNANCE.es.md)
-2. [ADR-005-SERVICE-PURITY-DI.es.md](ADR-005-SERVICE-PURITY-DI.es.md)
-3. [ADR-006-FEATURE-TOGGLE-POLICY.es.md](ADR-006-FEATURE-TOGGLE-POLICY.es.md)
-4. [ADR-007-SERVICE-RETURN-CONTRACTS.es.md](ADR-007-SERVICE-RETURN-CONTRACTS.es.md)
+1. [ADR-004-OBSERVABILITY-GOVERNANCE.es.md](../adr/ADR-004-OBSERVABILITY-GOVERNANCE.es.md)
+2. [ADR-005-SERVICE-PURITY-DI.es.md](../adr/ADR-005-SERVICE-PURITY-DI.es.md)
+3. [ADR-006-FEATURE-TOGGLE-POLICY.es.md](../adr/ADR-006-FEATURE-TOGGLE-POLICY.es.md)
+4. [ADR-007-SERVICE-RETURN-CONTRACTS.es.md](../adr/ADR-007-SERVICE-RETURN-CONTRACTS.es.md)
 
 ## 🚨 Cómo manejar el desvío arquitectónico
 
@@ -226,7 +226,7 @@ Una vez que hayas completado el mapa de aprendizaje:
 
 ## 🧪 Ejemplo vivo
 
-Consulta el módulo `DemoProduct` generado (dominio `Catalog`) en `app/Services/Catalog`, `app/Controllers/Api/V1/Catalog` y sus DTO/tests para ver el patrón del template aplicado (validación DTO, lógica de servicio y documentación cohesionada).
+Consulta el recurso mantenido `Page` en `app/Services/Cms`, `app/Controllers/Api/V1/Cms`, `app/DTO/*/Cms` y sus tests para ver validación DTO, orquestación de servicios y documentación aplicadas en código de producción.
 
 ---
 

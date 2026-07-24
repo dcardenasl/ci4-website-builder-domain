@@ -18,11 +18,20 @@ trait SystemMonitoringServices
             return static::getSharedInstance('auditService');
         }
 
+        $queueManager = static::auditQueueManager();
+
+        // The sync transport executes jobs inline but is not a processing
+        // QueueManager. AuditService uses null to persist audit entries
+        // synchronously when no asynchronous queue is available.
+        $auditQueueManager = $queueManager instanceof \dcardenasl\Ci4ApiCore\Queue\QueueManager
+            ? $queueManager
+            : null;
+
         return new \dcardenasl\Ci4ApiCore\Services\Audit\AuditService(
             static::auditRepository(),
             static::auditResponseMapper(),
             static::auditWriter(),
-            static::queueManager(),
+            $auditQueueManager,
             config('Audit'),
             ENVIRONMENT !== 'testing',
             '127.0.0.1',
