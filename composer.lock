@@ -8,16 +8,16 @@
     "packages": [
         {
             "name": "codeigniter4/framework",
-            "version": "v4.7.3",
+            "version": "v4.7.4",
             "source": {
                 "type": "git",
                 "url": "https://github.com/codeigniter4/framework.git",
-                "reference": "ab9bf33caa3ccc25b1a4652234d7d0eb1d1937de"
+                "reference": "67ead895b7491703e5e5bc17436778806192008f"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/codeigniter4/framework/zipball/ab9bf33caa3ccc25b1a4652234d7d0eb1d1937de",
-                "reference": "ab9bf33caa3ccc25b1a4652234d7d0eb1d1937de",
+                "url": "https://api.github.com/repos/codeigniter4/framework/zipball/67ead895b7491703e5e5bc17436778806192008f",
+                "reference": "67ead895b7491703e5e5bc17436778806192008f",
                 "shasum": ""
             },
             "require": {
@@ -81,20 +81,20 @@
                 "slack": "https://codeigniterchat.slack.com",
                 "source": "https://github.com/codeigniter4/CodeIgniter4"
             },
-            "time": "2026-05-22T11:21:33+00:00"
+            "time": "2026-07-07T09:23:35+00:00"
         },
         {
             "name": "dcardenasl/ci4-api-core",
-            "version": "v1.0.1",
+            "version": "v1.1.0",
             "source": {
                 "type": "git",
                 "url": "https://github.com/dcardenasl/ci4-api-core.git",
-                "reference": "a2d1c56b8b77e09ccaa3cb2cd132c99fcbf893ee"
+                "reference": "2be461a58ab811993f6ea1798629bef967b4ce58"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/dcardenasl/ci4-api-core/zipball/a2d1c56b8b77e09ccaa3cb2cd132c99fcbf893ee",
-                "reference": "a2d1c56b8b77e09ccaa3cb2cd132c99fcbf893ee",
+                "url": "https://api.github.com/repos/dcardenasl/ci4-api-core/zipball/2be461a58ab811993f6ea1798629bef967b4ce58",
+                "reference": "2be461a58ab811993f6ea1798629bef967b4ce58",
                 "shasum": ""
             },
             "require": {
@@ -148,7 +148,7 @@
                     "email": "code.dcl@gmail.com"
                 }
             ],
-            "description": "DTO-first API runtime foundation for CodeIgniter 4: base classes, HTTP layer, services, repositories, filters, audit chain, and queue. Powers ci4-api-starter and ci4-website-builder. Pair with dcardenasl/ci4-api-scaffolding for CRUD generation.",
+            "description": "DTO-first API runtime foundation for CodeIgniter 4: base classes, HTTP layer, services, repositories, filters, audit chain, and queue. Powers ci4-api-starter and ci4-domain-starter. Pair with dcardenasl/ci4-api-scaffolding for CRUD generation.",
             "homepage": "https://github.com/dcardenasl/ci4-api-core",
             "keywords": [
                 "Audit",
@@ -170,7 +170,7 @@
                 "issues": "https://github.com/dcardenasl/ci4-api-core/issues",
                 "source": "https://github.com/dcardenasl/ci4-api-core"
             },
-            "time": "2026-06-11T03:18:18+00:00"
+            "time": "2026-07-23T22:57:33+00:00"
         },
         {
             "name": "ezyang/htmlpurifier",
@@ -578,20 +578,19 @@
         },
         {
             "name": "nikic/php-parser",
-            "version": "v5.7.0",
+            "version": "v5.8.0",
             "source": {
                 "type": "git",
                 "url": "https://github.com/nikic/PHP-Parser.git",
-                "reference": "dca41cd15c2ac9d055ad70dbfd011130757d1f82"
+                "reference": "044a6a392ff8ad0d61f14370a5fbbd0a0107152f"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/nikic/PHP-Parser/zipball/dca41cd15c2ac9d055ad70dbfd011130757d1f82",
-                "reference": "dca41cd15c2ac9d055ad70dbfd011130757d1f82",
+                "url": "https://api.github.com/repos/nikic/PHP-Parser/zipball/044a6a392ff8ad0d61f14370a5fbbd0a0107152f",
+                "reference": "044a6a392ff8ad0d61f14370a5fbbd0a0107152f",
                 "shasum": ""
             },
             "require": {
-                "ext-ctype": "*",
                 "ext-json": "*",
                 "ext-tokenizer": "*",
                 "php": ">=7.4"
@@ -630,9 +629,9 @@
             ],
             "support": {
                 "issues": "https://github.com/nikic/PHP-Parser/issues",
-                "source": "https://github.com/nikic/PHP-Parser/tree/v5.7.0"
+                "source": "https://github.com/nikic/PHP-Parser/tree/v5.8.0"
             },
-            "time": "2025-12-06T11:56:16+00:00"
+            "time": "2026-07-04T14:30:18+00:00"
         },
         {
             "name": "phpstan/phpdoc-parser",
@@ -2537,16 +2536,16 @@
         },
         {
             "name": "dcardenasl/ci4-api-scaffolding",
-            "version": "v1.0.0",
+            "version": "v1.1.1",
             "source": {
                 "type": "git",
                 "url": "https://github.com/dcardenasl/ci4-api-scaffolding.git",
-                "reference": "cc8e87edc647d6746dbe9efa671cd6666831894f"
+                "reference": "88c4694f003d0cfa41d4227853b6b4eb030719a6"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/dcardenasl/ci4-api-scaffolding/zipball/cc8e87edc647d6746dbe9efa671cd6666831894f",
-                "reference": "cc8e87edc647d6746dbe9efa671cd6666831894f",
+                "url": "https://api.github.com/repos/dcardenasl/ci4-api-scaffolding/zipball/88c4694f003d0cfa41d4227853b6b4eb030719a6",
+                "reference": "88c4694f003d0cfa41d4227853b6b4eb030719a6",
                 "shasum": ""
             },
             "require": {
@@ -2620,7 +2619,7 @@
                 "issues": "https://github.com/dcardenasl/ci4-api-scaffolding/issues",
                 "source": "https://github.com/dcardenasl/ci4-api-scaffolding"
             },
-            "time": "2026-06-11T03:20:09+00:00"
+            "time": "2026-07-23T23:53:35+00:00"
         },
         {
             "name": "ergebnis/agent-detector",
