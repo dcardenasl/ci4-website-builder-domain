@@ -7,12 +7,38 @@
 
 ## 🔴 En progreso
 
-*(vacío)*
+### Backport de mejoras de Teatro Museo (parte Domain)
+
+> Plan completo (contexto, decisiones de alcance, todas las fases, todos los repos):
+> [`../docs/plans/2026-08-24-plan-backport-teatromuseo.md`](../docs/plans/2026-08-24-plan-backport-teatromuseo.md).
+> Tracker cross-repo: [`../TASKS.md`](../TASKS.md).
+
+- [x] **BACKPORT-00-domain — Fase 0:** bump `dcardenasl/ci4-api-core` v1.1.0 → v1.5.1;
+      eliminada la copia local de `JsonCastNormalizer` (repuntado a la clase del paquete);
+      `HubClient::resolvePublicFileMeta()` endurecido (sanitiza/dedupe ids, chunking a 200,
+      fallback a stale cache) — se corrigió además un bug real preexistente: el método ignoraba
+      el cache inyectado por constructor y resolvía uno nuevo vía el service locator, rompiendo
+      la inyección de dependencias en tests. Código y tests
+      (`tests/Unit/Libraries/Hub/HubClientResolvePublicFileMetaTest.php`) verificados en verde;
+      **pendiente de commit**. Ver plan §Fase 0.
+- [ ] **BACKPORT-01-domain — Fase 1:** cerrar las excepciones baseline restantes de
+      `ControllerModelDependencyConventionsTest` hasta tolerancia cero. Ver plan §Fase 1.
 
 ## 🟡 Próximo
 
-*(vacío — las fases Controller→Model y la auditoría de bloques owner-scoped quedaron cerradas;
-las decisiones de producto pendientes se mantienen en el tracker global.)*
+### Backport de mejoras de Teatro Museo — fases posteriores (parte Domain)
+
+- [ ] **BACKPORT-03-domain — Fase 3:** documentar convención de namespace de permisos
+      `{app-code}.{resource}.{action}`; cablear kit de public-slugs sobre una entidad de
+      referencia; abstracción compartida de `{entity}_translations`; capacidad de reordenamiento
+      atómico por lotes (`SortOrderApiService` + `POST /{recurso}/sort-orders`); ADR de "external
+      domain binding" para el patrón CMS `page_type` → dominio externo. Ver plan §Fase 3 — mayor
+      pieza arquitectónica de esta fase, sin agregar nuevas apps de dominio.
+- [ ] **BACKPORT-04-domain — Fase 4:** endpoints CMS compuestos (`layout`, `page-bootstrap/{path}`).
+      Ver plan §Fase 4.
+
+*(las fases Controller→Model y la auditoría de bloques owner-scoped quedaron cerradas; las
+decisiones de producto pendientes se mantienen en el tracker global.)*
 
 ## ⚪ Backlog
 
