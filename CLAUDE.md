@@ -109,6 +109,10 @@ What's **different** here:
   for the primary registration. Use `--mirror-to-self --admin-token=<jwt>` to also
   register the permissions under hub app `self` (application_id=1) for admin UI gating.
   The CRUD scaffolder appends the standard `{resource}.read/write/delete` entries automatically.
+
+All permission codes follow the `{app-code}.{resource}.{action}` namespace. This repository uses
+`cms` as its app-code, so a route permission is written as `cms.pages.read`; use `.` as the only
+separator and never introduce `:`-separated codes.
 - `Config\Scaffolding` overrides `protectedRouteFilters` to
   `['domainauth', 'permission:items.read', 'throttle']` — generated CRUDs are
   protected by `domainauth` automatically.
