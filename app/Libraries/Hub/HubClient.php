@@ -62,45 +62,66 @@ class HubClient extends CoreHubClient
      */
     public function resolvePublicFileMeta(array $fileIds, int $cacheTtl = 300): array
     {
-        if (empty($fileIds)) {
+        $fileIds = array_values(array_unique(array_filter(
+            array_map(static fn (mixed $id): int => (int) $id, $fileIds),
+            static fn (int $id): bool => $id > 0,
+        )));
+        if ($fileIds === []) {
             return [];
         }
 
-        $cache  = \Config\Services::cache();
-        $result = [];
-        $miss   = [];
+        $cache    = $this->cache;
+        $result   = [];
+        $miss     = [];
+        $staleTtl = max($cacheTtl, (int) env('HUB_FILE_META_STALE_TTL', 900));
 
         foreach ($fileIds as $id) {
             $cached = $cache->get($this->fileMetaCacheKey($id));
             if (is_array($cached)) {
                 $result[$id] = $cached;
-            } else {
-                $miss[] = $id;
+                continue;
+            }
+
+            $miss[] = $id;
+
+            // The Hub may be temporarily unreachable for this batch — keep a
+            // longer-lived stale copy so a transient outage degrades to
+            // "slightly outdated metadata" instead of "no metadata at all".
+            $stale = $cache->get($this->fileMetaStaleCacheKey($id));
+            if (is_array($stale)) {
+                $result[$id] = $stale;
             }
         }
 
-        if (empty($miss)) {
+        if ($miss === []) {
             return $result;
         }
 
-        try {
-            $data = $this->request('GET', '/api/v1/internal/files/batch-meta', [
-                'headers' => $this->appKeyHeaders(),
-                'query'   => ['ids' => $miss],
-            ]);
+        // The Hub's batch-meta endpoint caps a single request at 200 ids
+        // (see InternalFileMetaController::batchMeta); requesting more than
+        // that in one call would silently truncate the response and drop
+        // the remaining ids instead of resolving them across a second call.
+        foreach (array_chunk($miss, 200) as $batch) {
+            try {
+                $data = $this->request('GET', '/api/v1/internal/files/batch-meta', [
+                    'headers' => $this->appKeyHeaders(),
+                    'query'   => ['ids' => $batch],
+                ]);
 
-            $items = is_array($data['data'] ?? null) ? $data['data'] : $data;
+                $items = is_array($data['data'] ?? null) ? $data['data'] : $data;
 
-            foreach ($items as $fileId => $meta) {
-                if (! is_array($meta)) {
-                    continue;
+                foreach ($items as $fileId => $meta) {
+                    if (! is_array($meta)) {
+                        continue;
+                    }
+                    $id          = (int) $fileId;
+                    $result[$id] = $meta;
+                    $cache->save($this->fileMetaCacheKey($id), $meta, $cacheTtl);
+                    $cache->save($this->fileMetaStaleCacheKey($id), $meta, $staleTtl);
                 }
-                $id          = (int) $fileId;
-                $result[$id] = $meta;
-                $cache->save($this->fileMetaCacheKey($id), $meta, $cacheTtl);
+            } catch (\Throwable $e) {
+                log_message('error', '[HubClient] resolvePublicFileMeta failed: ' . $e->getMessage());
             }
-        } catch (\Throwable $e) {
-            log_message('error', '[HubClient] resolvePublicFileMeta failed: ' . $e->getMessage());
         }
 
         return $result;
@@ -112,12 +133,19 @@ class HubClient extends CoreHubClient
      */
     public function invalidateFileMetaCache(int $fileId): void
     {
-        \Config\Services::cache()->delete($this->fileMetaCacheKey($fileId));
+        $cache = \Config\Services::cache();
+        $cache->delete($this->fileMetaCacheKey($fileId));
+        $cache->delete($this->fileMetaStaleCacheKey($fileId));
     }
 
     private function fileMetaCacheKey(int $fileId): string
     {
         return 'hub_file_meta_' . $fileId;
+    }
+
+    private function fileMetaStaleCacheKey(int $fileId): string
+    {
+        return 'hub_file_meta_stale_' . $fileId;
     }
 
     /**
