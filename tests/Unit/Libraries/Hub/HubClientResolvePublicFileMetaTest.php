@@ -10,6 +10,7 @@ use CodeIgniter\HTTP\CURLRequest;
 use CodeIgniter\HTTP\ResponseInterface;
 use CodeIgniter\Test\CIUnitTestCase;
 use dcardenasl\Ci4ApiCore\Http\Client\HubClientConfig;
+use dcardenasl\Ci4ApiCore\Http\RequestIdHolder;
 
 /**
  * Covers the hardening of {@see HubClient::resolvePublicFileMeta()}: the Hub's
@@ -101,6 +102,51 @@ final class HubClientResolvePublicFileMetaTest extends CIUnitTestCase
         $result = $client->resolvePublicFileMeta([5, 5, 0, -1, 5]);
 
         $this->assertSame(['https://cdn.test/5.jpg'], array_column($result, 'url'));
+    }
+
+    public function testExplicitPublicReadTimeoutsAddConnectionBudgetAndRequestId(): void
+    {
+        $previousConnectTimeout = $_ENV['PUBLIC_READ_HUB_CONNECT_TIMEOUT'] ?? null;
+        $previousRequestTimeout = $_ENV['PUBLIC_READ_HUB_TIMEOUT'] ?? null;
+        $_ENV['PUBLIC_READ_HUB_CONNECT_TIMEOUT'] = '0.25';
+        $_ENV['PUBLIC_READ_HUB_TIMEOUT'] = '1.0';
+        RequestIdHolder::set('request-123');
+
+        try {
+            $cache = $this->createMock(CacheInterface::class);
+            $cache->method('get')->willReturn(null);
+            $cache->expects($this->exactly(2))->method('save');
+
+            $http = $this->createMock(CURLRequest::class);
+            $http->expects($this->once())
+                ->method('request')
+                ->willReturnCallback(function (string $method, string $url, array $options): ResponseInterface {
+                    $this->assertSame('request-123', $options['headers']['X-Request-Id']);
+                    $this->assertSame(0.25, $options['connect_timeout']);
+                    $this->assertSame(1.0, $options['timeout']);
+
+                    return $this->jsonResponse(200, ['data' => [7 => ['id' => 7, 'url' => 'https://cdn.test/7.jpg']]]);
+                });
+
+            $client = new HubClient($this->makeConfig(), $http, $cache);
+
+            $this->assertSame('https://cdn.test/7.jpg', $client->resolvePublicFileMeta([7])[7]['url']);
+        } finally {
+            $this->restoreEnv('PUBLIC_READ_HUB_CONNECT_TIMEOUT', $previousConnectTimeout);
+            $this->restoreEnv('PUBLIC_READ_HUB_TIMEOUT', $previousRequestTimeout);
+            RequestIdHolder::flush();
+        }
+    }
+
+    private function restoreEnv(string $key, mixed $value): void
+    {
+        if ($value === null) {
+            unset($_ENV[$key]);
+
+            return;
+        }
+
+        $_ENV[$key] = $value;
     }
 
     private function jsonResponse(int $status, array $body): ResponseInterface

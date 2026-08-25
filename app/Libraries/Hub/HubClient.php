@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Libraries\Hub;
 
 use dcardenasl\Ci4ApiCore\Http\Client\HubClient as CoreHubClient;
+use dcardenasl\Ci4ApiCore\Http\RequestIdHolder;
 
 /**
  * HTTP client subclass for the central hub (ci4-api-starter).
@@ -103,10 +104,7 @@ class HubClient extends CoreHubClient
         // the remaining ids instead of resolving them across a second call.
         foreach (array_chunk($miss, 200) as $batch) {
             try {
-                $data = $this->request('GET', '/api/v1/internal/files/batch-meta', [
-                    'headers' => $this->appKeyHeaders(),
-                    'query'   => ['ids' => $batch],
-                ]);
+                $data = $this->requestPublicFileMetaBatch($batch);
 
                 $items = is_array($data['data'] ?? null) ? $data['data'] : $data;
 
@@ -125,6 +123,85 @@ class HubClient extends CoreHubClient
         }
 
         return $result;
+    }
+
+    /**
+     * Use the shared client path by default. A direct request is available only
+     * when both public-read timeout variables are explicitly configured, so a
+     * clone retains the core retry/timeout behavior until an operator opts in.
+     *
+     * @param list<int> $batch
+     * @return array<string, mixed>
+     */
+    private function requestPublicFileMetaBatch(array $batch): array
+    {
+        $timeouts = $this->publicReadTimeouts();
+        if ($timeouts === null) {
+            return $this->request('GET', '/api/v1/internal/files/batch-meta', [
+                'headers' => $this->appKeyHeaders(),
+                'query'   => ['ids' => $batch],
+            ]);
+        }
+
+        $url       = rtrim($this->config->url, '/') . '/api/v1/internal/files/batch-meta';
+        $headers   = $this->appKeyHeaders();
+        $requestId = RequestIdHolder::get();
+        if ($requestId !== null && ! array_key_exists('X-Request-Id', $headers)) {
+            $headers['X-Request-Id'] = $requestId;
+        }
+
+        $startedAt = microtime(true);
+        $status    = null;
+
+        try {
+            $response = $this->http->request('GET', $url, [
+                'headers'         => $headers,
+                'query'           => ['ids' => $batch],
+                'connect_timeout' => $timeouts['connect_timeout'],
+                'timeout'         => $timeouts['timeout'],
+                'http_errors'     => false,
+            ]);
+            $status = $response->getStatusCode();
+            $this->recordBreadcrumb('GET', $url, $status, (microtime(true) - $startedAt) * 1000, 1);
+
+            if ($status < 200 || $status >= 300) {
+                throw new \RuntimeException('Hub batch metadata request returned HTTP ' . $status . '.');
+            }
+
+            $decoded = json_decode((string) $response->getBody(), true);
+            if (! is_array($decoded)) {
+                throw new \RuntimeException('Hub batch metadata response was not a JSON object.');
+            }
+
+            return $decoded;
+        } catch (\Throwable $exception) {
+            if ($status === null) {
+                $this->recordBreadcrumb('GET', $url, null, (microtime(true) - $startedAt) * 1000, 1);
+            }
+
+            throw $exception;
+        }
+    }
+
+    /** @return array{connect_timeout: float, timeout: float}|null */
+    private function publicReadTimeouts(): ?array
+    {
+        $connectTimeout = trim((string) env('PUBLIC_READ_HUB_CONNECT_TIMEOUT', ''));
+        $requestTimeout = trim((string) env('PUBLIC_READ_HUB_TIMEOUT', ''));
+        if ($connectTimeout === '' || $requestTimeout === '') {
+            return null;
+        }
+
+        $connectSeconds = (float) $connectTimeout;
+        $requestSeconds = (float) $requestTimeout;
+        if ($connectSeconds <= 0 || $requestSeconds <= 0) {
+            return null;
+        }
+
+        return [
+            'connect_timeout' => $connectSeconds,
+            'timeout'         => $requestSeconds,
+        ];
     }
 
     /**

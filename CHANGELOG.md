@@ -31,6 +31,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   class as a compatibility adapter for existing services.
 
 ### Changed
+- Public file metadata requests retain the shared HubClient behavior by default and support explicit `PUBLIC_READ_HUB_CONNECT_TIMEOUT` plus `PUBLIC_READ_HUB_TIMEOUT` overrides for deployments that need a tighter outbound budget; correlation IDs and breadcrumbs remain propagated on the opt-in path.
 - Domain cache keys now use an app-specific prefix to prevent collisions with
   sibling applications sharing a cache backend. APCu is available only through
   the explicit `CACHE_HANDLER` override; file remains the default.
