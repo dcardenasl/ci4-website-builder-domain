@@ -11,6 +11,7 @@ use App\DTO\Request\Cms\PublicEntryIndexRequestDTO;
 use App\DTO\Request\Cms\PublicEntryShowRequestDTO;
 use App\Entities\EntryEntity;
 use App\Interfaces\Cms\EntryServiceInterface;
+use App\Libraries\Cms\BlockInstancePurger;
 use App\Libraries\Cms\EntryTaxonomyPivotResolver;
 use App\Libraries\Cms\FileReferenceSynchronizer;
 use App\Libraries\Cms\FileUrlResolver;
@@ -39,6 +40,8 @@ class EntryService extends BaseCrudService implements EntryServiceInterface
 
     private FileReferenceSynchronizer $fileReferenceSynchronizer;
 
+    private BlockInstancePurger $blockInstancePurger;
+
     private EntryBlockTemplateInitializer $blockTemplateInitializer;
 
     private PublicEntryReader $publicReader;
@@ -63,6 +66,7 @@ class EntryService extends BaseCrudService implements EntryServiceInterface
         PublicEntryReader $publicReader,
         EntryTaxonomyPivotResolver $taxonomyPivotResolver,
         EntryBlockTemplateInitializer $blockTemplateInitializer,
+        BlockInstancePurger $blockInstancePurger,
         ?\App\Libraries\Cms\TranslationSynchronizer $translationSynchronizer = null
     ) {
         parent::__construct($entryRepository, $responseMapper);
@@ -74,6 +78,7 @@ class EntryService extends BaseCrudService implements EntryServiceInterface
         $this->publicReader = $publicReader;
         $this->taxonomyPivotResolver = $taxonomyPivotResolver;
         $this->blockTemplateInitializer = $blockTemplateInitializer;
+        $this->blockInstancePurger = $blockInstancePurger;
         $this->translationSynchronizer = $translationSynchronizer;
     }
 
@@ -210,6 +215,7 @@ class EntryService extends BaseCrudService implements EntryServiceInterface
     protected function afterDelete(object $entity, ?SecurityContext $context): void
     {
         parent::afterDelete($entity, $context);
+        $this->blockInstancePurger->purgeForOwner('entry', (int) $entity->id);
         $this->fileReferenceSynchronizer->removeResourceReferences('entry', (int) $entity->id);
         $this->cacheInvalidator->invalidate(['entries']);
     }

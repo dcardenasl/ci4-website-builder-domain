@@ -49,6 +49,10 @@ final class PageServiceTest extends CIUnitTestCase
         $referenceSynchronizer->expects($this->once())
             ->method('removeResourceReferences')
             ->with('page', 10);
+        $blockInstancePurger = $this->createMock(\App\Libraries\Cms\BlockInstancePurger::class);
+        $blockInstancePurger->expects($this->once())
+            ->method('purgeForOwner')
+            ->with('page', 10);
 
         $service = new \App\Services\Cms\PageService(
             $repository,
@@ -57,7 +61,8 @@ final class PageServiceTest extends CIUnitTestCase
             $cacheMock,
             $this->createMock(\App\Libraries\Cms\FileUrlResolver::class),
             $referenceSynchronizer,
-            $this->createMock(\App\Services\Cms\PublicPageReader::class)
+            $this->createMock(\App\Services\Cms\PublicPageReader::class),
+            $blockInstancePurger
         );
         $result = $service->destroy(10, null);
 

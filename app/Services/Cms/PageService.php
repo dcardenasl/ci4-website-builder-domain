@@ -6,6 +6,7 @@ namespace App\Services\Cms;
 
 use App\Entities\PageEntity;
 use App\Interfaces\Cms\PageServiceInterface;
+use App\Libraries\Cms\BlockInstancePurger;
 use App\Libraries\Cms\FileReferenceSynchronizer;
 use App\Libraries\Cms\FileUrlResolver;
 use App\Traits\Services\HasDeferredTranslations;
@@ -30,6 +31,8 @@ class PageService extends BaseCrudService implements PageServiceInterface
 
     private FileReferenceSynchronizer $fileReferenceSynchronizer;
 
+    private BlockInstancePurger $blockInstancePurger;
+
     private ?\App\Libraries\Cms\TranslationSynchronizer $translationSynchronizer;
 
     /**
@@ -43,6 +46,7 @@ class PageService extends BaseCrudService implements PageServiceInterface
         FileUrlResolver $fileUrlResolver,
         FileReferenceSynchronizer $fileReferenceSynchronizer,
         private readonly PublicPageReader $publicPageReader,
+        BlockInstancePurger $blockInstancePurger,
         ?\App\Libraries\Cms\TranslationSynchronizer $translationSynchronizer = null
     ) {
         parent::__construct($pageRepository, $responseMapper);
@@ -50,6 +54,7 @@ class PageService extends BaseCrudService implements PageServiceInterface
         $this->cacheInvalidator     = $cacheInvalidator;
         $this->fileUrlResolver      = $fileUrlResolver;
         $this->fileReferenceSynchronizer = $fileReferenceSynchronizer;
+        $this->blockInstancePurger = $blockInstancePurger;
         $this->translationSynchronizer = $translationSynchronizer;
     }
 
@@ -140,6 +145,7 @@ class PageService extends BaseCrudService implements PageServiceInterface
     protected function afterDelete(object $entity, ?SecurityContext $context): void
     {
         parent::afterDelete($entity, $context);
+        $this->blockInstancePurger->purgeForOwner('page', (int) $entity->id);
         $this->fileReferenceSynchronizer->removeResourceReferences('page', (int) $entity->id);
         $this->cacheInvalidator->invalidate(['pages', 'collections']);
     }

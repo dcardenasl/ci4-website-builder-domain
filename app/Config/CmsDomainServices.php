@@ -97,6 +97,15 @@ trait CmsDomainServices
         return new \App\Libraries\Cms\FileReferenceSynchronizer(static::fileUrlResolver());
     }
 
+    public static function blockInstancePurger(bool $getShared = true): \App\Libraries\Cms\BlockInstancePurger
+    {
+        if ($getShared) {
+            return static::getSharedInstance('blockInstancePurger');
+        }
+
+        return new \App\Libraries\Cms\BlockInstancePurger();
+    }
+
     public static function fileUsageService(bool $getShared = true): \App\Services\Cms\FileUsageService
     {
         if ($getShared) {
@@ -189,6 +198,7 @@ trait CmsDomainServices
             static::fileUrlResolver(),
             static::fileReferenceSynchronizer(),
             static::publicPageReader(),
+            static::blockInstancePurger(),
             static::translationSynchronizer()
         );
     }
@@ -422,6 +432,7 @@ trait CmsDomainServices
             static::publicEntryReader(),
             static::entryTaxonomyPivotResolver(),
             static::entryBlockTemplateInitializer(),
+            static::blockInstancePurger(),
             static::translationSynchronizer()
         );
     }
