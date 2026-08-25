@@ -119,8 +119,7 @@ separator and never introduce `:`-separated codes.
 The CMS layer is intentionally reusable across sites:
 
 - public slugs are stored through the generic sidecar/canonical migration path;
-  never create business-named tables such as `catalog_public_slugs` or
-  `event_public_slugs`;
+  never create business-named public-slug tables — use the generic sidecar contract;
 - translation synchronization and locale fallback are centralized, so new
   resources do not duplicate per-language reconciliation logic;
 - sort-order updates use a single atomic service/endpoint contract;
