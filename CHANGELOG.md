@@ -30,6 +30,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   class as a compatibility adapter for existing services.
 
 ### Changed
+- Domain cache keys now use an app-specific prefix to prevent collisions with
+  sibling applications sharing a cache backend. APCu is available only through
+  the explicit `CACHE_HANDLER` override; file remains the default.
 - **Starter runtime defaults** — aligned local Hub/Domain ports with the `8180`/`8190` kit series
   and documented the generic CMS contracts for public slugs, translations, ordering and bootstrap.
 - Public CMS reads support allowlisted sparse fieldsets through `?fields=` without changing

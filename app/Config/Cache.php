@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Config;
 
 use CodeIgniter\Cache\CacheInterface;
+use CodeIgniter\Cache\Handlers\ApcuHandler;
 use CodeIgniter\Cache\Handlers\DummyHandler;
 use CodeIgniter\Cache\Handlers\FileHandler;
 use CodeIgniter\Cache\Handlers\MemcachedHandler;
@@ -15,6 +16,20 @@ use CodeIgniter\Config\BaseConfig;
 
 class Cache extends BaseConfig
 {
+    private const DEFAULT_PREFIX = 'ci4_website_builder_domain_';
+
+    public function __construct()
+    {
+        parent::__construct();
+
+        // APCu is opt-in: a starter deployment cannot assume the extension or
+        // process-local cache semantics. File remains the portable default.
+        $handler = env('CACHE_HANDLER', 'file');
+        if (is_string($handler) && trim($handler) !== '') {
+            $this->handler = trim($handler);
+        }
+    }
+
     /**
      * --------------------------------------------------------------------------
      * Primary Handler
@@ -44,7 +59,7 @@ class Cache extends BaseConfig
      * This string is added to all cache item names to help avoid collisions
      * if you run multiple applications with the same cache engine.
      */
-    public string $prefix = '';
+    public string $prefix = self::DEFAULT_PREFIX;
 
     /**
      * --------------------------------------------------------------------------
@@ -135,6 +150,7 @@ class Cache extends BaseConfig
      * @var array<string, class-string<CacheInterface>>
      */
     public array $validHandlers = [
+        'apcu'      => ApcuHandler::class,
         'dummy'     => DummyHandler::class,
         'file'      => FileHandler::class,
         'memcached' => MemcachedHandler::class,
