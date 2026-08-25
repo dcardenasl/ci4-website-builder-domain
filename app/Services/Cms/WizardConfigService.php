@@ -14,9 +14,9 @@ use App\Interfaces\Cms\WizardConfigServiceInterface;
 use App\Libraries\Cms\BlockSchemaIntrospector;
 use App\Libraries\Cms\CmsEnums;
 use App\Libraries\Cms\FieldPrimitiveRegistry;
-use App\Libraries\Cms\JsonCastNormalizer;
 use App\Libraries\Cms\OwnerUsageResolver;
 use dcardenasl\Ci4ApiCore\Repositories\RepositoryInterface;
+use dcardenasl\Ci4ApiCore\Support\JsonCastNormalizer;
 
 /**
  * Aggregates languages, collections, pages, menus, and block type schemas

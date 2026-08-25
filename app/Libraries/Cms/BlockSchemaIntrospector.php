@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace App\Libraries\Cms;
 
+use dcardenasl\Ci4ApiCore\Support\JsonCastNormalizer;
+
 final class BlockSchemaIntrospector
 {
     public function __construct(private readonly FieldPrimitiveRegistry $registry = new FieldPrimitiveRegistry())
