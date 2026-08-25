@@ -20,6 +20,9 @@ class ControllerDtoRequestContractsTest extends CIUnitTestCase
      */
     private const CONTROLLER_EXCEPTIONS = [
         'HealthController',
+        // Hub-initiated internal file callbacks use HMAC, not a client body or
+        // user security context, so they intentionally use CI4's Controller.
+        'InternalFileController',
     ];
 
     /**

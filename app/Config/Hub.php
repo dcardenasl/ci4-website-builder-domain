@@ -69,6 +69,12 @@ class Hub extends BaseConfig
      */
     public string $adminToken = '';
 
+    /**
+     * Optional shared secret for HMAC-signed Hub -> Domain internal calls.
+     * Empty means those routes fail closed; it does not affect app boot.
+     */
+    public string $internalSecret = '';
+
     public function __construct()
     {
         parent::__construct();
@@ -111,6 +117,7 @@ class Hub extends BaseConfig
 
         // Optional admin token and cache settings
         $this->adminToken = (string) (env('hub.adminToken') ?: '');
+        $this->internalSecret = (string) (env('HUB_INTERNAL_SECRET') ?: env('hub.internalSecret') ?: '');
 
         $ttl = env('hub.introspectCacheTtl');
         if ($ttl !== null && $ttl !== false && $ttl !== '') {
