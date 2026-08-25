@@ -1,40 +1,41 @@
 # ADR-014 — External domain binding for CMS page types
 
-- **Estado:** Aceptado
-- **Fecha:** 2026-08-25
-- **Alcance:** `ci4-website-builder-domain` y consumidores públicos del CMS
+- **Status:** Accepted
+- **Date:** 2026-08-25
+- **Scope:** `ci4-website-builder-domain` and public consumers of the CMS
 
-## Contexto
+## Context
 
-Un sitio puede entregar una página CMS desde un dominio externo, por ejemplo una ruta de
-detalle cuyo contenido pertenece a una aplicación de dominio distinta. El CMS sigue siendo
-dueño de la plantilla y de la configuración de la página, pero no debe inferir la URL a partir
-de nombres de negocio ni acoplarse a una aplicación concreta.
+A site may need to deliver a CMS page whose content belongs to a different domain
+application — for example, a detail route whose data is owned by a separate domain app. The
+CMS still owns the template and the page configuration, but it must not infer the URL from
+business names or couple itself to a specific application.
 
-## Decisión
+## Decision
 
-El campo `page_type` identifica el contrato de renderizado y una configuración explícita de
-binding asocia ese tipo con un dominio externo. El binding contiene únicamente configuración
-de integración: `page_type`, `domain_key`, `base_url` y, cuando corresponda, el path o contrato
-de resolución. El `domain_key` es un identificador estable de configuración, no una URL recibida
-directamente desde una solicitud pública.
+The `page_type` field identifies the rendering contract, and an explicit binding
+configuration associates that type with an external domain. The binding carries only
+integration configuration: `page_type`, `domain_key`, `base_url`, and, when applicable, the
+resolution path or contract. `domain_key` is a stable configuration identifier, not a URL
+received directly from a public request.
 
-Los consumidores resuelven el binding mediante una allow-list de configuración por entorno.
-No se acepta una URL arbitraria desde query string, payload CMS o contenido traducible. La
-allow-list debe validar esquema y host antes de construir enlaces, y debe conservar el fallback
-local cuando no exista binding para el `page_type`.
+Consumers resolve the binding through a per-environment configuration allow-list. An
+arbitrary URL from a query string, CMS payload, or translatable content is never accepted.
+The allow-list must validate scheme and host before building links, and must preserve the
+local fallback when no binding exists for a given `page_type`.
 
-## Consecuencias
+## Consequences
 
-- Las plantillas CMS permanecen reutilizables entre sitios y dominios externos.
-- La configuración de despliegue es la fuente de verdad de los hosts permitidos.
-- Un nuevo binding requiere configuración y pruebas del consumidor; no requiere crear una nueva
-  app de dominio ni copiar lectores de negocio.
-- La invalidación de caché debe incluir tanto la página CMS como el dominio externo cuando el
-  binding esté activo.
+- CMS templates stay reusable across sites and external domains.
+- Deployment configuration is the source of truth for allowed hosts.
+- A new binding requires configuration and consumer-side tests; it never requires creating a
+  new domain app or copying business readers.
+- Cache invalidation must cover both the CMS page and the external domain whenever the
+  binding is active.
 
-## Fuera de alcance
+## Out of scope
 
-- No se agrega una tabla o migración para eventos, catálogo, museo u otra aplicación específica.
-- No se resuelven dominios dinámicos desde datos editoriales sin validación de allow-list.
-- No se modifica el contrato de autenticación: el Hub sigue siendo dueño de IAM y tokens.
+- No table or migration is added for events, catalog, museum, or any other specific
+  application.
+- Dynamic domains are never resolved from editorial data without allow-list validation.
+- The authentication contract is unchanged: the Hub remains the owner of IAM and tokens.
