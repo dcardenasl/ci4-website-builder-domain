@@ -8,6 +8,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- Generic public page bootstrap endpoints — `GET /api/v1/public/layout` composes the shared
+  public shell and `GET /api/v1/public/page-bootstrap/{path}` resolves a page or collection
+  entry with that shell in one cacheable response; signed page previews remain verified.
 - Generic public slugs — public_slugs sidecar storage, locale-aware collection projection,
   cms:backfill-public-slugs, and atomic POST /cms/collections/sort-orders provide reusable
   reference mechanisms without introducing Teatro Museo business tables.
@@ -16,6 +19,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   class as a compatibility adapter for existing services.
 
 ### Changed
+- Public CMS reads support allowlisted sparse fieldsets through `?fields=` without changing
+  the default response shape.
 - Collection public routing — collection writes and public reads now synchronize and resolve
   through the generic slug sidecar while preserving the existing legacy translation tables during
   the migration window.

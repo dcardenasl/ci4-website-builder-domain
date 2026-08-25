@@ -163,4 +163,46 @@ final class PublicCollectionControllerTest extends CIUnitTestCase
 
         $this->assertSame($fallbackName, $body['data'][0]['listing_title']);
     }
+
+    public function testPublicCollectionsSupportSparseFieldsets(): void
+    {
+        $result = $this->get(
+            '/api/v1/public/' . $this->languages[0]['code'] . '/collections?fields=id,name,localized_slugs'
+        );
+
+        $result->assertStatus(200);
+        $body = json_decode($result->getJSON(), true);
+        $this->assertSame(
+            ['id', 'name', 'localized_slugs'],
+            array_keys($body['data'][0]),
+        );
+    }
+
+    public function testPublicLayoutAndPageBootstrapComposeColdPageData(): void
+    {
+        $pageSlug = $this->fixtures->slug('bootstrap-page', $this->languages[0]['code']);
+        $pageTitle = $this->fixtures->text('bootstrap-page-title', $this->languages[0]['code']);
+        $this->fixtures->page([
+            [
+                'language_id' => $this->languages[0]['id'],
+                'slug'        => $pageSlug,
+                'title'       => $pageTitle,
+            ],
+        ]);
+
+        $layout = $this->get('/api/v1/public/layout');
+        $layout->assertStatus(200);
+        $layoutBody = json_decode($layout->getJSON(), true);
+        $this->assertSame(['main', 'footer', 'legal'], array_keys($layoutBody['data']['menus']));
+
+        $bootstrap = $this->withHeaders([
+            'Accept-Language' => $this->languages[0]['code'],
+            ...$this->webAppKeyHeader(),
+        ])->get('/api/v1/public/page-bootstrap/' . $pageSlug);
+        $bootstrap->assertStatus(200);
+        $bootstrapBody = json_decode($bootstrap->getJSON(), true);
+        $this->assertSame('page', $bootstrapBody['data']['route']['type']);
+        $this->assertSame($pageTitle, $bootstrapBody['data']['route']['data']['title']);
+        $this->assertArrayHasKey('settings', $bootstrapBody['data']['layout']);
+    }
 }

@@ -10,9 +10,20 @@ use CodeIgniter\HTTP\ResponseInterface;
 use Config\Services;
 use dcardenasl\Ci4ApiCore\Dto\SecurityContext;
 use dcardenasl\Ci4ApiCore\Http\ApiController;
+use dcardenasl\Ci4ApiCore\Traits\SparseFieldsetTrait;
 
 class PublicPageController extends ApiController
 {
+    use SparseFieldsetTrait;
+
+    /** @var list<string> */
+    private const PUBLIC_FIELDS = [
+        'id', 'parent_id', 'collection_id', 'page_type', 'status', 'published_at', 'scheduled_at',
+        'sort_order', 'sitemap_priority', 'sitemap_changefreq', 'is_in_sitemap', 'slug', 'title',
+        'excerpt', 'meta_title', 'meta_description', 'og_image', 'og_image_url', 'og_type',
+        'canonical_url', 'robots', 'schema_data', 'blocks', 'localized_slugs', 'translations',
+    ];
+
     protected PageServiceInterface $pageService;
 
     protected function resolveDefaultService(): PageServiceInterface
@@ -66,6 +77,10 @@ class PublicPageController extends ApiController
                     );
 
                 $data = $this->pageService->showPublic($lang, $slug, $preview);
+
+                if (is_string($this->request->getGet('fields')) && trim($this->request->getGet('fields')) !== '') {
+                    $data = $this->sparseFilter($data, $this->parseFieldsParam(self::PUBLIC_FIELDS));
+                }
 
                 return $this->response->setJSON([
                     'status' => 'success',

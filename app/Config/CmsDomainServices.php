@@ -208,6 +208,23 @@ trait CmsDomainServices
         );
     }
 
+    public static function publicBootstrapService(bool $getShared = true): \App\Services\Cms\PublicBootstrapService
+    {
+        if ($getShared) {
+            return static::getSharedInstance('publicBootstrapService');
+        }
+
+        return new \App\Services\Cms\PublicBootstrapService(
+            static::settingService(),
+            static::menuService(),
+            static::pageService(),
+            static::collectionService(),
+            static::entryService(),
+            static::publicLocaleResolver(),
+            static::requestDtoFactory(),
+        );
+    }
+
     public static function slugRouter(bool $getShared = true): \App\Libraries\Cms\SlugRouter
     {
         if ($getShared) {

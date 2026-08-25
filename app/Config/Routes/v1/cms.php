@@ -151,6 +151,8 @@ $routes->group('cms', ['namespace' => '\App\Controllers\Api\V1\Cms'], function (
 });
 
 // Public endpoints — all require X-App-Key (webappkey) + throttle
+$routes->get('public/layout', '\App\Controllers\Api\V1\Cms\PublicBootstrapController::layout', ['filter' => ['webappkey', 'throttle']]);
+$routes->get('public/page-bootstrap/(.+)', '\App\Controllers\Api\V1\Cms\PublicBootstrapController::pageBootstrap/$1', ['filter' => ['webappkey', 'throttle']]);
 $routes->post('public/submissions', '\App\Controllers\Api\V1\Cms\PublicFormSubmissionController::store', ['filter' => ['webappkey', 'throttle']]);
 $routes->post('public/track', '\App\Controllers\Api\V1\Cms\PublicTrackingController::track', ['filter' => ['webappkey', 'throttle']]);
 $routes->get('public/settings', '\App\Controllers\Api\V1\Cms\PublicSettingController::index', ['filter' => ['webappkey', 'throttle']]);
