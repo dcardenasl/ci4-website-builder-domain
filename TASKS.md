@@ -17,9 +17,6 @@
 
 ### Backport de mejoras de Teatro Museo — fases posteriores (parte Domain)
 
-- [ ] **BACKPORT-04-domain — Fase 4:** endpoints CMS compuestos (`layout`, `page-bootstrap/{path}`).
-      Ver plan §Fase 4.
-
 *(las fases Controller→Model y la auditoría de bloques owner-scoped quedaron cerradas; las
 decisiones de producto pendientes se mantienen en el tracker global.)*
 
