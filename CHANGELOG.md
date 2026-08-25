@@ -7,6 +7,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Security
+- `PermissionFilter` now delegates to the core policy and lets the platform
+  superadmin bypass newly registered domain permissions without weakening
+  ordinary permission checks.
+
 ### Added
 - Generic public page bootstrap endpoints — `GET /api/v1/public/layout` composes the shared
   public shell and `GET /api/v1/public/page-bootstrap/{path}` resolves a page or collection

@@ -4,56 +4,47 @@ declare(strict_types=1);
 
 namespace App\Filters;
 
-use CodeIgniter\Filters\FilterInterface;
-use CodeIgniter\HTTP\RequestInterface;
-use CodeIgniter\HTTP\ResponseInterface;
-use Config\Services;
-use dcardenasl\Ci4ApiCore\Http\ApiRequest;
-use dcardenasl\Ci4ApiCore\Http\ApiResponse;
-use dcardenasl\Ci4ApiCore\Http\ContextHolder;
+use dcardenasl\Ci4ApiCore\Contracts\SecurityAuditLoggerInterface;
+use dcardenasl\Ci4ApiCore\Http\Filters\AbstractPermissionFilter;
 
 /**
- * Permission-Based Access Control Filter
+ * Domain-specific permission filter — delegates the entire policy to
+ * `AbstractPermissionFilter`. This domain has no security audit logger, so
+ * `getSecurityAuditLogger()` returns `null` (access control is still
+ * enforced; only the audit trail is skipped).
  *
- * Reads the actor id and permission set populated by DomainAuthFilter (from the
- * hub introspection response) into ApiRequest / ContextHolder, and enforces a
- * required permission code argument such as `permission:items.write`.
- *
- * Permission codes use `.` as the resource/action separator (not `:`)
- * because CodeIgniter splits filter strings on `:`.
+ * `superAdminBypassCode()` lets a platform-level superadmin satisfy any
+ * `permission:<code>` requirement without the code having been explicitly
+ * assigned to their role yet — domain permissions are registered in the hub
+ * separately from role assignment, and an introspection cache can also be
+ * briefly stale after a role change. Without the bypass, a superadmin could
+ * be locked out of a domain the moment it registers a new permission.
  */
-class PermissionFilter implements FilterInterface
+class PermissionFilter extends AbstractPermissionFilter
 {
-    public function before(RequestInterface $request, $arguments = null)
+    protected function getSecurityAuditLogger(): ?SecurityAuditLoggerInterface
     {
-        $required = is_array($arguments) ? (string) ($arguments[0] ?? '') : '';
-
-        $context = ContextHolder::get();
-        $actorId = $request instanceof ApiRequest ? $request->getAuthUserId() : null;
-        $actorId ??= $context?->user_id;
-
-        $permissions = $request instanceof ApiRequest ? $request->getAuthPermissions() : [];
-        if ($permissions === [] && $context !== null) {
-            $permissions = $context->permissions;
-        }
-
-        if ($actorId === null) {
-            return Services::response()
-                ->setJSON(ApiResponse::unauthorized(lang('Api.authRequired')))
-                ->setStatusCode(ResponseInterface::HTTP_UNAUTHORIZED);
-        }
-
-        if ($required === '' || ! in_array($required, $permissions, true)) {
-            return Services::response()
-                ->setJSON(ApiResponse::forbidden(lang('Api.insufficientPermissions')))
-                ->setStatusCode(ResponseInterface::HTTP_FORBIDDEN);
-        }
-
         return null;
     }
 
-    public function after(RequestInterface $request, ResponseInterface $response, $arguments = null): ?ResponseInterface
+    protected function superAdminBypassCode(): ?string
     {
-        return $response;
+        return 'iam.superadmin-access';
+    }
+
+    // The base class's defaults read `Auth.authRequired`/`Auth.insufficientPermissions`,
+    // which this app's `app/Language/{es,en}/Auth.php` does not define (only
+    // `rateLimitExceeded`, used by ThrottleFilter). This app's own `Api.php`
+    // language file already carries these two keys — override to keep using
+    // them rather than silently falling back to the package's English-only
+    // `Auth.php` copy.
+    protected function unauthenticatedMessage(): string
+    {
+        return (string) lang('Api.authRequired');
+    }
+
+    protected function forbiddenMessage(): string
+    {
+        return (string) lang('Api.insufficientPermissions');
     }
 }
