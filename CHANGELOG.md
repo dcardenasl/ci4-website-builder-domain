@@ -7,6 +7,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+- **`dcardenasl/ci4-api-core`** — bumped constraint from `^1.0` to `^1.5`.
+- **`JsonCastNormalizer`** — the local copy in `App\Libraries\Cms` is removed; all call sites now use `dcardenasl\Ci4ApiCore\Support\JsonCastNormalizer`, which ships the same `toArray()` contract as of `^1.5`.
+
+### Fixed
+- **`HubClient::resolvePublicFileMeta()`** — sanitizes and dedupes file ids before querying, chunks requests to the Hub's batch-meta endpoint at 200 ids (its documented cap) instead of silently truncating larger batches, and falls back to a longer-lived stale cache entry when the Hub is temporarily unreachable. Also fixed a preexisting bug where the method ignored the `$cache` instance injected via the constructor and resolved a new one through the service locator instead, breaking dependency injection in tests.
+
 ## [1.0.0] — 2026-07-23
 
 ### Added
