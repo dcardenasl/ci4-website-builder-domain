@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\DTO\Request\Cms;
 
+use App\DTO\Request\Support\TracksProvidedFields;
 use App\Libraries\Cms\CmsEnums;
 use dcardenasl\Ci4ApiCore\Dto\BaseRequestDTO;
 use OpenApi\Attributes as OA;
@@ -11,6 +12,8 @@ use OpenApi\Attributes as OA;
 #[OA\Schema(schema: 'EntryUpdateRequest')]
 readonly class EntryUpdateRequestDTO extends BaseRequestDTO
 {
+    use TracksProvidedFields;
+
     #[OA\Property(description: 'collection_id', type: 'integer', nullable: true)]
     public ?int $collection_id;
     #[OA\Property(description: 'author_id', type: 'integer', nullable: true)]
@@ -81,6 +84,7 @@ readonly class EntryUpdateRequestDTO extends BaseRequestDTO
      */
     protected function map(array $data): void
     {
+        $this->trackProvidedFields($data);
         $this->collection_id = isset($data['collection_id']) ? (int) $data['collection_id'] : null;
         $this->author_id = isset($data['author_id']) ? (int) $data['author_id'] : null;
         $this->workflow_status = $data['workflow_status'] ?? null;
@@ -115,6 +119,6 @@ readonly class EntryUpdateRequestDTO extends BaseRequestDTO
             'translations' => $this->translations,
         ];
 
-        return array_filter($result, static fn (mixed $value): bool => $value !== null);
+        return $this->filterProvidedFields($result);
     }
 }

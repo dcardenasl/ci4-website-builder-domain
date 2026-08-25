@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\DTO\Request\Cms;
 
+use App\DTO\Request\Support\TracksProvidedFields;
 use App\Libraries\Cms\BlockTemplateNormalizer;
 use App\Libraries\Cms\CmsEnums;
 use App\Validators\BlockTemplateValidator;
@@ -14,6 +15,8 @@ use OpenApi\Attributes as OA;
 #[OA\Schema(schema: 'CollectionUpdateRequest')]
 readonly class CollectionUpdateRequestDTO extends BaseRequestDTO
 {
+    use TracksProvidedFields;
+
     #[OA\Property(description: 'collection_type', type: 'string', nullable: true)]
     public ?string $collection_type;
     #[OA\Property(description: 'collection_key', type: 'string', nullable: true)]
@@ -84,6 +87,7 @@ readonly class CollectionUpdateRequestDTO extends BaseRequestDTO
      */
     protected function map(array $data): void
     {
+        $this->trackProvidedFields($data);
         $this->collection_type = $data['collection_type'] ?? null;
         $this->collection_key = $data['collection_key'] ?? null;
         $this->is_active = isset($data['is_active']) ? (bool) $data['is_active'] : null;
@@ -107,7 +111,7 @@ readonly class CollectionUpdateRequestDTO extends BaseRequestDTO
      */
     public function toArray(): array
     {
-        $data = array_filter([
+        $data = $this->filterProvidedFields([
             'collection_type' => $this->collection_type,
             'collection_key' => $this->collection_key,
             'is_active' => $this->is_active,
@@ -118,14 +122,18 @@ readonly class CollectionUpdateRequestDTO extends BaseRequestDTO
             'default_changefreq' => $this->default_changefreq,
             'sort_order' => $this->sort_order,
             'translations' => $this->translations,
-        ], static fn (mixed $value): bool => $value !== null);
+        ]);
 
-        if ($this->block_template !== null) {
-            $data['block_template'] = json_encode($this->block_template, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
+        if ($this->block_template !== null || $this->fieldWasProvided('block_template')) {
+            $data['block_template'] = $this->block_template !== null
+                ? json_encode($this->block_template, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES)
+                : null;
         }
 
-        if ($this->wizard_config !== null) {
-            $data['wizard_config'] = json_encode($this->wizard_config, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
+        if ($this->wizard_config !== null || $this->fieldWasProvided('wizard_config')) {
+            $data['wizard_config'] = $this->wizard_config !== null
+                ? json_encode($this->wizard_config, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES)
+                : null;
         }
 
         return $data;

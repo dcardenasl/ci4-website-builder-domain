@@ -13,6 +13,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 - **`HubClient::resolvePublicFileMeta()`** — sanitizes and dedupes file ids before querying, chunks requests to the Hub's batch-meta endpoint at 200 ids (its documented cap) instead of silently truncating larger batches, and falls back to a longer-lived stale cache entry when the Hub is temporarily unreachable. Also fixed a preexisting bug where the method ignored the `$cache` instance injected via the constructor and resolved a new one through the service locator instead, breaking dependency injection in tests.
+- **Update Request DTOs** — preserve explicit `null` values while omitting fields absent from the
+  request, allowing CMS callers to clear nullable content fields without overwriting unrelated
+  values.
 
 ## [1.0.0] — 2026-07-23
 
@@ -109,5 +112,4 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Collections API** — full CRUD under `/cms/collections` protected with permissions, multi-language translation integration resolved via `TranslationResolver` with fallbacks, and a public listing endpoint on `GET public/{lang}/collections` for active collections
 - **Entries API** — full CRUD under `/cms/entries` protected with `cms.entries.*` permissions, version snapshot history, multi-language translation integration, and public endpoints on `GET public/{lang}/entries/{collection}` for paginated listings and `GET public/{lang}/entries/{collection}/{slug}` for detail views with serialized block instances
 - **Taxonomies API (Categories & Tags)** — Category and Tag CRUD with multi-language translations, pivot tables linking entries to taxonomies, public entries filtering by category/tag slug, and resolved taxonomies inside public entry responses
-
 

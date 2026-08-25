@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\DTO\Request\Cms;
 
+use App\DTO\Request\Support\TracksProvidedFields;
 use CodeIgniter\Validation\ValidationInterface;
 use dcardenasl\Ci4ApiCore\Dto\BaseRequestDTO;
 use dcardenasl\Ci4ApiCore\Exceptions\ValidationException;
@@ -12,6 +13,8 @@ use OpenApi\Attributes as OA;
 #[OA\Schema(schema: 'BlockInstanceUpdateRequest')]
 readonly class BlockInstanceUpdateRequestDTO extends BaseRequestDTO
 {
+    use TracksProvidedFields;
+
     #[OA\Property(description: 'block_id', type: 'integer', nullable: true)]
     public ?int $block_id;
     #[OA\Property(description: 'owner_type', type: 'string', nullable: true)]
@@ -127,6 +130,7 @@ readonly class BlockInstanceUpdateRequestDTO extends BaseRequestDTO
      */
     protected function map(array $data): void
     {
+        $this->trackProvidedFields($data);
         $this->block_id = isset($data['block_id']) ? (int) $data['block_id'] : null;
         $this->owner_type = $data['owner_type'] ?? null;
         $this->owner_id = isset($data['owner_id']) ? (int) $data['owner_id'] : null;
@@ -148,7 +152,7 @@ readonly class BlockInstanceUpdateRequestDTO extends BaseRequestDTO
      */
     public function toArray(): array
     {
-        return array_filter([
+        return $this->filterProvidedFields([
             'block_id' => $this->block_id,
             'owner_type' => $this->owner_type,
             'owner_id' => $this->owner_id,
@@ -158,6 +162,6 @@ readonly class BlockInstanceUpdateRequestDTO extends BaseRequestDTO
             'is_active' => $this->is_active,
             'block_config' => $this->block_config,
             'translations' => $this->translations,
-        ], static fn (mixed $value): bool => $value !== null);
+        ]);
     }
 }
