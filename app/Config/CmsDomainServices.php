@@ -318,7 +318,46 @@ trait CmsDomainServices
             static::cacheInvalidationClient(),
             new \dcardenasl\Ci4ApiCore\Repositories\GenericRepository(model(\App\Models\LanguageModel::class)),
             static::publicCollectionReader(),
-            static::translationSynchronizer()
+            static::translationSynchronizer(),
+            static::collectionPublicSlugProjection()
+        );
+    }
+
+    public static function publicSlugStore(bool $getShared = true): \dcardenasl\Ci4ApiCore\Localization\PublicSlugStore
+    {
+        if ($getShared) {
+            return static::getSharedInstance('publicSlugStore');
+        }
+
+        return new \dcardenasl\Ci4ApiCore\Localization\PublicSlugStore(
+            model(\App\Models\PublicSlugModel::class),
+            new \dcardenasl\Ci4ApiCore\Localization\SlugGenerator(),
+            new \dcardenasl\Ci4ApiCore\Localization\RequestLocaleResolver(service('request')),
+            config('Localization')
+        );
+    }
+
+    public static function collectionPublicSlugProjection(bool $getShared = true): \App\Libraries\Translation\CollectionPublicSlugProjection
+    {
+        if ($getShared) {
+            return static::getSharedInstance('collectionPublicSlugProjection');
+        }
+
+        return new \App\Libraries\Translation\CollectionPublicSlugProjection(
+            \Config\Database::connect(),
+            static::publicSlugStore()
+        );
+    }
+
+    public static function sortOrderService(bool $getShared = true): \App\Services\Cms\SortOrderService
+    {
+        if ($getShared) {
+            return static::getSharedInstance('sortOrderService');
+        }
+
+        return new \App\Services\Cms\SortOrderService(
+            \Config\Database::connect(),
+            static::cacheInvalidationClient()
         );
     }
 
@@ -331,7 +370,8 @@ trait CmsDomainServices
         return new \App\Services\Cms\PublicCollectionReader(
             new \dcardenasl\Ci4ApiCore\Repositories\GenericRepository(model(\App\Models\PageModel::class)),
             static::translationResolver(),
-            static::slugRouter()
+            static::slugRouter(),
+            static::collectionPublicSlugProjection()
         );
     }
     public static function entryResponseMapper(bool $getShared = true): \dcardenasl\Ci4ApiCore\Mappers\ResponseMapperInterface

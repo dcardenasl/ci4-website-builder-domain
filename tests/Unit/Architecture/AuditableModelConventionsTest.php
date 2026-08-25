@@ -65,7 +65,8 @@ class AuditableModelConventionsTest extends CIUnitTestCase
             }
 
             $extendsBase = str_contains($source, 'extends BaseAuditableModel')
-                || str_contains($source, 'extends \dcardenasl\Ci4ApiCore\Models\BaseAuditableModel');
+                || str_contains($source, 'extends \dcardenasl\Ci4ApiCore\Models\BaseAuditableModel')
+                || str_contains($source, 'extends BasePublicSlugModel');
             if (! $extendsBase) {
                 $violations[] = "{$name}: must extend BaseAuditableModel (or be added to NON_AUDITABLE with rationale)";
             }

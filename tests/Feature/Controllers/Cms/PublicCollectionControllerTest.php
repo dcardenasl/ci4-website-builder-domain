@@ -38,6 +38,7 @@ final class PublicCollectionControllerTest extends CIUnitTestCase
         $this->configureWebAppKey();
 
         $this->db->disableForeignKeyChecks();
+        $this->db->query("DELETE FROM `public_slugs`");
         $this->db->query("DELETE FROM `cms_collection_translations`");
         $this->db->query("DELETE FROM `cms_collections`");
         $this->db->query("DELETE FROM `cms_languages`");
@@ -85,6 +86,28 @@ final class PublicCollectionControllerTest extends CIUnitTestCase
         $this->assertSame($primary['slug'], $body['data'][0]['localized_slugs'][$this->languages[0]['code']]);
         $this->assertSame($secondary['slug'], $body['data'][0]['localized_slugs'][$this->languages[1]['code']]);
         $this->assertArrayNotHasKey('url_prefix', $body['data'][0]);
+    }
+
+    public function testBackfillCreatesGenericLocaleSlugsUsedByPublicResolution(): void
+    {
+        command('cms:backfill-public-slugs');
+
+        $slugs = $this->db->table('public_slugs')
+            ->where('resource_type', 'collection')
+            ->where('resource_id', $this->collection['id'])
+            ->orderBy('locale', 'ASC')
+            ->get()
+            ->getResultArray();
+
+        $this->assertCount(2, $slugs);
+        $result = $this->get('/api/v1/public/' . $this->languages[1]['code'] . '/collections');
+        $result->assertStatus(200);
+
+        $body = json_decode($result->getJSON(), true);
+        $this->assertSame(
+            $this->collection['translations'][1]['slug'],
+            $body['data'][0]['localized_slugs'][$this->languages[1]['code']],
+        );
     }
 
     /**

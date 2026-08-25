@@ -7,6 +7,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+- Generic public slugs — public_slugs sidecar storage, locale-aware collection projection,
+  cms:backfill-public-slugs, and atomic POST /cms/collections/sort-orders provide reusable
+  reference mechanisms without introducing Teatro Museo business tables.
+- Shared translation-table synchronizer — moved the model-agnostic {entity}_translations
+  lifecycle into App\Libraries\Translation\TranslationTableSynchronizer, retaining the CMS
+  class as a compatibility adapter for existing services.
+
+### Changed
+- Collection public routing — collection writes and public reads now synchronize and resolve
+  through the generic slug sidecar while preserving the existing legacy translation tables during
+  the migration window.
+
 ### Changed
 - **`dcardenasl/ci4-api-core`** — bumped constraint from `^1.0` to `^1.5`.
 - **`JsonCastNormalizer`** — the local copy in `App\Libraries\Cms` is removed; all call sites now use `dcardenasl\Ci4ApiCore\Support\JsonCastNormalizer`, which ships the same `toArray()` contract as of `^1.5`.
@@ -112,4 +125,3 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Collections API** — full CRUD under `/cms/collections` protected with permissions, multi-language translation integration resolved via `TranslationResolver` with fallbacks, and a public listing endpoint on `GET public/{lang}/collections` for active collections
 - **Entries API** — full CRUD under `/cms/entries` protected with `cms.entries.*` permissions, version snapshot history, multi-language translation integration, and public endpoints on `GET public/{lang}/entries/{collection}` for paginated listings and `GET public/{lang}/entries/{collection}/{slug}` for detail views with serialized block instances
 - **Taxonomies API (Categories & Tags)** — Category and Tag CRUD with multi-language translations, pivot tables linking entries to taxonomies, public entries filtering by category/tag slug, and resolved taxonomies inside public entry responses
-

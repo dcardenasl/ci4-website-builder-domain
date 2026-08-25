@@ -35,7 +35,8 @@ class CollectionService extends BaseCrudService implements CollectionServiceInte
         \App\Libraries\Cms\CacheInvalidationClient $cacheInvalidator,
         private readonly RepositoryInterface $languageRepository,
         private readonly PublicCollectionReader $publicCollectionReader,
-        ?\App\Libraries\Cms\TranslationSynchronizer $translationSynchronizer = null
+        ?\App\Libraries\Cms\TranslationSynchronizer $translationSynchronizer = null,
+        private readonly ?\App\Libraries\Translation\CollectionPublicSlugProjection $publicSlugProjection = null
     ) {
         parent::__construct($collectionRepository, $responseMapper);
         $this->cacheInvalidator = $cacheInvalidator;
@@ -90,6 +91,7 @@ class CollectionService extends BaseCrudService implements CollectionServiceInte
     {
         parent::afterStore($entity, $context);
         $this->flushDeferredTranslations(fn (array $t) => $this->saveTranslations((int) $entity->id, $t));
+        $this->publicSlugProjection?->sync((int) $entity->id);
         $this->cacheInvalidator->invalidate(['collections', 'entries']);
     }
 
@@ -121,6 +123,7 @@ class CollectionService extends BaseCrudService implements CollectionServiceInte
     {
         parent::afterUpdate($entity, $context);
         $this->flushDeferredTranslations(fn (array $t) => $this->saveTranslations((int) $entity->id, $t));
+        $this->publicSlugProjection?->sync((int) $entity->id);
         $this->cacheInvalidator->invalidate(['collections', 'entries']);
     }
 

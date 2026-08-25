@@ -36,6 +36,7 @@ $routes->group('cms', ['namespace' => '\App\Controllers\Api\V1\Cms'], function (
         $routes->get('collections', 'CollectionController::index', ['filter' => 'permission:cms.collections.read']);
         $routes->get('collections/check-slug', 'CollectionController::checkSlug', ['filter' => 'permission:cms.collections.read']);
         $routes->post('collections', 'CollectionController::create', ['filter' => 'permission:cms.collections.write']);
+        $routes->post('collections/sort-orders', 'SortOrderController::reorder', ['filter' => 'permission:cms.collections.write']);
         // Entries CRUD
         $routes->get('entries', 'EntryController::index', ['filter' => 'permission:cms.entries.read']);
         $routes->get('entries/check-slug', 'EntryController::checkSlug', ['filter' => 'permission:cms.entries.read']);
