@@ -19,6 +19,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   exhausting another caller's quota.
 
 ### Added
+- Generic `cms:repair-slugs` command with dry-run output and explicit `--confirm` persistence for localized page, entry, collection, category, and tag slugs.
 - Generic public page bootstrap endpoints — `GET /api/v1/public/layout` composes the shared
   public shell and `GET /api/v1/public/page-bootstrap/{path}` resolves a page or collection
   entry with that shell in one cacheable response; signed page previews remain verified.
