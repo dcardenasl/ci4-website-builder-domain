@@ -300,9 +300,9 @@ final class CollectionBlockTemplateTest extends ApiTestCase
     }
 
     /**
-     * TEM-010: entries of a collection with a multi-block template (the real
-     * shape for content types like TeatroMuseo's Exposiciones/Eventos, not
-     * just the single-block demo case above) must get every block
+     * TEM-010: entries of a collection with a multi-block template (the
+     * generic shape for custom content types, not just the single-block demo
+     * case above) must get every block
      * initialized in the template's declared `sort_order`, regardless of the
      * order blocks appear in the `blocks` array.
      */

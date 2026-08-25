@@ -19,6 +19,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   class as a compatibility adapter for existing services.
 
 ### Changed
+- **Starter runtime defaults** — aligned local Hub/Domain ports with the `8180`/`8190` kit series
+  and documented the generic CMS contracts for public slugs, translations, ordering and bootstrap.
 - Public CMS reads support allowlisted sparse fieldsets through `?fields=` without changing
   the default response shape.
 - Collection public routing — collection writes and public reads now synchronize and resolve

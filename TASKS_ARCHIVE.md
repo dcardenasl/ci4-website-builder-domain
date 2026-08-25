@@ -3,6 +3,11 @@
 > Historial de tareas completadas. Movido desde TASKS.md para mantener el tracker activo liviano.
 > Última actualización: 2026-08-25
 
+## ✅ Backport de mejoras de Teatro Museo — Fase 5 (2026-08-25)
+
+- **BACKPORT-05-domain** — documentación de contratos CMS genéricos y alineación de defaults de
+  puertos/Hub para clones nuevos; verificado con la suite de calidad del repo.
+
 ## ✅ Backport de mejoras de Teatro Museo — Fase 4 (2026-08-25)
 
 - **BACKPORT-04-domain** — endpoints públicos compuestos `layout` y `page-bootstrap/{path}`,
