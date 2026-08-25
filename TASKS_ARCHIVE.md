@@ -5,6 +5,14 @@
 
 ---
 
+## ✅ Backport de mejoras de Teatro Museo — Fase 0 (2026-08-25)
+
+- **BACKPORT-00-domain** — `ci4-api-core` 1.5.1, eliminación de la copia local de
+  `JsonCastNormalizer` y hardening de `HubClient::resolvePublicFileMeta()` con sanitización,
+  chunking, stale cache e inyección de cache respetada; verificado con `composer quality`.
+
+---
+
 ## ✅ Scaffold inicial + integración hub (Milestone domain-starter v0.1, 2026-05-07)
 
 | ID | Descripción | Estado |

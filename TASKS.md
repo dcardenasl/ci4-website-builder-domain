@@ -13,14 +13,6 @@
 > [`../docs/plans/2026-08-24-plan-backport-teatromuseo.md`](../docs/plans/2026-08-24-plan-backport-teatromuseo.md).
 > Tracker cross-repo: [`../TASKS.md`](../TASKS.md).
 
-- [x] **BACKPORT-00-domain — Fase 0:** bump `dcardenasl/ci4-api-core` v1.1.0 → v1.5.1;
-      eliminada la copia local de `JsonCastNormalizer` (repuntado a la clase del paquete);
-      `HubClient::resolvePublicFileMeta()` endurecido (sanitiza/dedupe ids, chunking a 200,
-      fallback a stale cache) — se corrigió además un bug real preexistente: el método ignoraba
-      el cache inyectado por constructor y resolvía uno nuevo vía el service locator, rompiendo
-      la inyección de dependencias en tests. Código y tests
-      (`tests/Unit/Libraries/Hub/HubClientResolvePublicFileMetaTest.php`) verificados en verde;
-      **pendiente de commit**. Ver plan §Fase 0.
 - [ ] **BACKPORT-01-domain — Fase 1:** cerrar las excepciones baseline restantes de
       `ControllerModelDependencyConventionsTest` hasta tolerancia cero. Ver plan §Fase 1.
 
