@@ -1,7 +1,15 @@
 # TASKS_ARCHIVE — ci4-website-builder
 
 > Historial de tareas completadas. Movido desde TASKS.md para mantener el tracker activo liviano.
-> Última actualización: 2026-05-07
+> Última actualización: 2026-08-25
+
+---
+
+## ✅ Backport de mejoras de Teatro Museo — Fase 3 (2026-08-25)
+
+- **BACKPORT-03-domain** — namespace de permisos, public-slugs genéricos con backfill y proyección
+  de `collection`, sincronizador compartido de traducciones, sort-orders atómico y ADR de
+  external domain binding. Commit `22ce463`; `composer quality` y suites completas en verde.
 
 ---
 

@@ -17,12 +17,6 @@
 
 ### Backport de mejoras de Teatro Museo — fases posteriores (parte Domain)
 
-- [ ] **BACKPORT-03-domain — Fase 3:** documentar convención de namespace de permisos
-      `{app-code}.{resource}.{action}`; cablear kit de public-slugs sobre una entidad de
-      referencia; abstracción compartida de `{entity}_translations`; capacidad de reordenamiento
-      atómico por lotes (`SortOrderApiService` + `POST /{recurso}/sort-orders`); ADR de "external
-      domain binding" para el patrón CMS `page_type` → dominio externo. Ver plan §Fase 3 — mayor
-      pieza arquitectónica de esta fase, sin agregar nuevas apps de dominio.
 - [ ] **BACKPORT-04-domain — Fase 4:** endpoints CMS compuestos (`layout`, `page-bootstrap/{path}`).
       Ver plan §Fase 4.
 
