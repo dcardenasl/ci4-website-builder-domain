@@ -3,6 +3,15 @@
 > Historial de tareas completadas. Movido desde TASKS.md para mantener el tracker activo liviano.
 > Última actualización: 2026-08-25
 
+## ✅ Remediación de huecos profundos — Fase 0 (2026-08-25)
+
+- **GAP-00-domain** — `PermissionFilter` delega la política al core, conserva los mensajes
+  localizados del dominio y permite el bypass de `iam.superadmin-access`; regresiones de 401,
+  403, permiso válido, contexto y bypass. Commit `ad9e8ea`; `composer quality`, unit (295),
+  integration (48), feature (132), `composer cs-check` y pre-commit completados.
+
+---
+
 ## ✅ Backport de mejoras de Teatro Museo — Fase 5 (2026-08-25)
 
 - **BACKPORT-05-domain** — documentación de contratos CMS genéricos y alineación de defaults de
