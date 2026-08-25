@@ -67,6 +67,12 @@ class ServiceModelDependencyConventionsTest extends CIUnitTestCase
         'app/Services/Cms/MenuItemService.php' => ['model_call' => 6],
         'app/Services/Cms/MenuService.php' => ['model_call' => 2],
         'app/Services/Cms/PageService.php' => ['model_call' => 8],
+        // 2026-08-25 (GAP-04): PageQualityService is a read-only evaluator
+        // over the four CMS projections needed to build one page report. It
+        // keeps the policy in the Domain so Admin and future clients consume
+        // the same checks; the direct model seam mirrors the existing
+        // translation-audit read path and is intentionally not a CRUD service.
+        'app/Services/Cms/PageQualityService.php' => ['use_model' => 4],
         'app/Services/Cms/PublicEntryReader.php' => ['model_call' => 6],
         'app/Services/Cms/SettingService.php' => ['model_call' => 2],
         'app/Services/Cms/TagService.php' => ['model_call' => 4],

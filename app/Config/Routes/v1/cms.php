@@ -64,6 +64,7 @@ $routes->group('cms', ['namespace' => '\App\Controllers\Api\V1\Cms'], function (
         $routes->get('menu-items/(:num)', 'MenuItemController::show/$1', ['filter' => 'permission:cms.menus.read']);
         $routes->put('menu-items/(:num)', 'MenuItemController::update/$1', ['filter' => 'permission:cms.menus.write']);
         $routes->delete('menu-items/(:num)', 'MenuItemController::delete/$1', ['filter' => 'permission:cms.menus.write']);
+        $routes->get('pages/(:num)/quality', 'PageController::quality/$1', ['filter' => 'permission:cms.pages.read']);
         $routes->get('pages/(:num)', 'PageController::show/$1', ['filter' => 'permission:cms.pages.read']);
         $routes->put('pages/(:num)', 'PageController::update/$1', ['filter' => 'permission:cms.pages.write']);
         $routes->delete('pages/(:num)', 'PageController::delete/$1', ['filter' => 'permission:cms.pages.write']);

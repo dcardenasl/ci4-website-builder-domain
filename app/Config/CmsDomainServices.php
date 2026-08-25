@@ -203,6 +203,20 @@ trait CmsDomainServices
         );
     }
 
+    public static function pageQualityService(bool $getShared = true): \App\Interfaces\Cms\PageQualityServiceInterface
+    {
+        if ($getShared) {
+            return static::getSharedInstance('pageQualityService');
+        }
+
+        return new \App\Services\Cms\PageQualityService(
+            model(\App\Models\PageModel::class),
+            model(\App\Models\PageTranslationModel::class),
+            model(\App\Models\LanguageModel::class),
+            model(\App\Models\BlockInstanceModel::class),
+        );
+    }
+
     public static function publicPageReader(bool $getShared = true): \App\Services\Cms\PublicPageReader
     {
         if ($getShared) {

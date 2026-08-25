@@ -76,6 +76,32 @@ class PageEndpoints
     {
     }
 
+    #[OA\Get(
+        path: '/api/v1/cms/pages/{id}/quality',
+        tags: ['Cms'],
+        summary: 'Analyze Page quality',
+        parameters: [
+            new OA\Parameter(name: 'id', in: 'path', required: true, schema: new OA\Schema(type: 'integer'))
+        ],
+        responses: [
+            new OA\Response(
+                response: 200,
+                description: 'Quality report generated',
+                content: new OA\JsonContent(
+                    properties: [
+                        new OA\Property(property: 'status', type: 'string', example: 'success'),
+                        new OA\Property(property: 'data', type: 'object'),
+                    ],
+                    type: 'object'
+                )
+            ),
+            new OA\Response(response: 404, description: 'Page not found')
+        ]
+    )]
+    public function quality(): void
+    {
+    }
+
     #[OA\Put(
         path: '/api/v1/cms/pages/{id}',
         tags: ['Cms'],
