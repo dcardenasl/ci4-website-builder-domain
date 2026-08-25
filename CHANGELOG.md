@@ -11,6 +11,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `PermissionFilter` now delegates to the core policy and lets the platform
   superadmin bypass newly registered domain permissions without weakening
   ordinary permission checks.
+- Public GET rate limiting now buckets authenticated `X-App-Key` callers separately
+  from the shared IP/user limits, preventing one server-to-server caller from
+  exhausting another caller's quota.
 
 ### Added
 - Generic public page bootstrap endpoints — `GET /api/v1/public/layout` composes the shared
