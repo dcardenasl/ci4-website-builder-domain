@@ -13,9 +13,6 @@
 > [`../docs/plans/2026-08-24-plan-backport-teatromuseo.md`](../docs/plans/2026-08-24-plan-backport-teatromuseo.md).
 > Tracker cross-repo: [`../TASKS.md`](../TASKS.md).
 
-- [ ] **BACKPORT-01-domain — Fase 1:** cerrar las excepciones baseline restantes de
-      `ControllerModelDependencyConventionsTest` hasta tolerancia cero. Ver plan §Fase 1.
-
 ## 🟡 Próximo
 
 ### Backport de mejoras de Teatro Museo — fases posteriores (parte Domain)

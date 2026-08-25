@@ -11,6 +11,12 @@
   `JsonCastNormalizer` y hardening de `HubClient::resolvePublicFileMeta()` con sanitización,
   chunking, stale cache e inyección de cache respetada; verificado con `composer quality`.
 
+## ✅ Backport de mejoras de Teatro Museo — Fase 1 (2026-08-25)
+
+- **BACKPORT-01-domain** — verificado que `ControllerModelDependencyConventionsTest` ya tenía
+  `BASELINE` vacío y tolerancia cero para imports de Model, llamadas `model()` y `Database::connect()`;
+  no fue necesario portar código. Prueba focalizada y `composer quality` completos en verde.
+
 ---
 
 ## ✅ Scaffold inicial + integración hub (Milestone domain-starter v0.1, 2026-05-07)
