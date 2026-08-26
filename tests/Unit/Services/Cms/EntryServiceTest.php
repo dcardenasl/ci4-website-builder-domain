@@ -215,7 +215,9 @@ final class EntryServiceTest extends CIUnitTestCase
             $this->createMock(\App\Services\Cms\PublicEntryReader::class),
             $this->createMock(\App\Libraries\Cms\EntryTaxonomyPivotResolver::class),
             $this->createMock(\App\Services\Cms\EntryBlockTemplateInitializer::class),
-            $blockInstancePurger
+            $blockInstancePurger,
+            $this->createMock(\App\Interfaces\Cms\EntryTaxonomyLinkRepositoryInterface::class),
+            $this->createMock(\App\Interfaces\Cms\EntryTaxonomyLinkRepositoryInterface::class)
         );
         $result = $service->destroy(10, null);
 

@@ -37,6 +37,12 @@ class AuditableModelConventionsTest extends CIUnitTestCase
         'FormTranslationModel',     // child of FormModel, audited at the parent level
         'FormFieldTranslationModel',  // child of FormFieldModel, audited at the parent level
         'SettingConnectionModel',     // link/reference table, cascade-deleted from SettingModel; no entity operations; audited at parent level
+        // 2026-08-26 (F.0/GAP-04-20): entry↔taxonomy pivots. Composite primary key and no
+        // surrogate id, so BaseAuditableModel's per-row audit trail has nothing to key on.
+        // The meaningful change is "entry X now has this set of categories/tags", which is
+        // audited at the EntryModel level where the write originates.
+        'EntryCategoryModel',
+        'EntryTagModel',
     ];
 
     public function testAuditableModelsExtendSharedBaseAuditableModel(): void

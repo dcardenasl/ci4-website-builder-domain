@@ -451,8 +451,32 @@ trait CmsDomainServices
             static::entryTaxonomyPivotResolver(),
             static::entryBlockTemplateInitializer(),
             static::blockInstancePurger(),
+            static::entryCategoryLinkRepository(),
+            static::entryTagLinkRepository(),
             static::translationSynchronizer(),
             static::entryListRepository()
+        );
+    }
+
+    public static function entryCategoryLinkRepository(bool $getShared = true): \App\Interfaces\Cms\EntryTaxonomyLinkRepositoryInterface
+    {
+        if ($getShared) {
+            return static::getSharedInstance('entryCategoryLinkRepository');
+        }
+
+        return new \App\Repositories\Cms\EntryCategoryLinkRepository(
+            model(\App\Models\EntryCategoryModel::class)
+        );
+    }
+
+    public static function entryTagLinkRepository(bool $getShared = true): \App\Interfaces\Cms\EntryTaxonomyLinkRepositoryInterface
+    {
+        if ($getShared) {
+            return static::getSharedInstance('entryTagLinkRepository');
+        }
+
+        return new \App\Repositories\Cms\EntryTagLinkRepository(
+            model(\App\Models\EntryTagModel::class)
         );
     }
     public static function categoryResponseMapper(bool $getShared = true): \dcardenasl\Ci4ApiCore\Mappers\ResponseMapperInterface

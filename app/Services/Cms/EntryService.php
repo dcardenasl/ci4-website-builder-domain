@@ -13,6 +13,7 @@ use App\DTO\Response\Cms\EntryResponseDTO;
 use App\Entities\EntryEntity;
 use App\Interfaces\Cms\EntryListRepositoryInterface;
 use App\Interfaces\Cms\EntryServiceInterface;
+use App\Interfaces\Cms\EntryTaxonomyLinkRepositoryInterface;
 use App\Libraries\Cms\BlockInstancePurger;
 use App\Libraries\Cms\EntryTaxonomyPivotResolver;
 use App\Libraries\Cms\FileReferenceSynchronizer;
@@ -57,6 +58,8 @@ class EntryService extends BaseCrudService implements EntryServiceInterface
     private ?\App\Libraries\Cms\TranslationSynchronizer $translationSynchronizer;
 
     private ?EntryListRepositoryInterface $entryListRepository;
+    private EntryTaxonomyLinkRepositoryInterface $categoryLinkRepository;
+    private EntryTaxonomyLinkRepositoryInterface $tagLinkRepository;
 
     /**
      * @param RepositoryInterface<EntryEntity> $entryRepository
@@ -73,6 +76,8 @@ class EntryService extends BaseCrudService implements EntryServiceInterface
         EntryTaxonomyPivotResolver $taxonomyPivotResolver,
         EntryBlockTemplateInitializer $blockTemplateInitializer,
         BlockInstancePurger $blockInstancePurger,
+        EntryTaxonomyLinkRepositoryInterface $categoryLinkRepository,
+        EntryTaxonomyLinkRepositoryInterface $tagLinkRepository,
         ?\App\Libraries\Cms\TranslationSynchronizer $translationSynchronizer = null,
         ?EntryListRepositoryInterface $entryListRepository = null
     ) {
@@ -88,6 +93,8 @@ class EntryService extends BaseCrudService implements EntryServiceInterface
         $this->blockInstancePurger = $blockInstancePurger;
         $this->translationSynchronizer = $translationSynchronizer;
         $this->entryListRepository = $entryListRepository;
+        $this->categoryLinkRepository = $categoryLinkRepository;
+        $this->tagLinkRepository = $tagLinkRepository;
     }
 
     /**
@@ -559,20 +566,7 @@ class EntryService extends BaseCrudService implements EntryServiceInterface
             }
         }
 
-        $db = \Config\Database::connect();
-        $db->table('cms_entry_categories')->where('entry_id', $entryId)->delete();
-
-        if ($categoryIds !== []) {
-            $rows = [];
-            foreach ($categoryIds as $order => $categoryId) {
-                $rows[] = [
-                    'entry_id'    => $entryId,
-                    'category_id' => $categoryId,
-                    'sort_order'  => $order,
-                ];
-            }
-            $db->table('cms_entry_categories')->insertBatch($rows);
-        }
+        $this->categoryLinkRepository->replaceForEntry($entryId, $categoryIds);
     }
 
     /**
@@ -596,16 +590,7 @@ class EntryService extends BaseCrudService implements EntryServiceInterface
             }
         }
 
-        $db = \Config\Database::connect();
-        $db->table('cms_entry_tags')->where('entry_id', $entryId)->delete();
-
-        if ($tagIds !== []) {
-            $rows = [];
-            foreach ($tagIds as $tagId) {
-                $rows[] = ['entry_id' => $entryId, 'tag_id' => $tagId];
-            }
-            $db->table('cms_entry_tags')->insertBatch($rows);
-        }
+        $this->tagLinkRepository->replaceForEntry($entryId, $tagIds);
     }
 
     public function listPublic(PublicEntryIndexRequestDTO $dto): DataTransferObjectInterface

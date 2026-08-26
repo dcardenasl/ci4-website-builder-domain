@@ -55,7 +55,12 @@ class ServiceModelDependencyConventionsTest extends CIUnitTestCase
         'app/Services/Cms/CategoryService.php' => ['model_call' => 5],
         'app/Services/Cms/CollectionService.php' => ['model_call' => 4],
         'app/Services/Cms/EntryBlockTemplateInitializer.php' => ['model_call' => 5, 'db_connect' => 1],
-        'app/Services/Cms/EntryService.php' => ['model_call' => 11, 'db_connect' => 3],
+        // 2026-08-26 (F.0/GAP-04-20): db_connect bajó de 3 a 1 — las escrituras de los
+        // pivots cms_entry_categories / cms_entry_tags salieron del servicio a
+        // EntryCategoryLinkRepository / EntryTagLinkRepository, inyectados por contrato.
+        // Los model_call restantes son validación de existencia contra otros agregados
+        // (Category/Tag/Collection/EntryTranslation), no acceso a tablas propias.
+        'app/Services/Cms/EntryService.php' => ['model_call' => 11, 'db_connect' => 1],
         // FormService.php was split 2026-07-19 into three single-responsibility
         // classes (form CRUD, field CRUD, public definition assembly); the
         // model coupling below is the same coupling redistributed, not new debt.
