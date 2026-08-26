@@ -17,6 +17,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Public GET rate limiting now buckets authenticated `X-App-Key` callers separately
   from the shared IP/user limits, preventing one server-to-server caller from
   exhausting another caller's quota.
+- Public page reads now enforce the full publication window instead of the
+  `status` flag alone: a page marked published with a future `published_at` or
+  `scheduled_at` is no longer reachable by direct URL. Entries already applied
+  this rule; both now share `App\Libraries\Cms\PublicationWindow` as the single
+  definition so the two cannot drift apart again.
 
 ### Added
 - Generic `cms:repair-slugs` command with dry-run output and explicit `--confirm` persistence for localized page, entry, collection, category, and tag slugs.

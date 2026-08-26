@@ -12,6 +12,7 @@ use App\Libraries\Cms\EntryListingContentResolver;
 use App\Libraries\Cms\EntryTaxonomyPivotResolver;
 use App\Libraries\Cms\FileUrlResolver;
 use App\Libraries\Cms\PreviewToken;
+use App\Libraries\Cms\PublicationWindow;
 use dcardenasl\Ci4ApiCore\Dto\Common\PayloadResponseDTO;
 use dcardenasl\Ci4ApiCore\Dto\DataTransferObjectInterface;
 use dcardenasl\Ci4ApiCore\Dto\PaginatedResponseDTO;
@@ -186,17 +187,8 @@ class PublicEntryReader
         $now    = date('Y-m-d H:i:s');
         $offset = ($dto->page - 1) * $dto->per_page;
 
-        $builder = $entryModel
-            ->where('collection_id', (int) $collection->id)
-            ->where('workflow_status', 'published')
-            ->groupStart()
-                ->where('published_at IS NULL')
-                ->orWhere('published_at <=', $now)
-            ->groupEnd()
-            ->groupStart()
-                ->where('scheduled_at IS NULL')
-                ->orWhere('scheduled_at <=', $now)
-            ->groupEnd();
+        $builder = $entryModel->where('collection_id', (int) $collection->id);
+        PublicationWindow::apply($builder, PublicationWindow::ENTRY_STATUS, null, $now);
 
         $total = (int) $builder->countAllResults(false);
 
@@ -333,15 +325,7 @@ class PublicEntryReader
             ->where('collection_id', (int) $collection->id);
 
         if (!$preview) {
-            $query->where('workflow_status', 'published')
-                ->groupStart()
-                    ->where('published_at IS NULL')
-                    ->orWhere('published_at <=', $now)
-                ->groupEnd()
-                ->groupStart()
-                    ->where('scheduled_at IS NULL')
-                    ->orWhere('scheduled_at <=', $now)
-                ->groupEnd();
+            PublicationWindow::apply($query, PublicationWindow::ENTRY_STATUS, null, $now);
         }
 
         $entry = $query->first();

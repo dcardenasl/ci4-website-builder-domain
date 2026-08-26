@@ -57,7 +57,7 @@ class SlugRouter
                 ->where('page_type', 'home')
                 ->where('deleted_at IS NULL');
             if (!$includeUnpublished) {
-                $builder->where('status', 'published');
+                PublicationWindow::apply($builder);
             }
             $result = $builder->get();
             if ($result !== false) {
@@ -171,7 +171,7 @@ class SlugRouter
             ->where('pt.language_id', $langId)
             ->where('p.deleted_at IS NULL');
         if (!$includeUnpublished) {
-            $builder->where('p.status', 'published');
+            PublicationWindow::apply($builder, 'p.' . PublicationWindow::PAGE_STATUS, 'p');
         }
 
         if ($parentId === null) {

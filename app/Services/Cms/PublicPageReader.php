@@ -7,6 +7,7 @@ namespace App\Services\Cms;
 use App\Entities\LanguageEntity;
 use App\Entities\PageEntity;
 use App\Libraries\Cms\BlockInstanceSerializer;
+use App\Libraries\Cms\PublicationWindow;
 use App\Libraries\Cms\SlugRouter;
 use App\Libraries\Cms\TranslationResolver;
 use dcardenasl\Ci4ApiCore\Exceptions\NotFoundException;
@@ -45,9 +46,11 @@ class PublicPageReader
      */
     public function listPublic(string $lang): array
     {
+        $model = $this->pageRepository->getModel();
+        PublicationWindow::apply($model);
+
         /** @var list<PageEntity> $pages */
-        $pages = $this->pageRepository->getModel()
-            ->where('status', 'published')
+        $pages = $model
             ->orderBy('sort_order', 'ASC')
             ->findAll();
 
@@ -94,7 +97,11 @@ class PublicPageReader
 
         /** @var PageEntity|null $page */
         $page = $this->pageRepository->find($pageId);
-        if ($page === null || (!$preview && $page->status !== 'published')) {
+        if ($page === null) {
+            throw new NotFoundException(lang('Pages.not_found'));
+        }
+
+        if (!$preview && !PublicationWindow::isOpen($page->status, $page->published_at, $page->scheduled_at)) {
             throw new NotFoundException(lang('Pages.not_found'));
         }
 

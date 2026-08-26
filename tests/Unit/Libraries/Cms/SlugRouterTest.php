@@ -104,6 +104,86 @@ final class SlugRouterTest extends CIUnitTestCase
         $this->assertSame($childPageId, $resolved);
     }
 
+    public function testResolvePublishedWithFuturePublishedAtReturnsNull(): void
+    {
+        // Regression: `SlugRouter` used to gate on `status` alone, so a page
+        // marked published with a `published_at` still in the future stayed
+        // reachable by direct URL. `ScheduledPublishingJob` writes that column,
+        // but no access-control path read it.
+        $this->db->table('cms_pages')->insert([
+            'status'       => 'published',
+            'published_at' => date('Y-m-d H:i:s', time() + 86400),
+        ]);
+        $pageId = $this->db->insertID();
+
+        $this->db->table('cms_page_translations')->insert([
+            'page_id'     => $pageId,
+            'language_id' => $this->langEsId,
+            'slug'        => 'futura',
+            'title'       => 'Futura',
+        ]);
+
+        $router = new SlugRouter($this->db);
+
+        $this->assertNull($router->resolve('es', 'page', 'futura'));
+        $this->assertSame($pageId, $router->resolve('es', 'page', 'futura', true));
+    }
+
+    public function testResolvePublishedWithFutureScheduledAtReturnsNull(): void
+    {
+        $this->db->table('cms_pages')->insert([
+            'status'       => 'published',
+            'scheduled_at' => date('Y-m-d H:i:s', time() + 86400),
+        ]);
+        $pageId = $this->db->insertID();
+
+        $this->db->table('cms_page_translations')->insert([
+            'page_id'     => $pageId,
+            'language_id' => $this->langEsId,
+            'slug'        => 'programada',
+            'title'       => 'Programada',
+        ]);
+
+        $router = new SlugRouter($this->db);
+
+        $this->assertNull($router->resolve('es', 'page', 'programada'));
+    }
+
+    public function testResolvePublishedWithPastPublishedAtResolves(): void
+    {
+        $this->db->table('cms_pages')->insert([
+            'status'       => 'published',
+            'published_at' => date('Y-m-d H:i:s', time() - 86400),
+        ]);
+        $pageId = $this->db->insertID();
+
+        $this->db->table('cms_page_translations')->insert([
+            'page_id'     => $pageId,
+            'language_id' => $this->langEsId,
+            'slug'        => 'vigente',
+            'title'       => 'Vigente',
+        ]);
+
+        $router = new SlugRouter($this->db);
+
+        $this->assertSame($pageId, $router->resolve('es', 'page', 'vigente'));
+    }
+
+    public function testResolveHomeWithFuturePublishedAtReturnsNull(): void
+    {
+        // The home branch of resolve() is a separate query from the slug walk;
+        // it had the same defect.
+        $this->db->table('cms_pages')->insert([
+            'page_type'    => 'home',
+            'status'       => 'published',
+            'published_at' => date('Y-m-d H:i:s', time() + 86400),
+        ]);
+
+        $router = new SlugRouter($this->db);
+
+        $this->assertNull($router->resolve('es', 'page', ''));
+    }
+
     public function testResolveDraftReturnsNull(): void
     {
         $this->db->table('cms_pages')->insert([
