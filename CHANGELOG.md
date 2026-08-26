@@ -52,6 +52,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **`JsonCastNormalizer`** — the local copy in `App\Libraries\Cms` is removed; all call sites now use `dcardenasl\Ci4ApiCore\Support\JsonCastNormalizer`, which ships the same `toArray()` contract as of `^1.5`.
 
 ### Fixed
+- Public CMS routing now preserves complete multi-segment localized paths, allowing page bootstrap and entry detail URLs to resolve the collection and entry slug instead of stopping at the collection index.
 - Orphaned page/entry block instances are now purged, including their translations and Hub file-reference rows, when the owning CMS resource is deleted.
 - **`HubClient::resolvePublicFileMeta()`** — sanitizes and dedupes file ids before querying, chunks requests to the Hub's batch-meta endpoint at 200 ids (its documented cap) instead of silently truncating larger batches, and falls back to a longer-lived stale cache entry when the Hub is temporarily unreachable. Also fixed a preexisting bug where the method ignored the `$cache` instance injected via the constructor and resolved a new one through the service locator instead, breaking dependency injection in tests.
 - **Update Request DTOs** — preserve explicit `null` values while omitting fields absent from the

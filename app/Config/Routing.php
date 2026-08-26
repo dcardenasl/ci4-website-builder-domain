@@ -108,12 +108,12 @@ class Routing extends BaseRouting
     public bool $prioritize = false;
 
     /**
-     * For Defined Routes.
-     * If TRUE, matched multiple URI segments will be passed as one parameter.
-     *
-     * Default: false
+     * Public CMS routes use `(.+)` for localized page paths and entry slugs.
+     * Preserve the complete match as one controller argument so a path such
+     * as `section/entry-es` cannot be shortened to `section` before the
+     * Domain resolver applies its locale-aware routing rules.
      */
-    public bool $multipleSegmentsOneParam = false;
+    public bool $multipleSegmentsOneParam = true;
 
     /**
      * For Auto Routing (Improved).

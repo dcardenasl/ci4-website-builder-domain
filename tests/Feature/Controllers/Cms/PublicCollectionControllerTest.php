@@ -205,4 +205,65 @@ final class PublicCollectionControllerTest extends CIUnitTestCase
         $this->assertSame($pageTitle, $bootstrapBody['data']['route']['data']['title']);
         $this->assertArrayHasKey('settings', $bootstrapBody['data']['layout']);
     }
+
+    public function testPageBootstrapPreservesLocalizedCollectionAndEntrySlugs(): void
+    {
+        $collectionIndexEs = 'coleccion-es';
+        $collectionIndexEn = 'collection-en';
+        $entrySlugEs = 'entrada-es';
+        $entrySlugEn = 'entry-en';
+        $entryTitleEs = 'Entrada en español';
+        $entryTitleEn = 'Entry in English';
+
+        $this->fixtures->page([
+            [
+                'language_id' => $this->languages[0]['id'],
+                'slug'        => $collectionIndexEs,
+                'title'       => 'Colección',
+            ],
+            [
+                'language_id' => $this->languages[1]['id'],
+                'slug'        => $collectionIndexEn,
+                'title'       => 'Collection',
+            ],
+        ], [
+            'collection_id' => $this->collection['id'],
+            'page_type'     => 'collection_index',
+        ]);
+
+        $this->fixtures->entry($this->collection['id'], [
+            [
+                'language_id' => $this->languages[0]['id'],
+                'slug'        => $entrySlugEs,
+                'title'       => $entryTitleEs,
+            ],
+            [
+                'language_id' => $this->languages[1]['id'],
+                'slug'        => $entrySlugEn,
+                'title'       => $entryTitleEn,
+            ],
+        ]);
+
+        $bootstrapEs = $this->withHeaders([
+            'Accept-Language' => $this->languages[0]['code'],
+            ...$this->webAppKeyHeader(),
+        ])->get('/api/v1/public/page-bootstrap/' . $collectionIndexEs . '/' . $entrySlugEs);
+
+        $bootstrapEs->assertStatus(200);
+        $bodyEs = json_decode($bootstrapEs->getJSON(), true);
+        $this->assertSame('entry', $bodyEs['data']['route']['type']);
+        $this->assertSame($entrySlugEs, $bodyEs['data']['route']['data']['slug']);
+        $this->assertSame($entryTitleEs, $bodyEs['data']['route']['data']['title']);
+
+        $bootstrapEn = $this->withHeaders([
+            'Accept-Language' => $this->languages[1]['code'],
+            ...$this->webAppKeyHeader(),
+        ])->get('/api/v1/public/page-bootstrap/' . $collectionIndexEn . '/' . $entrySlugEn);
+
+        $bootstrapEn->assertStatus(200);
+        $bodyEn = json_decode($bootstrapEn->getJSON(), true);
+        $this->assertSame('entry', $bodyEn['data']['route']['type']);
+        $this->assertSame($entrySlugEn, $bodyEn['data']['route']['data']['slug']);
+        $this->assertSame($entryTitleEn, $bodyEn['data']['route']['data']['title']);
+    }
 }
