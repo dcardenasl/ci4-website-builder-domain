@@ -33,6 +33,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Changed
 - Hub-owned media now separates the internal `hub.url` from the browser-facing `HUB_PUBLIC_URL`, storing portable `/uploads/` paths while resolving public origins at delivery time.
 - CMS administrative list endpoints now expose an explicit set-based `projection=list` path with bounded pagination, SQL-side counts, and compatibility decoding for localized rows; the existing full projections remain the default.
+- CMS `POST /api/v1/cms/sort-orders` now applies scoped atomic batches for pages, entries, categories, languages, menu items, and block instances, while retaining the collections reorder contract.
 - Added the generic page quality evaluator and protected `GET /api/v1/cms/pages/{id}/quality` contract for shared editorial and SEO readiness checks.
 - Public file metadata requests retain the shared HubClient behavior by default and support explicit `PUBLIC_READ_HUB_CONNECT_TIMEOUT` plus `PUBLIC_READ_HUB_TIMEOUT` overrides for deployments that need a tighter outbound budget; correlation IDs and breadcrumbs remain propagated on the opt-in path.
 - Domain cache keys now use an app-specific prefix to prevent collisions with

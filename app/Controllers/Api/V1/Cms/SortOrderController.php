@@ -27,7 +27,20 @@ final class SortOrderController extends ApiController
     {
         return $this->handleRequest(
             function (SortOrderBatchRequestDTO $dto, SecurityContext $context): array {
-                if (! $context->hasPermission('cms.collections.write')) {
+                $permission = match ($dto->resource) {
+                    'collections' => 'cms.collections.write',
+                    'pages' => 'cms.pages.write',
+                    'entries' => 'cms.entries.write',
+                    'categories' => 'cms.categories.write',
+                    'languages' => 'cms.languages.write',
+                    'menu_items' => 'cms.menus.write',
+                    'block_instances' => ($dto->scope['owner_type'] ?? null) === 'entry'
+                        ? 'cms.entries.write'
+                        : 'cms.pages.write',
+                    default => null,
+                };
+
+                if ($permission === null || ! $context->hasPermission($permission)) {
                     throw new AuthorizationException(lang('Api.forbidden'));
                 }
 
