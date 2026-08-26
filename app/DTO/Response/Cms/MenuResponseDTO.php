@@ -31,7 +31,9 @@ final readonly class MenuResponseDTO implements DataTransferObjectInterface
         #[OA\Property(property: 'updated_at', description: 'Last update timestamp', example: '2026-02-26 12:00:00', nullable: true)]
         public ?string $updatedAt = null,
         #[OA\Property(property: 'translations', type: 'array', items: new OA\Items(type: 'object'), nullable: true)]
-        public ?array $translations = null
+        public ?array $translations = null,
+        #[OA\Property(property: 'items_count', description: 'Number of menu items', type: 'integer')]
+        public int $items_count = 0
     ) {
     }
 
@@ -48,6 +50,7 @@ final readonly class MenuResponseDTO implements DataTransferObjectInterface
             createdAt: DateValue::toString($data['created_at'] ?? null),
             updatedAt: DateValue::toString($data['updated_at'] ?? null),
             translations: $data['translations'] ?? null,
+            items_count: (int) ($data['items_count'] ?? 0),
         );
     }
 
@@ -68,6 +71,7 @@ final readonly class MenuResponseDTO implements DataTransferObjectInterface
         if ($this->translations !== null) {
             $res['translations'] = $this->translations;
         }
+        $res['items_count'] = $this->items_count;
 
         return $res;
     }

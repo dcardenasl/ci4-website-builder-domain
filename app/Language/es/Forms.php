@@ -18,4 +18,5 @@ return [
     'usage_page'             => 'Página',
     'usage_entry'            => 'Entrada',
     'usage_instance'         => 'instancia',
+    'list_projection_failed' => 'No se pudo cargar el listado de formularios.',
 ];

@@ -4,10 +4,15 @@ declare(strict_types=1);
 
 namespace App\Services\Cms;
 
+use App\DTO\Response\Cms\CollectionResponseDTO;
 use App\Entities\CollectionEntity;
 use App\Entities\LanguageEntity;
+use App\Interfaces\Cms\AdminListProjectionRepositoryInterface;
 use App\Interfaces\Cms\CollectionServiceInterface;
+use App\Support\AdminListProjectionDecoder;
 use App\Traits\Services\HasDeferredTranslations;
+use dcardenasl\Ci4ApiCore\Dto\DataTransferObjectInterface;
+use dcardenasl\Ci4ApiCore\Dto\PaginatedResponseDTO;
 use dcardenasl\Ci4ApiCore\Dto\SecurityContext;
 use dcardenasl\Ci4ApiCore\Exceptions\ValidationException;
 use dcardenasl\Ci4ApiCore\Mappers\ResponseMapperInterface;
@@ -25,6 +30,8 @@ class CollectionService extends BaseCrudService implements CollectionServiceInte
 
     private ?\App\Libraries\Cms\TranslationSynchronizer $translationSynchronizer;
 
+    private ?AdminListProjectionRepositoryInterface $collectionListRepository;
+
     /**
      * @param RepositoryInterface<CollectionEntity> $collectionRepository
      * @param RepositoryInterface<LanguageEntity> $languageRepository
@@ -36,11 +43,43 @@ class CollectionService extends BaseCrudService implements CollectionServiceInte
         private readonly RepositoryInterface $languageRepository,
         private readonly PublicCollectionReader $publicCollectionReader,
         ?\App\Libraries\Cms\TranslationSynchronizer $translationSynchronizer = null,
-        private readonly ?\App\Libraries\Translation\CollectionPublicSlugProjection $publicSlugProjection = null
+        private readonly ?\App\Libraries\Translation\CollectionPublicSlugProjection $publicSlugProjection = null,
+        ?AdminListProjectionRepositoryInterface $collectionListRepository = null
     ) {
         parent::__construct($collectionRepository, $responseMapper);
         $this->cacheInvalidator = $cacheInvalidator;
         $this->translationSynchronizer = $translationSynchronizer;
+        $this->collectionListRepository = $collectionListRepository;
+    }
+
+    public function index(DataTransferObjectInterface $request, ?\dcardenasl\Ci4ApiCore\Dto\SecurityContext $context = null): DataTransferObjectInterface
+    {
+        $requestData = $request->toArray();
+        if (($requestData['projection'] ?? 'full') !== 'list' || $this->collectionListRepository === null) {
+            return parent::index($request, $context);
+        }
+
+        $result = $this->collectionListRepository->paginateAdminList(
+            $requestData,
+            max(1, (int) ($requestData['page'] ?? 1)),
+            min(1000, max(1, (int) ($requestData['per_page'] ?? 20))),
+        );
+        $data = array_map(static function (array $row): CollectionResponseDTO {
+            $row['translations'] = AdminListProjectionDecoder::translations(
+                $row['translations_data'] ?? null,
+                ['name', 'slug'],
+            );
+            unset($row['translations_data']);
+
+            return CollectionResponseDTO::fromArray($row);
+        }, $result['data']);
+
+        return PaginatedResponseDTO::fromArray([
+            'data' => $data,
+            'total' => $result['total'],
+            'page' => $result['page'],
+            'per_page' => $result['per_page'],
+        ]);
     }
 
     /**

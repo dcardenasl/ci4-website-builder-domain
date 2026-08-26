@@ -55,7 +55,8 @@ trait CmsDomainServices
             static::fileUrlResolver(),
             static::publicLocaleResolver(),
             static::requestDtoFactory(),
-            static::translationSynchronizer()
+            static::translationSynchronizer(),
+            static::settingListRepository()
         );
     }
 
@@ -199,7 +200,8 @@ trait CmsDomainServices
             static::fileReferenceSynchronizer(),
             static::publicPageReader(),
             static::blockInstancePurger(),
-            static::translationSynchronizer()
+            static::translationSynchronizer(),
+            static::pageListRepository()
         );
     }
 
@@ -276,7 +278,8 @@ trait CmsDomainServices
             new \dcardenasl\Ci4ApiCore\Repositories\GenericRepository(model(\App\Models\MenuItemModel::class)),
             static::translationResolver(),
             static::menuItemService(),
-            static::translationSynchronizer()
+            static::translationSynchronizer(),
+            static::menuListRepository()
         );
     }
     public static function menuItemResponseMapper(bool $getShared = true): \dcardenasl\Ci4ApiCore\Mappers\ResponseMapperInterface
@@ -360,7 +363,8 @@ trait CmsDomainServices
             new \dcardenasl\Ci4ApiCore\Repositories\GenericRepository(model(\App\Models\LanguageModel::class)),
             static::publicCollectionReader(),
             static::translationSynchronizer(),
-            static::collectionPublicSlugProjection()
+            static::collectionPublicSlugProjection(),
+            static::collectionListRepository()
         );
     }
 
@@ -447,7 +451,8 @@ trait CmsDomainServices
             static::entryTaxonomyPivotResolver(),
             static::entryBlockTemplateInitializer(),
             static::blockInstancePurger(),
-            static::translationSynchronizer()
+            static::translationSynchronizer(),
+            static::entryListRepository()
         );
     }
     public static function categoryResponseMapper(bool $getShared = true): \dcardenasl\Ci4ApiCore\Mappers\ResponseMapperInterface
@@ -467,7 +472,8 @@ trait CmsDomainServices
             static::categoryResponseMapper(),
             static::translationResolver(),
             static::cacheInvalidationClient(),
-            static::translationSynchronizer()
+            static::translationSynchronizer(),
+            static::categoryListRepository()
         );
     }
     public static function tagResponseMapper(bool $getShared = true): \dcardenasl\Ci4ApiCore\Mappers\ResponseMapperInterface
@@ -482,7 +488,7 @@ trait CmsDomainServices
         if ($getShared) {
             return static::getSharedInstance('tagService');
         }
-        return new \App\Services\Cms\TagService(new \dcardenasl\Ci4ApiCore\Repositories\GenericRepository(model(\App\Models\TagModel::class)), static::tagResponseMapper(), static::cacheInvalidationClient(), static::translationResolver(), static::translationSynchronizer());
+        return new \App\Services\Cms\TagService(new \dcardenasl\Ci4ApiCore\Repositories\GenericRepository(model(\App\Models\TagModel::class)), static::tagResponseMapper(), static::cacheInvalidationClient(), static::translationResolver(), static::translationSynchronizer(), static::tagListRepository());
     }
     public static function redirectResponseMapper(bool $getShared = true): \dcardenasl\Ci4ApiCore\Mappers\ResponseMapperInterface
     {

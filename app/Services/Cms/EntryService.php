@@ -9,15 +9,19 @@ use App\DTO\Request\Cms\EntrySetTagsRequestDTO;
 use App\DTO\Request\Cms\EntrySyncTaxonomyRequestDTO;
 use App\DTO\Request\Cms\PublicEntryIndexRequestDTO;
 use App\DTO\Request\Cms\PublicEntryShowRequestDTO;
+use App\DTO\Response\Cms\EntryResponseDTO;
 use App\Entities\EntryEntity;
+use App\Interfaces\Cms\EntryListRepositoryInterface;
 use App\Interfaces\Cms\EntryServiceInterface;
 use App\Libraries\Cms\BlockInstancePurger;
 use App\Libraries\Cms\EntryTaxonomyPivotResolver;
 use App\Libraries\Cms\FileReferenceSynchronizer;
 use App\Libraries\Cms\FileUrlResolver;
+use App\Support\AdminListProjectionDecoder;
 use App\Traits\Services\HasDeferredTranslations;
 use dcardenasl\Ci4ApiCore\Dto\Common\PayloadResponseDTO;
 use dcardenasl\Ci4ApiCore\Dto\DataTransferObjectInterface;
+use dcardenasl\Ci4ApiCore\Dto\PaginatedResponseDTO;
 use dcardenasl\Ci4ApiCore\Dto\SecurityContext;
 use dcardenasl\Ci4ApiCore\Exceptions\NotFoundException;
 use dcardenasl\Ci4ApiCore\Exceptions\ValidationException;
@@ -52,6 +56,8 @@ class EntryService extends BaseCrudService implements EntryServiceInterface
 
     private ?\App\Libraries\Cms\TranslationSynchronizer $translationSynchronizer;
 
+    private ?EntryListRepositoryInterface $entryListRepository;
+
     /**
      * @param RepositoryInterface<EntryEntity> $entryRepository
      */
@@ -67,7 +73,8 @@ class EntryService extends BaseCrudService implements EntryServiceInterface
         EntryTaxonomyPivotResolver $taxonomyPivotResolver,
         EntryBlockTemplateInitializer $blockTemplateInitializer,
         BlockInstancePurger $blockInstancePurger,
-        ?\App\Libraries\Cms\TranslationSynchronizer $translationSynchronizer = null
+        ?\App\Libraries\Cms\TranslationSynchronizer $translationSynchronizer = null,
+        ?EntryListRepositoryInterface $entryListRepository = null
     ) {
         parent::__construct($entryRepository, $responseMapper);
         $this->slugRedirectRecorder = $slugRedirectRecorder;
@@ -80,6 +87,45 @@ class EntryService extends BaseCrudService implements EntryServiceInterface
         $this->blockTemplateInitializer = $blockTemplateInitializer;
         $this->blockInstancePurger = $blockInstancePurger;
         $this->translationSynchronizer = $translationSynchronizer;
+        $this->entryListRepository = $entryListRepository;
+    }
+
+    /**
+     * The administrative list is a database projection. It deliberately
+     * bypasses the generic entity enrichment path: that path is appropriate
+     * for full records, but it would hydrate translations and media one row
+     * at a time for a paginated table.
+     */
+    public function index(DataTransferObjectInterface $request, ?SecurityContext $context = null): DataTransferObjectInterface
+    {
+        $requestData = $request->toArray();
+        if (($requestData['projection'] ?? 'full') !== 'list' || $this->entryListRepository === null) {
+            return parent::index($request, $context);
+        }
+
+        $page = max(1, (int) ($requestData['page'] ?? 1));
+        $perPage = min(1000, max(1, (int) ($requestData['per_page'] ?? 20)));
+        $result = $this->entryListRepository->paginateAdminList($requestData, $page, $perPage);
+
+        $data = array_map(
+            static function (array $row): EntryResponseDTO {
+                $row['translations'] = AdminListProjectionDecoder::translations(
+                    $row['translations_data'] ?? null,
+                    ['title', 'slug'],
+                );
+                unset($row['translations_data']);
+
+                return EntryResponseDTO::fromArray($row);
+            },
+            $result['data']
+        );
+
+        return PaginatedResponseDTO::fromArray([
+            'data' => $data,
+            'total' => $result['total'],
+            'page' => $result['page'],
+            'per_page' => $result['per_page'],
+        ]);
     }
 
     protected function beforeStore(array $data, ?SecurityContext $context): array

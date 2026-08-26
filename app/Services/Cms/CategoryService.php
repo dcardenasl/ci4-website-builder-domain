@@ -4,9 +4,15 @@ declare(strict_types=1);
 
 namespace App\Services\Cms;
 
+use App\DTO\Response\Cms\CategoryResponseDTO;
 use App\Entities\CategoryEntity;
+use App\Interfaces\Cms\AdminListProjectionRepositoryInterface;
 use App\Interfaces\Cms\CategoryServiceInterface;
+use App\Support\AdminListProjectionDecoder;
 use App\Traits\Services\HasTranslatableTaxonomyLifecycle;
+use dcardenasl\Ci4ApiCore\Dto\DataTransferObjectInterface;
+use dcardenasl\Ci4ApiCore\Dto\PaginatedResponseDTO;
+use dcardenasl\Ci4ApiCore\Dto\SecurityContext;
 use dcardenasl\Ci4ApiCore\Mappers\ResponseMapperInterface;
 use dcardenasl\Ci4ApiCore\Repositories\RepositoryInterface;
 use dcardenasl\Ci4ApiCore\Services\BaseCrudService;
@@ -22,6 +28,8 @@ class CategoryService extends BaseCrudService implements CategoryServiceInterfac
 
     private ?\App\Libraries\Cms\TranslationSynchronizer $translationSynchronizer;
 
+    private ?AdminListProjectionRepositoryInterface $categoryListRepository;
+
     /**
      * @param RepositoryInterface<CategoryEntity> $categoryRepository
      */
@@ -30,12 +38,44 @@ class CategoryService extends BaseCrudService implements CategoryServiceInterfac
         ResponseMapperInterface $responseMapper,
         \App\Libraries\Cms\TranslationResolver $translationResolver,
         \App\Libraries\Cms\CacheInvalidationClient $cacheInvalidator,
-        ?\App\Libraries\Cms\TranslationSynchronizer $translationSynchronizer = null
+        ?\App\Libraries\Cms\TranslationSynchronizer $translationSynchronizer = null,
+        ?AdminListProjectionRepositoryInterface $categoryListRepository = null
     ) {
         parent::__construct($categoryRepository, $responseMapper);
         $this->translationResolver = $translationResolver;
         $this->cacheInvalidator    = $cacheInvalidator;
         $this->translationSynchronizer = $translationSynchronizer;
+        $this->categoryListRepository = $categoryListRepository;
+    }
+
+    public function index(DataTransferObjectInterface $request, ?SecurityContext $context = null): DataTransferObjectInterface
+    {
+        $requestData = $request->toArray();
+        if (($requestData['projection'] ?? 'full') !== 'list' || $this->categoryListRepository === null) {
+            return parent::index($request, $context);
+        }
+
+        $result = $this->categoryListRepository->paginateAdminList(
+            $requestData,
+            max(1, (int) ($requestData['page'] ?? 1)),
+            min(1000, max(1, (int) ($requestData['per_page'] ?? 20))),
+        );
+        $data = array_map(static function (array $row): CategoryResponseDTO {
+            $row['translations'] = AdminListProjectionDecoder::translations(
+                $row['translations_data'] ?? null,
+                ['name', 'slug'],
+            );
+            unset($row['translations_data']);
+
+            return CategoryResponseDTO::fromArray($row);
+        }, $result['data']);
+
+        return PaginatedResponseDTO::fromArray([
+            'data' => $data,
+            'total' => $result['total'],
+            'page' => $result['page'],
+            'per_page' => $result['per_page'],
+        ]);
     }
 
     protected function enrichEntities(array $entities): array
