@@ -7,6 +7,7 @@ namespace Tests\Feature\Controllers\Cms;
 use CodeIgniter\Test\CIUnitTestCase;
 use CodeIgniter\Test\DatabaseTestTrait;
 use CodeIgniter\Test\FeatureTestTrait;
+use Config\Services;
 use Tests\Support\Fixtures\CmsFixtureFactory;
 use Tests\Support\Traits\WithWebAppKeyTrait;
 
@@ -41,6 +42,10 @@ final class PublicEntryControllerTest extends CIUnitTestCase
     protected function setUp(): void
     {
         parent::setUp();
+        // Public reads use a service graph rooted in the real HubClient; discard
+        // constructor-less authentication stubs and dependent shared services
+        // left by earlier feature tests.
+        Services::reset();
         $this->configureWebAppKey();
 
         $this->db->disableForeignKeyChecks();
@@ -79,6 +84,7 @@ final class PublicEntryControllerTest extends CIUnitTestCase
     protected function tearDown(): void
     {
         $this->restoreWebAppKey();
+        Services::reset();
         parent::tearDown();
     }
 

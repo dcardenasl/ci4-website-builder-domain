@@ -91,6 +91,9 @@ class CacheInvalidationClient
             CURLOPT_HTTPHEADER     => [
                 'Content-Type: application/json',
                 'X-Invalidate-Key: ' . $this->invalidateKey,
+                // CMS writes are automatic from the public site's point of
+                // view; the web app uses this marker for operational timing.
+                'X-Cache-Invalidation-Source: admin_content_write',
             ],
         ]);
 
