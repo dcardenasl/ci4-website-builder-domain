@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Services\Cms;
 
+use App\DTO\Request\Cms\PublicEntryFilterDTO;
 use App\DTO\Request\Cms\PublicEntryIndexRequestDTO;
 use App\DTO\Request\Cms\PublicEntryShowRequestDTO;
 use App\Entities\EntryEntity;
@@ -190,6 +191,10 @@ class PublicEntryReader
         $builder = $entryModel->where('collection_id', (int) $collection->id);
         PublicationWindow::apply($builder, PublicationWindow::ENTRY_STATUS, null, $now);
 
+        foreach ($dto->filters as $index => $filter) {
+            $this->applyPublicFilter($builder, $filter, (int) $index, $langId, $defaultLangId);
+        }
+
         $total = (int) $builder->countAllResults(false);
 
         $orderColumn = match ($dto->order_by) {
@@ -212,6 +217,7 @@ class PublicEntryReader
         $entries = $builder
             ->orderBy($orderColumn, $dto->order_direction)
             ->orderBy('cms_entries.created_at', 'DESC')
+            ->orderBy('cms_entries.id', 'ASC')
             ->findAll($dto->per_page, $offset);
 
         if (empty($entries)) {
@@ -269,6 +275,100 @@ class PublicEntryReader
             'page'     => $dto->page,
             'per_page' => $dto->per_page,
         ]);
+    }
+
+    private function applyPublicFilter(
+        \App\Models\EntryModel $builder,
+        PublicEntryFilterDTO $filter,
+        int $index,
+        int $langId,
+        int $defaultLangId,
+    ): void {
+        $database = $builder->db;
+        $languageIds = array_values(array_unique([$langId, $defaultLangId]));
+        $languageList = implode(', ', array_map('intval', $languageIds));
+        $valueSql = array_map(
+            fn (string $value): string => $this->escapeFilterValue($database, $value),
+            $filter->values
+        );
+
+        if (str_starts_with($filter->field, 'taxonomy.')) {
+            $taxonomy = $filter->field === 'taxonomy.categories'
+                ? ['pivot' => 'cms_entry_categories', 'translation' => 'cms_category_translations', 'foreign' => 'category_id']
+                : ['pivot' => 'cms_entry_tags', 'translation' => 'cms_tag_translations', 'foreign' => 'tag_id'];
+            $pivotAlias = 'public_filter_pivot_' . $index;
+            $translationAlias = 'public_filter_taxonomy_' . $index;
+            $condition = sprintf(
+                'EXISTS (SELECT 1 FROM %s %s INNER JOIN %s %s ON %s.%s = %s.%s AND %s.language_id IN (%s) WHERE %s.entry_id = cms_entries.id AND %s.slug %s (%s))',
+                $taxonomy['pivot'],
+                $pivotAlias,
+                $taxonomy['translation'],
+                $translationAlias,
+                $translationAlias,
+                $taxonomy['foreign'],
+                $pivotAlias,
+                $taxonomy['foreign'],
+                $translationAlias,
+                $languageList,
+                $pivotAlias,
+                $translationAlias,
+                $filter->operator === 'in' ? 'IN' : '=',
+                $filter->operator === 'in' ? implode(', ', $valueSql) : $valueSql[0]
+            );
+            $builder->where($condition, null, false);
+
+            return;
+        }
+
+        $column = match ($filter->field) {
+            'entry.title' => 'title',
+            'entry.excerpt' => 'excerpt',
+            'entry.slug' => 'slug',
+            'entry.published_at' => 'published_at',
+            'entry.created_at' => 'created_at',
+            default => throw new \LogicException((string) lang('Cms.public_filters.unsupported_field')),
+        };
+        $translationAlias = 'public_filter_translation_' . $index;
+        $valueExpression = $filter->operator === 'contains'
+            ? 'LIKE ' . $this->escapeFilterLikeValue($database, $filter->values[0])
+            : match ($filter->operator) {
+                'before' => '< ' . $valueSql[0],
+                'after' => '> ' . $valueSql[0],
+                default => '= ' . $valueSql[0],
+            };
+        $condition = sprintf(
+            'EXISTS (SELECT 1 FROM cms_entry_translations %s WHERE %s.entry_id = cms_entries.id AND %s.language_id IN (%s) AND %s.%s %s)',
+            $translationAlias,
+            $translationAlias,
+            $translationAlias,
+            $languageList,
+            $translationAlias,
+            $column,
+            $valueExpression
+        );
+        $builder->where($condition, null, false);
+    }
+
+    /** @param \CodeIgniter\Database\BaseConnection<mixed, mixed> $database */
+    private function escapeFilterValue(\CodeIgniter\Database\BaseConnection $database, string $value): string
+    {
+        $escaped = $database->escape($value);
+        if (! is_string($escaped)) {
+            throw new \LogicException((string) lang('Cms.public_filters.escape_invalid'));
+        }
+
+        return $escaped;
+    }
+
+    /** @param \CodeIgniter\Database\BaseConnection<mixed, mixed> $database */
+    private function escapeFilterLikeValue(\CodeIgniter\Database\BaseConnection $database, string $value): string
+    {
+        $escapedLike = $database->escapeLikeString($value);
+        if (! is_string($escapedLike)) {
+            throw new \LogicException((string) lang('Cms.public_filters.escape_like_invalid'));
+        }
+
+        return $this->escapeFilterValue($database, '%' . $escapedLike . '%');
     }
 
     public function showPublic(PublicEntryShowRequestDTO $dto): DataTransferObjectInterface

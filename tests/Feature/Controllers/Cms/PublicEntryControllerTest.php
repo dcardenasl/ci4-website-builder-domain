@@ -502,6 +502,41 @@ final class PublicEntryControllerTest extends CIUnitTestCase
         $result->assertStatus(200);
         $body = json_decode($result->getJSON(), true);
         $this->assertCount(0, $body['data']);
+
+        // Projection filters use the same taxonomy allowlist with indexed rows.
+        $result = $this->get($this->entryPath('?filters[0][field]=taxonomy.tags&filters[0][operator]=in&filters[0][value][]=php'));
+        $result->assertStatus(200);
+        $body = json_decode($result->getJSON(), true);
+        $this->assertCount(1, $body['data']);
+
+        $result = $this->get($this->entryPath('?filters[0][field]=entry.title&filters[0][operator]=contains&filters[0][value]=Filtrado'));
+        $result->assertStatus(200);
+        $body = json_decode($result->getJSON(), true);
+        $this->assertCount(1, $body['data']);
+    }
+
+    public function testPublicEntryFiltersRejectUnknownFieldsAndOperators(): void
+    {
+        $unknownField = $this->get($this->entryPath('?filters[0][field]=cms_entries.id&filters[0][operator]=equals&filters[0][value]=1'));
+        $unknownField->assertStatus(422);
+        $unknownFieldBody = json_decode($unknownField->getJSON(), true);
+        $this->assertArrayHasKey('filters.0.field', $unknownFieldBody['errors']);
+
+        $unknownOperator = $this->get($this->entryPath('?filters[0][field]=entry.title&filters[0][operator]=not_equals&filters[0][value]=Post'));
+        $unknownOperator->assertStatus(422);
+        $unknownOperatorBody = json_decode($unknownOperator->getJSON(), true);
+        $this->assertArrayHasKey('filters.0.operator', $unknownOperatorBody['errors']);
+
+        $tooManyFilters = [];
+        for ($index = 0; $index <= 6; $index++) {
+            $tooManyFilters[] = 'filters[' . $index . '][field]=entry.title';
+            $tooManyFilters[] = 'filters[' . $index . '][operator]=equals';
+            $tooManyFilters[] = 'filters[' . $index . '][value]=Post';
+        }
+        $tooMany = $this->get($this->entryPath('?' . implode('&', $tooManyFilters)));
+        $tooMany->assertStatus(422);
+        $tooManyBody = json_decode($tooMany->getJSON(), true);
+        $this->assertArrayHasKey('filters', $tooManyBody['errors']);
     }
 
     private function insertDraftEntry(): int
