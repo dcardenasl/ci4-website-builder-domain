@@ -80,6 +80,21 @@ trait CmsDomainServices
         return new \App\Libraries\Cms\TranslationResolver(static::fileUrlResolver());
     }
 
+    public static function editorDocumentReader(bool $getShared = true): \App\Interfaces\Editor\EditorDocumentReaderInterface
+    {
+        if ($getShared) {
+            return static::getSharedInstance('editorDocumentReader');
+        }
+
+        $db = \Config\Database::connect();
+
+        return new \App\Services\Editor\EditorDocumentReader(
+            $db,
+            new \App\Libraries\Cms\EditorDocumentSnapshotReader($db),
+            new \App\Libraries\Cms\EditorDocumentAssembler(static::fileUrlResolver()),
+        );
+    }
+
     public static function fileUrlResolver(bool $getShared = true): \App\Libraries\Cms\FileUrlResolver
     {
         if ($getShared) {

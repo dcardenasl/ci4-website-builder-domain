@@ -92,6 +92,12 @@ $routes->group('cms', ['namespace' => '\App\Controllers\Api\V1\Cms'], function (
         $routes->put('block-types/(:num)', 'BlockTypeController::update/$1', ['filter' => 'permission:cms.blocks.write']);
         $routes->delete('block-types/(:num)', 'BlockTypeController::delete/$1', ['filter' => 'permission:cms.blocks.write']);
         // Block Instances CRUD nested under pages
+        // Visual editor: one consistent snapshot of a document, with the raw
+        // value of every active language. Declared before the block routes so a
+        // segment route never swallows it.
+        $routes->get('editor/pages/(:num)/document', 'EditorDocumentController::showForPage/$1', ['filter' => 'permission:cms.pages.write']);
+        $routes->get('editor/entries/(:num)/document', 'EditorDocumentController::showForEntry/$1', ['filter' => 'permission:cms.entries.write']);
+
         $routes->get('pages/(:num)/blocks', 'BlockInstanceController::indexForPage/$1', ['filter' => 'permission:cms.pages.read']);
         $routes->get('pages/(:num)/blocks/(:num)', 'BlockInstanceController::show/$2', ['filter' => 'permission:cms.pages.read']);
         $routes->post('pages/(:num)/blocks', 'BlockInstanceController::create', ['filter' => 'permission:cms.pages.write']);
