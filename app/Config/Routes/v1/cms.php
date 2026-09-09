@@ -96,7 +96,9 @@ $routes->group('cms', ['namespace' => '\App\Controllers\Api\V1\Cms'], function (
         // value of every active language. Declared before the block routes so a
         // segment route never swallows it.
         $routes->get('editor/pages/(:num)/document', 'EditorDocumentController::showForPage/$1', ['filter' => 'permission:cms.pages.write']);
+        $routes->post('editor/pages/(:num)/document', 'EditorDocumentController::saveForPage/$1', ['filter' => 'permission:cms.pages.write']);
         $routes->get('editor/entries/(:num)/document', 'EditorDocumentController::showForEntry/$1', ['filter' => 'permission:cms.entries.write']);
+        $routes->post('editor/entries/(:num)/document', 'EditorDocumentController::saveForEntry/$1', ['filter' => 'permission:cms.entries.write']);
 
         $routes->get('pages/(:num)/blocks', 'BlockInstanceController::indexForPage/$1', ['filter' => 'permission:cms.pages.read']);
         $routes->get('pages/(:num)/blocks/(:num)', 'BlockInstanceController::show/$2', ['filter' => 'permission:cms.pages.read']);

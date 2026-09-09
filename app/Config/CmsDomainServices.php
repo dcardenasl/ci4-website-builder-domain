@@ -80,6 +80,55 @@ trait CmsDomainServices
         return new \App\Libraries\Cms\TranslationResolver(static::fileUrlResolver());
     }
 
+    /**
+     * The editor writes through its own block service so cache invalidation can
+     * be held back until the batch commits; the shared instance keeps announcing
+     * each individual write, which would publish a half-applied document.
+     */
+    public static function editorCacheInvalidationClient(bool $getShared = true): \App\Libraries\Cms\EditorCacheInvalidationClient
+    {
+        if ($getShared) {
+            return static::getSharedInstance('editorCacheInvalidationClient');
+        }
+
+        return new \App\Libraries\Cms\EditorCacheInvalidationClient();
+    }
+
+    public static function editorBlockInstanceService(bool $getShared = true): \App\Interfaces\Cms\BlockInstanceServiceInterface
+    {
+        if ($getShared) {
+            return static::getSharedInstance('editorBlockInstanceService');
+        }
+
+        return new \App\Services\Cms\BlockInstanceService(
+            new \dcardenasl\Ci4ApiCore\Repositories\GenericRepository(model(\App\Models\BlockInstanceModel::class)),
+            static::blockInstanceResponseMapper(),
+            static::fileUrlResolver(),
+            static::fileReferenceSynchronizer(),
+            static::editorCacheInvalidationClient(),
+            static::translationSynchronizer(),
+        );
+    }
+
+    public static function editorDocumentPatchService(bool $getShared = true): \App\Interfaces\Editor\EditorDocumentPatchServiceInterface
+    {
+        if ($getShared) {
+            return static::getSharedInstance('editorDocumentPatchService');
+        }
+
+        $db = \Config\Database::connect();
+
+        return new \App\Services\Editor\EditorDocumentPatchService(
+            $db,
+            new \App\Libraries\Cms\EditorDocumentSnapshotReader($db),
+            new \App\Libraries\Cms\EditorDocumentAssembler(static::fileUrlResolver()),
+            new \App\Libraries\Cms\EditorPatchPlanner(config(\Config\Editor::class), new \App\Libraries\Cms\EditorFieldValidator()),
+            new \App\Libraries\Cms\EditorPatchWriter(static::editorBlockInstanceService(), static::requestDtoFactory()),
+            static::editorCacheInvalidationClient(),
+            config(\Config\Editor::class),
+        );
+    }
+
     public static function editorDocumentReader(bool $getShared = true): \App\Interfaces\Editor\EditorDocumentReaderInterface
     {
         if ($getShared) {

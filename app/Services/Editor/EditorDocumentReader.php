@@ -4,8 +4,8 @@ declare(strict_types=1);
 
 namespace App\Services\Editor;
 
-use App\DTO\Request\Editor\EditorOwnerDTO;
-use App\DTO\Response\Editor\EditorDocumentResponseDTO;
+use App\DTO\Editor\EditorDocumentResponseDTO;
+use App\DTO\Editor\EditorOwnerDTO;
 use App\Interfaces\Editor\EditorDocumentReaderInterface;
 use App\Libraries\Cms\EditorDocumentAssembler;
 use App\Libraries\Cms\EditorDocumentSnapshotReader;

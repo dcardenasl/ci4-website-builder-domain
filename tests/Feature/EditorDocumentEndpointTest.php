@@ -82,6 +82,80 @@ final class EditorDocumentEndpointTest extends ApiTestCase
         $this->call('get', '/api/v1/cms/editor/pages/99999999/document')->assertStatus(404);
     }
 
+    public function testAnEditorSavesABlockInOneTransaction(): void
+    {
+        $this->authenticateWith(['cms.pages.write']);
+        $version = $this->documentVersion();
+
+        $result = $this->postJson('/api/v1/cms/editor/pages/' . $this->pageId . '/document', [
+            'base_version' => $version,
+            'ops' => [[
+                'op' => 'upsert',
+                'instance_id' => $this->instanceId,
+                'i18n' => ['es' => ['title' => 'Editado desde el canvas']],
+            ]],
+        ]);
+
+        $result->assertStatus(200);
+        $payload = json_decode((string) $result->getJSON(), true, 512, JSON_THROW_ON_ERROR);
+        self::assertSame('saved', $payload['data']['code']);
+        self::assertNotSame($version, $payload['data']['document']['version']);
+
+        $stored = Database::connect()->table('cms_block_instance_translations')
+            ->where('instance_id', $this->instanceId)->where('language_id', $this->langEsId)->get()->getRowArray();
+        self::assertStringContainsString('Editado desde el canvas', (string) ($stored['block_data'] ?? ''));
+    }
+
+    public function testAStaleRevisionIsRejectedWithTheCurrentDocument(): void
+    {
+        $this->authenticateWith(['cms.pages.write']);
+        $stale = $this->documentVersion();
+
+        Database::connect()->table('cms_block_instance_translations')
+            ->where('instance_id', $this->instanceId)->where('language_id', $this->langEsId)
+            ->update(['block_data' => json_encode(['title' => 'Desde el CRUD'], JSON_THROW_ON_ERROR)]);
+
+        $result = $this->postJson('/api/v1/cms/editor/pages/' . $this->pageId . '/document', [
+            'base_version' => $stale,
+            'ops' => [['op' => 'upsert', 'instance_id' => $this->instanceId, 'i18n' => ['es' => ['title' => 'Desde el canvas']]]],
+        ]);
+
+        $result->assertStatus(409);
+        $payload = json_decode((string) $result->getJSON(), true, 512, JSON_THROW_ON_ERROR);
+        self::assertSame('version_conflict', $payload['data']['code']);
+        self::assertSame('Desde el CRUD', $payload['data']['document']['blocks'][0]['i18n']['es']['title']);
+    }
+
+    public function testAFieldOutsideTheBlockSchemaIsRejected(): void
+    {
+        $this->authenticateWith(['cms.pages.write']);
+
+        $result = $this->postJson('/api/v1/cms/editor/pages/' . $this->pageId . '/document', [
+            'base_version' => $this->documentVersion(),
+            'ops' => [['op' => 'upsert', 'instance_id' => $this->instanceId, 'i18n' => ['es' => ['ghost' => 'x']]]],
+        ]);
+
+        $result->assertStatus(422);
+    }
+
+    public function testAnEntryPermissionCannotSaveAPage(): void
+    {
+        $this->authenticateWith(['cms.entries.write']);
+
+        $this->postJson('/api/v1/cms/editor/pages/' . $this->pageId . '/document', [
+            'base_version' => str_repeat('a', 64),
+            'ops' => [['op' => 'delete', 'instance_id' => $this->instanceId]],
+        ])->assertStatus(403);
+    }
+
+    /**
+     * @param array<string, mixed> $payload
+     */
+    private function postJson(string $uri, array $payload): \CodeIgniter\Test\TestResponse
+    {
+        return $this->withBody(json_encode($payload, JSON_THROW_ON_ERROR))->call('post', $uri);
+    }
+
     private function documentVersion(): string
     {
         $result = $this->call('get', '/api/v1/cms/editor/pages/' . $this->pageId . '/document');
@@ -106,7 +180,9 @@ final class EditorDocumentEndpointTest extends ApiTestCase
         };
 
         Services::injectMock('hubClient', $stub);
-        $this->setTestRequestHeaders(['Authorization' => 'Bearer fake-test-token']);
+        // Content-Type travels with the token: withHeaders() replaces the set
+        // rather than adding to it, and a patch without it loses its auth.
+        $this->setTestRequestHeaders(['Authorization' => 'Bearer fake-test-token', 'Content-Type' => 'application/json']);
     }
 
     private function seedLanguages(): void

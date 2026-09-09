@@ -4,8 +4,8 @@ declare(strict_types=1);
 
 namespace App\Libraries\Cms;
 
-use App\DTO\Request\Editor\EditorOwnerDTO;
-use App\DTO\Response\Editor\EditorDocumentResponseDTO;
+use App\DTO\Editor\EditorDocumentResponseDTO;
+use App\DTO\Editor\EditorOwnerDTO;
 use dcardenasl\Ci4ApiCore\Support\JsonCastNormalizer;
 
 /** Projects one consistent snapshot; never substitutes display fallback for editable values. */

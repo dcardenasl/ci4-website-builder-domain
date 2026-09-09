@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace App\DTO\Response\Editor;
+namespace App\DTO\Editor;
 
 use dcardenasl\Ci4ApiCore\Dto\DataTransferObjectInterface;
 

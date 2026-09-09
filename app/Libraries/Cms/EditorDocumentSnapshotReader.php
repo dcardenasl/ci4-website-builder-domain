@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace App\Libraries\Cms;
 
-use App\DTO\Request\Editor\EditorOwnerDTO;
+use App\DTO\Editor\EditorOwnerDTO;
 use CodeIgniter\Database\BaseBuilder;
 use CodeIgniter\Database\BaseConnection;
 use CodeIgniter\Database\ResultInterface;

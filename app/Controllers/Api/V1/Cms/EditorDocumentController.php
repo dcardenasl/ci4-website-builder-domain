@@ -4,7 +4,8 @@ declare(strict_types=1);
 
 namespace App\Controllers\Api\V1\Cms;
 
-use App\DTO\Request\Editor\EditorOwnerDTO;
+use App\DTO\Editor\EditorDocumentPatchResponseDTO;
+use App\DTO\Editor\EditorOwnerDTO;
 use App\Interfaces\Editor\EditorDocumentReaderInterface;
 use CodeIgniter\HTTP\ResponseInterface;
 use Config\Services;
@@ -37,6 +38,49 @@ class EditorDocumentController extends ApiController
     public function showForEntry(int $entryId): ResponseInterface
     {
         return $this->document('entry', $entryId);
+    }
+
+    public function saveForPage(int $pageId): ResponseInterface
+    {
+        return $this->patch('page', $pageId);
+    }
+
+    public function saveForEntry(int $entryId): ResponseInterface
+    {
+        return $this->patch('entry', $entryId);
+    }
+
+    /**
+     * The whole batch in one transaction, behind an optimistic revision check.
+     *
+     * The raw payload is handed straight to the domain: every limit and every
+     * validation rule lives there, so this controller never has to know them.
+     */
+    private function patch(string $ownerType, int $ownerId): ResponseInterface
+    {
+        return $this->handleRequest(
+            function (array $dto, SecurityContext $context) use ($ownerType, $ownerId): ResponseInterface {
+                $payload = $this->request->getJSON(true);
+                // A top-level JSON array carries no field names and can never be
+                // a patch; treat it as no body rather than passing it on.
+                $body = is_array($payload) && ! array_is_list($payload) ? $payload : [];
+                /** @var array<string, mixed> $body */
+                $result = Services::editorDocumentPatchService()->patch(
+                    new EditorOwnerDTO($ownerType, $ownerId),
+                    $body,
+                    $context,
+                );
+                $data = $result->data;
+
+                return $this->response
+                    ->setStatusCode($result->httpStatus ?? 200)
+                    ->setHeader('Cache-Control', 'no-store')
+                    ->setJSON([
+                        'status' => 'success',
+                        'data' => $data instanceof EditorDocumentPatchResponseDTO ? $data->toArray() : [],
+                    ]);
+            }
+        );
     }
 
     private function document(string $ownerType, int $ownerId): ResponseInterface
