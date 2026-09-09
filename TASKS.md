@@ -61,7 +61,22 @@ Los 5 restantes **no se hacen aquí**:
 
 ## 🟡 Próximo
 
-*(vacío)*
+### CNV-007 — Editor visual (canvas): port del dominio
+
+> Origen: `ci4-website-suite`, fases F0–F5 cerradas. Verificación de arranque en
+> [`../ci4-website-suite/docs/plan/2026-09-09-editor-visual-canvas-port-f7.md`](../ci4-website-suite/docs/plan/2026-09-09-editor-visual-canvas-port-f7.md).
+> **El port es adaptación, no copia:** `BlockInstanceSerializer` y `BlockInstanceService` de este
+> repo difieren de los de la suite en 152 y 159 líneas.
+
+- [ ] **CNV-007-D1 — Contrato de documento.** Assembler, snapshot con bloqueo y revisión canónica,
+      y `GET /editor/document` para páginas y entradas, con permisos por recurso.
+- [ ] **CNV-007-D2 — Patch transaccional.** DTO de patch, planner con validación de árbol y
+      candados, escritor sobre `BlockInstanceService` y conflicto 409 por revisión.
+- [ ] **CNV-007-D3 — Proyector de preview.** Valida y sanea el borrador **con el saneado de este
+      repo** (purifica toda cadena con `<`, no solo `richtext`): preview y guardado deben coincidir
+      aquí, no con la suite. Extraer esa rutina a una librería compartida en vez de duplicarla.
+- [ ] **CNV-007-D4 — Fallback por campo.** Decidir y probar si el lector público adopta el fallback
+      por campo de la suite; hoy resuelve por fila.
 
 ## ⚪ Backlog
 
