@@ -6,9 +6,9 @@ namespace App\Services\Cms;
 
 use App\Entities\BlockInstanceEntity;
 use App\Interfaces\Cms\BlockInstanceServiceInterface;
+use App\Libraries\Cms\BlockDataSanitizer;
 use App\Libraries\Cms\FileReferenceSynchronizer;
 use App\Libraries\Cms\FileUrlResolver;
-use App\Libraries\Cms\HtmlSanitizer;
 use App\Traits\Services\HasDeferredTranslations;
 use dcardenasl\Ci4ApiCore\Dto\SecurityContext;
 use dcardenasl\Ci4ApiCore\Mappers\ResponseMapperInterface;
@@ -215,7 +215,7 @@ class BlockInstanceService extends BaseCrudService implements BlockInstanceServi
             if (! is_array($blockData)) {
                 $blockData = [];
             } else {
-                $blockData = $this->sanitizeBlockData($blockData);
+                $blockData = BlockDataSanitizer::clean($blockData);
                 if ($blockSchemaFields !== []) {
                     $blockData = $this->fileUrlResolver->normalizeBlockData($blockData, $blockSchemaFields);
                 }
@@ -283,26 +283,6 @@ class BlockInstanceService extends BaseCrudService implements BlockInstanceServi
         $ownerType = (string) ($entity->owner_type ?? 'page');
 
         return $ownerType === 'entry' ? ['entries'] : ['pages'];
-    }
-
-    /**
-     * Recursively sanitize any string values in block_data that look like HTML,
-     * so rich-text content is safe when rendered unescaped in public views.
-     *
-     * @param array<mixed> $data
-     * @return array<mixed>
-     */
-    private function sanitizeBlockData(array $data): array
-    {
-        foreach ($data as $key => $value) {
-            if (is_string($value) && str_contains($value, '<')) {
-                $data[$key] = HtmlSanitizer::clean($value);
-            } elseif (is_array($value)) {
-                $data[$key] = $this->sanitizeBlockData($value);
-            }
-        }
-
-        return $data;
     }
 
     /**
