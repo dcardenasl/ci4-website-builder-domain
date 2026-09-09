@@ -9,6 +9,7 @@ use Config\Database;
 use Config\Services;
 use dcardenasl\Ci4ApiCore\Http\Client\IntrospectResult;
 use Tests\Support\ApiTestCase;
+use Tests\Support\Traits\WithWebAppKeyTrait;
 
 /**
  * The document contract the visual editor loads.
@@ -21,17 +22,27 @@ use Tests\Support\ApiTestCase;
  */
 final class EditorDocumentEndpointTest extends ApiTestCase
 {
+    use WithWebAppKeyTrait;
+
     private int $langEsId = 0;
     private int $langEnId = 0;
     private int $blockTypeId = 0;
     private int $pageId = 0;
     private int $instanceId = 0;
+    private string $blockKey = '';
 
     protected function setUp(): void
     {
         parent::setUp();
+        $this->configureWebAppKey();
         $this->seedLanguages();
         $this->seedDocument();
+    }
+
+    protected function tearDown(): void
+    {
+        $this->restoreWebAppKey();
+        parent::tearDown();
     }
 
     public function testAnEditorLoadsEveryLanguageRawForItsPage(): void
@@ -148,17 +159,110 @@ final class EditorDocumentEndpointTest extends ApiTestCase
         ])->assertStatus(403);
     }
 
+    public function testTheProjectionResolvesADraftForThePublicRenderer(): void
+    {
+        $this->authenticateWith(['cms.pages.write']);
+
+        $result = $this->postProjection($this->pageId, [
+            'lang' => 'es',
+            'scope' => ['type' => 'document'],
+            'blocks' => [[
+                'instance_id' => $this->instanceId,
+                'block_key' => $this->blockKey,
+                'sort_order' => 1,
+                'config' => [],
+                'i18n' => ['es' => ['title' => 'Titular del borrador'], 'en' => []],
+            ]],
+        ]);
+
+        $result->assertStatus(200);
+        $document = json_decode((string) $result->getJSON(), true, 512, JSON_THROW_ON_ERROR)['data'];
+
+        self::assertSame('es', $document['lang']);
+        self::assertCount(1, $document['blocks']);
+        self::assertSame('Titular del borrador', $document['blocks'][0]['block_data']['title']);
+        self::assertSame($this->blockKey, $document['blocks'][0]['block_key']);
+    }
+
+    /**
+     * A preview exists to show what saving would produce, so it must clean the
+     * draft exactly as the writer does — this app purifies any string that looks
+     * like markup, wherever it sits.
+     */
+    public function testTheProjectionSanitizesTheDraftLikeSavingWould(): void
+    {
+        $this->authenticateWith(['cms.pages.write']);
+        $dirty = '<p>ok</p><script>alert(1)</script>';
+
+        $result = $this->postProjection($this->pageId, [
+            'lang' => 'es',
+            'scope' => ['type' => 'document'],
+            'blocks' => [[
+                'instance_id' => $this->instanceId,
+                'block_key' => $this->blockKey,
+                'sort_order' => 1,
+                'config' => [],
+                'i18n' => ['es' => ['title' => $dirty], 'en' => []],
+            ]],
+        ]);
+
+        $result->assertStatus(200);
+        $rendered = json_decode((string) $result->getJSON(), true, 512, JSON_THROW_ON_ERROR)['data']['blocks'][0]['block_data']['title'];
+        self::assertStringNotContainsString('<script>', $rendered);
+
+        // The same value through the writer, for comparison.
+        $this->postJson('/api/v1/cms/editor/pages/' . $this->pageId . '/document', [
+            'base_version' => $this->documentVersion(),
+            'ops' => [['op' => 'upsert', 'instance_id' => $this->instanceId, 'i18n' => ['es' => ['title' => $dirty]]]],
+        ])->assertStatus(200);
+        $stored = Database::connect()->table('cms_block_instance_translations')
+            ->where('instance_id', $this->instanceId)->where('language_id', $this->langEsId)->get()->getRowArray();
+        $saved = json_decode((string) ($stored['block_data'] ?? '{}'), true, 512, JSON_THROW_ON_ERROR)['title'];
+
+        self::assertSame($saved, $rendered, 'Preview and save must clean identically.');
+    }
+
+    public function testTheProjectionRefusesABlockOfAnotherDocument(): void
+    {
+        $this->authenticateWith(['cms.pages.write']);
+
+        $this->postProjection($this->pageId, [
+            'lang' => 'es',
+            'scope' => ['type' => 'document'],
+            'blocks' => [[
+                'instance_id' => 987654,
+                'block_key' => $this->blockKey,
+                'sort_order' => 1,
+                'config' => [],
+                'i18n' => ['es' => []],
+            ]],
+        ])->assertStatus(422);
+    }
+
     /**
      * @param array<string, mixed> $payload
      */
     private function postJson(string $uri, array $payload): \CodeIgniter\Test\TestResponse
     {
-        return $this->withBody(json_encode($payload, JSON_THROW_ON_ERROR))->call('post', $uri);
+        // withHeaders() replaces the set rather than merging, so each helper
+        // states everything its own call needs.
+        return $this->withHeaders(['Authorization' => 'Bearer fake-test-token', 'Content-Type' => 'application/json'])
+            ->withBody(json_encode($payload, JSON_THROW_ON_ERROR))
+            ->call('post', $uri);
+    }
+
+    /** The projection is an app-key call: the public site asks on the visitor's behalf. */
+    private function postProjection(int $ownerId, array $payload): \CodeIgniter\Test\TestResponse
+    {
+        return $this->withHeaders($this->webAppKeyHeader() + ['Content-Type' => 'application/json'])
+            ->withBody(json_encode($payload, JSON_THROW_ON_ERROR))
+            ->call('post', '/api/v1/public/editor-projection/pages/' . $ownerId);
     }
 
     private function documentVersion(): string
     {
-        $result = $this->call('get', '/api/v1/cms/editor/pages/' . $this->pageId . '/document');
+        $result = $this->withHeaders(['Authorization' => 'Bearer fake-test-token'])
+            ->call('get', '/api/v1/cms/editor/pages/' . $this->pageId . '/document');
         $result->assertStatus(200);
         $payload = json_decode((string) $result->getJSON(), true, 512, JSON_THROW_ON_ERROR);
 
@@ -204,6 +308,7 @@ final class EditorDocumentEndpointTest extends ApiTestCase
     {
         $db = Database::connect();
         $unique = 'editor_copy_' . bin2hex(random_bytes(4));
+        $this->blockKey = $unique;
 
         $db->table('cms_content_blocks')->insert([
             'block_key' => $unique,

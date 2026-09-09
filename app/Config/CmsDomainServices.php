@@ -129,6 +129,21 @@ trait CmsDomainServices
         );
     }
 
+    public static function editorPreviewProjector(bool $getShared = true): \App\Interfaces\Editor\EditorPreviewProjectorInterface
+    {
+        if ($getShared) {
+            return static::getSharedInstance('editorPreviewProjector');
+        }
+
+        return new \App\Libraries\Cms\EditorPreviewProjector(
+            \Config\Database::connect(),
+            static::fileUrlResolver(),
+            new \App\Libraries\Cms\EditorFieldValidator(),
+            new \App\Libraries\Cms\TranslationFallbackResolver(),
+            config(\Config\Editor::class),
+        );
+    }
+
     public static function editorDocumentReader(bool $getShared = true): \App\Interfaces\Editor\EditorDocumentReaderInterface
     {
         if ($getShared) {

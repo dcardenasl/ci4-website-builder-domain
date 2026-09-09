@@ -161,6 +161,11 @@ $routes->group('cms', ['namespace' => '\App\Controllers\Api\V1\Cms'], function (
 });
 
 // Public endpoints — all require X-App-Key (webappkey) + throttle
+// Editor preview projection: the public site renders the draft, this validates
+// and resolves it. Same app-key gate as the other reads it makes; the projector
+// trusts nothing in the payload and rejects blocks of another document.
+$routes->post('public/editor-projection/(pages|entries)/(:num)', '\App\Controllers\Api\V1\Cms\EditorPreviewProjectionController::project/$1/$2', ['filter' => ['webappkey', 'throttle']]);
+
 $routes->get('public/layout', '\App\Controllers\Api\V1\Cms\PublicBootstrapController::layout', ['filter' => ['webappkey', 'throttle']]);
 $routes->get('public/page-bootstrap/(.+)', '\App\Controllers\Api\V1\Cms\PublicBootstrapController::pageBootstrap/$1', ['filter' => ['webappkey', 'throttle']]);
 $routes->post('public/submissions', '\App\Controllers\Api\V1\Cms\PublicFormSubmissionController::store', ['filter' => ['webappkey', 'throttle']]);

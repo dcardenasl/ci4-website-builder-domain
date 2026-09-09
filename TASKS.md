@@ -82,9 +82,16 @@ Los 5 restantes **no se hacen aquí**:
       **Cerrado 2026-09-09:** `POST /editor/{pages|entries}/{id}/document`, una transacción con
       `FOR UPDATE` sobre la fila del documento y `EditorCacheInvalidationClient`, que retiene la
       invalidación hasta el commit para no anunciar un documento a medio aplicar. 8 pruebas.
-- [ ] **CNV-007-D3 — Proyector de preview.** Valida y sanea el borrador **con el saneado de este
+- [x] **CNV-007-D3 — Proyector de preview.** Valida y sanea el borrador **con el saneado de este
       repo** (purifica toda cadena con `<`, no solo `richtext`): preview y guardado deben coincidir
       aquí, no con la suite. Extraer esa rutina a una librería compartida en vez de duplicarla.
+      **Cerrado 2026-09-09:** `POST /api/v1/public/editor-projection/{pages|entries}/{id}` con la
+      misma llave de app que el resto de lecturas del sitio público; devuelve bloques listos para
+      el renderer, con fallback por campo y media resuelta. `BlockDataSanitizer` y
+      `SchemaMediaMerger` quedan extraídos y compartidos con el serializer, no duplicados.
+      11 pruebas, una de ellas compara el saneado del preview con el del guardado sobre el mismo
+      valor. El borrador llega desde el navegador vía el sitio público: el proyector no confía en
+      nada y rechaza bloques de otro documento.
 - [ ] **CNV-007-D4 — Fallback por campo.** Decidir y probar si el lector público adopta el fallback
       por campo de la suite; hoy resuelve por fila.
 
