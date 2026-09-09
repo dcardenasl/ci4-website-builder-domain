@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace App\Services\Cms;
 
-use App\DTO\Request\Cms\PublicEntryFilterDTO;
+use App\DTO\Cms\PublicEntryFilterDTO;
 use App\DTO\Request\Cms\PublicEntryIndexRequestDTO;
 use App\DTO\Request\Cms\PublicEntryShowRequestDTO;
 use App\Entities\EntryEntity;

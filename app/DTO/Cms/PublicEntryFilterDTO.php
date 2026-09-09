@@ -2,13 +2,19 @@
 
 declare(strict_types=1);
 
-namespace App\DTO\Request\Cms;
+namespace App\DTO\Cms;
 
 use dcardenasl\Ci4ApiCore\Exceptions\ValidationException;
 use OpenApi\Attributes as OA;
 
 /**
  * Validated public entry filter.
+ *
+ * A value object, not a request DTO: it validates one filter of a larger
+ * payload through `fromArray($raw, $index)` and has no `rules()` of its own.
+ * `PublicEntryIndexRequestDTO` is the request DTO that composes it — which is
+ * why this lives outside `DTO/Request`, where every class is expected to be a
+ * `BaseRequestDTO`.
  *
  * The field/operator matrix is deliberately closed. Public callers may select
  * business fields only; they cannot provide SQL identifiers or query fragments.
