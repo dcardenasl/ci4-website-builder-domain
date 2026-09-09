@@ -127,6 +127,81 @@ final class BlockInstanceSerializerTest extends CIUnitTestCase
         $this->seedDatabase();
     }
 
+    /**
+     * A block whose title is translated but whose body is not must show the
+     * translated title and borrow only the body. Resolving a whole translation
+     * row instead made one missing field hide every translation the block had.
+     */
+    public function testAPartiallyTranslatedBlockKeepsTheFieldsItDoesHave(): void
+    {
+        $this->seedPartiallyTranslatedBlock();
+
+        $blocks = $this->serializer->forContent('page', 90, 'es');
+
+        self::assertCount(1, $blocks);
+        self::assertSame('Titular traducido', $blocks[0]['block_data']['title']);
+        self::assertSame('English body', $blocks[0]['block_data']['content']);
+        self::assertTrue($blocks[0]['is_fallback']);
+        self::assertSame(['content'], $blocks[0]['fallback_fields']);
+    }
+
+    public function testAFullyTranslatedBlockReportsNoFallbackAtAll(): void
+    {
+        $this->seedPartiallyTranslatedBlock(translateEverything: true);
+
+        $blocks = $this->serializer->forContent('page', 90, 'es');
+
+        self::assertFalse($blocks[0]['is_fallback']);
+        self::assertSame([], $blocks[0]['fallback_fields']);
+    }
+
+    /**
+     * The language filter used to read `code = X OR (is_default AND is_active)`,
+     * so a deactivated language still won whenever its code was requested.
+     */
+    public function testADeactivatedLanguageIsNotServedEvenWhenItsCodeIsAsked(): void
+    {
+        $this->seedPartiallyTranslatedBlock();
+        Database::connect()->table('cms_languages')->where('code', 'es')->update(['is_active' => 0]);
+
+        $blocks = $this->serializer->forContent('page', 90, 'es');
+
+        self::assertSame('English title', $blocks[0]['block_data']['title'], 'An inactive language must fall back to the default.');
+        self::assertSame('English body', $blocks[0]['block_data']['content']);
+    }
+
+    private function seedPartiallyTranslatedBlock(bool $translateEverything = false): void
+    {
+        $db = Database::connect();
+
+        $db->table('cms_content_blocks')->insert([
+            'id' => 90,
+            'block_key' => 'partial_copy',
+            'name' => 'Partial copy',
+            'schema_definition' => '{"fields":{"title":{"type":"string"},"content":{"type":"richtext"}},"config_fields":{}}',
+            'supports_pages' => 1,
+            'is_active' => 1,
+        ]);
+        $db->table('cms_block_instances')->insert([
+            'id' => 900, 'block_id' => 90, 'owner_type' => 'page', 'owner_id' => 90, 'sort_order' => 1, 'is_active' => 1,
+        ]);
+        $db->table('cms_block_instance_translations')->insert([
+            'instance_id' => 900,
+            'language_id' => 1,
+            'block_data' => json_encode(['title' => 'English title', 'content' => 'English body'], JSON_THROW_ON_ERROR),
+        ]);
+
+        $spanish = $translateEverything
+            ? ['title' => 'Titular traducido', 'content' => 'Cuerpo traducido']
+            : ['title' => 'Titular traducido', 'content' => ''];
+
+        $db->table('cms_block_instance_translations')->insert([
+            'instance_id' => 900,
+            'language_id' => 2,
+            'block_data' => json_encode($spanish, JSON_THROW_ON_ERROR),
+        ]);
+    }
+
     private function seedDatabase(): void
     {
         $db = Database::connect();

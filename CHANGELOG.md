@@ -7,6 +7,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+- **Per-field translation fallback on public content.** `BlockInstanceSerializer` used to
+  pick a whole translation row, so a block with a translated title and an untranslated body
+  rendered entirely in the default language — one missing field hid every translation the
+  block did have. Each declared field now resolves on its own, and blocks report
+  `fallback_fields` next to `is_fallback`. This aligns the public site with the editor
+  preview, which resolves the same way: a canvas that disagreed with the live page would
+  defeat its own purpose.
+
+### Fixed
+- **A deactivated language was still served.** The language lookup read
+  `code = X OR (is_default AND is_active)`, so a row matching the requested code won even
+  after the language had been deactivated. The code/default match is now grouped before the
+  active filter applies.
+
 ### Security
 - `PermissionFilter` now delegates to the core policy and lets the platform
   superadmin bypass newly registered domain permissions without weakening

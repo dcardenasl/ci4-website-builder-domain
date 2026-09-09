@@ -92,8 +92,19 @@ Los 5 restantes **no se hacen aquí**:
       11 pruebas, una de ellas compara el saneado del preview con el del guardado sobre el mismo
       valor. El borrador llega desde el navegador vía el sitio público: el proyector no confía en
       nada y rechaza bloques de otro documento.
-- [ ] **CNV-007-D4 — Fallback por campo.** Decidir y probar si el lector público adopta el fallback
+- [x] **CNV-007-D4 — Fallback por campo.** Decidir y probar si el lector público adopta el fallback
       por campo de la suite; hoy resuelve por fila.
+      **Cerrado 2026-09-09 — decisión: sí lo adopta.** El argumento decisivo no es la paridad con la
+      suite sino la coherencia interna: D3 ya proyecta el borrador con fallback por campo, así que
+      dejar el lector público resolviendo por fila haría que **el lienzo mintiera** sobre la página
+      publicada, que es justo lo que el editor existe para evitar. Es un cambio de comportamiento
+      público deliberado, anotado en el CHANGELOG: un bloque con título traducido y cuerpo sin
+      traducir ya no se muestra entero en el idioma por defecto. Ningún consumidor aguas abajo
+      dependía de `is_fallback` (el sitio público no lo lee), así que el cambio es aditivo para ellos.
+      Se corrigió además un bug encontrado al tocarlo: la consulta de idiomas leía
+      `code = X OR (is_default AND is_active)` y servía un idioma **desactivado** cuando se pedía su
+      código. 4 pruebas nuevas, incluida una que compara la salida del preview con la del lector
+      público sobre el mismo contenido parcialmente traducido.
 
 ## ⚪ Backlog
 

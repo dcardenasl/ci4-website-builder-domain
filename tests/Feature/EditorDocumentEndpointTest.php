@@ -222,6 +222,40 @@ final class EditorDocumentEndpointTest extends ApiTestCase
         self::assertSame($saved, $rendered, 'Preview and save must clean identically.');
     }
 
+    /**
+     * The canvas exists to show what a visitor gets. Preview and the public
+     * reader therefore have to resolve a partial translation the same way — a
+     * translated title kept, only the missing body borrowed.
+     */
+    public function testPreviewAndThePublicReaderResolveAPartialTranslationAlike(): void
+    {
+        $this->authenticateWith(['cms.pages.write']);
+        Database::connect()->table('cms_block_instance_translations')->insert([
+            'instance_id' => $this->instanceId,
+            'language_id' => $this->langEnId,
+            'block_data' => json_encode(['title' => ''], JSON_THROW_ON_ERROR),
+        ]);
+
+        $projected = json_decode((string) $this->postProjection($this->pageId, [
+            'lang' => 'en',
+            'scope' => ['type' => 'document'],
+            'blocks' => [[
+                'instance_id' => $this->instanceId,
+                'block_key' => $this->blockKey,
+                'sort_order' => 1,
+                'config' => [],
+                'i18n' => ['es' => ['title' => 'Titular'], 'en' => ['title' => '']],
+            ]],
+        ])->getJSON(), true, 512, JSON_THROW_ON_ERROR)['data']['blocks'][0];
+
+        $published = (new \App\Libraries\Cms\BlockInstanceSerializer(\Config\Services::fileUrlResolver()))
+            ->forContent('page', $this->pageId, 'en')[0];
+
+        self::assertSame('Titular', $projected['block_data']['title'], 'An empty translation borrows the default copy.');
+        self::assertSame($published['block_data']['title'], $projected['block_data']['title'], 'Preview and the live site must agree.');
+        self::assertSame($published['fallback_fields'], $projected['fallback_fields']);
+    }
+
     public function testTheProjectionRefusesABlockOfAnotherDocument(): void
     {
         $this->authenticateWith(['cms.pages.write']);

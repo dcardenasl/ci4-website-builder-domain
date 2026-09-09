@@ -70,7 +70,13 @@ class BlockInstanceSerializer
 
         $instanceIds = array_column($instances, 'id');
 
-        $translationsMap = $this->batchResolveBlockTranslations($instanceIds, $langCode, $db);
+        $schemas = [];
+        foreach ($instances as $instance) {
+            $schema = $this->parseSchemaDefinition((string) ($instance['schema_definition'] ?? ''));
+            $schemas[(int) $instance['id']] = is_array($schema['fields'] ?? null) ? $schema['fields'] : [];
+        }
+
+        $translationsMap = $this->batchResolveBlockTranslations($instanceIds, $langCode, $db, $schemas);
 
         // Collect all file IDs in a single pre-pass via schema field declarations
         $allFileIds = [];
@@ -140,7 +146,8 @@ class BlockInstanceSerializer
                 'parent_instance_id' => isset($instance['parent_instance_id']) ? (int) $instance['parent_instance_id'] : null,
                 'block_config'       => $blockConfig,
                 'block_data'         => $blockData,
-                'is_fallback'        => $translation['is_fallback'] ?? true,
+                'is_fallback'        => $translation['is_fallback'] ?? false,
+                'fallback_fields'    => $translation['fallback_fields'] ?? [],
                 'children'           => [],
             ];
 
@@ -236,17 +243,23 @@ class BlockInstanceSerializer
 
     /**
      * Batch-resolve block_instance translations for a list of instance IDs.
-     * Falls back to the default language when no translation exists for the target.
+     *
+     * Resolves each declared field on its own: a block whose title is translated
+     * but whose body is not shows the translated title and borrows only the
+     * body. Picking a whole row instead made one missing field hide every
+     * translation the block did have.
      *
      * @param  list<int> $instanceIds
      * @param  string    $langCode
      * @param  object    $db
+     * @param  array<int, array<string, mixed>> $schemas declared fields per instance
      * @return array<int, array<string, mixed>>     keyed by instance_id
      */
     private function batchResolveBlockTranslations(
         array $instanceIds,
         string $langCode,
-        object $db
+        object $db,
+        array $schemas
     ): array {
         [$langId, $defaultLangId] = $this->resolveLanguageIds($langCode, $db);
 
@@ -262,16 +275,22 @@ class BlockInstanceSerializer
             ->get();
         $rows = $result ? $result->getResultArray() : [];
 
-        $map = [];
+        $byInstance = [];
         foreach ($rows as $row) {
-            $iid = (int) $row['instance_id'];
-            $lid = (int) $row['language_id'];
-            if (!isset($map[$iid]) || $lid === $langId) {
-                $map[$iid] = [
-                    'block_data'  => $row['block_data'],
-                    'is_fallback' => $lid !== $langId,
-                ];
-            }
+            $data = is_string($row['block_data']) ? json_decode($row['block_data'], true) : $row['block_data'];
+            $byInstance[(int) $row['instance_id']][(int) $row['language_id']] = is_array($data) ? $data : [];
+        }
+
+        $resolver = new TranslationFallbackResolver();
+        $map = [];
+        foreach ($instanceIds as $instanceId) {
+            $instanceId = (int) $instanceId;
+            $map[$instanceId] = $resolver->resolve(
+                $byInstance[$instanceId][$langId] ?? [],
+                $byInstance[$instanceId][$defaultLangId] ?? [],
+                $schemas[$instanceId] ?? [],
+                $langId === $defaultLangId,
+            );
         }
 
         return $map;
@@ -285,9 +304,14 @@ class BlockInstanceSerializer
      */
     private function resolveLanguageIds(string $langCode, object $db): array
     {
+        // Without the group the condition reads `code = X OR (is_default AND
+        // is_active)`, so a row matching the code was selected even when the
+        // language had been deactivated.
         $result = $db->table('cms_languages')
-            ->whereIn('code', [$langCode])
-            ->orWhere('is_default', 1)
+            ->groupStart()
+                ->where('code', $langCode)
+                ->orWhere('is_default', 1)
+            ->groupEnd()
             ->where('is_active', 1)
             ->get();
         $rows = $result ? $result->getResultArray() : [];
