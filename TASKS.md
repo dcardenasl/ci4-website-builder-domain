@@ -67,11 +67,21 @@ Los 5 restantes **no se hacen aquí**:
 > [`../ci4-website-suite/docs/plan/2026-09-09-editor-visual-canvas-port-f7.md`](../ci4-website-suite/docs/plan/2026-09-09-editor-visual-canvas-port-f7.md).
 > **El port es adaptación, no copia:** `BlockInstanceSerializer` y `BlockInstanceService` de este
 > repo difieren de los de la suite en 152 y 159 líneas.
+>
+> **Rojo preexistente, ajeno a esta tarea:** `BaseRequestDtoConventionsTest` ya fallaba en
+> `151b567` porque `app/DTO/Request/Cms/PublicEntryFilterDTO.php` no extiende `BaseRequestDTO`.
+> Los DTOs del editor viven en `app/DTO/Editor/` para no sumar violaciones a esa puerta.
 
-- [ ] **CNV-007-D1 — Contrato de documento.** Assembler, snapshot con bloqueo y revisión canónica,
+- [x] **CNV-007-D1 — Contrato de documento.** Assembler, snapshot con bloqueo y revisión canónica,
       y `GET /editor/document` para páginas y entradas, con permisos por recurso.
-- [ ] **CNV-007-D2 — Patch transaccional.** DTO de patch, planner con validación de árbol y
+      **Cerrado 2026-09-09:** el lector devuelve el valor crudo de cada idioma activo (un idioma sin
+      traducir queda vacío, nunca relleno con el fallback) y la revisión cambia ante una escritura
+      clásica externa. 4 pruebas de endpoint.
+- [x] **CNV-007-D2 — Patch transaccional.** DTO de patch, planner con validación de árbol y
       candados, escritor sobre `BlockInstanceService` y conflicto 409 por revisión.
+      **Cerrado 2026-09-09:** `POST /editor/{pages|entries}/{id}/document`, una transacción con
+      `FOR UPDATE` sobre la fila del documento y `EditorCacheInvalidationClient`, que retiene la
+      invalidación hasta el commit para no anunciar un documento a medio aplicar. 8 pruebas.
 - [ ] **CNV-007-D3 — Proyector de preview.** Valida y sanea el borrador **con el saneado de este
       repo** (purifica toda cadena con `<`, no solo `richtext`): preview y guardado deben coincidir
       aquí, no con la suite. Extraer esa rutina a una librería compartida en vez de duplicarla.
