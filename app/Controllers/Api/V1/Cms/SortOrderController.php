@@ -44,7 +44,7 @@ final class SortOrderController extends ApiController
                     throw new AuthorizationException(lang('Api.forbidden'));
                 }
 
-                return $this->sortOrderService->reorder($dto);
+                return $this->sortOrderService->reorder($dto, $context);
             },
             SortOrderBatchRequestDTO::class,
         );

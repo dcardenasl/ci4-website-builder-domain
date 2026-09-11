@@ -8,6 +8,7 @@ use App\DTO\Response\Cms\PageResponseDTO;
 use App\Entities\PageEntity;
 use App\Interfaces\Cms\AdminListProjectionRepositoryInterface;
 use App\Interfaces\Cms\PageServiceInterface;
+use App\Interfaces\Cms\ResourceAuthorizationInterface;
 use App\Libraries\Cms\BlockInstancePurger;
 use App\Libraries\Cms\FileReferenceSynchronizer;
 use App\Libraries\Cms\FileUrlResolver;
@@ -42,6 +43,8 @@ class PageService extends BaseCrudService implements PageServiceInterface
 
     private ?AdminListProjectionRepositoryInterface $pageListRepository;
 
+    private ?ResourceAuthorizationInterface $resourceAuthorization;
+
     /**
      * @param RepositoryInterface<PageEntity> $pageRepository
      */
@@ -55,7 +58,8 @@ class PageService extends BaseCrudService implements PageServiceInterface
         private readonly PublicPageReader $publicPageReader,
         BlockInstancePurger $blockInstancePurger,
         ?\App\Libraries\Cms\TranslationSynchronizer $translationSynchronizer = null,
-        ?AdminListProjectionRepositoryInterface $pageListRepository = null
+        ?AdminListProjectionRepositoryInterface $pageListRepository = null,
+        ?ResourceAuthorizationInterface $resourceAuthorization = null
     ) {
         parent::__construct($pageRepository, $responseMapper);
         $this->slugRedirectRecorder = $slugRedirectRecorder;
@@ -65,12 +69,26 @@ class PageService extends BaseCrudService implements PageServiceInterface
         $this->blockInstancePurger = $blockInstancePurger;
         $this->translationSynchronizer = $translationSynchronizer;
         $this->pageListRepository = $pageListRepository;
+        $this->resourceAuthorization = $resourceAuthorization;
     }
 
     public function index(DataTransferObjectInterface $request, ?SecurityContext $context = null): DataTransferObjectInterface
     {
         $requestData = $request->toArray();
+        if ($context !== null && $this->resourceAuthorization !== null) {
+            $requestData = $this->resourceAuthorization->projectionCriteria(
+                'page',
+                $this->resourceAuthorization->scopeCriteria('page', $requestData, $context),
+                $context,
+            );
+        }
         if (($requestData['projection'] ?? 'full') !== 'list' || $this->pageListRepository === null) {
+            // The generic repository receives the scope through a bounded id
+            // filter. The high-volume list path uses EXISTS in SQL below.
+            if ($context !== null && $this->resourceAuthorization !== null) {
+                $request = $this->requestWithCriteria($request, $requestData);
+            }
+
             return parent::index($request, $context);
         }
 
@@ -113,9 +131,27 @@ class PageService extends BaseCrudService implements PageServiceInterface
         return $this->publicPageReader->showPublic($lang, $slug, $preview);
     }
 
+    public function show(int $id, ?SecurityContext $context = null): DataTransferObjectInterface
+    {
+        if ($context !== null) {
+            $this->resourceAuthorization?->assertCan('page', $id, 'read', $context);
+        }
+
+        return parent::show($id, $context);
+    }
+
     protected function beforeStore(array $data, ?SecurityContext $context): array
     {
         $data = parent::beforeStore($data, $context);
+
+        if ($context !== null && $this->resourceAuthorization !== null) {
+            if (isset($data['collection_id']) && (int) $data['collection_id'] > 0) {
+                $this->resourceAuthorization->assertCan('collection', (int) $data['collection_id'], 'write', $context);
+            }
+            if (isset($data['parent_id']) && (int) $data['parent_id'] > 0) {
+                $this->resourceAuthorization->assertCan('page', (int) $data['parent_id'], 'write', $context);
+            }
+        }
 
         if (! array_key_exists('status', $data) || $data['status'] === null || $data['status'] === '') {
             $data['status'] = 'draft';
@@ -155,11 +191,18 @@ class PageService extends BaseCrudService implements PageServiceInterface
         $this->flushDeferredTranslations(fn (array $t) => $this->saveTranslations((int) $entity->id, $t));
         $this->fileReferenceSynchronizer->syncPage((int) $entity->id);
         $this->createVersionSnapshot((int) $entity->id, 'Initial creation');
+        $this->resourceAuthorization?->grantOnCreate('page', (int) $entity->id, $context);
         $this->cacheInvalidator->invalidate(['pages', 'collections']);
     }
 
     protected function beforeUpdate(int $id, array $data, ?SecurityContext $context): array
     {
+        if ($context !== null) {
+            $this->resourceAuthorization?->assertCan('page', $id, 'write', $context);
+            if (array_key_exists('collection_id', $data) && (int) $data['collection_id'] > 0) {
+                $this->resourceAuthorization?->assertCan('collection', (int) $data['collection_id'], 'write', $context);
+            }
+        }
         $data = parent::beforeUpdate($id, $data, $context);
 
         if (array_key_exists('parent_id', $data)) {
@@ -187,6 +230,23 @@ class PageService extends BaseCrudService implements PageServiceInterface
         $this->blockInstancePurger->purgeForOwner('page', (int) $entity->id);
         $this->fileReferenceSynchronizer->removeResourceReferences('page', (int) $entity->id);
         $this->cacheInvalidator->invalidate(['pages', 'collections']);
+    }
+
+    protected function beforeDelete(int $id, ?SecurityContext $context): void
+    {
+        if ($context !== null) {
+            $this->resourceAuthorization?->assertCan('page', $id, 'write', $context);
+        }
+    }
+
+    /**
+     * DTOs are immutable; rebuild the request through its concrete class so
+     * generic full projections cannot accidentally discard the scope filter.
+     */
+    /** @param array<string, mixed> $data */
+    private function requestWithCriteria(DataTransferObjectInterface $request, array $data): DataTransferObjectInterface
+    {
+        return new ($request::class)($data);
     }
 
     protected function enrichEntities(array $entities): array

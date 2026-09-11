@@ -25,6 +25,7 @@ class Audit extends BaseConfig
      */
     public array $criticalActions = [
         'authorization_denied_role',
+        'authorization_denied_resource',
         'api_key_auth_failed',
         'api_key_rate_limit_exceeded',
         'revoked_token_reuse_detected',

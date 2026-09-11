@@ -45,7 +45,7 @@ final class SortOrderControllerTest extends CIUnitTestCase
         Services::injectMock('hubClient', new class (new IntrospectResult(
             valid: true,
             uid: 1,
-            permissions: ['cms.collections.write'],
+            permissions: ['cms.collections.write', 'iam.superadmin-access'],
             exp: time() + 3600,
             error: null,
         )) extends HubClient {
@@ -87,7 +87,7 @@ final class SortOrderControllerTest extends CIUnitTestCase
         Services::injectMock('hubClient', new class (new IntrospectResult(
             valid: true,
             uid: 1,
-            permissions: ['cms.entries.write'],
+            permissions: ['cms.entries.write', 'iam.superadmin-access'],
             exp: time() + 3600,
             error: null,
         )) extends HubClient {

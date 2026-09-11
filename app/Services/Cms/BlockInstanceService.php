@@ -6,6 +6,7 @@ namespace App\Services\Cms;
 
 use App\Entities\BlockInstanceEntity;
 use App\Interfaces\Cms\BlockInstanceServiceInterface;
+use App\Interfaces\Cms\ResourceAuthorizationInterface;
 use App\Libraries\Cms\BlockDataSanitizer;
 use App\Libraries\Cms\FileReferenceSynchronizer;
 use App\Libraries\Cms\FileUrlResolver;
@@ -32,11 +33,18 @@ class BlockInstanceService extends BaseCrudService implements BlockInstanceServi
     private \App\Libraries\Cms\CacheInvalidationClient $cacheInvalidator;
 
     private ?\App\Libraries\Cms\TranslationSynchronizer $translationSynchronizer;
+    private ?ResourceAuthorizationInterface $resourceAuthorization;
 
     public function setOwnerContext(string $ownerType, int $ownerId): void
     {
         $this->filterOwnerType = $ownerType;
         $this->filterOwnerId   = $ownerId;
+    }
+
+    public function clearOwnerContext(): void
+    {
+        $this->filterOwnerType = null;
+        $this->filterOwnerId = null;
     }
 
     /**
@@ -48,17 +56,33 @@ class BlockInstanceService extends BaseCrudService implements BlockInstanceServi
         FileUrlResolver $fileUrlResolver,
         FileReferenceSynchronizer $fileReferenceSynchronizer,
         \App\Libraries\Cms\CacheInvalidationClient $cacheInvalidator,
-        ?\App\Libraries\Cms\TranslationSynchronizer $translationSynchronizer = null
+        ?\App\Libraries\Cms\TranslationSynchronizer $translationSynchronizer = null,
+        ?ResourceAuthorizationInterface $resourceAuthorization = null
     ) {
         parent::__construct($blockInstanceRepository, $responseMapper);
         $this->fileUrlResolver = $fileUrlResolver;
         $this->fileReferenceSynchronizer = $fileReferenceSynchronizer;
         $this->cacheInvalidator = $cacheInvalidator;
         $this->translationSynchronizer = $translationSynchronizer;
+        $this->resourceAuthorization = $resourceAuthorization;
     }
 
     protected function beforeStore(array $data, ?SecurityContext $context): array
     {
+        if ($this->filterOwnerType !== null && $this->filterOwnerId !== null) {
+            // Nested routes are authoritative. Never let a client move a new
+            // block to another owner by changing the body fields.
+            $data['owner_type'] = $this->filterOwnerType;
+            $data['owner_id'] = $this->filterOwnerId;
+        }
+        if ($context !== null && $this->resourceAuthorization !== null) {
+            $this->resourceAuthorization->assertCan(
+                (string) ($data['owner_type'] ?? ''),
+                (int) ($data['owner_id'] ?? 0),
+                'write',
+                $context,
+            );
+        }
         $data = parent::beforeStore($data, $context);
         $data = $this->normalizeBlockConfig($data);
 
@@ -75,6 +99,13 @@ class BlockInstanceService extends BaseCrudService implements BlockInstanceServi
 
     protected function beforeUpdate(int $id, array $data, ?SecurityContext $context): array
     {
+        $existing = ($context !== null || $this->filterOwnerType !== null) ? $this->repository->find($id) : null;
+        $this->assertRouteOwnerMatches($existing);
+        if ($context !== null && $this->resourceAuthorization !== null && $existing instanceof BlockInstanceEntity) {
+            $this->resourceAuthorization->assertCan($existing->owner_type, (int) $existing->owner_id, 'write', $context);
+        }
+        // Ownership is a URL/domain concern, never an editable block field.
+        unset($data['owner_type'], $data['owner_id']);
         $data = parent::beforeUpdate($id, $data, $context);
         $data = $this->normalizeBlockConfig($data);
 
@@ -92,6 +123,11 @@ class BlockInstanceService extends BaseCrudService implements BlockInstanceServi
     protected function beforeDelete(int $id, ?SecurityContext $context): void
     {
         parent::beforeDelete($id, $context);
+        $existing = $this->repository->find($id);
+        $this->assertRouteOwnerMatches($existing);
+        if ($context !== null && $this->resourceAuthorization !== null && $existing instanceof BlockInstanceEntity) {
+            $this->resourceAuthorization->assertCan($existing->owner_type, (int) $existing->owner_id, 'write', $context);
+        }
         $this->assertBlockNotLocked($id);
     }
 
@@ -346,6 +382,75 @@ class BlockInstanceService extends BaseCrudService implements BlockInstanceServi
         }
 
         return $criteria;
+    }
+
+    public function store(\dcardenasl\Ci4ApiCore\Dto\DataTransferObjectInterface $request, ?SecurityContext $context = null): \dcardenasl\Ci4ApiCore\Dto\DataTransferObjectInterface
+    {
+        try {
+            return parent::store($request, $context);
+        } finally {
+            $this->clearOwnerContext();
+        }
+    }
+
+    public function update(int $id, \dcardenasl\Ci4ApiCore\Dto\DataTransferObjectInterface $request, ?SecurityContext $context = null): \dcardenasl\Ci4ApiCore\Dto\DataTransferObjectInterface
+    {
+        try {
+            return parent::update($id, $request, $context);
+        } finally {
+            $this->clearOwnerContext();
+        }
+    }
+
+    public function destroy(int $id, ?SecurityContext $context = null): bool
+    {
+        try {
+            return parent::destroy($id, $context);
+        } finally {
+            $this->clearOwnerContext();
+        }
+    }
+
+    public function index(\dcardenasl\Ci4ApiCore\Dto\DataTransferObjectInterface $request, ?SecurityContext $context = null): \dcardenasl\Ci4ApiCore\Dto\DataTransferObjectInterface
+    {
+        try {
+            if ($context !== null && $this->resourceAuthorization !== null && $this->filterOwnerType !== null && $this->filterOwnerId !== null) {
+                $this->resourceAuthorization->assertCan($this->filterOwnerType, $this->filterOwnerId, 'read', $context);
+            }
+
+            return parent::index($request, $context);
+        } finally {
+            $this->clearOwnerContext();
+        }
+    }
+
+    public function show(int $id, ?SecurityContext $context = null): \dcardenasl\Ci4ApiCore\Dto\DataTransferObjectInterface
+    {
+        try {
+            $instance = $this->repository->find($id);
+            $this->assertRouteOwnerMatches($instance);
+            if ($context !== null && $this->resourceAuthorization !== null && $instance instanceof BlockInstanceEntity) {
+                $this->resourceAuthorization->assertCan($instance->owner_type, (int) $instance->owner_id, 'read', $context);
+            }
+
+            return parent::show($id, $context);
+        } finally {
+            $this->clearOwnerContext();
+        }
+    }
+
+    private function assertRouteOwnerMatches(?object $instance): void
+    {
+        if ($this->filterOwnerType === null || $this->filterOwnerId === null || $instance === null) {
+            return;
+        }
+
+        if (! $instance instanceof BlockInstanceEntity
+            || $instance->owner_type !== $this->filterOwnerType
+            || (int) $instance->owner_id !== $this->filterOwnerId
+        ) {
+            throw new \dcardenasl\Ci4ApiCore\Exceptions\NotFoundException(lang('Api.resourceNotFound'));
+        }
     }
 
     protected function applyBaseCriteria(object $builder): void

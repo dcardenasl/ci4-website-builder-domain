@@ -86,6 +86,13 @@ final class EditorDocumentEndpointTest extends ApiTestCase
         $this->call('get', '/api/v1/cms/editor/pages/' . $this->pageId . '/document')->assertStatus(403);
     }
 
+    public function testASecondUserCannotLoadThePageWithoutAResourceGrant(): void
+    {
+        $this->authenticateWith(['cms.pages.write'], 2);
+
+        $this->call('get', '/api/v1/cms/editor/pages/' . $this->pageId . '/document')->assertStatus(404);
+    }
+
     public function testAMissingDocumentIsNotFound(): void
     {
         $this->authenticateWith(['cms.pages.write']);
@@ -304,9 +311,9 @@ final class EditorDocumentEndpointTest extends ApiTestCase
     }
 
     /** @param list<string> $permissions */
-    private function authenticateWith(array $permissions): void
+    private function authenticateWith(array $permissions, int $userId = 1): void
     {
-        $stub = new class (new IntrospectResult(valid: true, uid: 1, permissions: $permissions, exp: time() + 3600, error: null)) extends HubClient {
+        $stub = new class (new IntrospectResult(valid: true, uid: $userId, permissions: $permissions, exp: time() + 3600, error: null)) extends HubClient {
             public function __construct(private readonly IntrospectResult $result)
             {
             }
@@ -355,6 +362,15 @@ final class EditorDocumentEndpointTest extends ApiTestCase
 
         $db->table('cms_pages')->insert(['page_type' => 'generic', 'status' => 'draft']);
         $this->pageId = (int) $db->insertID();
+        $db->table('cms_resource_access')->insert([
+            'resource_type' => 'page',
+            'resource_id' => $this->pageId,
+            'user_id' => 1,
+            'access_level' => 'admin',
+            'created_by' => 1,
+            'created_at' => date('Y-m-d H:i:s'),
+            'updated_at' => date('Y-m-d H:i:s'),
+        ]);
         $db->table('cms_page_translations')->insert([
             'page_id' => $this->pageId, 'language_id' => $this->langEsId, 'slug' => 'editor-doc-' . $this->pageId, 'title' => 'Documento',
         ]);

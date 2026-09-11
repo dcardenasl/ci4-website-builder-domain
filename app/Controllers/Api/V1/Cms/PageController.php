@@ -89,6 +89,7 @@ class PageController extends ApiController
                 if (! $context->hasPermission('cms.pages.read')) {
                     throw new \dcardenasl\Ci4ApiCore\Exceptions\AuthorizationException(lang('Api.forbidden'));
                 }
+                Services::resourceAuthorization()->assertCan('page', $id, 'read', $context);
 
                 return ['status' => 'success', 'data' => $this->pageQualityService->analyze($id)];
             }

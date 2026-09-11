@@ -5,8 +5,10 @@ declare(strict_types=1);
 namespace App\Services\Cms;
 
 use App\DTO\Request\Cms\SortOrderBatchRequestDTO;
+use App\Interfaces\Cms\ResourceAuthorizationInterface;
 use App\Libraries\Cms\CacheInvalidationClient;
 use CodeIgniter\Database\BaseConnection;
+use dcardenasl\Ci4ApiCore\Dto\SecurityContext;
 use dcardenasl\Ci4ApiCore\Exceptions\ValidationException;
 use RuntimeException;
 
@@ -28,16 +30,19 @@ final class SortOrderService
     public function __construct(
         private readonly BaseConnection $database,
         private readonly CacheInvalidationClient $cacheInvalidator,
+        private readonly ?ResourceAuthorizationInterface $resourceAuthorization = null,
     ) {
     }
 
     /** @return array{updated: int} */
-    public function reorder(SortOrderBatchRequestDTO $request): array
+    public function reorder(SortOrderBatchRequestDTO $request, ?SecurityContext $context = null): array
     {
         $configuration = self::RESOURCES[$request->resource] ?? null;
         if ($configuration === null) {
             throw new ValidationException(lang('Api.invalidRequest'));
         }
+
+        $this->authorizeScope($request, $context);
 
         $scope = $this->validatedScope($request->resource, $request->scope);
         $ids = array_map(static fn (array $item): int => $item['id'], $request->items);
@@ -86,6 +91,33 @@ final class SortOrderService
         $this->cacheInvalidator->invalidate($configuration['cache']);
 
         return ['updated' => count($ids)];
+    }
+
+    private function authorizeScope(SortOrderBatchRequestDTO $request, ?SecurityContext $context): void
+    {
+        if ($context === null || $this->resourceAuthorization === null) {
+            return;
+        }
+
+        $resourceType = match ($request->resource) {
+            'pages' => 'page',
+            'entries' => 'entry',
+            'collections' => 'collection',
+            default => null,
+        };
+        if ($resourceType !== null) {
+            foreach ($request->items as $item) {
+                $this->resourceAuthorization->assertCan($resourceType, $item['id'], 'write', $context);
+            }
+
+            return;
+        }
+
+        if ($request->resource === 'block_instances') {
+            $ownerType = (string) ($request->scope['owner_type'] ?? '');
+            $ownerId = (int) ($request->scope['owner_id'] ?? 0);
+            $this->resourceAuthorization->assertCan($ownerType, $ownerId, 'write', $context);
+        }
     }
 
     /**

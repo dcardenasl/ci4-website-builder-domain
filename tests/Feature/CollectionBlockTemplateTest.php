@@ -42,6 +42,7 @@ final class CollectionBlockTemplateTest extends ApiTestCase
                 'cms.entries.admin',
                 'cms.entries.read',
                 'cms.pages.write',
+                'iam.superadmin-access',
             ],
             exp: time() + 3600,
             error: null

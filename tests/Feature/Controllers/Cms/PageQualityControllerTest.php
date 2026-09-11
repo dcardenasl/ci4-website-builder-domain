@@ -81,7 +81,7 @@ final class PageQualityControllerTest extends ApiTestCase
         $stub = new class (new IntrospectResult(
             valid: true,
             uid: 1,
-            permissions: ['cms.pages.read'],
+            permissions: ['cms.pages.read', 'iam.superadmin-access'],
             exp: time() + 3600,
             error: null
         )) extends HubClient {

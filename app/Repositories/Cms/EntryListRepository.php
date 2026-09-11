@@ -29,6 +29,32 @@ final class EntryListRepository extends AbstractAdminListProjectionRepository im
 
         $where = ['e.deleted_at IS NULL'];
         $binds = [];
+
+        if (($criteria['resource_scope_superadmin'] ?? null) !== true
+            && array_key_exists('resource_scope_user_id', $criteria)
+        ) {
+            $where[] = <<<'SQL'
+(
+    EXISTS (
+        SELECT 1 FROM cms_resource_access ra_entry
+        WHERE ra_entry.resource_type = 'entry'
+          AND ra_entry.resource_id = e.id
+          AND ra_entry.user_id = ?
+          AND ra_entry.access_level IN ('read', 'write', 'admin')
+    )
+    OR EXISTS (
+        SELECT 1 FROM cms_resource_access ra_collection
+        WHERE ra_collection.resource_type = 'collection'
+          AND ra_collection.resource_id = e.collection_id
+          AND ra_collection.user_id = ?
+          AND ra_collection.access_level IN ('read', 'write', 'admin')
+    )
+)
+SQL;
+            $userId = (int) $criteria['resource_scope_user_id'];
+            $binds[] = $userId;
+            $binds[] = $userId;
+        }
         $filter = isset($criteria['filter']) && is_array($criteria['filter']) ? $criteria['filter'] : [];
         $collectionId = $filter['collection_id'] ?? ($criteria['collection_id'] ?? null);
 

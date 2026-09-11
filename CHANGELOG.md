@@ -23,6 +23,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   active filter applies.
 
 ### Security
+- **Resource-scoped CMS authorization.** Domain now owns page, entry and collection
+  grants, inherits collection scope to child content, applies the same checks to CRUD,
+  editor, blocks, ordering and contextual audits, returns 404 for out-of-scope/deleted
+  resources, records denied attempts, and prevents orphaning a resource by revoking its
+  last administrator.
 - `PermissionFilter` now delegates to the core policy and lets the platform
   superadmin bypass newly registered domain permissions without weakening
   ordinary permission checks.

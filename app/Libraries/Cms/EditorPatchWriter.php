@@ -52,7 +52,11 @@ final class EditorPatchWriter
                     $id = (int) $node['instance_id'];
                     if ($this->hasChanges($payload, $original[$id], $snapshot)) {
                         $this->blocks->setOwnerContext($owner->type, $owner->id);
-                        $this->blocks->update($id, $this->requests->make(BlockInstanceUpdateRequestDTO::class, $payload), $context);
+                        try {
+                            $this->blocks->update($id, $this->requests->make(BlockInstanceUpdateRequestDTO::class, $payload), $context);
+                        } finally {
+                            $this->blocks->clearOwnerContext();
+                        }
                     }
                 }
                 unset($pending[$ref]);
@@ -79,7 +83,11 @@ final class EditorPatchWriter
                     continue;
                 }
                 $this->blocks->setOwnerContext($owner->type, $owner->id);
-                $this->blocks->destroy($id, $context);
+                try {
+                    $this->blocks->destroy($id, $context);
+                } finally {
+                    $this->blocks->clearOwnerContext();
+                }
                 unset($deleted[$id]);
                 $advanced = true;
             }

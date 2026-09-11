@@ -7,6 +7,7 @@ namespace App\Services\Editor;
 use App\DTO\Editor\EditorDocumentPatchRequestDTO;
 use App\DTO\Editor\EditorDocumentPatchResponseDTO;
 use App\DTO\Editor\EditorOwnerDTO;
+use App\Interfaces\Cms\ResourceAuthorizationInterface;
 use App\Interfaces\Editor\EditorDocumentPatchServiceInterface;
 use App\Libraries\Cms\EditorCacheInvalidationClient;
 use App\Libraries\Cms\EditorDocumentAssembler;
@@ -32,6 +33,7 @@ final class EditorDocumentPatchService implements EditorDocumentPatchServiceInte
         private readonly EditorPatchWriter $writer,
         private readonly EditorCacheInvalidationClient $cache,
         private readonly Editor $limits,
+        private readonly ?ResourceAuthorizationInterface $resourceAuthorization = null,
     ) {
     }
 
@@ -46,6 +48,7 @@ final class EditorDocumentPatchService implements EditorDocumentPatchServiceInte
         if ($context?->user_id === null || ! $context->hasPermission($owner->permission())) {
             throw new AuthorizationException(lang('Api.insufficientPermissions'));
         }
+        $this->resourceAuthorization?->assertCan($owner->type, $owner->id, 'write', $context);
         $patch = EditorDocumentPatchRequestDTO::fromArray($payload, $this->limits);
         if ($this->db->transDepth !== 0) {
             throw new \LogicException(lang('Editor.patchNested'));

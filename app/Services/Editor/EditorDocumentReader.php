@@ -6,6 +6,7 @@ namespace App\Services\Editor;
 
 use App\DTO\Editor\EditorDocumentResponseDTO;
 use App\DTO\Editor\EditorOwnerDTO;
+use App\Interfaces\Cms\ResourceAuthorizationInterface;
 use App\Interfaces\Editor\EditorDocumentReaderInterface;
 use App\Libraries\Cms\EditorDocumentAssembler;
 use App\Libraries\Cms\EditorDocumentSnapshotReader;
@@ -20,6 +21,7 @@ final class EditorDocumentReader implements EditorDocumentReaderInterface
         private readonly BaseConnection $db,
         private readonly EditorDocumentSnapshotReader $snapshots,
         private readonly EditorDocumentAssembler $assembler,
+        private readonly ?ResourceAuthorizationInterface $resourceAuthorization = null,
     ) {
     }
 
@@ -28,6 +30,7 @@ final class EditorDocumentReader implements EditorDocumentReaderInterface
         if ($context?->user_id === null || ! $context->hasPermission($owner->permission())) {
             throw new AuthorizationException(lang('Api.insufficientPermissions'));
         }
+        $this->resourceAuthorization?->assertCan($owner->type, $owner->id, 'write', $context);
         // This public read entry point owns its transaction, ensuring every table
         // contributes to the same snapshot even if the server defaults to READ COMMITTED.
         if ($this->db->transDepth !== 0) {

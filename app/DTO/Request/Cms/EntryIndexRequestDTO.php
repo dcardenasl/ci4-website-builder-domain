@@ -16,6 +16,8 @@ readonly class EntryIndexRequestDTO extends BaseRequestDTO
     public string $sort;
     public ?int $collection_id;
     public string $projection;
+    /** @var list<int>|null Internal scope injected by a domain service. */
+    public ?array $scope_ids;
 
     /**
      * @return array<string, string>
@@ -44,6 +46,8 @@ readonly class EntryIndexRequestDTO extends BaseRequestDTO
         $this->projection = (string) ($data['projection'] ?? 'full');
         $collectionId = $data['collection_id'] ?? ($data['filter']['collection_id'] ?? null);
         $this->collection_id = $collectionId !== null && $collectionId !== '' ? (int) $collectionId : null;
+        $scopeIds = $data['scope_ids'] ?? null;
+        $this->scope_ids = is_array($scopeIds) ? array_values(array_map('intval', $scopeIds)) : null;
     }
 
     /**
@@ -63,6 +67,10 @@ readonly class EntryIndexRequestDTO extends BaseRequestDTO
             $payload['filter'] = [
                 'collection_id' => $this->collection_id,
             ];
+        }
+
+        if ($this->scope_ids !== null) {
+            $payload['filter']['id'] = ['in' => $this->scope_ids === [] ? [0] : $this->scope_ids];
         }
 
         return $payload;

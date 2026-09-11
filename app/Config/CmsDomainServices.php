@@ -6,6 +6,18 @@ namespace Config;
 
 trait CmsDomainServices
 {
+    public static function resourceAuthorization(bool $getShared = true): \App\Interfaces\Cms\ResourceAuthorizationInterface
+    {
+        if ($getShared) {
+            return static::getSharedInstance('resourceAuthorization');
+        }
+
+        return new \App\Services\Cms\ResourceAuthorizationService(
+            \Config\Database::connect(),
+            static::auditService(),
+        );
+    }
+
     public static function languageResponseMapper(bool $getShared = true): \dcardenasl\Ci4ApiCore\Mappers\ResponseMapperInterface
     {
         if ($getShared) {
@@ -126,6 +138,7 @@ trait CmsDomainServices
             new \App\Libraries\Cms\EditorPatchWriter(static::editorBlockInstanceService(), static::requestDtoFactory()),
             static::editorCacheInvalidationClient(),
             config(\Config\Editor::class),
+            static::resourceAuthorization(),
         );
     }
 
@@ -156,6 +169,7 @@ trait CmsDomainServices
             $db,
             new \App\Libraries\Cms\EditorDocumentSnapshotReader($db),
             new \App\Libraries\Cms\EditorDocumentAssembler(static::fileUrlResolver()),
+            static::resourceAuthorization(),
         );
     }
 
@@ -280,7 +294,8 @@ trait CmsDomainServices
             static::publicPageReader(),
             static::blockInstancePurger(),
             static::translationSynchronizer(),
-            static::pageListRepository()
+            static::pageListRepository(),
+            static::resourceAuthorization()
         );
     }
 
@@ -420,7 +435,8 @@ trait CmsDomainServices
             static::fileUrlResolver(),
             static::fileReferenceSynchronizer(),
             static::cacheInvalidationClient(),
-            static::translationSynchronizer()
+            static::translationSynchronizer(),
+            static::resourceAuthorization(),
         );
     }
     public static function collectionResponseMapper(bool $getShared = true): \dcardenasl\Ci4ApiCore\Mappers\ResponseMapperInterface
@@ -443,7 +459,8 @@ trait CmsDomainServices
             static::publicCollectionReader(),
             static::translationSynchronizer(),
             static::collectionPublicSlugProjection(),
-            static::collectionListRepository()
+            static::collectionListRepository(),
+            static::resourceAuthorization()
         );
     }
 
@@ -481,7 +498,8 @@ trait CmsDomainServices
 
         return new \App\Services\Cms\SortOrderService(
             \Config\Database::connect(),
-            static::cacheInvalidationClient()
+            static::cacheInvalidationClient(),
+            static::resourceAuthorization(),
         );
     }
 
@@ -533,7 +551,8 @@ trait CmsDomainServices
             static::entryCategoryLinkRepository(),
             static::entryTagLinkRepository(),
             static::translationSynchronizer(),
-            static::entryListRepository()
+            static::entryListRepository(),
+            static::resourceAuthorization()
         );
     }
 

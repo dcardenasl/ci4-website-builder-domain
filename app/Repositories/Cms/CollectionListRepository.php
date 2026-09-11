@@ -22,6 +22,21 @@ final class CollectionListRepository extends AbstractAdminListProjectionReposito
         $offset = ($page - 1) * $perPage;
         $where = ['1 = 1'];
         $binds = [];
+
+        if (($criteria['resource_scope_superadmin'] ?? null) !== true
+            && array_key_exists('resource_scope_user_id', $criteria)
+        ) {
+            $where[] = <<<'SQL'
+EXISTS (
+    SELECT 1 FROM cms_resource_access ra_collection
+    WHERE ra_collection.resource_type = 'collection'
+      AND ra_collection.resource_id = c.id
+      AND ra_collection.user_id = ?
+      AND ra_collection.access_level IN ('read', 'write', 'admin')
+)
+SQL;
+            $binds[] = (int) $criteria['resource_scope_user_id'];
+        }
         $search = trim((string) ($criteria['search'] ?? ''));
 
         if ($search !== '') {

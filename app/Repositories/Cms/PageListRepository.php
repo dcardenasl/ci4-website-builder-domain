@@ -23,6 +23,35 @@ final class PageListRepository extends AbstractAdminListProjectionRepository imp
         $where = ['p.deleted_at IS NULL'];
         $binds = [];
 
+        if (($criteria['resource_scope_superadmin'] ?? null) !== true
+            && array_key_exists('resource_scope_user_id', $criteria)
+        ) {
+            $where[] = <<<'SQL'
+(
+    EXISTS (
+        SELECT 1 FROM cms_resource_access ra_page
+        WHERE ra_page.resource_type = 'page'
+          AND ra_page.resource_id = p.id
+          AND ra_page.user_id = ?
+          AND ra_page.access_level IN ('read', 'write', 'admin')
+    )
+    OR (
+        p.collection_id IS NOT NULL
+        AND EXISTS (
+            SELECT 1 FROM cms_resource_access ra_collection
+            WHERE ra_collection.resource_type = 'collection'
+              AND ra_collection.resource_id = p.collection_id
+              AND ra_collection.user_id = ?
+              AND ra_collection.access_level IN ('read', 'write', 'admin')
+        )
+    )
+)
+SQL;
+            $userId = (int) $criteria['resource_scope_user_id'];
+            $binds[] = $userId;
+            $binds[] = $userId;
+        }
+
         $parentId = $this->criteriaValue($criteria, 'parent_id');
         if ($parentId !== null && $parentId !== '' && is_numeric($parentId)) {
             $where[] = 'p.parent_id = ?';

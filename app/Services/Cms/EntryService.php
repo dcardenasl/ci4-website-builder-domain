@@ -14,6 +14,7 @@ use App\Entities\EntryEntity;
 use App\Interfaces\Cms\EntryListRepositoryInterface;
 use App\Interfaces\Cms\EntryServiceInterface;
 use App\Interfaces\Cms\EntryTaxonomyLinkRepositoryInterface;
+use App\Interfaces\Cms\ResourceAuthorizationInterface;
 use App\Libraries\Cms\BlockInstancePurger;
 use App\Libraries\Cms\EntryTaxonomyPivotResolver;
 use App\Libraries\Cms\FileReferenceSynchronizer;
@@ -60,6 +61,7 @@ class EntryService extends BaseCrudService implements EntryServiceInterface
     private ?EntryListRepositoryInterface $entryListRepository;
     private EntryTaxonomyLinkRepositoryInterface $categoryLinkRepository;
     private EntryTaxonomyLinkRepositoryInterface $tagLinkRepository;
+    private ?ResourceAuthorizationInterface $resourceAuthorization;
 
     /**
      * @param RepositoryInterface<EntryEntity> $entryRepository
@@ -79,7 +81,8 @@ class EntryService extends BaseCrudService implements EntryServiceInterface
         EntryTaxonomyLinkRepositoryInterface $categoryLinkRepository,
         EntryTaxonomyLinkRepositoryInterface $tagLinkRepository,
         ?\App\Libraries\Cms\TranslationSynchronizer $translationSynchronizer = null,
-        ?EntryListRepositoryInterface $entryListRepository = null
+        ?EntryListRepositoryInterface $entryListRepository = null,
+        ?ResourceAuthorizationInterface $resourceAuthorization = null
     ) {
         parent::__construct($entryRepository, $responseMapper);
         $this->slugRedirectRecorder = $slugRedirectRecorder;
@@ -95,6 +98,7 @@ class EntryService extends BaseCrudService implements EntryServiceInterface
         $this->entryListRepository = $entryListRepository;
         $this->categoryLinkRepository = $categoryLinkRepository;
         $this->tagLinkRepository = $tagLinkRepository;
+        $this->resourceAuthorization = $resourceAuthorization;
     }
 
     /**
@@ -106,7 +110,18 @@ class EntryService extends BaseCrudService implements EntryServiceInterface
     public function index(DataTransferObjectInterface $request, ?SecurityContext $context = null): DataTransferObjectInterface
     {
         $requestData = $request->toArray();
+        if ($context !== null && $this->resourceAuthorization !== null) {
+            $requestData = $this->resourceAuthorization->projectionCriteria(
+                'entry',
+                $this->resourceAuthorization->scopeCriteria('entry', $requestData, $context),
+                $context,
+            );
+        }
         if (($requestData['projection'] ?? 'full') !== 'list' || $this->entryListRepository === null) {
+            if ($context !== null && $this->resourceAuthorization !== null) {
+                $request = new ($request::class)($requestData);
+            }
+
             return parent::index($request, $context);
         }
 
@@ -150,6 +165,14 @@ class EntryService extends BaseCrudService implements EntryServiceInterface
                     ['collection_id' => lang('Entries.collection_not_exists')]
                 );
             }
+            if ($context !== null) {
+                $this->resourceAuthorization?->assertCan('collection', $collectionId, 'write', $context);
+            }
+        }
+
+        if ($context !== null && $context->user_id !== null) {
+            // author_id is descriptive metadata, never an authorization input.
+            $data['author_id'] = $context->user_id;
         }
 
         if ($collection instanceof \App\Entities\CollectionEntity) {
@@ -232,11 +255,15 @@ class EntryService extends BaseCrudService implements EntryServiceInterface
 
         $this->fileReferenceSynchronizer->syncEntry((int) $entity->id);
         $this->createVersionSnapshot((int) $entity->id, 'Initial creation');
+        $this->resourceAuthorization?->grantOnCreate('entry', (int) $entity->id, $context);
         $this->cacheInvalidator->invalidate(['entries']);
     }
 
     protected function beforeUpdate(int $id, array $data, ?SecurityContext $context): array
     {
+        if ($context !== null) {
+            $this->resourceAuthorization?->assertCan('entry', $id, 'write', $context);
+        }
         $data = parent::beforeUpdate($id, $data, $context);
 
         if (array_key_exists('collection_id', $data)) {
@@ -250,7 +277,14 @@ class EntryService extends BaseCrudService implements EntryServiceInterface
                         ['collection_id' => lang('Entries.collection_not_exists')]
                     );
                 }
+                if ($context !== null) {
+                    $this->resourceAuthorization?->assertCan('collection', $collectionId, 'write', $context);
+                }
             }
+        }
+
+        if ($context !== null && ! $context->hasPermission('iam.superadmin-access')) {
+            unset($data['author_id']);
         }
 
         return $this->deferTranslationsFromUpdate($data);
@@ -271,6 +305,22 @@ class EntryService extends BaseCrudService implements EntryServiceInterface
         $this->blockInstancePurger->purgeForOwner('entry', (int) $entity->id);
         $this->fileReferenceSynchronizer->removeResourceReferences('entry', (int) $entity->id);
         $this->cacheInvalidator->invalidate(['entries']);
+    }
+
+    protected function beforeDelete(int $id, ?SecurityContext $context): void
+    {
+        if ($context !== null) {
+            $this->resourceAuthorization?->assertCan('entry', $id, 'admin', $context);
+        }
+    }
+
+    public function show(int $id, ?SecurityContext $context = null): DataTransferObjectInterface
+    {
+        if ($context !== null) {
+            $this->resourceAuthorization?->assertCan('entry', $id, 'read', $context);
+        }
+
+        return parent::show($id, $context);
     }
 
     protected function enrichEntities(array $entities): array
@@ -481,6 +531,9 @@ class EntryService extends BaseCrudService implements EntryServiceInterface
         if (! $entry) {
             throw new NotFoundException(lang('Api.resourceNotFound'));
         }
+        if ($context !== null) {
+            $this->resourceAuthorization?->assertCan('entry', $entryId, 'write', $context);
+        }
 
         return $this->wrapInTransaction(function () use ($entryId, $dto, $entry): DataTransferObjectInterface {
             $this->replaceEntryCategories($entryId, $dto->category_ids, $entry);
@@ -499,6 +552,9 @@ class EntryService extends BaseCrudService implements EntryServiceInterface
     ): DataTransferObjectInterface {
         if (! $this->repository->find($entryId)) {
             throw new NotFoundException(lang('Api.resourceNotFound'));
+        }
+        if ($context !== null) {
+            $this->resourceAuthorization?->assertCan('entry', $entryId, 'write', $context);
         }
 
         return $this->wrapInTransaction(function () use ($entryId, $dto): DataTransferObjectInterface {
@@ -520,6 +576,9 @@ class EntryService extends BaseCrudService implements EntryServiceInterface
         $entry = $this->repository->find($entryId);
         if (! $entry) {
             throw new NotFoundException(lang('Api.resourceNotFound'));
+        }
+        if ($context !== null) {
+            $this->resourceAuthorization?->assertCan('entry', $entryId, 'write', $context);
         }
 
         return $this->wrapInTransaction(function () use ($entryId, $dto, $entry): DataTransferObjectInterface {

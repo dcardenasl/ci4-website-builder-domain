@@ -13,4 +13,7 @@ interface BlockInstanceServiceInterface extends CrudServiceContract
      * Must be called before index(); the context is consumed on first use.
      */
     public function setOwnerContext(string $ownerType, int $ownerId): void;
+
+    /** Clear the nested owner context after a request has completed. */
+    public function clearOwnerContext(): void;
 }

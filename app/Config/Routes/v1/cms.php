@@ -9,6 +9,12 @@ $routes->group('cms', ['namespace' => '\App\Controllers\Api\V1\Cms'], function (
     // Auth & Admin Protected Group
     $routes->group('', ['filter' => ['domainauth', 'throttle']], function ($routes): void {
         $routes->post('sort-orders', 'SortOrderController::reorder');
+        // Domain-owned resource scope. The service enforces resource-admin
+        // access and keeps admin delegation reserved for superadmin.
+        $routes->get('resource-access/(:segment)/(:num)', 'ResourceAccessController::index/$1/$2');
+        $routes->post('resource-access/(:segment)/(:num)/grants', 'ResourceAccessController::grant/$1/$2');
+        $routes->delete('resource-access/(:segment)/(:num)/grants/(:num)', 'ResourceAccessController::revoke/$1/$2/$3');
+        $routes->post('resource-access/(:segment)/(:num)/ownership', 'ResourceAccessController::transfer/$1/$2');
         // Wizard Config (must be before any (:segment) routes)
         $routes->get('wizard/config', 'WizardConfigController::config', ['filter' => 'permission:cms.entries.read']);
 
@@ -112,11 +118,11 @@ $routes->group('cms', ['namespace' => '\App\Controllers\Api\V1\Cms'], function (
         $routes->put('entries/(:num)', 'EntryController::update/$1', ['filter' => 'permission:cms.entries.write']);
         $routes->delete('entries/(:num)', 'EntryController::delete/$1', ['filter' => 'permission:cms.entries.admin']);
         // Block Instances CRUD nested under entries
-        $routes->get('entries/(:num)/blocks', 'BlockInstanceController::indexForEntry/$1', ['filter' => 'permission:cms.pages.read']);
-        $routes->get('entries/(:num)/blocks/(:num)', 'BlockInstanceController::show/$2', ['filter' => 'permission:cms.pages.read']);
-        $routes->post('entries/(:num)/blocks', 'BlockInstanceController::create', ['filter' => 'permission:cms.pages.write']);
-        $routes->put('entries/(:num)/blocks/(:num)', 'BlockInstanceController::update/$2', ['filter' => 'permission:cms.pages.write']);
-        $routes->delete('entries/(:num)/blocks/(:num)', 'BlockInstanceController::delete/$2', ['filter' => 'permission:cms.pages.write']);
+        $routes->get('entries/(:num)/blocks', 'BlockInstanceController::indexForEntry/$1', ['filter' => 'permission:cms.entries.read']);
+        $routes->get('entries/(:num)/blocks/(:num)', 'BlockInstanceController::show/$2', ['filter' => 'permission:cms.entries.read']);
+        $routes->post('entries/(:num)/blocks', 'BlockInstanceController::create', ['filter' => 'permission:cms.entries.write']);
+        $routes->put('entries/(:num)/blocks/(:num)', 'BlockInstanceController::update/$2', ['filter' => 'permission:cms.entries.write']);
+        $routes->delete('entries/(:num)/blocks/(:num)', 'BlockInstanceController::delete/$2', ['filter' => 'permission:cms.entries.write']);
         $routes->get('categories/(:num)', 'CategoryController::show/$1', ['filter' => 'permission:cms.categories.read']);
         $routes->put('categories/(:num)', 'CategoryController::update/$1', ['filter' => 'permission:cms.categories.write']);
         $routes->delete('categories/(:num)', 'CategoryController::delete/$1', ['filter' => 'permission:cms.categories.write']);

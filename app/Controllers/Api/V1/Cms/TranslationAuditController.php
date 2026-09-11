@@ -7,6 +7,8 @@ namespace App\Controllers\Api\V1\Cms;
 use App\Interfaces\Cms\TranslationAuditServiceInterface;
 use CodeIgniter\HTTP\ResponseInterface;
 use Config\Services;
+use dcardenasl\Ci4ApiCore\Dto\SecurityContext;
+use dcardenasl\Ci4ApiCore\Exceptions\AuthorizationException;
 use dcardenasl\Ci4ApiCore\Exceptions\ValidationException;
 use dcardenasl\Ci4ApiCore\Http\ApiController;
 
@@ -26,7 +28,8 @@ class TranslationAuditController extends ApiController
     public function stats(): ResponseInterface
     {
         return $this->handleRequest(
-            function (): ResponseInterface {
+            function (array $dto, SecurityContext $context): ResponseInterface {
+                $this->assertAggregateAccess($context);
                 $stats = $this->auditService->getOverallCompleteness();
                 return $this->response->setJSON([
                     'status' => 'success',
@@ -42,7 +45,8 @@ class TranslationAuditController extends ApiController
     public function report(): ResponseInterface
     {
         return $this->handleRequest(
-            function (): ResponseInterface {
+            function (array $dto, SecurityContext $context): ResponseInterface {
+                $this->assertAggregateAccess($context);
                 $langId = $this->request->getGet('language_id');
                 $filters = [];
                 if ($langId !== null) {
@@ -85,7 +89,10 @@ class TranslationAuditController extends ApiController
     public function resource(string $type, int $id): ResponseInterface
     {
         return $this->handleRequest(
-            function () use ($type, $id): ResponseInterface {
+            function (array $dto, SecurityContext $context) use ($type, $id): ResponseInterface {
+                if (in_array($type, ['page', 'entry', 'collection'], true)) {
+                    Services::resourceAuthorization()->assertCan($type, $id, 'read', $context);
+                }
                 $report = $this->auditService->auditResource($type, $id);
                 return $this->response->setJSON([
                     'status' => 'success',
@@ -103,10 +110,11 @@ class TranslationAuditController extends ApiController
     public function owner(string $ownerType, int $ownerId): ResponseInterface
     {
         return $this->handleRequest(
-            function () use ($ownerType, $ownerId): ResponseInterface {
+            function (array $dto, SecurityContext $context) use ($ownerType, $ownerId): ResponseInterface {
                 if (! in_array($ownerType, ['page', 'entry'], true)) {
                     throw new ValidationException(null, ['owner_type' => 'Must be "page" or "entry".']);
                 }
+                Services::resourceAuthorization()->assertCan($ownerType, $ownerId, 'read', $context);
 
                 $report = $this->auditService->auditOwnerBlocks($ownerType, $ownerId);
                 return $this->response->setJSON([
@@ -115,5 +123,12 @@ class TranslationAuditController extends ApiController
                 ])->setStatusCode(200);
             }
         );
+    }
+
+    private function assertAggregateAccess(SecurityContext $context): void
+    {
+        if (! $context->hasPermission('iam.superadmin-access')) {
+            throw new AuthorizationException(lang('Api.forbidden'));
+        }
     }
 }
