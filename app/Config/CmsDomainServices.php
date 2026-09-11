@@ -293,6 +293,7 @@ trait CmsDomainServices
             static::fileReferenceSynchronizer(),
             static::publicPageReader(),
             static::blockInstancePurger(),
+            static::requestDtoFactory(),
             static::translationSynchronizer(),
             static::pageListRepository(),
             static::resourceAuthorization()

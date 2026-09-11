@@ -14,6 +14,7 @@ use App\Libraries\Cms\FileReferenceSynchronizer;
 use App\Libraries\Cms\FileUrlResolver;
 use App\Support\AdminListProjectionDecoder;
 use App\Traits\Services\HasDeferredTranslations;
+use dcardenasl\Ci4ApiCore\Dto\BaseRequestDTO;
 use dcardenasl\Ci4ApiCore\Dto\DataTransferObjectInterface;
 use dcardenasl\Ci4ApiCore\Dto\PaginatedResponseDTO;
 use dcardenasl\Ci4ApiCore\Dto\SecurityContext;
@@ -21,6 +22,7 @@ use dcardenasl\Ci4ApiCore\Exceptions\ValidationException;
 use dcardenasl\Ci4ApiCore\Mappers\ResponseMapperInterface;
 use dcardenasl\Ci4ApiCore\Repositories\RepositoryInterface;
 use dcardenasl\Ci4ApiCore\Services\BaseCrudService;
+use dcardenasl\Ci4ApiCore\Support\RequestDtoFactory;
 
 /**
  * @extends BaseCrudService<PageEntity>
@@ -57,6 +59,7 @@ class PageService extends BaseCrudService implements PageServiceInterface
         FileReferenceSynchronizer $fileReferenceSynchronizer,
         private readonly PublicPageReader $publicPageReader,
         BlockInstancePurger $blockInstancePurger,
+        private readonly RequestDtoFactory $requestDtoFactory,
         ?\App\Libraries\Cms\TranslationSynchronizer $translationSynchronizer = null,
         ?AdminListProjectionRepositoryInterface $pageListRepository = null,
         ?ResourceAuthorizationInterface $resourceAuthorization = null
@@ -240,13 +243,18 @@ class PageService extends BaseCrudService implements PageServiceInterface
     }
 
     /**
-     * DTOs are immutable; rebuild the request through its concrete class so
-     * generic full projections cannot accidentally discard the scope filter.
+     * DTOs are immutable; rebuild the request through the central factory so
+     * generic full projections cannot accidentally discard the scope filter or
+     * bypass DTO validation.
      */
     /** @param array<string, mixed> $data */
     private function requestWithCriteria(DataTransferObjectInterface $request, array $data): DataTransferObjectInterface
     {
-        return new ($request::class)($data);
+        if (! $request instanceof BaseRequestDTO) {
+            throw new \InvalidArgumentException(lang('Api.invalidRequest'));
+        }
+
+        return $this->requestDtoFactory->make($request::class, $data);
     }
 
     protected function enrichEntities(array $entities): array
