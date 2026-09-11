@@ -165,3 +165,10 @@ mantienen en `../TASKS.md`.
 - **CNV-007-D1..D4:** contrato de documento, patch transaccional con `409`, preview/fallback y
   límites/ownership implementados y verificados. Se retiran del tracker activo; queda solo el
   baseline contractual y la paginación de GAP-02.
+
+- **CNV-007-D0 — Baseline contractual.** `composer quality` pasó con 551 tests y 2.054
+  aserciones en la suite principal, 15 tests de seeders y 19 tests de arquitectura; contrato y
+  OpenAPI verificados.
+- **GAP-02-Domain — Paginación de auditoría.** Commit `1029e46`; lectura por lotes de recursos,
+  traducciones y bloques, filtros antes de paginar, orden estable, `page/limit` acotados y
+  regresiones con datos multilingües reales.

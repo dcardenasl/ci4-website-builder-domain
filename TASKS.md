@@ -5,18 +5,19 @@
 
 ## 🔴 En progreso
 
-*(vacío; CNV-007-D1…D4 ya están cerradas)*
+*(vacío; CNV-007-D0 y CNV-007-D1…D4 están cerradas)*
 
 ## 🟡 Próximo
 
-- [ ] **CNV-007-D0 — Baseline contractual.** Ejecutar `composer quality`, tests de endpoint e
-      integración, y verificar documento, patch, `409`, rollback, preview, fallback, límites y
-      ownership antes de habilitar Web/Admin.
-- [ ] **GAP-02-Domain — Paginación de auditoría de traducciones.** Añadir contrato versionado de
-      `page`/`limit`/`meta`, límites seguros, consulta acotada, orden determinista y regresiones;
-      no construir informes ilimitados en memoria.
 - [ ] **CNV-007-F9 — Autorización por recurso.** Diseñar después de cerrar la nivelación completa,
       con contrato común y matriz de pruebas cross-repo.
+
+## ✅ Cerrado con evidencia
+
+- **CNV-007-D0 — Baseline contractual.** `composer quality` verde, contrato de documento/patch/
+  preview/fallback/límites/ownership verificado y OpenAPI regenerado.
+- **GAP-02-Domain — Paginación de auditoría.** Commit `1029e46`; reportes paginados por lotes,
+  filtros acotados, orden estable, `meta` contractual y regresiones reales del servicio.
 
 ## ⚪ Fuera del plan actual
 
