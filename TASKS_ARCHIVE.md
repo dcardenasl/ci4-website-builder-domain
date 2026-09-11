@@ -155,3 +155,13 @@ Sin ID de tarea — trabajo derivado del runtime decoupling de ci4-api-core:
 
 El tracker local queda sin backlog propio; las decisiones de producto y tareas cross-repo se
 mantienen en `../TASKS.md`.
+
+## ✅ Reconciliación para CNV-007 — 2026-09-11
+
+- **F.0 / GAP-04-8:** ventana de publicación centralizada en `PublicationWindow`, aplicada a
+  páginas y entradas con regresiones verificadas.
+- **GAP-04-20:** pivots de taxonomía migrados a modelos/repositorios con dependencias explícitas y
+  cobertura de integración.
+- **CNV-007-D1..D4:** contrato de documento, patch transaccional con `409`, preview/fallback y
+  límites/ownership implementados y verificados. Se retiran del tracker activo; queda solo el
+  baseline contractual y la paginación de GAP-02.
