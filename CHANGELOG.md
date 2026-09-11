@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.1.0] — 2026-09-11
+
 ### Changed
 - **Per-field translation fallback on public content.** `BlockInstanceSerializer` used to
   pick a whole translation row, so a block with a translated title and an untranslated body
