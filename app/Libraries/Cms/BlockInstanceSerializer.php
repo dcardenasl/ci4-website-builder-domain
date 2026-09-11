@@ -263,6 +263,12 @@ class BlockInstanceSerializer
     ): array {
         [$langId, $defaultLangId] = $this->resolveLanguageIds($langCode, $db);
 
+        // A database without an active target or default language is a valid
+        // empty-content state. Return before using nullable IDs as array keys.
+        if ($langId === null || $defaultLangId === null) {
+            return [];
+        }
+
         $langIds = array_unique(array_filter([$langId, $defaultLangId]));
 
         if (empty($langIds) || empty($instanceIds)) {

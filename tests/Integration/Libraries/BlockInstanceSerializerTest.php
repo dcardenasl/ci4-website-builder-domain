@@ -170,6 +170,17 @@ final class BlockInstanceSerializerTest extends CIUnitTestCase
         self::assertSame('English body', $blocks[0]['block_data']['content']);
     }
 
+    public function testNoActiveDefaultLanguageReturnsNoBlocksWithoutUsingNullableArrayKeys(): void
+    {
+        $this->seedPartiallyTranslatedBlock();
+        Database::connect()->table('cms_languages')->update(['is_active' => 0]);
+
+        $blocks = $this->serializer->forContent('page', 90, 'es');
+
+        self::assertCount(1, $blocks);
+        self::assertSame([], $blocks[0]['block_data']);
+    }
+
     private function seedPartiallyTranslatedBlock(bool $translateEverything = false): void
     {
         $db = Database::connect();
