@@ -26,9 +26,8 @@
 
 - Servicios puros, DTO-first y Controllers/adaptadores delgados.
 - Migraciones nuevas; PHPStan sin baseline nuevo; tests de regresión junto a cada cambio.
-- No introducir autorización por recurso antes de la fase final cross-repo.
 - F9 mantiene el modelo single-tenant v1: identidad y permisos globales vienen de Hub; el alcance
-  concreto vive en Domain y no se cachea.
+  concreto vive en Domain y no se cachea. El diseño completo está en `docs/adr/ADR-015-RESOURCE-AUTHORIZATION.md`.
 
 ## 🔧 Referencias
 
