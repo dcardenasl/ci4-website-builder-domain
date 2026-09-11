@@ -56,6 +56,20 @@ class TranslationAuditController extends ApiController
                     }
                 }
 
+                $pageRaw = $this->request->getGet('page');
+                $limitRaw = $this->request->getGet('limit') ?? $this->request->getGet('per_page');
+                $hasPagination = $pageRaw !== null || $limitRaw !== null;
+                if ($hasPagination) {
+                    $filters['page'] = is_scalar($pageRaw) && (string) $pageRaw !== '' ? (int) $pageRaw : 1;
+                    $filters['limit'] = is_scalar($limitRaw) && (string) $limitRaw !== '' ? (int) $limitRaw : 25;
+                    $report = $this->auditService->getMissingTranslationsReportPage($filters);
+
+                    return $this->response->setJSON([
+                        'status' => 'success',
+                        'data'   => $report,
+                    ])->setStatusCode(200);
+                }
+
                 $report = $this->auditService->getMissingTranslationsReport($filters);
                 return $this->response->setJSON([
                     'status' => 'success',

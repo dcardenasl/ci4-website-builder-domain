@@ -231,6 +231,32 @@ final class LanguageAuditRealDataTest extends ApiTestCase
     }
 
     /**
+     * The paginated report keeps ordering and filtering semantics while only
+     * returning the requested bounded window.
+     */
+    public function testServicePaginatesReportWithStableMeta(): void
+    {
+        $service = \Config\Services::translationAuditService(false);
+        $filters = ['language_id' => $this->langEnId];
+        $full = $service->getMissingTranslationsReport($filters);
+        $page = $service->getMissingTranslationsReportPage($filters + ['page' => 1, 'limit' => 1]);
+
+        $this->assertCount(1, $page['items']);
+        $this->assertSame(count($full), $page['meta']['total_items']);
+        $this->assertSame(1, $page['meta']['page']);
+        $this->assertSame(1, $page['meta']['per_page']);
+        $this->assertSame($full[0], $page['items'][0]);
+
+        $secondPage = $service->getMissingTranslationsReportPage($filters + ['page' => 2, 'limit' => 1]);
+        $this->assertSame($full[1], $secondPage['items'][0]);
+        $this->assertSame(0, $service->getMissingTranslationsReportPage([
+            'search' => 'does-not-exist',
+            'page' => 1,
+            'limit' => 100,
+        ])['meta']['total_items']);
+    }
+
+    /**
      * Resource-level audit shows translation status per language.
      */
     public function testServiceAuditResourceShowsPerLanguageStatus(): void

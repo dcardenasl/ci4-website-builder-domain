@@ -160,31 +160,55 @@ class TranslationAuditService implements TranslationAuditServiceInterface
         $issues = array_merge($issues, $this->auditSettingTranslations($activeLanguages, $filters));
         $issues = array_merge($issues, $this->blockAuditor->audit($activeLanguages, $filters));
 
-        return array_values(array_filter($issues, function (array $issue) use ($filters): bool {
-            $resource = (string) ($filters['resource'] ?? '');
-            $status = (string) ($filters['status'] ?? '');
-            $search = mb_strtolower((string) ($filters['search'] ?? ''));
+        return array_values(array_filter($issues, fn (array $issue): bool => $this->reportIssueMatches($issue, $filters)));
+    }
 
-            if ($resource !== '' && (string) ($issue['resource'] ?? '') !== $resource) {
-                return false;
-            }
-            if ($status !== '' && (string) ($issue['status'] ?? '') !== $status) {
-                return false;
-            }
-            if ($search !== '') {
-                $haystack = mb_strtolower(implode(' ', [
-                    (string) ($issue['reference_name'] ?? ''),
-                    (string) ($issue['resource'] ?? ''),
-                    (string) ($issue['language_code'] ?? ''),
-                    (string) ($issue['detail'] ?? ''),
-                ]));
-                if (! str_contains($haystack, $search)) {
-                    return false;
-                }
+    /**
+     * Build a bounded translation report page. Resources and translations are
+     * read in batches, while only the requested page is retained. The count is
+     * accumulated independently so pagination never requires materializing the
+     * complete report in memory.
+     *
+     * @param array<string, mixed> $filters
+     * @return array{items: list<array<string, mixed>>, meta: array{page:int, per_page:int, total_items:int, last_page:int}}
+     */
+    public function getMissingTranslationsReportPage(array $filters = []): array
+    {
+        $page = max(1, (int) ($filters['page'] ?? 1));
+        $perPage = min(100, max(1, (int) ($filters['limit'] ?? $filters['per_page'] ?? 25)));
+        $offset = ($page - 1) * $perPage;
+        $items = [];
+        $totalItems = 0;
+
+        $consume = function (array $issue) use (&$items, &$totalItems, $filters, $offset, $perPage): void {
+            if (! $this->reportIssueMatches($issue, $filters)) {
+                return;
             }
 
-            return true;
-        }));
+            if ($totalItems >= $offset && count($items) < $perPage) {
+                $items[] = $issue;
+            }
+            $totalItems++;
+        };
+
+        $activeLanguages = $this->getActiveLanguages();
+        if ($activeLanguages !== []) {
+            foreach ($this->simpleResources as $descriptor) {
+                $this->streamSimpleResourceIssues($descriptor, $activeLanguages, $filters, $consume);
+            }
+            $this->streamSettingIssues($activeLanguages, $filters, $consume);
+            $this->blockAuditor->streamIssues($activeLanguages, $filters, $consume);
+        }
+
+        return [
+            'items' => $items,
+            'meta' => [
+                'page' => $page,
+                'per_page' => $perPage,
+                'total_items' => $totalItems,
+                'last_page' => max(1, (int) ceil($totalItems / $perPage)),
+            ],
+        ];
     }
 
     /**
@@ -299,12 +323,222 @@ class TranslationAuditService implements TranslationAuditServiceInterface
      */
     private function getActiveLanguages(): array
     {
-        $rows = $this->languageRepository->getModel()->where('is_active', 1)->findAll();
+        $rows = $this->languageRepository->getModel()->where('is_active', 1)->orderBy('id', 'ASC')->findAll();
 
         return array_values(array_filter(
             $rows,
             static fn ($row): bool => $row instanceof \App\Entities\LanguageEntity
         ));
+    }
+
+    /**
+     * @param array<string, mixed> $issue
+     * @param array<string, mixed> $filters
+     */
+    private function reportIssueMatches(array $issue, array $filters): bool
+    {
+        $resource = trim((string) ($filters['resource'] ?? ''));
+        $status = trim((string) ($filters['status'] ?? ''));
+        $search = mb_strtolower(trim((string) ($filters['search'] ?? '')));
+
+        if ($resource !== '' && (string) ($issue['resource'] ?? '') !== $resource) {
+            return false;
+        }
+        if ($status !== '' && (string) ($issue['status'] ?? '') !== $status) {
+            return false;
+        }
+        if ($search !== '') {
+            $haystack = mb_strtolower(implode(' ', [
+                (string) ($issue['reference_name'] ?? ''),
+                (string) ($issue['resource'] ?? ''),
+                (string) ($issue['language_code'] ?? ''),
+                (string) ($issue['detail'] ?? ''),
+            ]));
+            if (! str_contains($haystack, $search)) {
+                return false;
+            }
+        }
+
+        return true;
+    }
+
+    /**
+     * @param array<string, mixed> $descriptor
+     * @param list<\App\Entities\LanguageEntity> $activeLanguages
+     * @param array<string, mixed> $filters
+     * @param callable(array<string, mixed>): void $consume
+     */
+    private function streamSimpleResourceIssues(array $descriptor, array $activeLanguages, array $filters, callable $consume): void
+    {
+        $batchSize = 100;
+        $offset = 0;
+        $fieldDefinitions = TranslationResourceCatalog::fields($descriptor['type']);
+        $valueResolver = static function (array $row, string $fieldKey, array $fieldDefinition): mixed {
+            return $row[$fieldKey] ?? null;
+        };
+
+        do {
+            $resources = $this->fetchSimpleResourceBatch($descriptor, $batchSize, $offset);
+            if ($resources === []) {
+                break;
+            }
+
+            $resourceIds = [];
+            $resourceRows = [];
+            foreach ($resources as $resource) {
+                $row = $this->support->toArray($resource);
+                $resourceId = (int) ($row['id'] ?? 0);
+                if ($resourceId > 0) {
+                    $resourceIds[] = $resourceId;
+                    $resourceRows[$resourceId] = $row;
+                }
+            }
+
+            $translationsByResource = $this->support->groupTranslationsByResource(
+                $resourceIds === []
+                    ? []
+                    : $descriptor['translationRepository']->getModel()->whereIn($descriptor['fk'], $resourceIds)->findAll(),
+                $descriptor['fk']
+            );
+
+            foreach ($resourceRows as $resourceId => $resourceRow) {
+                $translations = $translationsByResource[$resourceId] ?? [];
+                foreach ($activeLanguages as $lang) {
+                    $langId = (int) $lang->id;
+                    if (! $this->support->languageFilterAllows($filters, $langId)) {
+                        continue;
+                    }
+
+                    $translation = $translations[$langId] ?? null;
+                    [$status, $detail] = $this->support->evaluateTranslationState(
+                        $translation,
+                        $translations,
+                        $fieldDefinitions,
+                        $langId,
+                        $valueResolver,
+                        isset($resourceRow['updated_at']) ? (string) $resourceRow['updated_at'] : null
+                    );
+                    if ($status === 'complete') {
+                        continue;
+                    }
+
+                    $consume($this->support->buildIssue(
+                        $descriptor['type'],
+                        $resourceId,
+                        ($descriptor['reference'])($resourceRow, $translations),
+                        $langId,
+                        (string) ($lang->code ?? ''),
+                        $status,
+                        $detail,
+                        $descriptor['extra'] !== null ? ($descriptor['extra'])($resourceRow) : []
+                    ));
+                }
+            }
+
+            $offset += $batchSize;
+        } while (count($resources) === $batchSize);
+    }
+
+    /**
+     * Fetch a deterministic bounded batch. The menu-item join mirrors the
+     * existing report's deleted-parent rule without loading its full table.
+     *
+     * @param array<string, mixed> $descriptor
+     * @return list<mixed>
+     */
+    private function fetchSimpleResourceBatch(array $descriptor, int $limit, int $offset): array
+    {
+        $model = $descriptor['repository']->getModel();
+        if ($descriptor['type'] === 'menu_item') {
+            $model->join('cms_menus m', 'm.id = cms_menu_items.menu_id')
+                ->where('m.deleted_at IS NULL')
+                ->select('cms_menu_items.*');
+        }
+
+        $rows = $model->orderBy('id', 'ASC')->findAll($limit, $offset);
+
+        return is_array($rows) ? array_values($rows) : [];
+    }
+
+    /**
+     * @param list<\App\Entities\LanguageEntity> $activeLanguages
+     * @param array<string, mixed> $filters
+     * @param callable(array<string, mixed>): void $consume
+     */
+    private function streamSettingIssues(array $activeLanguages, array $filters, callable $consume): void
+    {
+        $model = $this->settingRepository->getModel();
+        $translationModel = $this->settingTranslationRepository->getModel();
+        $fieldDefinitions = TranslationResourceCatalog::fields('setting');
+        $valueResolver = static function (array $row, string $fieldKey, array $fieldDefinition): mixed {
+            return $row[$fieldKey] ?? null;
+        };
+        $defaultLanguageId = $this->getDefaultLanguageId();
+        $batchSize = 100;
+        $offset = 0;
+
+        do {
+            $settings = $model->where('is_translatable', 1)->orderBy('id', 'ASC')->findAll($batchSize, $offset);
+            if ($settings === []) {
+                break;
+            }
+
+            $settingRows = [];
+            $settingIds = [];
+            foreach ($settings as $setting) {
+                $row = $this->support->toArray($setting);
+                $id = (int) ($row['id'] ?? 0);
+                if ($id > 0) {
+                    $settingRows[$id] = $row;
+                    $settingIds[] = $id;
+                }
+            }
+
+            $translationsBySetting = $this->support->groupTranslationsByResource(
+                $settingIds === [] ? [] : $translationModel->whereIn('setting_id', $settingIds)->findAll(),
+                'setting_id'
+            );
+            foreach ($settingRows as $settingId => $settingRow) {
+                $translations = $translationsBySetting[$settingId] ?? [];
+                if ($defaultLanguageId !== null) {
+                    $translations[$defaultLanguageId] = ['setting_value' => $settingRow['setting_value'] ?? null];
+                }
+
+                foreach ($activeLanguages as $lang) {
+                    $langId = (int) $lang->id;
+                    if (! $this->support->languageFilterAllows($filters, $langId)) {
+                        continue;
+                    }
+
+                    $translation = $langId === $defaultLanguageId
+                        ? ['setting_value' => $settingRow['setting_value'] ?? null]
+                        : ($translationsBySetting[$settingId][$langId] ?? null);
+                    [$status, $detail] = $this->support->evaluateTranslationState(
+                        $translation,
+                        $translations,
+                        $fieldDefinitions,
+                        $langId,
+                        $valueResolver,
+                        $langId === $defaultLanguageId ? null : (isset($settingRow['updated_at']) ? (string) $settingRow['updated_at'] : null)
+                    );
+                    if ($status === 'complete') {
+                        continue;
+                    }
+
+                    $consume($this->support->buildIssue(
+                        'setting',
+                        $settingId,
+                        'Setting: ' . (string) ($settingRow['setting_key'] ?? $settingId),
+                        $langId,
+                        (string) ($lang->code ?? ''),
+                        $status,
+                        $detail
+                    ));
+                }
+            }
+
+            $offset += $batchSize;
+        } while (count($settings) === $batchSize);
     }
 
     /**
