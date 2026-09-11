@@ -3,6 +3,17 @@
 > Historial de tareas completadas. Movido desde TASKS.md para mantener el tracker activo liviano.
 > Última actualización: 2026-08-25
 
+## ✅ CNV-007-F9 — Autorización por recurso (2026-09-11)
+
+- ACL Domain-owned para pages, entries y collections; herencia de permisos desde collection;
+  404 anti-enumeración para inexistentes, eliminados y fuera de alcance; enforcement en CRUD,
+  editor, bloques, ordenamiento y auditoría contextual.
+- Grants `read/write/admin`, transferencia transaccional, protección contra revocar al último
+  administrador, auditoría de denegaciones y contexto de owner autoritativo en rutas anidadas.
+- Commit: `729aa89 feat(security): add resource-scoped cms authorization`.
+- Verificación: `composer quality` verde y `composer test:dynamic` verde — 560 tests, 2.075
+  assertions, 1 skip preexistente.
+
 ## ✅ Remediación de huecos profundos — Fase 0 (2026-08-25)
 
 - **GAP-00-domain** — `PermissionFilter` delega la política al core, conserva los mensajes

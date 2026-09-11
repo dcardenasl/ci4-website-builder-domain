@@ -5,12 +5,11 @@
 
 ## 🔴 En progreso
 
-*(vacío; CNV-007-D0 y CNV-007-D1…D4 están cerradas)*
+*(vacío; F9 quedó archivada en `TASKS_ARCHIVE.md`)*
 
 ## 🟡 Próximo
 
-- [ ] **CNV-007-F9 — Autorización por recurso.** Diseñar después de cerrar la nivelación completa,
-      con contrato común y matriz de pruebas cross-repo.
+*(vacío; la autorización por recurso es la última fase funcional del plan CNV-007)*
 
 ## ✅ Cerrado con evidencia
 
@@ -28,6 +27,8 @@
 - Servicios puros, DTO-first y Controllers/adaptadores delgados.
 - Migraciones nuevas; PHPStan sin baseline nuevo; tests de regresión junto a cada cambio.
 - No introducir autorización por recurso antes de la fase final cross-repo.
+- F9 mantiene el modelo single-tenant v1: identidad y permisos globales vienen de Hub; el alcance
+  concreto vive en Domain y no se cachea.
 
 ## 🔧 Referencias
 
