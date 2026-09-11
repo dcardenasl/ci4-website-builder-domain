@@ -73,7 +73,7 @@ final class CollectionControllerTest extends CIUnitTestCase
         $stub = new class (new IntrospectResult(
             valid: true,
             uid: 1,
-            permissions: ['cms.collections.read'],
+            permissions: ['cms.collections.read', 'iam.superadmin-access'],
             exp: time() + 3600,
             error: null
         )) extends HubClient {

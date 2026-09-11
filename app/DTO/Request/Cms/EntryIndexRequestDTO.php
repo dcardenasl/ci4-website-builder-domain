@@ -15,6 +15,9 @@ readonly class EntryIndexRequestDTO extends BaseRequestDTO
     public ?string $search;
     public string $sort;
     public ?int $collection_id;
+    public string $projection;
+    /** @var list<int>|null Internal scope injected by a domain service. */
+    public ?array $scope_ids;
 
     /**
      * @return array<string, string>
@@ -27,6 +30,7 @@ readonly class EntryIndexRequestDTO extends BaseRequestDTO
             'search'        => 'permit_empty|string|max_length[100]',
             'sort'          => 'permit_empty|max_length[100]',
             'collection_id' => 'permit_empty|integer',
+            'projection'    => 'permit_empty|in_list[full,list]',
         ];
     }
 
@@ -39,8 +43,11 @@ readonly class EntryIndexRequestDTO extends BaseRequestDTO
         $this->per_page = isset($data['per_page']) ? (int) $data['per_page'] : 20;
         $this->search = $data['search'] ?? null;
         $this->sort = (string) ($data['sort'] ?? '');
+        $this->projection = (string) ($data['projection'] ?? 'full');
         $collectionId = $data['collection_id'] ?? ($data['filter']['collection_id'] ?? null);
         $this->collection_id = $collectionId !== null && $collectionId !== '' ? (int) $collectionId : null;
+        $scopeIds = $data['scope_ids'] ?? null;
+        $this->scope_ids = is_array($scopeIds) ? array_values(array_map('intval', $scopeIds)) : null;
     }
 
     /**
@@ -53,12 +60,17 @@ readonly class EntryIndexRequestDTO extends BaseRequestDTO
             'per_page' => $this->per_page,
             'search' => $this->search,
             'sort' => $this->sort,
+            'projection' => $this->projection,
         ];
 
         if ($this->collection_id !== null) {
             $payload['filter'] = [
                 'collection_id' => $this->collection_id,
             ];
+        }
+
+        if ($this->scope_ids !== null) {
+            $payload['filter']['id'] = ['in' => $this->scope_ids === [] ? [0] : $this->scope_ids];
         }
 
         return $payload;

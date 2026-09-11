@@ -4,16 +4,25 @@ declare(strict_types=1);
 
 namespace App\Services\Cms;
 
+use App\DTO\Response\Cms\PageResponseDTO;
 use App\Entities\PageEntity;
+use App\Interfaces\Cms\AdminListProjectionRepositoryInterface;
 use App\Interfaces\Cms\PageServiceInterface;
+use App\Interfaces\Cms\ResourceAuthorizationInterface;
+use App\Libraries\Cms\BlockInstancePurger;
 use App\Libraries\Cms\FileReferenceSynchronizer;
 use App\Libraries\Cms\FileUrlResolver;
+use App\Support\AdminListProjectionDecoder;
 use App\Traits\Services\HasDeferredTranslations;
+use dcardenasl\Ci4ApiCore\Dto\BaseRequestDTO;
+use dcardenasl\Ci4ApiCore\Dto\DataTransferObjectInterface;
+use dcardenasl\Ci4ApiCore\Dto\PaginatedResponseDTO;
 use dcardenasl\Ci4ApiCore\Dto\SecurityContext;
 use dcardenasl\Ci4ApiCore\Exceptions\ValidationException;
 use dcardenasl\Ci4ApiCore\Mappers\ResponseMapperInterface;
 use dcardenasl\Ci4ApiCore\Repositories\RepositoryInterface;
 use dcardenasl\Ci4ApiCore\Services\BaseCrudService;
+use dcardenasl\Ci4ApiCore\Support\RequestDtoFactory;
 
 /**
  * @extends BaseCrudService<PageEntity>
@@ -30,7 +39,13 @@ class PageService extends BaseCrudService implements PageServiceInterface
 
     private FileReferenceSynchronizer $fileReferenceSynchronizer;
 
+    private BlockInstancePurger $blockInstancePurger;
+
     private ?\App\Libraries\Cms\TranslationSynchronizer $translationSynchronizer;
+
+    private ?AdminListProjectionRepositoryInterface $pageListRepository;
+
+    private ?ResourceAuthorizationInterface $resourceAuthorization;
 
     /**
      * @param RepositoryInterface<PageEntity> $pageRepository
@@ -43,14 +58,64 @@ class PageService extends BaseCrudService implements PageServiceInterface
         FileUrlResolver $fileUrlResolver,
         FileReferenceSynchronizer $fileReferenceSynchronizer,
         private readonly PublicPageReader $publicPageReader,
-        ?\App\Libraries\Cms\TranslationSynchronizer $translationSynchronizer = null
+        BlockInstancePurger $blockInstancePurger,
+        private readonly RequestDtoFactory $requestDtoFactory,
+        ?\App\Libraries\Cms\TranslationSynchronizer $translationSynchronizer = null,
+        ?AdminListProjectionRepositoryInterface $pageListRepository = null,
+        ?ResourceAuthorizationInterface $resourceAuthorization = null
     ) {
         parent::__construct($pageRepository, $responseMapper);
         $this->slugRedirectRecorder = $slugRedirectRecorder;
         $this->cacheInvalidator     = $cacheInvalidator;
         $this->fileUrlResolver      = $fileUrlResolver;
         $this->fileReferenceSynchronizer = $fileReferenceSynchronizer;
+        $this->blockInstancePurger = $blockInstancePurger;
         $this->translationSynchronizer = $translationSynchronizer;
+        $this->pageListRepository = $pageListRepository;
+        $this->resourceAuthorization = $resourceAuthorization;
+    }
+
+    public function index(DataTransferObjectInterface $request, ?SecurityContext $context = null): DataTransferObjectInterface
+    {
+        $requestData = $request->toArray();
+        if ($context !== null && $this->resourceAuthorization !== null) {
+            $requestData = $this->resourceAuthorization->projectionCriteria(
+                'page',
+                $this->resourceAuthorization->scopeCriteria('page', $requestData, $context),
+                $context,
+            );
+        }
+        if (($requestData['projection'] ?? 'full') !== 'list' || $this->pageListRepository === null) {
+            // The generic repository receives the scope through a bounded id
+            // filter. The high-volume list path uses EXISTS in SQL below.
+            if ($context !== null && $this->resourceAuthorization !== null) {
+                $request = $this->requestWithCriteria($request, $requestData);
+            }
+
+            return parent::index($request, $context);
+        }
+
+        $result = $this->pageListRepository->paginateAdminList(
+            $requestData,
+            max(1, (int) ($requestData['page'] ?? 1)),
+            min(1000, max(1, (int) ($requestData['per_page'] ?? 20))),
+        );
+        $data = array_map(static function (array $row): PageResponseDTO {
+            $row['translations'] = AdminListProjectionDecoder::translations(
+                $row['translations_data'] ?? null,
+                ['title', 'slug'],
+            );
+            unset($row['translations_data']);
+
+            return PageResponseDTO::fromArray($row);
+        }, $result['data']);
+
+        return PaginatedResponseDTO::fromArray([
+            'data' => $data,
+            'total' => $result['total'],
+            'page' => $result['page'],
+            'per_page' => $result['per_page'],
+        ]);
     }
 
     /**
@@ -69,9 +134,27 @@ class PageService extends BaseCrudService implements PageServiceInterface
         return $this->publicPageReader->showPublic($lang, $slug, $preview);
     }
 
+    public function show(int $id, ?SecurityContext $context = null): DataTransferObjectInterface
+    {
+        if ($context !== null) {
+            $this->resourceAuthorization?->assertCan('page', $id, 'read', $context);
+        }
+
+        return parent::show($id, $context);
+    }
+
     protected function beforeStore(array $data, ?SecurityContext $context): array
     {
         $data = parent::beforeStore($data, $context);
+
+        if ($context !== null && $this->resourceAuthorization !== null) {
+            if (isset($data['collection_id']) && (int) $data['collection_id'] > 0) {
+                $this->resourceAuthorization->assertCan('collection', (int) $data['collection_id'], 'write', $context);
+            }
+            if (isset($data['parent_id']) && (int) $data['parent_id'] > 0) {
+                $this->resourceAuthorization->assertCan('page', (int) $data['parent_id'], 'write', $context);
+            }
+        }
 
         if (! array_key_exists('status', $data) || $data['status'] === null || $data['status'] === '') {
             $data['status'] = 'draft';
@@ -111,11 +194,18 @@ class PageService extends BaseCrudService implements PageServiceInterface
         $this->flushDeferredTranslations(fn (array $t) => $this->saveTranslations((int) $entity->id, $t));
         $this->fileReferenceSynchronizer->syncPage((int) $entity->id);
         $this->createVersionSnapshot((int) $entity->id, 'Initial creation');
+        $this->resourceAuthorization?->grantOnCreate('page', (int) $entity->id, $context);
         $this->cacheInvalidator->invalidate(['pages', 'collections']);
     }
 
     protected function beforeUpdate(int $id, array $data, ?SecurityContext $context): array
     {
+        if ($context !== null) {
+            $this->resourceAuthorization?->assertCan('page', $id, 'write', $context);
+            if (array_key_exists('collection_id', $data) && (int) $data['collection_id'] > 0) {
+                $this->resourceAuthorization?->assertCan('collection', (int) $data['collection_id'], 'write', $context);
+            }
+        }
         $data = parent::beforeUpdate($id, $data, $context);
 
         if (array_key_exists('parent_id', $data)) {
@@ -140,8 +230,31 @@ class PageService extends BaseCrudService implements PageServiceInterface
     protected function afterDelete(object $entity, ?SecurityContext $context): void
     {
         parent::afterDelete($entity, $context);
+        $this->blockInstancePurger->purgeForOwner('page', (int) $entity->id);
         $this->fileReferenceSynchronizer->removeResourceReferences('page', (int) $entity->id);
         $this->cacheInvalidator->invalidate(['pages', 'collections']);
+    }
+
+    protected function beforeDelete(int $id, ?SecurityContext $context): void
+    {
+        if ($context !== null) {
+            $this->resourceAuthorization?->assertCan('page', $id, 'write', $context);
+        }
+    }
+
+    /**
+     * DTOs are immutable; rebuild the request through the central factory so
+     * generic full projections cannot accidentally discard the scope filter or
+     * bypass DTO validation.
+     */
+    /** @param array<string, mixed> $data */
+    private function requestWithCriteria(DataTransferObjectInterface $request, array $data): DataTransferObjectInterface
+    {
+        if (! $request instanceof BaseRequestDTO) {
+            throw new \InvalidArgumentException(lang('Api.invalidRequest'));
+        }
+
+        return $this->requestDtoFactory->make($request::class, $data);
     }
 
     protected function enrichEntities(array $entities): array

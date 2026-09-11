@@ -4,12 +4,15 @@ declare(strict_types=1);
 
 namespace App\DTO\Request\Cms;
 
+use App\DTO\Request\Support\TracksProvidedFields;
 use dcardenasl\Ci4ApiCore\Dto\BaseRequestDTO;
 use OpenApi\Attributes as OA;
 
 #[OA\Schema(schema: 'TagUpdateRequest')]
 readonly class TagUpdateRequestDTO extends BaseRequestDTO
 {
+    use TracksProvidedFields;
+
     #[OA\Property(description: 'is_active', type: 'boolean', nullable: true)]
     public ?bool $is_active;
 
@@ -33,6 +36,7 @@ readonly class TagUpdateRequestDTO extends BaseRequestDTO
      */
     protected function map(array $data): void
     {
+        $this->trackProvidedFields($data);
         $this->is_active = isset($data['is_active']) ? (bool) $data['is_active'] : null;
         $this->translations = $data['translations'] ?? null;
     }
@@ -42,11 +46,11 @@ readonly class TagUpdateRequestDTO extends BaseRequestDTO
      */
     public function toArray(): array
     {
-        $result = array_filter([
+        $result = $this->filterProvidedFields([
             'is_active' => $this->is_active,
-        ], static fn (mixed $value): bool => $value !== null);
+        ]);
 
-        if ($this->translations !== null) {
+        if ($this->translations !== null || $this->fieldWasProvided('translations')) {
             $result['translations'] = $this->translations;
         }
 

@@ -4,12 +4,17 @@ declare(strict_types=1);
 
 namespace App\Services\Cms;
 
+use App\DTO\Response\Cms\SettingResponseDTO;
 use App\Entities\SettingEntity;
+use App\Interfaces\Cms\AdminListProjectionRepositoryInterface;
 use App\Interfaces\Cms\SettingServiceInterface;
 use App\Libraries\Cms\FileUrlResolver;
 use App\Libraries\Cms\PublicLocaleResolver;
 use App\Libraries\Cms\TranslationResolver;
+use App\Support\AdminListProjectionDecoder;
 use App\Traits\Services\HasDeferredTranslations;
+use dcardenasl\Ci4ApiCore\Dto\DataTransferObjectInterface;
+use dcardenasl\Ci4ApiCore\Dto\PaginatedResponseDTO;
 use dcardenasl\Ci4ApiCore\Dto\SecurityContext;
 use dcardenasl\Ci4ApiCore\Exceptions\ValidationException;
 use dcardenasl\Ci4ApiCore\Mappers\ResponseMapperInterface;
@@ -33,6 +38,8 @@ class SettingService extends BaseCrudService implements SettingServiceInterface
 
     private ?\App\Libraries\Cms\TranslationSynchronizer $translationSynchronizer;
 
+    private ?AdminListProjectionRepositoryInterface $settingListRepository;
+
     /**
      * @param RepositoryInterface<SettingEntity> $settingRepository
      */
@@ -45,12 +52,73 @@ class SettingService extends BaseCrudService implements SettingServiceInterface
         private readonly FileUrlResolver $fileUrlResolver,
         private readonly PublicLocaleResolver $publicLocaleResolver,
         private readonly RequestDtoFactory $requestDtoFactory,
-        ?\App\Libraries\Cms\TranslationSynchronizer $translationSynchronizer = null
+        ?\App\Libraries\Cms\TranslationSynchronizer $translationSynchronizer = null,
+        ?AdminListProjectionRepositoryInterface $settingListRepository = null
     ) {
         parent::__construct($settingRepository, $responseMapper);
         $this->cacheInvalidator = $cacheInvalidator;
         $this->fileReferenceSynchronizer = $fileReferenceSynchronizer;
         $this->translationSynchronizer = $translationSynchronizer;
+        $this->settingListRepository = $settingListRepository;
+    }
+
+    public function index(DataTransferObjectInterface $request, ?SecurityContext $context = null): DataTransferObjectInterface
+    {
+        $requestData = $request->toArray();
+        if (($requestData['projection'] ?? 'full') !== 'list' || $this->settingListRepository === null) {
+            return parent::index($request, $context);
+        }
+
+        $result = $this->settingListRepository->paginateAdminList(
+            $requestData,
+            max(1, (int) ($requestData['page'] ?? 1)),
+            min(1000, max(1, (int) ($requestData['per_page'] ?? 20))),
+        );
+        $data = array_map(static function (array $row): SettingResponseDTO {
+            if (is_string($row['options_json'] ?? null)) {
+                $decoded = json_decode($row['options_json'], true);
+                $row['options_json'] = is_array($decoded) ? $decoded : null;
+            }
+
+            $decodedTranslations = AdminListProjectionDecoder::translations(
+                $row['translations_data'] ?? null,
+                ['setting_value'],
+            );
+            $translations = [];
+            foreach ($decodedTranslations as $translation) {
+                $entry = ['language_id' => (int) $translation['language_id']];
+                if (isset($translation['setting_value']) && is_string($translation['setting_value'])) {
+                    $entry['setting_value'] = $translation['setting_value'];
+                }
+                $translations[] = $entry;
+            }
+            unset($row['translations_data']);
+
+            return new SettingResponseDTO(
+                id: (int) ($row['id'] ?? 0),
+                settingKey: (string) ($row['setting_key'] ?? ''),
+                settingValue: isset($row['setting_value']) ? (string) $row['setting_value'] : null,
+                settingType: (string) ($row['setting_type'] ?? ''),
+                inputType: (string) ($row['input_type'] ?? ''),
+                settingGroup: (string) ($row['setting_group'] ?? ''),
+                isTranslatable: (bool) ($row['is_translatable'] ?? false),
+                isRequired: (bool) ($row['is_required'] ?? false),
+                isReadonly: (bool) ($row['is_readonly'] ?? false),
+                sortOrder: (int) ($row['sort_order'] ?? 0),
+                description: isset($row['description']) ? (string) $row['description'] : null,
+                optionsJson: is_array($row['options_json'] ?? null) ? $row['options_json'] : null,
+                translations: $translations,
+                createdAt: \App\DTO\Response\Cms\DateValue::toString($row['created_at'] ?? null),
+                updatedAt: \App\DTO\Response\Cms\DateValue::toString($row['updated_at'] ?? null),
+            );
+        }, $result['data']);
+
+        return PaginatedResponseDTO::fromArray([
+            'data' => $data,
+            'total' => $result['total'],
+            'page' => $result['page'],
+            'per_page' => $result['per_page'],
+        ]);
     }
 
     /**

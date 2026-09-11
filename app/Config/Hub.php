@@ -16,9 +16,16 @@ use CodeIgniter\Config\BaseConfig;
 class Hub extends BaseConfig
 {
     /**
-     * Base URL of the hub (no trailing slash). e.g. http://localhost:8080
+     * Base URL of the hub (no trailing slash). e.g. http://localhost:8180
      */
     public string $url = '';
+
+    /**
+     * Public origin used when delivering Hub-owned uploads to browsers.
+     * Keep this separate from `url`: the domain app may reach the Hub through
+     * an internal hostname while visitors need a public HTTPS origin.
+     */
+    public string $publicUrl = '';
 
     /**
      * App-key used in the X-App-Key header for hub calls. Created from the hub
@@ -69,6 +76,12 @@ class Hub extends BaseConfig
      */
     public string $adminToken = '';
 
+    /**
+     * Optional shared secret for HMAC-signed Hub -> Domain internal calls.
+     * Empty means those routes fail closed; it does not affect app boot.
+     */
+    public string $internalSecret = '';
+
     public function __construct()
     {
         parent::__construct();
@@ -80,10 +93,13 @@ class Hub extends BaseConfig
                 'Missing hub.url in .env. '
                 . 'This website builder app delegates JWT validation to a central hub. '
                 . 'Set hub.url to the hub API base URL. '
-                . 'Example: hub.url=http://localhost:8080'
+                . 'Example: hub.url=http://localhost:8180'
             );
         }
         $this->url = $url;
+
+        $publicUrl = env('HUB_PUBLIC_URL') ?: env('hub.publicUrl') ?: $url;
+        $this->publicUrl = rtrim(trim((string) $publicUrl), '/');
 
         // API key for hub calls (X-App-Key header)
         $apiKey = env('HUB_API_KEY') ?: env('hub.apiKey');
@@ -111,6 +127,7 @@ class Hub extends BaseConfig
 
         // Optional admin token and cache settings
         $this->adminToken = (string) (env('hub.adminToken') ?: '');
+        $this->internalSecret = (string) (env('HUB_INTERNAL_SECRET') ?: env('hub.internalSecret') ?: '');
 
         $ttl = env('hub.introspectCacheTtl');
         if ($ttl !== null && $ttl !== false && $ttl !== '') {

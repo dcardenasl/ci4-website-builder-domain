@@ -9,14 +9,21 @@ use App\DTO\Request\Cms\EntrySetTagsRequestDTO;
 use App\DTO\Request\Cms\EntrySyncTaxonomyRequestDTO;
 use App\DTO\Request\Cms\PublicEntryIndexRequestDTO;
 use App\DTO\Request\Cms\PublicEntryShowRequestDTO;
+use App\DTO\Response\Cms\EntryResponseDTO;
 use App\Entities\EntryEntity;
+use App\Interfaces\Cms\EntryListRepositoryInterface;
 use App\Interfaces\Cms\EntryServiceInterface;
+use App\Interfaces\Cms\EntryTaxonomyLinkRepositoryInterface;
+use App\Interfaces\Cms\ResourceAuthorizationInterface;
+use App\Libraries\Cms\BlockInstancePurger;
 use App\Libraries\Cms\EntryTaxonomyPivotResolver;
 use App\Libraries\Cms\FileReferenceSynchronizer;
 use App\Libraries\Cms\FileUrlResolver;
+use App\Support\AdminListProjectionDecoder;
 use App\Traits\Services\HasDeferredTranslations;
 use dcardenasl\Ci4ApiCore\Dto\Common\PayloadResponseDTO;
 use dcardenasl\Ci4ApiCore\Dto\DataTransferObjectInterface;
+use dcardenasl\Ci4ApiCore\Dto\PaginatedResponseDTO;
 use dcardenasl\Ci4ApiCore\Dto\SecurityContext;
 use dcardenasl\Ci4ApiCore\Exceptions\NotFoundException;
 use dcardenasl\Ci4ApiCore\Exceptions\ValidationException;
@@ -39,6 +46,8 @@ class EntryService extends BaseCrudService implements EntryServiceInterface
 
     private FileReferenceSynchronizer $fileReferenceSynchronizer;
 
+    private BlockInstancePurger $blockInstancePurger;
+
     private EntryBlockTemplateInitializer $blockTemplateInitializer;
 
     private PublicEntryReader $publicReader;
@@ -48,6 +57,11 @@ class EntryService extends BaseCrudService implements EntryServiceInterface
     private \App\Libraries\Cms\TranslationResolver $translationResolver;
 
     private ?\App\Libraries\Cms\TranslationSynchronizer $translationSynchronizer;
+
+    private ?EntryListRepositoryInterface $entryListRepository;
+    private EntryTaxonomyLinkRepositoryInterface $categoryLinkRepository;
+    private EntryTaxonomyLinkRepositoryInterface $tagLinkRepository;
+    private ?ResourceAuthorizationInterface $resourceAuthorization;
 
     /**
      * @param RepositoryInterface<EntryEntity> $entryRepository
@@ -63,7 +77,12 @@ class EntryService extends BaseCrudService implements EntryServiceInterface
         PublicEntryReader $publicReader,
         EntryTaxonomyPivotResolver $taxonomyPivotResolver,
         EntryBlockTemplateInitializer $blockTemplateInitializer,
-        ?\App\Libraries\Cms\TranslationSynchronizer $translationSynchronizer = null
+        BlockInstancePurger $blockInstancePurger,
+        EntryTaxonomyLinkRepositoryInterface $categoryLinkRepository,
+        EntryTaxonomyLinkRepositoryInterface $tagLinkRepository,
+        ?\App\Libraries\Cms\TranslationSynchronizer $translationSynchronizer = null,
+        ?EntryListRepositoryInterface $entryListRepository = null,
+        ?ResourceAuthorizationInterface $resourceAuthorization = null
     ) {
         parent::__construct($entryRepository, $responseMapper);
         $this->slugRedirectRecorder = $slugRedirectRecorder;
@@ -74,7 +93,61 @@ class EntryService extends BaseCrudService implements EntryServiceInterface
         $this->publicReader = $publicReader;
         $this->taxonomyPivotResolver = $taxonomyPivotResolver;
         $this->blockTemplateInitializer = $blockTemplateInitializer;
+        $this->blockInstancePurger = $blockInstancePurger;
         $this->translationSynchronizer = $translationSynchronizer;
+        $this->entryListRepository = $entryListRepository;
+        $this->categoryLinkRepository = $categoryLinkRepository;
+        $this->tagLinkRepository = $tagLinkRepository;
+        $this->resourceAuthorization = $resourceAuthorization;
+    }
+
+    /**
+     * The administrative list is a database projection. It deliberately
+     * bypasses the generic entity enrichment path: that path is appropriate
+     * for full records, but it would hydrate translations and media one row
+     * at a time for a paginated table.
+     */
+    public function index(DataTransferObjectInterface $request, ?SecurityContext $context = null): DataTransferObjectInterface
+    {
+        $requestData = $request->toArray();
+        if ($context !== null && $this->resourceAuthorization !== null) {
+            $requestData = $this->resourceAuthorization->projectionCriteria(
+                'entry',
+                $this->resourceAuthorization->scopeCriteria('entry', $requestData, $context),
+                $context,
+            );
+        }
+        if (($requestData['projection'] ?? 'full') !== 'list' || $this->entryListRepository === null) {
+            if ($context !== null && $this->resourceAuthorization !== null) {
+                $request = new ($request::class)($requestData);
+            }
+
+            return parent::index($request, $context);
+        }
+
+        $page = max(1, (int) ($requestData['page'] ?? 1));
+        $perPage = min(1000, max(1, (int) ($requestData['per_page'] ?? 20)));
+        $result = $this->entryListRepository->paginateAdminList($requestData, $page, $perPage);
+
+        $data = array_map(
+            static function (array $row): EntryResponseDTO {
+                $row['translations'] = AdminListProjectionDecoder::translations(
+                    $row['translations_data'] ?? null,
+                    ['title', 'slug'],
+                );
+                unset($row['translations_data']);
+
+                return EntryResponseDTO::fromArray($row);
+            },
+            $result['data']
+        );
+
+        return PaginatedResponseDTO::fromArray([
+            'data' => $data,
+            'total' => $result['total'],
+            'page' => $result['page'],
+            'per_page' => $result['per_page'],
+        ]);
     }
 
     protected function beforeStore(array $data, ?SecurityContext $context): array
@@ -92,6 +165,14 @@ class EntryService extends BaseCrudService implements EntryServiceInterface
                     ['collection_id' => lang('Entries.collection_not_exists')]
                 );
             }
+            if ($context !== null) {
+                $this->resourceAuthorization?->assertCan('collection', $collectionId, 'write', $context);
+            }
+        }
+
+        if ($context !== null && $context->user_id !== null) {
+            // author_id is descriptive metadata, never an authorization input.
+            $data['author_id'] = $context->user_id;
         }
 
         if ($collection instanceof \App\Entities\CollectionEntity) {
@@ -174,11 +255,15 @@ class EntryService extends BaseCrudService implements EntryServiceInterface
 
         $this->fileReferenceSynchronizer->syncEntry((int) $entity->id);
         $this->createVersionSnapshot((int) $entity->id, 'Initial creation');
+        $this->resourceAuthorization?->grantOnCreate('entry', (int) $entity->id, $context);
         $this->cacheInvalidator->invalidate(['entries']);
     }
 
     protected function beforeUpdate(int $id, array $data, ?SecurityContext $context): array
     {
+        if ($context !== null) {
+            $this->resourceAuthorization?->assertCan('entry', $id, 'write', $context);
+        }
         $data = parent::beforeUpdate($id, $data, $context);
 
         if (array_key_exists('collection_id', $data)) {
@@ -192,7 +277,14 @@ class EntryService extends BaseCrudService implements EntryServiceInterface
                         ['collection_id' => lang('Entries.collection_not_exists')]
                     );
                 }
+                if ($context !== null) {
+                    $this->resourceAuthorization?->assertCan('collection', $collectionId, 'write', $context);
+                }
             }
+        }
+
+        if ($context !== null && ! $context->hasPermission('iam.superadmin-access')) {
+            unset($data['author_id']);
         }
 
         return $this->deferTranslationsFromUpdate($data);
@@ -210,8 +302,25 @@ class EntryService extends BaseCrudService implements EntryServiceInterface
     protected function afterDelete(object $entity, ?SecurityContext $context): void
     {
         parent::afterDelete($entity, $context);
+        $this->blockInstancePurger->purgeForOwner('entry', (int) $entity->id);
         $this->fileReferenceSynchronizer->removeResourceReferences('entry', (int) $entity->id);
         $this->cacheInvalidator->invalidate(['entries']);
+    }
+
+    protected function beforeDelete(int $id, ?SecurityContext $context): void
+    {
+        if ($context !== null) {
+            $this->resourceAuthorization?->assertCan('entry', $id, 'admin', $context);
+        }
+    }
+
+    public function show(int $id, ?SecurityContext $context = null): DataTransferObjectInterface
+    {
+        if ($context !== null) {
+            $this->resourceAuthorization?->assertCan('entry', $id, 'read', $context);
+        }
+
+        return parent::show($id, $context);
     }
 
     protected function enrichEntities(array $entities): array
@@ -422,6 +531,9 @@ class EntryService extends BaseCrudService implements EntryServiceInterface
         if (! $entry) {
             throw new NotFoundException(lang('Api.resourceNotFound'));
         }
+        if ($context !== null) {
+            $this->resourceAuthorization?->assertCan('entry', $entryId, 'write', $context);
+        }
 
         return $this->wrapInTransaction(function () use ($entryId, $dto, $entry): DataTransferObjectInterface {
             $this->replaceEntryCategories($entryId, $dto->category_ids, $entry);
@@ -440,6 +552,9 @@ class EntryService extends BaseCrudService implements EntryServiceInterface
     ): DataTransferObjectInterface {
         if (! $this->repository->find($entryId)) {
             throw new NotFoundException(lang('Api.resourceNotFound'));
+        }
+        if ($context !== null) {
+            $this->resourceAuthorization?->assertCan('entry', $entryId, 'write', $context);
         }
 
         return $this->wrapInTransaction(function () use ($entryId, $dto): DataTransferObjectInterface {
@@ -461,6 +576,9 @@ class EntryService extends BaseCrudService implements EntryServiceInterface
         $entry = $this->repository->find($entryId);
         if (! $entry) {
             throw new NotFoundException(lang('Api.resourceNotFound'));
+        }
+        if ($context !== null) {
+            $this->resourceAuthorization?->assertCan('entry', $entryId, 'write', $context);
         }
 
         return $this->wrapInTransaction(function () use ($entryId, $dto, $entry): DataTransferObjectInterface {
@@ -507,20 +625,7 @@ class EntryService extends BaseCrudService implements EntryServiceInterface
             }
         }
 
-        $db = \Config\Database::connect();
-        $db->table('cms_entry_categories')->where('entry_id', $entryId)->delete();
-
-        if ($categoryIds !== []) {
-            $rows = [];
-            foreach ($categoryIds as $order => $categoryId) {
-                $rows[] = [
-                    'entry_id'    => $entryId,
-                    'category_id' => $categoryId,
-                    'sort_order'  => $order,
-                ];
-            }
-            $db->table('cms_entry_categories')->insertBatch($rows);
-        }
+        $this->categoryLinkRepository->replaceForEntry($entryId, $categoryIds);
     }
 
     /**
@@ -544,16 +649,7 @@ class EntryService extends BaseCrudService implements EntryServiceInterface
             }
         }
 
-        $db = \Config\Database::connect();
-        $db->table('cms_entry_tags')->where('entry_id', $entryId)->delete();
-
-        if ($tagIds !== []) {
-            $rows = [];
-            foreach ($tagIds as $tagId) {
-                $rows[] = ['entry_id' => $entryId, 'tag_id' => $tagId];
-            }
-            $db->table('cms_entry_tags')->insertBatch($rows);
-        }
+        $this->tagLinkRepository->replaceForEntry($entryId, $tagIds);
     }
 
     public function listPublic(PublicEntryIndexRequestDTO $dto): DataTransferObjectInterface

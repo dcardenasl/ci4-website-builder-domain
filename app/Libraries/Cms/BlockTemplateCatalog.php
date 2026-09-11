@@ -6,6 +6,7 @@ namespace App\Libraries\Cms;
 
 use App\Entities\BlockTypeEntity;
 use dcardenasl\Ci4ApiCore\Repositories\RepositoryInterface;
+use dcardenasl\Ci4ApiCore\Support\JsonCastNormalizer;
 
 /**
  * Projects the persisted block type catalog (`cms_content_blocks`, the same

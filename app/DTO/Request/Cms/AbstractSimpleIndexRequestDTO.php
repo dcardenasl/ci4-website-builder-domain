@@ -25,6 +25,9 @@ abstract readonly class AbstractSimpleIndexRequestDTO extends BaseRequestDTO
     public int $per_page;
     public ?string $search;
     public string $sort;
+    public string $projection;
+    /** @var list<int>|null Internal scope injected by a domain service. */
+    public ?array $scope_ids;
 
     protected static function maxPerPage(): int
     {
@@ -41,6 +44,7 @@ abstract readonly class AbstractSimpleIndexRequestDTO extends BaseRequestDTO
             'per_page' => 'permit_empty|is_natural_no_zero|less_than[' . (static::maxPerPage() + 1) . ']',
             'search'   => 'permit_empty|string|max_length[100]',
             'sort'     => 'permit_empty|max_length[100]',
+            'projection' => 'permit_empty|in_list[full,list]',
         ];
     }
 
@@ -53,6 +57,9 @@ abstract readonly class AbstractSimpleIndexRequestDTO extends BaseRequestDTO
         $this->per_page = isset($data['per_page']) ? (int) $data['per_page'] : 20;
         $this->search = $data['search'] ?? null;
         $this->sort = (string) ($data['sort'] ?? '');
+        $this->projection = (string) ($data['projection'] ?? 'full');
+        $scopeIds = $data['scope_ids'] ?? null;
+        $this->scope_ids = is_array($scopeIds) ? array_values(array_map('intval', $scopeIds)) : null;
     }
 
     /**
@@ -60,11 +67,18 @@ abstract readonly class AbstractSimpleIndexRequestDTO extends BaseRequestDTO
      */
     public function toArray(): array
     {
-        return [
+        $payload = [
             'page' => $this->page,
             'per_page' => $this->per_page,
             'search' => $this->search,
             'sort' => $this->sort,
+            'projection' => $this->projection,
         ];
+
+        if ($this->scope_ids !== null) {
+            $payload['filter'] = ['id' => ['in' => $this->scope_ids === [] ? [0] : $this->scope_ids]];
+        }
+
+        return $payload;
     }
 }

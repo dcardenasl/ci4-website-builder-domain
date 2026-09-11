@@ -53,6 +53,7 @@ class Filters extends BaseFilters
         'correlationid'      => \dcardenasl\Ci4ApiCore\Http\Filters\CorrelationIdFilter::class,
         'maintenance'        => \dcardenasl\Ci4ApiCore\Http\Filters\MaintenanceFilter::class,
         'webappkey'          => \App\Filters\WebAppKeyRequiredFilter::class,
+        'hubsignature'       => \App\Filters\HubSignatureFilter::class,
     ];
 
     /**

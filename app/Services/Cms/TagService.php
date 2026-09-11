@@ -4,9 +4,15 @@ declare(strict_types=1);
 
 namespace App\Services\Cms;
 
+use App\DTO\Response\Cms\TagResponseDTO;
 use App\Entities\TagEntity;
+use App\Interfaces\Cms\AdminListProjectionRepositoryInterface;
 use App\Interfaces\Cms\TagServiceInterface;
+use App\Support\AdminListProjectionDecoder;
 use App\Traits\Services\HasTranslatableTaxonomyLifecycle;
+use dcardenasl\Ci4ApiCore\Dto\DataTransferObjectInterface;
+use dcardenasl\Ci4ApiCore\Dto\PaginatedResponseDTO;
+use dcardenasl\Ci4ApiCore\Dto\SecurityContext;
 use dcardenasl\Ci4ApiCore\Mappers\ResponseMapperInterface;
 use dcardenasl\Ci4ApiCore\Repositories\RepositoryInterface;
 use dcardenasl\Ci4ApiCore\Services\BaseCrudService;
@@ -22,6 +28,8 @@ class TagService extends BaseCrudService implements TagServiceInterface
 
     private ?\App\Libraries\Cms\TranslationSynchronizer $translationSynchronizer;
 
+    private ?AdminListProjectionRepositoryInterface $tagListRepository;
+
     /**
      * @param RepositoryInterface<TagEntity> $tagRepository
      */
@@ -30,12 +38,44 @@ class TagService extends BaseCrudService implements TagServiceInterface
         ResponseMapperInterface $responseMapper,
         \App\Libraries\Cms\CacheInvalidationClient $cacheInvalidator,
         \App\Libraries\Cms\TranslationResolver $translationResolver,
-        ?\App\Libraries\Cms\TranslationSynchronizer $translationSynchronizer = null
+        ?\App\Libraries\Cms\TranslationSynchronizer $translationSynchronizer = null,
+        ?AdminListProjectionRepositoryInterface $tagListRepository = null
     ) {
         parent::__construct($tagRepository, $responseMapper);
         $this->cacheInvalidator = $cacheInvalidator;
         $this->translationResolver = $translationResolver;
         $this->translationSynchronizer = $translationSynchronizer;
+        $this->tagListRepository = $tagListRepository;
+    }
+
+    public function index(DataTransferObjectInterface $request, ?SecurityContext $context = null): DataTransferObjectInterface
+    {
+        $requestData = $request->toArray();
+        if (($requestData['projection'] ?? 'full') !== 'list' || $this->tagListRepository === null) {
+            return parent::index($request, $context);
+        }
+
+        $result = $this->tagListRepository->paginateAdminList(
+            $requestData,
+            max(1, (int) ($requestData['page'] ?? 1)),
+            min(1000, max(1, (int) ($requestData['per_page'] ?? 20))),
+        );
+        $data = array_map(static function (array $row): TagResponseDTO {
+            $row['translations'] = AdminListProjectionDecoder::translations(
+                $row['translations_data'] ?? null,
+                ['name', 'slug'],
+            );
+            unset($row['translations_data']);
+
+            return TagResponseDTO::fromArray($row);
+        }, $result['data']);
+
+        return PaginatedResponseDTO::fromArray([
+            'data' => $data,
+            'total' => $result['total'],
+            'page' => $result['page'],
+            'per_page' => $result['per_page'],
+        ]);
     }
 
     protected function enrichEntities(array $entities): array

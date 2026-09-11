@@ -1,37 +1,35 @@
 # TASKS — ci4-website-builder-domain
 
-> Fuente de verdad para trabajo abierto en este repositorio.
-> Los entregables cerrados están en [`TASKS_ARCHIVE.md`](TASKS_ARCHIVE.md).
-> Seguimiento global: [`../TASKS.md`](../TASKS.md).
-> Tracker depurado el 2026-07-21; no se conservan notas de conversación ni bitácoras de participantes.
+> Trabajo abierto de este repositorio. Lo cerrado está en [`TASKS_ARCHIVE.md`](TASKS_ARCHIVE.md).
+> Plan cross-repo: [`../docs/plans/2026-09-11-plan-nivelacion-stack-modular-suite.md`](../docs/plans/2026-09-11-plan-nivelacion-stack-modular-suite.md).
 
 ## 🔴 En progreso
 
-*(vacío)*
+*(vacío; F9 quedó archivada en `TASKS_ARCHIVE.md`)*
 
 ## 🟡 Próximo
 
-*(vacío — las fases Controller→Model y la auditoría de bloques owner-scoped quedaron cerradas;
-las decisiones de producto pendientes se mantienen en el tracker global.)*
+*(vacío; la autorización por recurso es la última fase funcional del plan CNV-007)*
 
-## ⚪ Backlog
+## ✅ Cerrado con evidencia
 
-*(vacío)*
+- **CNV-007-D0 — Baseline contractual.** `composer quality` verde, contrato de documento/patch/
+  preview/fallback/límites/ownership verificado y OpenAPI regenerado.
+- **GAP-02-Domain — Paginación de auditoría.** Commit `1029e46`; reportes paginados por lotes,
+  filtros acotados, orden estable, `meta` contractual y regresiones reales del servicio.
 
-## 🏗️ Contratos de arquitectura
+## ⚪ Fuera del plan actual
 
-- **DTO-First:** todo Controller in/out usa DTOs; evitar arrays sin contrato.
-- **Services puros:** no conocen HTTP; reciben DTOs y devuelven DTOs o excepciones de dominio.
-- **Controllers delgados:** usar `ApiController::handleRequest()`.
-- **Autenticación:** este repositorio delega introspección y emisión de tokens al hub.
-- **HubClient:** es el único punto de comunicación con el hub.
-- **Permisos:** usar separador `.` y rutas por dominio en `app/Config/Routes/v1/`.
-- **No tabla users:** usuarios e IAM viven en el hub.
-- **Tests:** todo endpoint nuevo necesita Feature test.
-- **CRUD nuevo:** preferir `php spark make:crud {Resource} --domain {Domain} --route {slug}`.
-- **Calidad:** ejecutar `composer quality` antes de cerrar una tarea.
+- [ ] **TRN-006** — estados editoriales, permisos y controles de publicación.
+
+## 🏗️ Contratos
+
+- Servicios puros, DTO-first y Controllers/adaptadores delgados.
+- Migraciones nuevas; PHPStan sin baseline nuevo; tests de regresión junto a cada cambio.
+- F9 mantiene el modelo single-tenant v1: identidad y permisos globales vienen de Hub; el alcance
+  concreto vive en Domain y no se cachea. El diseño completo está en `docs/adr/ADR-015-RESOURCE-AUTHORIZATION.md`.
 
 ## 🔧 Referencias
 
+- Plan: [`../docs/plans/2026-09-11-plan-nivelacion-stack-modular-suite.md`](../docs/plans/2026-09-11-plan-nivelacion-stack-modular-suite.md)
 - Histórico: [`TASKS_ARCHIVE.md`](TASKS_ARCHIVE.md)
-- Tracker global: [`../TASKS.md`](../TASKS.md)

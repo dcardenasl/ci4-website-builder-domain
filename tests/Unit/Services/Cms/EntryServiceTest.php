@@ -199,6 +199,10 @@ final class EntryServiceTest extends CIUnitTestCase
         $referenceSynchronizer->expects($this->once())
             ->method('removeResourceReferences')
             ->with('entry', 10);
+        $blockInstancePurger = $this->createMock(\App\Libraries\Cms\BlockInstancePurger::class);
+        $blockInstancePurger->expects($this->once())
+            ->method('purgeForOwner')
+            ->with('entry', 10);
 
         $service = new \App\Services\Cms\EntryService(
             $repository,
@@ -210,7 +214,10 @@ final class EntryServiceTest extends CIUnitTestCase
             $this->createMock(\App\Libraries\Cms\TranslationResolver::class),
             $this->createMock(\App\Services\Cms\PublicEntryReader::class),
             $this->createMock(\App\Libraries\Cms\EntryTaxonomyPivotResolver::class),
-            $this->createMock(\App\Services\Cms\EntryBlockTemplateInitializer::class)
+            $this->createMock(\App\Services\Cms\EntryBlockTemplateInitializer::class),
+            $blockInstancePurger,
+            $this->createMock(\App\Interfaces\Cms\EntryTaxonomyLinkRepositoryInterface::class),
+            $this->createMock(\App\Interfaces\Cms\EntryTaxonomyLinkRepositoryInterface::class)
         );
         $result = $service->destroy(10, null);
 

@@ -55,7 +55,12 @@ class ServiceModelDependencyConventionsTest extends CIUnitTestCase
         'app/Services/Cms/CategoryService.php' => ['model_call' => 5],
         'app/Services/Cms/CollectionService.php' => ['model_call' => 4],
         'app/Services/Cms/EntryBlockTemplateInitializer.php' => ['model_call' => 5, 'db_connect' => 1],
-        'app/Services/Cms/EntryService.php' => ['model_call' => 11, 'db_connect' => 3],
+        // 2026-08-26 (F.0/GAP-04-20): db_connect bajó de 3 a 1 — las escrituras de los
+        // pivots cms_entry_categories / cms_entry_tags salieron del servicio a
+        // EntryCategoryLinkRepository / EntryTagLinkRepository, inyectados por contrato.
+        // Los model_call restantes son validación de existencia contra otros agregados
+        // (Category/Tag/Collection/EntryTranslation), no acceso a tablas propias.
+        'app/Services/Cms/EntryService.php' => ['model_call' => 11, 'db_connect' => 1],
         // FormService.php was split 2026-07-19 into three single-responsibility
         // classes (form CRUD, field CRUD, public definition assembly); the
         // model coupling below is the same coupling redistributed, not new debt.
@@ -67,6 +72,12 @@ class ServiceModelDependencyConventionsTest extends CIUnitTestCase
         'app/Services/Cms/MenuItemService.php' => ['model_call' => 6],
         'app/Services/Cms/MenuService.php' => ['model_call' => 2],
         'app/Services/Cms/PageService.php' => ['model_call' => 8],
+        // 2026-08-25 (GAP-04): PageQualityService is a read-only evaluator
+        // over the four CMS projections needed to build one page report. It
+        // keeps the policy in the Domain so Admin and future clients consume
+        // the same checks; the direct model seam mirrors the existing
+        // translation-audit read path and is intentionally not a CRUD service.
+        'app/Services/Cms/PageQualityService.php' => ['use_model' => 4],
         'app/Services/Cms/PublicEntryReader.php' => ['model_call' => 6],
         'app/Services/Cms/SettingService.php' => ['model_call' => 2],
         'app/Services/Cms/TagService.php' => ['model_call' => 4],

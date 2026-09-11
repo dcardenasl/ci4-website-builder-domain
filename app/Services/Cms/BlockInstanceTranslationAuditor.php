@@ -30,64 +30,95 @@ class BlockInstanceTranslationAuditor
      */
     public function audit(array $activeLanguages, array $filters): array
     {
-        $instances = $this->getBlockInstancesWithTypes();
-        $translationsByInstance = $this->support->groupTranslationsByResource(
-            $this->blockInstanceTranslationModel->findAll(),
-            'instance_id'
-        );
-
         $issues = [];
-        foreach ($instances as $instance) {
-            $instanceId = (int) ($instance['id'] ?? 0);
-            if ($instanceId <= 0) {
-                continue;
-            }
-
-            $translatableFields = $this->getTranslatableBlockFieldDefinitions($instance['schema_definition'] ?? null);
-            if ($translatableFields === []) {
-                continue;
-            }
-
-            $translations = $translationsByInstance[$instanceId] ?? [];
-            foreach ($activeLanguages as $lang) {
-                $langId = (int) $lang->id;
-                if (! $this->support->languageFilterAllows($filters, $langId)) {
-                    continue;
-                }
-
-                $translation = $translations[$langId] ?? null;
-                [$status, $detail] = $this->support->evaluateTranslationState(
-                    $translation,
-                    $translations,
-                    $translatableFields,
-                    $langId,
-                    function (array $row, string $fieldKey, array $fieldDefinition): mixed {
-                        return $this->extractBlockFieldValue($row, $fieldKey, $fieldDefinition);
-                    },
-                    isset($instance['updated_at']) ? (string) $instance['updated_at'] : null
-                );
-                if ($status === 'complete') {
-                    continue;
-                }
-
-                $issues[] = $this->support->buildIssue(
-                    'block_instance',
-                    $instanceId,
-                    'Block Instance #' . $instanceId . ' (' . (string) ($instance['block_key'] ?? '') . ')',
-                    $langId,
-                    (string) ($lang->code ?? ''),
-                    $status,
-                    $detail,
-                    [
-                        'owner_type' => (string) ($instance['owner_type'] ?? ''),
-                        'owner_id' => (int) ($instance['owner_id'] ?? 0),
-                        'block_key' => (string) ($instance['block_key'] ?? ''),
-                    ]
-                );
-            }
-        }
+        $this->streamIssues($activeLanguages, $filters, static function (array $issue) use (&$issues): void {
+            $issues[] = $issue;
+        });
 
         return $issues;
+    }
+
+    /**
+     * Stream sitewide block issues in bounded database batches. The consumer
+     * decides whether to retain a row (the paginated report only retains one
+     * page), so this method never accumulates the whole block report.
+     *
+     * @param list<object> $activeLanguages
+     * @param array<string, mixed> $filters
+     * @param callable(array<string, mixed>): void $consume
+     */
+    public function streamIssues(array $activeLanguages, array $filters, callable $consume): void
+    {
+        $batchSize = 100;
+        $offset = 0;
+
+        do {
+            $instances = $this->getBlockInstancesWithTypes($batchSize, $offset);
+            if ($instances === []) {
+                break;
+            }
+
+            $instanceIds = array_values(array_filter(
+                array_map(static fn (array $instance): int => (int) ($instance['id'] ?? 0), $instances),
+                static fn (int $id): bool => $id > 0
+            ));
+            $translationsByInstance = $this->support->groupTranslationsByResource(
+                $instanceIds === [] ? [] : $this->blockInstanceTranslationModel->whereIn('instance_id', $instanceIds)->findAll(),
+                'instance_id'
+            );
+
+            foreach ($instances as $instance) {
+                $instanceId = (int) ($instance['id'] ?? 0);
+                if ($instanceId <= 0) {
+                    continue;
+                }
+
+                $translatableFields = $this->getTranslatableBlockFieldDefinitions($instance['schema_definition'] ?? null);
+                if ($translatableFields === []) {
+                    continue;
+                }
+
+                $translations = $translationsByInstance[$instanceId] ?? [];
+                foreach ($activeLanguages as $lang) {
+                    $langId = (int) $lang->id;
+                    if (! $this->support->languageFilterAllows($filters, $langId)) {
+                        continue;
+                    }
+
+                    $translation = $translations[$langId] ?? null;
+                    [$status, $detail] = $this->support->evaluateTranslationState(
+                        $translation,
+                        $translations,
+                        $translatableFields,
+                        $langId,
+                        function (array $row, string $fieldKey, array $fieldDefinition): mixed {
+                            return $this->extractBlockFieldValue($row, $fieldKey, $fieldDefinition);
+                        },
+                        isset($instance['updated_at']) ? (string) $instance['updated_at'] : null
+                    );
+                    if ($status === 'complete') {
+                        continue;
+                    }
+
+                    $consume($this->support->buildIssue(
+                        'block_instance',
+                        $instanceId,
+                        'Block Instance #' . $instanceId . ' (' . (string) ($instance['block_key'] ?? '') . ')',
+                        $langId,
+                        (string) ($lang->code ?? ''),
+                        $status,
+                        $detail,
+                        [
+                            'owner_type' => (string) ($instance['owner_type'] ?? ''),
+                            'owner_id' => (int) ($instance['owner_id'] ?? 0),
+                            'block_key' => (string) ($instance['block_key'] ?? ''),
+                        ]
+                    ));
+                }
+            }
+
+            $offset += $batchSize;
+        } while (count($instances) === $batchSize);
     }
 
     /**
@@ -225,15 +256,15 @@ class BlockInstanceTranslationAuditor
     /**
      * @return list<array<string, mixed>>
      */
-    private function getBlockInstancesWithTypes(): array
+    private function getBlockInstancesWithTypes(?int $limit = null, int $offset = 0): array
     {
         $db = \Config\Database::connect();
-        $query = $db->table('cms_block_instances i')
+        $builder = $db->table('cms_block_instances i')
             ->select('i.*, b.block_key, b.schema_definition')
             ->join('cms_content_blocks b', 'b.id = i.block_id')
-            ->where('i.is_active', 1)
-            ->orderBy('i.sort_order', 'ASC')
-            ->get();
+            ->where('i.is_active', 1);
+        $builder->orderBy($limit === null ? 'i.sort_order' : 'i.id', 'ASC');
+        $query = $limit === null ? $builder->get() : $builder->get($limit, $offset);
 
         /** @var list<array<string, mixed>> $rows */
         $rows = $query ? $query->getResultArray() : [];

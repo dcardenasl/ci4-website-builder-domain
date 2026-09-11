@@ -14,6 +14,7 @@ use App\Libraries\Cms\OwnerUsageResolver;
 use App\Libraries\Cms\TranslationSynchronizer;
 use App\Models\FormModel;
 use App\Models\FormTranslationModel;
+use App\Support\AdminListProjectionDecoder;
 use CodeIgniter\Database\BaseConnection;
 use dcardenasl\Ci4ApiCore\Exceptions\ConflictException;
 use dcardenasl\Ci4ApiCore\Exceptions\NotFoundException;
@@ -45,10 +46,18 @@ class FormService
     }
 
     /**
-     * @return list<array<string, mixed>>
+     * The admin table can request a bounded projection. The no-argument form
+     * remains the aggregate read used by existing callers and show/edit flows.
+     *
+     * @param array<string, mixed> $criteria
+     * @return list<array<string, mixed>>|array{data: list<array<string, mixed>>, total: int, page: int, per_page: int}
      */
-    public function list(): array
+    public function list(array $criteria = []): array
     {
+        if (($criteria['projection'] ?? 'full') === 'list') {
+            return $this->listAdminProjection($criteria);
+        }
+
         /** @var list<FormEntity> */
         $forms = $this->formModel->orderBy('form_key', 'ASC')->findAll();
 
@@ -61,6 +70,122 @@ class FormService
 
             return FormResponseDTO::fromArray($data)->toArray();
         }, $forms);
+    }
+
+    /**
+     * One SQL statement for the admin form table. Translation badges and the
+     * field count are relational list data; they must not be assembled with
+     * one translation/field query per form in PHP.
+     *
+     * @param array<string, mixed> $criteria
+     * @return array{data: list<array<string, mixed>>, total: int, page: int, per_page: int}
+     */
+    private function listAdminProjection(array $criteria): array
+    {
+        $page = max(1, (int) ($criteria['page'] ?? 1));
+        $perPage = min(1000, max(1, (int) ($criteria['per_page'] ?? $criteria['limit'] ?? 25)));
+        $offset = ($page - 1) * $perPage;
+        $where = [];
+        $binds = [];
+
+        $search = trim((string) ($criteria['search'] ?? ''));
+        if ($search !== '') {
+            $where[] = <<<'SQL'
+(
+    f.form_key LIKE ?
+    OR EXISTS (
+        SELECT 1 FROM cms_form_translations ft_search
+        WHERE ft_search.form_id = f.id
+          AND ft_search.name LIKE ?
+    )
+)
+SQL;
+            $needle = '%' . $search . '%';
+            array_push($binds, $needle, $needle);
+        }
+
+        $sort = (string) ($criteria['sort'] ?? '-created_at');
+        $sortExpressions = [
+            'form_key'    => ['f.form_key ASC, f.id ASC', 'p.form_key ASC, p.id ASC'],
+            '-form_key'   => ['f.form_key DESC, f.id DESC', 'p.form_key DESC, p.id DESC'],
+            'is_active'   => ['f.is_active ASC, f.id ASC', 'p.is_active ASC, p.id ASC'],
+            '-is_active'  => ['f.is_active DESC, f.id DESC', 'p.is_active DESC, p.id DESC'],
+            'created_at'  => ['f.created_at ASC, f.id ASC', 'p.created_at ASC, p.id ASC'],
+            '-created_at' => ['f.created_at DESC, f.id DESC', 'p.created_at DESC, p.id DESC'],
+        ];
+        [$innerOrder, $outerOrder] = $sortExpressions[$sort] ?? $sortExpressions['-created_at'];
+        $whereSql = $where === [] ? '1 = 1' : implode("\n      AND ", $where);
+
+        $sql = <<<SQL
+WITH filtered_forms AS (
+    SELECT
+        f.id,
+        f.form_key,
+        f.is_active,
+        f.has_captcha,
+        f.notify_email,
+        f.autoreply_enabled,
+        f.autoreply_email_field,
+        f.created_at,
+        f.updated_at,
+        (SELECT COUNT(*) FROM cms_form_fields ff WHERE ff.form_id = f.id) AS fields_count,
+        COUNT(*) OVER () AS total_items
+    FROM cms_forms f
+    WHERE {$whereSql}
+    ORDER BY {$innerOrder}
+    LIMIT {$perPage} OFFSET {$offset}
+)
+SELECT
+    p.id,
+    p.form_key,
+    p.is_active,
+    p.has_captcha,
+    p.notify_email,
+    p.autoreply_enabled,
+    p.autoreply_email_field,
+    p.fields_count,
+    p.created_at,
+    p.updated_at,
+    GROUP_CONCAT(
+        CONCAT(ft.language_id, ':', COALESCE(HEX(ft.name), ''))
+        ORDER BY ft.language_id ASC, ft.id ASC SEPARATOR '|'
+    ) AS translations_data,
+    MAX(p.total_items) AS total_items
+FROM filtered_forms p
+LEFT JOIN cms_form_translations ft ON ft.form_id = p.id
+GROUP BY p.id, p.form_key, p.is_active, p.has_captcha, p.notify_email,
+         p.autoreply_enabled, p.autoreply_email_field, p.fields_count,
+         p.created_at, p.updated_at
+ORDER BY {$outerOrder}
+SQL;
+
+        if ($this->db->DBDriver === 'MySQLi') {
+            $this->db->query('SET SESSION group_concat_max_len = 1048576');
+        }
+
+        $query = $this->db->query($sql, $binds);
+        if (! $query instanceof \CodeIgniter\Database\ResultInterface) {
+            throw new \RuntimeException(lang('Forms.list_projection_failed'));
+        }
+
+        /** @var list<array<string, mixed>> $rows */
+        $rows = $query->getResultArray();
+        $total = $rows !== [] ? (int) ($rows[0]['total_items'] ?? 0) : 0;
+        $data = array_map(static function (array $row): array {
+            $translations = AdminListProjectionDecoder::translations($row['translations_data'] ?? null, ['name']);
+            unset($row['translations_data'], $row['total_items']);
+            $row['translations'] = $translations;
+            $row['fields_count'] = (int) ($row['fields_count'] ?? 0);
+
+            return $row;
+        }, $rows);
+
+        return [
+            'data' => $data,
+            'total' => $total,
+            'page' => $page,
+            'per_page' => $perPage,
+        ];
     }
 
     public function get(int $id, ?string $locale = null): FormResponseDTO

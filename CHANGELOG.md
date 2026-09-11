@@ -7,6 +7,85 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.1.0] — 2026-09-11
+
+### Changed
+- **Per-field translation fallback on public content.** `BlockInstanceSerializer` used to
+  pick a whole translation row, so a block with a translated title and an untranslated body
+  rendered entirely in the default language — one missing field hid every translation the
+  block did have. Each declared field now resolves on its own, and blocks report
+  `fallback_fields` next to `is_fallback`. This aligns the public site with the editor
+  preview, which resolves the same way: a canvas that disagreed with the live page would
+  defeat its own purpose.
+
+### Fixed
+- **A deactivated language was still served.** The language lookup read
+  `code = X OR (is_default AND is_active)`, so a row matching the requested code won even
+  after the language had been deactivated. The code/default match is now grouped before the
+  active filter applies.
+
+### Security
+- **Resource-scoped CMS authorization.** Domain now owns page, entry and collection
+  grants, inherits collection scope to child content, applies the same checks to CRUD,
+  editor, blocks, ordering and contextual audits, returns 404 for out-of-scope/deleted
+  resources, records denied attempts, and prevents orphaning a resource by revoking its
+  last administrator.
+- `PermissionFilter` now delegates to the core policy and lets the platform
+  superadmin bypass newly registered domain permissions without weakening
+  ordinary permission checks.
+- Hub callbacks for file usage and metadata invalidation now require an
+  `X-Hub-Signature` HMAC using the optional `HUB_INTERNAL_SECRET`; missing or
+  invalid secrets fail closed.
+- Public GET rate limiting now buckets authenticated `X-App-Key` callers separately
+  from the shared IP/user limits, preventing one server-to-server caller from
+  exhausting another caller's quota.
+- Public page reads now enforce the full publication window instead of the
+  `status` flag alone: a page marked published with a future `published_at` or
+  `scheduled_at` is no longer reachable by direct URL. Entries already applied
+  this rule; both now share `App\Libraries\Cms\PublicationWindow` as the single
+  definition so the two cannot drift apart again.
+
+### Added
+- Generic `cms:repair-slugs` command with dry-run output and explicit `--confirm` persistence for localized page, entry, collection, category, and tag slugs.
+- Generic public page bootstrap endpoints — `GET /api/v1/public/layout` composes the shared
+  public shell and `GET /api/v1/public/page-bootstrap/{path}` resolves a page or collection
+  entry with that shell in one cacheable response; signed page previews remain verified.
+- Generic public slugs — public_slugs sidecar storage, locale-aware collection projection,
+  cms:backfill-public-slugs, and atomic POST /cms/collections/sort-orders provide reusable
+  reference mechanisms without introducing Teatro Museo business tables.
+- Shared translation-table synchronizer — moved the model-agnostic {entity}_translations
+  lifecycle into App\Libraries\Translation\TranslationTableSynchronizer, retaining the CMS
+  class as a compatibility adapter for existing services.
+
+### Changed
+- Hub-owned media now separates the internal `hub.url` from the browser-facing `HUB_PUBLIC_URL`, storing portable `/uploads/` paths while resolving public origins at delivery time.
+- CMS administrative list endpoints now expose an explicit set-based `projection=list` path with bounded pagination, SQL-side counts, and compatibility decoding for localized rows; the existing full projections remain the default.
+- CMS `POST /api/v1/cms/sort-orders` now applies scoped atomic batches for pages, entries, categories, languages, menu items, and block instances, while retaining the collections reorder contract.
+- Added the generic page quality evaluator and protected `GET /api/v1/cms/pages/{id}/quality` contract for shared editorial and SEO readiness checks.
+- Public file metadata requests retain the shared HubClient behavior by default and support explicit `PUBLIC_READ_HUB_CONNECT_TIMEOUT` plus `PUBLIC_READ_HUB_TIMEOUT` overrides for deployments that need a tighter outbound budget; correlation IDs and breadcrumbs remain propagated on the opt-in path.
+- Domain cache keys now use an app-specific prefix to prevent collisions with
+  sibling applications sharing a cache backend. APCu is available only through
+  the explicit `CACHE_HANDLER` override; file remains the default.
+- **Starter runtime defaults** — aligned local Hub/Domain ports with the `8180`/`8190` kit series
+  and documented the generic CMS contracts for public slugs, translations, ordering and bootstrap.
+- Public CMS reads support allowlisted sparse fieldsets through `?fields=` without changing
+  the default response shape.
+- Collection public routing — collection writes and public reads now synchronize and resolve
+  through the generic slug sidecar while preserving the existing legacy translation tables during
+  the migration window.
+
+### Changed
+- **`dcardenasl/ci4-api-core`** — bumped constraint from `^1.0` to `^1.5`.
+- **`JsonCastNormalizer`** — the local copy in `App\Libraries\Cms` is removed; all call sites now use `dcardenasl\Ci4ApiCore\Support\JsonCastNormalizer`, which ships the same `toArray()` contract as of `^1.5`.
+
+### Fixed
+- Public CMS routing now preserves complete multi-segment localized paths, allowing page bootstrap and entry detail URLs to resolve the collection and entry slug instead of stopping at the collection index.
+- Orphaned page/entry block instances are now purged, including their translations and Hub file-reference rows, when the owning CMS resource is deleted.
+- **`HubClient::resolvePublicFileMeta()`** — sanitizes and dedupes file ids before querying, chunks requests to the Hub's batch-meta endpoint at 200 ids (its documented cap) instead of silently truncating larger batches, and falls back to a longer-lived stale cache entry when the Hub is temporarily unreachable. Also fixed a preexisting bug where the method ignored the `$cache` instance injected via the constructor and resolved a new one through the service locator instead, breaking dependency injection in tests.
+- **Update Request DTOs** — preserve explicit `null` values while omitting fields absent from the
+  request, allowing CMS callers to clear nullable content fields without overwriting unrelated
+  values.
+
 ## [1.0.0] — 2026-07-23
 
 ### Added
@@ -102,5 +181,3 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Collections API** — full CRUD under `/cms/collections` protected with permissions, multi-language translation integration resolved via `TranslationResolver` with fallbacks, and a public listing endpoint on `GET public/{lang}/collections` for active collections
 - **Entries API** — full CRUD under `/cms/entries` protected with `cms.entries.*` permissions, version snapshot history, multi-language translation integration, and public endpoints on `GET public/{lang}/entries/{collection}` for paginated listings and `GET public/{lang}/entries/{collection}/{slug}` for detail views with serialized block instances
 - **Taxonomies API (Categories & Tags)** — Category and Tag CRUD with multi-language translations, pivot tables linking entries to taxonomies, public entries filtering by category/tag slug, and resolved taxonomies inside public entry responses
-
-

@@ -45,11 +45,11 @@ Browser/SPA → Website Builder (here)    → Database (this app's tables)
 ## Essential commands
 
 ```bash
-# Dev server (default port 8090 to avoid colliding with hub on :8080 / admin on :8082)
+# Dev server (default port 8190 to avoid colliding with hub on :8180 / admin on :8182)
 # IMPORTANT: CI4 spark serve requires a SPACE before the port — equals sign is silently ignored:
-#   php spark serve --port 8090   ✅
-#   php spark serve --port=8090   ❌ (starts on :8080 without warning, collides with hub)
-php spark serve --port 8090
+#   php spark serve --port 8190   ✅
+#   php spark serve --port=8190   ❌ (starts on :8180 without warning, collides with hub)
+php spark serve --port 8190
 
 # Tests
 # Prefer `composer test*` (passes --no-coverage). Bare `vendor/bin/phpunit` triggers a
@@ -109,6 +109,23 @@ What's **different** here:
   for the primary registration. Use `--mirror-to-self --admin-token=<jwt>` to also
   register the permissions under hub app `self` (application_id=1) for admin UI gating.
   The CRUD scaffolder appends the standard `{resource}.read/write/delete` entries automatically.
+
+All permission codes follow the `{app-code}.{resource}.{action}` namespace. This repository uses
+`cms` as its app-code, so a route permission is written as `cms.pages.read`; use `.` as the only
+separator and never introduce `:`-separated codes.
+
+## Generic CMS contracts
+
+The CMS layer is intentionally reusable across sites:
+
+- public slugs are stored through the generic sidecar/canonical migration path;
+  never create business-named public-slug tables — use the generic sidecar contract;
+- translation synchronization and locale fallback are centralized, so new
+  resources do not duplicate per-language reconciliation logic;
+- sort-order updates use a single atomic service/endpoint contract;
+- `GET /api/v1/public/cms/layout` and `GET /api/v1/public/cms/page-bootstrap/{path}`
+  compose layout/settings/menus and page-or-entry resolution for snapshot-aware
+  consumers. These endpoints are generic and must not embed site content.
 - `Config\Scaffolding` overrides `protectedRouteFilters` to
   `['domainauth', 'permission:items.read', 'throttle']` — generated CRUDs are
   protected by `domainauth` automatically.
@@ -128,7 +145,7 @@ What's **different** here:
 ```bash
 bash vendor/bin/make-crud.sh Item Example 'name:string:required|searchable,description:text' yes
 php spark migrate
-pkill -f 'spark serve'; php spark serve --port 8090 &
+pkill -f 'spark serve'; php spark serve --port 8190 &
 ```
 
 The generator emits routes already wrapped in `domainauth + permission:items.read + throttle`
@@ -139,7 +156,7 @@ module needs distinct read/write codes.
 
 | Variable | Purpose |
 |---|---|
-| `hub.url` | Base URL of the hub (e.g. `http://localhost:8080`) |
+| `hub.url` | Base URL of the hub (e.g. `http://localhost:8180`) |
 | `hub.apiKey` | X-App-Key bound to this app's `applications` row in the hub |
 | `hub.appCode` | Application code as registered in the hub |
 | `hub.introspectCacheTtl` | (optional) TTL in seconds for cached introspect responses, default 30 |

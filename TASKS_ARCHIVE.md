@@ -1,7 +1,60 @@
 # TASKS_ARCHIVE — ci4-website-builder
 
 > Historial de tareas completadas. Movido desde TASKS.md para mantener el tracker activo liviano.
-> Última actualización: 2026-05-07
+> Última actualización: 2026-08-25
+
+## ✅ CNV-007-F9 — Autorización por recurso (2026-09-11)
+
+- ACL Domain-owned para pages, entries y collections; herencia de permisos desde collection;
+  404 anti-enumeración para inexistentes, eliminados y fuera de alcance; enforcement en CRUD,
+  editor, bloques, ordenamiento y auditoría contextual.
+- Grants `read/write/admin`, transferencia transaccional, protección contra revocar al último
+  administrador, auditoría de denegaciones y contexto de owner autoritativo en rutas anidadas.
+- Commit: `729aa89 feat(security): add resource-scoped cms authorization`.
+- Verificación: `composer quality` verde y `composer test:dynamic` verde — 560 tests, 2.075
+  assertions, 1 skip preexistente.
+
+## ✅ Remediación de huecos profundos — Fase 0 (2026-08-25)
+
+- **GAP-00-domain** — `PermissionFilter` delega la política al core, conserva los mensajes
+  localizados del dominio y permite el bypass de `iam.superadmin-access`; regresiones de 401,
+  403, permiso válido, contexto y bypass. Commit `ad9e8ea`; `composer quality`, unit (295),
+  integration (48), feature (132), `composer cs-check` y pre-commit completados.
+
+---
+
+## ✅ Backport de mejoras de Teatro Museo — Fase 5 (2026-08-25)
+
+- **BACKPORT-05-domain** — documentación de contratos CMS genéricos y alineación de defaults de
+  puertos/Hub para clones nuevos; verificado con la suite de calidad del repo.
+
+## ✅ Backport de mejoras de Teatro Museo — Fase 4 (2026-08-25)
+
+- **BACKPORT-04-domain** — endpoints públicos compuestos `layout` y `page-bootstrap/{path}`,
+  sparse fieldsets allowlisted y preview firmado verificado. Commit `4b5c7d3`; `composer quality`
+  verde, PHPUnit 488/1856 (1 skip) y seeds 15/3875.
+
+---
+
+## ✅ Backport de mejoras de Teatro Museo — Fase 3 (2026-08-25)
+
+- **BACKPORT-03-domain** — namespace de permisos, public-slugs genéricos con backfill y proyección
+  de `collection`, sincronizador compartido de traducciones, sort-orders atómico y ADR de
+  external domain binding. Commit `22ce463`; `composer quality` y suites completas en verde.
+
+---
+
+## ✅ Backport de mejoras de Teatro Museo — Fase 0 (2026-08-25)
+
+- **BACKPORT-00-domain** — `ci4-api-core` 1.5.1, eliminación de la copia local de
+  `JsonCastNormalizer` y hardening de `HubClient::resolvePublicFileMeta()` con sanitización,
+  chunking, stale cache e inyección de cache respetada; verificado con `composer quality`.
+
+## ✅ Backport de mejoras de Teatro Museo — Fase 1 (2026-08-25)
+
+- **BACKPORT-01-domain** — verificado que `ControllerModelDependencyConventionsTest` ya tenía
+  `BASELINE` vacío y tolerancia cero para imports de Model, llamadas `model()` y `Database::connect()`;
+  no fue necesario portar código. Prueba focalizada y `composer quality` completos en verde.
 
 ---
 
@@ -113,3 +166,20 @@ Sin ID de tarea — trabajo derivado del runtime decoupling de ci4-api-core:
 
 El tracker local queda sin backlog propio; las decisiones de producto y tareas cross-repo se
 mantienen en `../TASKS.md`.
+
+## ✅ Reconciliación para CNV-007 — 2026-09-11
+
+- **F.0 / GAP-04-8:** ventana de publicación centralizada en `PublicationWindow`, aplicada a
+  páginas y entradas con regresiones verificadas.
+- **GAP-04-20:** pivots de taxonomía migrados a modelos/repositorios con dependencias explícitas y
+  cobertura de integración.
+- **CNV-007-D1..D4:** contrato de documento, patch transaccional con `409`, preview/fallback y
+  límites/ownership implementados y verificados. Se retiran del tracker activo; queda solo el
+  baseline contractual y la paginación de GAP-02.
+
+- **CNV-007-D0 — Baseline contractual.** `composer quality` pasó con 551 tests y 2.054
+  aserciones en la suite principal, 15 tests de seeders y 19 tests de arquitectura; contrato y
+  OpenAPI verificados.
+- **GAP-02-Domain — Paginación de auditoría.** Commit `1029e46`; lectura por lotes de recursos,
+  traducciones y bloques, filtros antes de paginar, orden estable, `page/limit` acotados y
+  regresiones con datos multilingües reales.

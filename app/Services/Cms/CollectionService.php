@@ -4,10 +4,16 @@ declare(strict_types=1);
 
 namespace App\Services\Cms;
 
+use App\DTO\Response\Cms\CollectionResponseDTO;
 use App\Entities\CollectionEntity;
 use App\Entities\LanguageEntity;
+use App\Interfaces\Cms\AdminListProjectionRepositoryInterface;
 use App\Interfaces\Cms\CollectionServiceInterface;
+use App\Interfaces\Cms\ResourceAuthorizationInterface;
+use App\Support\AdminListProjectionDecoder;
 use App\Traits\Services\HasDeferredTranslations;
+use dcardenasl\Ci4ApiCore\Dto\DataTransferObjectInterface;
+use dcardenasl\Ci4ApiCore\Dto\PaginatedResponseDTO;
 use dcardenasl\Ci4ApiCore\Dto\SecurityContext;
 use dcardenasl\Ci4ApiCore\Exceptions\ValidationException;
 use dcardenasl\Ci4ApiCore\Mappers\ResponseMapperInterface;
@@ -25,6 +31,10 @@ class CollectionService extends BaseCrudService implements CollectionServiceInte
 
     private ?\App\Libraries\Cms\TranslationSynchronizer $translationSynchronizer;
 
+    private ?AdminListProjectionRepositoryInterface $collectionListRepository;
+
+    private ?ResourceAuthorizationInterface $resourceAuthorization;
+
     /**
      * @param RepositoryInterface<CollectionEntity> $collectionRepository
      * @param RepositoryInterface<LanguageEntity> $languageRepository
@@ -35,11 +45,66 @@ class CollectionService extends BaseCrudService implements CollectionServiceInte
         \App\Libraries\Cms\CacheInvalidationClient $cacheInvalidator,
         private readonly RepositoryInterface $languageRepository,
         private readonly PublicCollectionReader $publicCollectionReader,
-        ?\App\Libraries\Cms\TranslationSynchronizer $translationSynchronizer = null
+        ?\App\Libraries\Cms\TranslationSynchronizer $translationSynchronizer = null,
+        private readonly ?\App\Libraries\Translation\CollectionPublicSlugProjection $publicSlugProjection = null,
+        ?AdminListProjectionRepositoryInterface $collectionListRepository = null,
+        ?ResourceAuthorizationInterface $resourceAuthorization = null
     ) {
         parent::__construct($collectionRepository, $responseMapper);
         $this->cacheInvalidator = $cacheInvalidator;
         $this->translationSynchronizer = $translationSynchronizer;
+        $this->collectionListRepository = $collectionListRepository;
+        $this->resourceAuthorization = $resourceAuthorization;
+    }
+
+    public function index(DataTransferObjectInterface $request, ?\dcardenasl\Ci4ApiCore\Dto\SecurityContext $context = null): DataTransferObjectInterface
+    {
+        $requestData = $request->toArray();
+        if ($context !== null && $this->resourceAuthorization !== null) {
+            $requestData = $this->resourceAuthorization->projectionCriteria(
+                'collection',
+                $this->resourceAuthorization->scopeCriteria('collection', $requestData, $context),
+                $context,
+            );
+        }
+        if (($requestData['projection'] ?? 'full') !== 'list' || $this->collectionListRepository === null) {
+            if ($context !== null && $this->resourceAuthorization !== null) {
+                $request = new ($request::class)($requestData);
+            }
+
+            return parent::index($request, $context);
+        }
+
+        $result = $this->collectionListRepository->paginateAdminList(
+            $requestData,
+            max(1, (int) ($requestData['page'] ?? 1)),
+            min(1000, max(1, (int) ($requestData['per_page'] ?? 20))),
+        );
+        $data = array_map(static function (array $row): CollectionResponseDTO {
+            $row['translations'] = AdminListProjectionDecoder::translations(
+                $row['translations_data'] ?? null,
+                ['name', 'slug'],
+            );
+            unset($row['translations_data']);
+
+            return CollectionResponseDTO::fromArray($row);
+        }, $result['data']);
+
+        return PaginatedResponseDTO::fromArray([
+            'data' => $data,
+            'total' => $result['total'],
+            'page' => $result['page'],
+            'per_page' => $result['per_page'],
+        ]);
+    }
+
+    public function show(int $id, ?SecurityContext $context = null): DataTransferObjectInterface
+    {
+        if ($context !== null) {
+            $this->resourceAuthorization?->assertCan('collection', $id, 'read', $context);
+        }
+
+        return parent::show($id, $context);
     }
 
     /**
@@ -90,11 +155,16 @@ class CollectionService extends BaseCrudService implements CollectionServiceInte
     {
         parent::afterStore($entity, $context);
         $this->flushDeferredTranslations(fn (array $t) => $this->saveTranslations((int) $entity->id, $t));
+        $this->publicSlugProjection?->sync((int) $entity->id);
+        $this->resourceAuthorization?->grantOnCreate('collection', (int) $entity->id, $context);
         $this->cacheInvalidator->invalidate(['collections', 'entries']);
     }
 
     protected function beforeUpdate(int $id, array $data, ?SecurityContext $context): array
     {
+        if ($context !== null) {
+            $this->resourceAuthorization?->assertCan('collection', $id, 'write', $context);
+        }
         $data = parent::beforeUpdate($id, $data, $context);
         unset($data['use_preset']);
 
@@ -121,6 +191,7 @@ class CollectionService extends BaseCrudService implements CollectionServiceInte
     {
         parent::afterUpdate($entity, $context);
         $this->flushDeferredTranslations(fn (array $t) => $this->saveTranslations((int) $entity->id, $t));
+        $this->publicSlugProjection?->sync((int) $entity->id);
         $this->cacheInvalidator->invalidate(['collections', 'entries']);
     }
 
@@ -132,6 +203,9 @@ class CollectionService extends BaseCrudService implements CollectionServiceInte
 
     protected function beforeDelete(int $id, ?SecurityContext $context): void
     {
+        if ($context !== null) {
+            $this->resourceAuthorization?->assertCan('collection', $id, 'admin', $context);
+        }
         /** @var \App\Models\EntryModel $entryModel */
         $entryModel = model(\App\Models\EntryModel::class);
 

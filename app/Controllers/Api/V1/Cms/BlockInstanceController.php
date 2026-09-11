@@ -40,21 +40,48 @@ class BlockInstanceController extends ApiController
             : "cms.pages.{$action}";
     }
 
+    /** @return array{type: string, id: int}|null */
+    private function ownerContextFromRequest(): ?array
+    {
+        $segments = service('request')->getUri()->getSegments();
+        foreach (['pages' => 'page', 'entries' => 'entry'] as $routeSegment => $ownerType) {
+            $index = array_search($routeSegment, $segments, true);
+            if ($index === false) {
+                continue;
+            }
+            $index = (int) $index;
+            if (! isset($segments[$index + 1]) || ! ctype_digit((string) $segments[$index + 1])) {
+                continue;
+            }
+
+            $ownerId = (int) $segments[$index + 1];
+            if ($ownerId > 0) {
+                return ['type' => $ownerType, 'id' => $ownerId];
+            }
+        }
+
+        return null;
+    }
+
+    private function applyOwnerContext(): void
+    {
+        $owner = $this->ownerContextFromRequest();
+        if ($owner !== null) {
+            $this->blockInstanceService->setOwnerContext($owner['type'], $owner['id']);
+        }
+    }
+
     protected array $statusCodes = [
         'store' => 201,
     ];
 
     public function indexForPage(int $pageId): ResponseInterface
     {
-        $this->blockInstanceService->setOwnerContext('page', $pageId);
-
         return $this->index();
     }
 
     public function indexForEntry(int $entryId): ResponseInterface
     {
-        $this->blockInstanceService->setOwnerContext('entry', $entryId);
-
         return $this->index();
     }
 
@@ -65,6 +92,7 @@ class BlockInstanceController extends ApiController
                 if (!$context->hasPermission($this->requiresPermission('read'))) {
                     throw new \dcardenasl\Ci4ApiCore\Exceptions\AuthorizationException(lang('Api.forbidden'));
                 }
+                $this->applyOwnerContext();
                 return $this->blockInstanceService->index($dto, $context);
             },
             BlockInstanceIndexRequestDTO::class
@@ -78,6 +106,7 @@ class BlockInstanceController extends ApiController
                 if (!$context->hasPermission($this->requiresPermission('write'))) {
                     throw new \dcardenasl\Ci4ApiCore\Exceptions\AuthorizationException(lang('Api.forbidden'));
                 }
+                $this->applyOwnerContext();
                 return $this->blockInstanceService->store($dto, $context);
             },
             BlockInstanceCreateRequestDTO::class
@@ -91,6 +120,7 @@ class BlockInstanceController extends ApiController
                 if (!$context->hasPermission($this->requiresPermission('write'))) {
                     throw new \dcardenasl\Ci4ApiCore\Exceptions\AuthorizationException(lang('Api.forbidden'));
                 }
+                $this->applyOwnerContext();
                 return $this->blockInstanceService->update($id, $dto, $context);
             },
             BlockInstanceUpdateRequestDTO::class
@@ -104,6 +134,7 @@ class BlockInstanceController extends ApiController
                 if (!$context->hasPermission($this->requiresPermission('read'))) {
                     throw new \dcardenasl\Ci4ApiCore\Exceptions\AuthorizationException(lang('Api.forbidden'));
                 }
+                $this->applyOwnerContext();
                 return $this->blockInstanceService->show($id, $context);
             }
         );
@@ -116,6 +147,7 @@ class BlockInstanceController extends ApiController
                 if (!$context->hasPermission($this->requiresPermission('write'))) {
                     throw new \dcardenasl\Ci4ApiCore\Exceptions\AuthorizationException(lang('Api.forbidden'));
                 }
+                $this->applyOwnerContext();
 
                 return $this->blockInstanceService->destroy($id, $context);
             }

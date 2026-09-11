@@ -4,8 +4,11 @@ declare(strict_types=1);
 
 namespace App\DTO\Request\Cms;
 
+use App\DTO\Cms\PublicEntryFilterDTO;
 use dcardenasl\Ci4ApiCore\Dto\BaseRequestDTO;
+use OpenApi\Attributes as OA;
 
+#[OA\Schema(schema: 'PublicEntryIndexRequest')]
 readonly class PublicEntryIndexRequestDTO extends BaseRequestDTO
 {
     public string $lang;
@@ -18,6 +21,9 @@ readonly class PublicEntryIndexRequestDTO extends BaseRequestDTO
     public string $order_by;
     public string $order_direction;
     public bool $include_listing_content;
+
+    /** @var list<PublicEntryFilterDTO> */
+    public array $filters;
 
     /** @return array<string, string> */
     public function rules(): array
@@ -34,6 +40,7 @@ readonly class PublicEntryIndexRequestDTO extends BaseRequestDTO
             'order_by'       => 'permit_empty|in_list[published_at,sort_order,created_at,title]',
             'order_direction' => 'permit_empty|in_list[asc,desc,ASC,DESC]',
             'include'         => 'permit_empty|in_list[listing_content]',
+            'filters'         => 'permit_empty|is_list',
         ];
     }
 
@@ -52,6 +59,29 @@ readonly class PublicEntryIndexRequestDTO extends BaseRequestDTO
         $direction            = strtoupper((string) ($data['order_direction'] ?? 'ASC'));
         $this->order_direction = $direction === 'DESC' ? 'DESC' : 'ASC';
         $this->include_listing_content = (string) ($data['include'] ?? '') === 'listing_content';
+
+        $rawFilters = $data['filters'] ?? [];
+        if ($rawFilters === '') {
+            $rawFilters = [];
+        }
+        if (! is_array($rawFilters)) {
+            throw new \dcardenasl\Ci4ApiCore\Exceptions\ValidationException(
+                lang('Api.validationFailed'),
+                ['filters' => lang('Cms.public_filters.list_required')]
+            );
+        }
+        if (count($rawFilters) > PublicEntryFilterDTO::MAX_FILTERS) {
+            throw new \dcardenasl\Ci4ApiCore\Exceptions\ValidationException(
+                lang('Api.validationFailed'),
+                ['filters' => lang('Cms.public_filters.too_many')]
+            );
+        }
+
+        $filters = [];
+        foreach ($rawFilters as $index => $rawFilter) {
+            $filters[] = PublicEntryFilterDTO::fromArray($rawFilter, (int) $index);
+        }
+        $this->filters = $filters;
     }
 
     /** @return array<string, mixed> */
@@ -68,6 +98,10 @@ readonly class PublicEntryIndexRequestDTO extends BaseRequestDTO
             'order_by'       => $this->order_by,
             'order_direction' => $this->order_direction,
             'include'         => $this->include_listing_content ? 'listing_content' : null,
+            'filters'         => array_map(
+                static fn (PublicEntryFilterDTO $filter): array => $filter->toArray(),
+                $this->filters
+            ),
         ];
     }
 }

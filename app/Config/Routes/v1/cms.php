@@ -8,6 +8,13 @@ $routes->group('cms', ['namespace' => '\App\Controllers\Api\V1\Cms'], function (
 
     // Auth & Admin Protected Group
     $routes->group('', ['filter' => ['domainauth', 'throttle']], function ($routes): void {
+        $routes->post('sort-orders', 'SortOrderController::reorder');
+        // Domain-owned resource scope. The service enforces resource-admin
+        // access and keeps admin delegation reserved for superadmin.
+        $routes->get('resource-access/(:segment)/(:num)', 'ResourceAccessController::index/$1/$2');
+        $routes->post('resource-access/(:segment)/(:num)/grants', 'ResourceAccessController::grant/$1/$2');
+        $routes->delete('resource-access/(:segment)/(:num)/grants/(:num)', 'ResourceAccessController::revoke/$1/$2/$3');
+        $routes->post('resource-access/(:segment)/(:num)/ownership', 'ResourceAccessController::transfer/$1/$2');
         // Wizard Config (must be before any (:segment) routes)
         $routes->get('wizard/config', 'WizardConfigController::config', ['filter' => 'permission:cms.entries.read']);
 
@@ -36,6 +43,7 @@ $routes->group('cms', ['namespace' => '\App\Controllers\Api\V1\Cms'], function (
         $routes->get('collections', 'CollectionController::index', ['filter' => 'permission:cms.collections.read']);
         $routes->get('collections/check-slug', 'CollectionController::checkSlug', ['filter' => 'permission:cms.collections.read']);
         $routes->post('collections', 'CollectionController::create', ['filter' => 'permission:cms.collections.write']);
+        $routes->post('collections/sort-orders', 'SortOrderController::reorder', ['filter' => 'permission:cms.collections.write']);
         // Entries CRUD
         $routes->get('entries', 'EntryController::index', ['filter' => 'permission:cms.entries.read']);
         $routes->get('entries/check-slug', 'EntryController::checkSlug', ['filter' => 'permission:cms.entries.read']);
@@ -63,6 +71,7 @@ $routes->group('cms', ['namespace' => '\App\Controllers\Api\V1\Cms'], function (
         $routes->get('menu-items/(:num)', 'MenuItemController::show/$1', ['filter' => 'permission:cms.menus.read']);
         $routes->put('menu-items/(:num)', 'MenuItemController::update/$1', ['filter' => 'permission:cms.menus.write']);
         $routes->delete('menu-items/(:num)', 'MenuItemController::delete/$1', ['filter' => 'permission:cms.menus.write']);
+        $routes->get('pages/(:num)/quality', 'PageController::quality/$1', ['filter' => 'permission:cms.pages.read']);
         $routes->get('pages/(:num)', 'PageController::show/$1', ['filter' => 'permission:cms.pages.read']);
         $routes->put('pages/(:num)', 'PageController::update/$1', ['filter' => 'permission:cms.pages.write']);
         $routes->delete('pages/(:num)', 'PageController::delete/$1', ['filter' => 'permission:cms.pages.write']);
@@ -89,6 +98,14 @@ $routes->group('cms', ['namespace' => '\App\Controllers\Api\V1\Cms'], function (
         $routes->put('block-types/(:num)', 'BlockTypeController::update/$1', ['filter' => 'permission:cms.blocks.write']);
         $routes->delete('block-types/(:num)', 'BlockTypeController::delete/$1', ['filter' => 'permission:cms.blocks.write']);
         // Block Instances CRUD nested under pages
+        // Visual editor: one consistent snapshot of a document, with the raw
+        // value of every active language. Declared before the block routes so a
+        // segment route never swallows it.
+        $routes->get('editor/pages/(:num)/document', 'EditorDocumentController::showForPage/$1', ['filter' => 'permission:cms.pages.write']);
+        $routes->post('editor/pages/(:num)/document', 'EditorDocumentController::saveForPage/$1', ['filter' => 'permission:cms.pages.write']);
+        $routes->get('editor/entries/(:num)/document', 'EditorDocumentController::showForEntry/$1', ['filter' => 'permission:cms.entries.write']);
+        $routes->post('editor/entries/(:num)/document', 'EditorDocumentController::saveForEntry/$1', ['filter' => 'permission:cms.entries.write']);
+
         $routes->get('pages/(:num)/blocks', 'BlockInstanceController::indexForPage/$1', ['filter' => 'permission:cms.pages.read']);
         $routes->get('pages/(:num)/blocks/(:num)', 'BlockInstanceController::show/$2', ['filter' => 'permission:cms.pages.read']);
         $routes->post('pages/(:num)/blocks', 'BlockInstanceController::create', ['filter' => 'permission:cms.pages.write']);
@@ -101,11 +118,11 @@ $routes->group('cms', ['namespace' => '\App\Controllers\Api\V1\Cms'], function (
         $routes->put('entries/(:num)', 'EntryController::update/$1', ['filter' => 'permission:cms.entries.write']);
         $routes->delete('entries/(:num)', 'EntryController::delete/$1', ['filter' => 'permission:cms.entries.admin']);
         // Block Instances CRUD nested under entries
-        $routes->get('entries/(:num)/blocks', 'BlockInstanceController::indexForEntry/$1', ['filter' => 'permission:cms.pages.read']);
-        $routes->get('entries/(:num)/blocks/(:num)', 'BlockInstanceController::show/$2', ['filter' => 'permission:cms.pages.read']);
-        $routes->post('entries/(:num)/blocks', 'BlockInstanceController::create', ['filter' => 'permission:cms.pages.write']);
-        $routes->put('entries/(:num)/blocks/(:num)', 'BlockInstanceController::update/$2', ['filter' => 'permission:cms.pages.write']);
-        $routes->delete('entries/(:num)/blocks/(:num)', 'BlockInstanceController::delete/$2', ['filter' => 'permission:cms.pages.write']);
+        $routes->get('entries/(:num)/blocks', 'BlockInstanceController::indexForEntry/$1', ['filter' => 'permission:cms.entries.read']);
+        $routes->get('entries/(:num)/blocks/(:num)', 'BlockInstanceController::show/$2', ['filter' => 'permission:cms.entries.read']);
+        $routes->post('entries/(:num)/blocks', 'BlockInstanceController::create', ['filter' => 'permission:cms.entries.write']);
+        $routes->put('entries/(:num)/blocks/(:num)', 'BlockInstanceController::update/$2', ['filter' => 'permission:cms.entries.write']);
+        $routes->delete('entries/(:num)/blocks/(:num)', 'BlockInstanceController::delete/$2', ['filter' => 'permission:cms.entries.write']);
         $routes->get('categories/(:num)', 'CategoryController::show/$1', ['filter' => 'permission:cms.categories.read']);
         $routes->put('categories/(:num)', 'CategoryController::update/$1', ['filter' => 'permission:cms.categories.write']);
         $routes->delete('categories/(:num)', 'CategoryController::delete/$1', ['filter' => 'permission:cms.categories.write']);
@@ -150,6 +167,13 @@ $routes->group('cms', ['namespace' => '\App\Controllers\Api\V1\Cms'], function (
 });
 
 // Public endpoints — all require X-App-Key (webappkey) + throttle
+// Editor preview projection: the public site renders the draft, this validates
+// and resolves it. Same app-key gate as the other reads it makes; the projector
+// trusts nothing in the payload and rejects blocks of another document.
+$routes->post('public/editor-projection/(pages|entries)/(:num)', '\App\Controllers\Api\V1\Cms\EditorPreviewProjectionController::project/$1/$2', ['filter' => ['webappkey', 'throttle']]);
+
+$routes->get('public/layout', '\App\Controllers\Api\V1\Cms\PublicBootstrapController::layout', ['filter' => ['webappkey', 'throttle']]);
+$routes->get('public/page-bootstrap/(.+)', '\App\Controllers\Api\V1\Cms\PublicBootstrapController::pageBootstrap/$1', ['filter' => ['webappkey', 'throttle']]);
 $routes->post('public/submissions', '\App\Controllers\Api\V1\Cms\PublicFormSubmissionController::store', ['filter' => ['webappkey', 'throttle']]);
 $routes->post('public/track', '\App\Controllers\Api\V1\Cms\PublicTrackingController::track', ['filter' => ['webappkey', 'throttle']]);
 $routes->get('public/settings', '\App\Controllers\Api\V1\Cms\PublicSettingController::index', ['filter' => ['webappkey', 'throttle']]);

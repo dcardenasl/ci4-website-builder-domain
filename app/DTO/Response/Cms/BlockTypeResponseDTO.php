@@ -4,8 +4,8 @@ declare(strict_types=1);
 
 namespace App\DTO\Response\Cms;
 
-use App\Libraries\Cms\JsonCastNormalizer;
 use dcardenasl\Ci4ApiCore\Dto\DataTransferObjectInterface;
+use dcardenasl\Ci4ApiCore\Support\JsonCastNormalizer;
 use OpenApi\Attributes as OA;
 
 #[OA\Schema(

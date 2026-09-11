@@ -18,4 +18,5 @@ return [
     'usage_page'             => 'Page',
     'usage_entry'            => 'Entry',
     'usage_instance'         => 'instance',
+    'list_projection_failed' => 'Unable to load the form list.',
 ];

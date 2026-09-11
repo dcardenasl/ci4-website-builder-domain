@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Libraries\Hub;
 
 use dcardenasl\Ci4ApiCore\Http\Client\HubClient as CoreHubClient;
+use dcardenasl\Ci4ApiCore\Http\RequestIdHolder;
 
 /**
  * HTTP client subclass for the central hub (ci4-api-starter).
@@ -62,48 +63,145 @@ class HubClient extends CoreHubClient
      */
     public function resolvePublicFileMeta(array $fileIds, int $cacheTtl = 300): array
     {
-        if (empty($fileIds)) {
+        $fileIds = array_values(array_unique(array_filter(
+            array_map(static fn (mixed $id): int => (int) $id, $fileIds),
+            static fn (int $id): bool => $id > 0,
+        )));
+        if ($fileIds === []) {
             return [];
         }
 
-        $cache  = \Config\Services::cache();
-        $result = [];
-        $miss   = [];
+        $cache    = $this->cache;
+        $result   = [];
+        $miss     = [];
+        $staleTtl = max($cacheTtl, (int) env('HUB_FILE_META_STALE_TTL', 900));
 
         foreach ($fileIds as $id) {
             $cached = $cache->get($this->fileMetaCacheKey($id));
             if (is_array($cached)) {
                 $result[$id] = $cached;
-            } else {
-                $miss[] = $id;
+                continue;
+            }
+
+            $miss[] = $id;
+
+            // The Hub may be temporarily unreachable for this batch — keep a
+            // longer-lived stale copy so a transient outage degrades to
+            // "slightly outdated metadata" instead of "no metadata at all".
+            $stale = $cache->get($this->fileMetaStaleCacheKey($id));
+            if (is_array($stale)) {
+                $result[$id] = $stale;
             }
         }
 
-        if (empty($miss)) {
+        if ($miss === []) {
             return $result;
         }
 
-        try {
-            $data = $this->request('GET', '/api/v1/internal/files/batch-meta', [
-                'headers' => $this->appKeyHeaders(),
-                'query'   => ['ids' => $miss],
-            ]);
+        // The Hub's batch-meta endpoint caps a single request at 200 ids
+        // (see InternalFileMetaController::batchMeta); requesting more than
+        // that in one call would silently truncate the response and drop
+        // the remaining ids instead of resolving them across a second call.
+        foreach (array_chunk($miss, 200) as $batch) {
+            try {
+                $data = $this->requestPublicFileMetaBatch($batch);
 
-            $items = is_array($data['data'] ?? null) ? $data['data'] : $data;
+                $items = is_array($data['data'] ?? null) ? $data['data'] : $data;
 
-            foreach ($items as $fileId => $meta) {
-                if (! is_array($meta)) {
-                    continue;
+                foreach ($items as $fileId => $meta) {
+                    if (! is_array($meta)) {
+                        continue;
+                    }
+                    $id          = (int) $fileId;
+                    $result[$id] = $meta;
+                    $cache->save($this->fileMetaCacheKey($id), $meta, $cacheTtl);
+                    $cache->save($this->fileMetaStaleCacheKey($id), $meta, $staleTtl);
                 }
-                $id          = (int) $fileId;
-                $result[$id] = $meta;
-                $cache->save($this->fileMetaCacheKey($id), $meta, $cacheTtl);
+            } catch (\Throwable $e) {
+                log_message('error', '[HubClient] resolvePublicFileMeta failed: ' . $e->getMessage());
             }
-        } catch (\Throwable $e) {
-            log_message('error', '[HubClient] resolvePublicFileMeta failed: ' . $e->getMessage());
         }
 
         return $result;
+    }
+
+    /**
+     * Use the shared client path by default. A direct request is available only
+     * when both public-read timeout variables are explicitly configured, so a
+     * clone retains the core retry/timeout behavior until an operator opts in.
+     *
+     * @param list<int> $batch
+     * @return array<string, mixed>
+     */
+    private function requestPublicFileMetaBatch(array $batch): array
+    {
+        $timeouts = $this->publicReadTimeouts();
+        if ($timeouts === null) {
+            return $this->request('GET', '/api/v1/internal/files/batch-meta', [
+                'headers' => $this->appKeyHeaders(),
+                'query'   => ['ids' => $batch],
+            ]);
+        }
+
+        $url       = rtrim($this->config->url, '/') . '/api/v1/internal/files/batch-meta';
+        $headers   = $this->appKeyHeaders();
+        $requestId = RequestIdHolder::get();
+        if ($requestId !== null && ! array_key_exists('X-Request-Id', $headers)) {
+            $headers['X-Request-Id'] = $requestId;
+        }
+
+        $startedAt = microtime(true);
+        $status    = null;
+
+        try {
+            $response = $this->http->request('GET', $url, [
+                'headers'         => $headers,
+                'query'           => ['ids' => $batch],
+                'connect_timeout' => $timeouts['connect_timeout'],
+                'timeout'         => $timeouts['timeout'],
+                'http_errors'     => false,
+            ]);
+            $status = $response->getStatusCode();
+            $this->recordBreadcrumb('GET', $url, $status, (microtime(true) - $startedAt) * 1000, 1);
+
+            if ($status < 200 || $status >= 300) {
+                throw new \RuntimeException('Hub batch metadata request returned HTTP ' . $status . '.');
+            }
+
+            $decoded = json_decode((string) $response->getBody(), true);
+            if (! is_array($decoded)) {
+                throw new \RuntimeException('Hub batch metadata response was not a JSON object.');
+            }
+
+            return $decoded;
+        } catch (\Throwable $exception) {
+            if ($status === null) {
+                $this->recordBreadcrumb('GET', $url, null, (microtime(true) - $startedAt) * 1000, 1);
+            }
+
+            throw $exception;
+        }
+    }
+
+    /** @return array{connect_timeout: float, timeout: float}|null */
+    private function publicReadTimeouts(): ?array
+    {
+        $connectTimeout = trim((string) env('PUBLIC_READ_HUB_CONNECT_TIMEOUT', ''));
+        $requestTimeout = trim((string) env('PUBLIC_READ_HUB_TIMEOUT', ''));
+        if ($connectTimeout === '' || $requestTimeout === '') {
+            return null;
+        }
+
+        $connectSeconds = (float) $connectTimeout;
+        $requestSeconds = (float) $requestTimeout;
+        if ($connectSeconds <= 0 || $requestSeconds <= 0) {
+            return null;
+        }
+
+        return [
+            'connect_timeout' => $connectSeconds,
+            'timeout'         => $requestSeconds,
+        ];
     }
 
     /**
@@ -112,12 +210,19 @@ class HubClient extends CoreHubClient
      */
     public function invalidateFileMetaCache(int $fileId): void
     {
-        \Config\Services::cache()->delete($this->fileMetaCacheKey($fileId));
+        $cache = \Config\Services::cache();
+        $cache->delete($this->fileMetaCacheKey($fileId));
+        $cache->delete($this->fileMetaStaleCacheKey($fileId));
     }
 
     private function fileMetaCacheKey(int $fileId): string
     {
         return 'hub_file_meta_' . $fileId;
+    }
+
+    private function fileMetaStaleCacheKey(int $fileId): string
+    {
+        return 'hub_file_meta_stale_' . $fileId;
     }
 
     /**

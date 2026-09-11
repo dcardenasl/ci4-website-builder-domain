@@ -70,7 +70,13 @@ class BlockInstanceSerializer
 
         $instanceIds = array_column($instances, 'id');
 
-        $translationsMap = $this->batchResolveBlockTranslations($instanceIds, $langCode, $db);
+        $schemas = [];
+        foreach ($instances as $instance) {
+            $schema = $this->parseSchemaDefinition((string) ($instance['schema_definition'] ?? ''));
+            $schemas[(int) $instance['id']] = is_array($schema['fields'] ?? null) ? $schema['fields'] : [];
+        }
+
+        $translationsMap = $this->batchResolveBlockTranslations($instanceIds, $langCode, $db, $schemas);
 
         // Collect all file IDs in a single pre-pass via schema field declarations
         $allFileIds = [];
@@ -129,7 +135,7 @@ class BlockInstanceSerializer
             // that map to both config and translated data without calling Hub
             // again for each field.
             if ($schemaConfigFields !== []) {
-                $blockConfig = $this->mergeFileMetadata($blockConfig, $schemaConfigFields, $fileMetaMap);
+                $blockConfig = SchemaMediaMerger::merge($blockConfig, $schemaConfigFields, $fileMetaMap, $this->fileUrlResolver);
             }
 
             $blockPayload = [
@@ -140,15 +146,17 @@ class BlockInstanceSerializer
                 'parent_instance_id' => isset($instance['parent_instance_id']) ? (int) $instance['parent_instance_id'] : null,
                 'block_config'       => $blockConfig,
                 'block_data'         => $blockData,
-                'is_fallback'        => $translation['is_fallback'] ?? true,
+                'is_fallback'        => $translation['is_fallback'] ?? false,
+                'fallback_fields'    => $translation['fallback_fields'] ?? [],
                 'children'           => [],
             ];
 
             // Resolve media fields and expand file IDs inside nested structures.
-            $blockPayload['block_data'] = $this->mergeFileMetadata(
+            $blockPayload['block_data'] = SchemaMediaMerger::merge(
                 $blockPayload['block_data'],
                 $schemaFields,
-                $fileMetaMap
+                $fileMetaMap,
+                $this->fileUrlResolver
             );
 
             $serializedMap[$instanceId] = $blockPayload;
@@ -234,109 +242,32 @@ class BlockInstanceSerializer
     }
 
     /**
-     * Merge resolved media_reference and repeater fields into block_data.
-     *
-     * @param  array<string, mixed>        $blockData
-     * @param  array<string, array<string, mixed>> $schemaFields
-     * @param  array<int, array{url: string|null, variants: array<string, mixed>|null}> $fileMetaMap keyed by file_id
-     * @return array<string, mixed>
-     */
-    private function mergeFileMetadata(array $blockData, array $schemaFields, array $fileMetaMap): array
-    {
-        foreach ($schemaFields as $fieldKey => $fieldDef) {
-            $type = $fieldDef['type'] ?? 'string';
-
-            if ($type === 'media_reference') {
-                $this->mergeMediaReferenceField($blockData, $fieldKey, $fileMetaMap);
-            } elseif ($type === 'repeater') {
-                $items      = $blockData[$fieldKey] ?? [];
-                $itemFields = $fieldDef['item_fields'] ?? [];
-                if (!is_array($items) || !is_array($itemFields)) {
-                    continue;
-                }
-
-                $enriched = [];
-                foreach ($items as $item) {
-                    if (!is_array($item)) {
-                        $enriched[] = $item;
-                        continue;
-                    }
-                    $enriched[] = $this->mergeFileMetadata($item, $itemFields, $fileMetaMap);
-                }
-                $blockData[$fieldKey] = $enriched;
-            } elseif (in_array($type, ['group', 'fieldset'], true)) {
-                $nestedFields = $fieldDef['fields'] ?? [];
-                $nestedData   = $blockData[$fieldKey] ?? [];
-                if (is_array($nestedData) && is_array($nestedFields)) {
-                    $blockData[$fieldKey] = $this->mergeFileMetadata($nestedData, $nestedFields, $fileMetaMap);
-                }
-            }
-        }
-
-        return $blockData;
-    }
-
-    /**
-     * Normalize a media_reference field into the canonical nested payload.
-     *
-     * @param array<string, mixed> $blockData
-     * @param array<int, array{url: string|null, variants: array<string, mixed>|null}> $fileMetaMap
-     */
-    private function mergeMediaReferenceField(array &$blockData, string $fieldKey, array $fileMetaMap): void
-    {
-        $reference = is_array($blockData[$fieldKey] ?? null) ? $blockData[$fieldKey] : [];
-        $sourceKind = strtolower(trim((string) ($reference['source_kind'] ?? '')));
-        $url = isset($reference['url']) && is_scalar($reference['url'])
-            ? trim((string) $reference['url'])
-            : '';
-        $url = $url !== '' ? $url : null;
-        $variants = is_array($reference['variants'] ?? null) ? $reference['variants'] : null;
-
-        if ($sourceKind === 'external_url') {
-            $blockData[$fieldKey] = [
-                'source_kind' => 'external_url',
-                'file_id'     => null,
-                'url'         => $url,
-                'variants'    => null,
-            ];
-            return;
-        }
-
-        $fileId = $this->fileUrlResolver->resolveMediaReferenceFileId($reference);
-        if ($fileId !== null) {
-            $meta = $fileMetaMap[$fileId] ?? null;
-            $blockData[$fieldKey] = [
-                'source_kind' => 'hub_file',
-                'file_id'     => $fileId,
-                'url'         => $meta['url'] ?? $url,
-                'variants'    => $meta['variants'] ?? $variants,
-            ];
-            return;
-        }
-
-        $blockData[$fieldKey] = [
-            'source_kind' => $sourceKind === 'hub_file' ? 'hub_file' : 'external_url',
-            'file_id'     => null,
-            'url'         => $url,
-            'variants'    => null,
-        ];
-    }
-
-    /**
      * Batch-resolve block_instance translations for a list of instance IDs.
-     * Falls back to the default language when no translation exists for the target.
+     *
+     * Resolves each declared field on its own: a block whose title is translated
+     * but whose body is not shows the translated title and borrows only the
+     * body. Picking a whole row instead made one missing field hide every
+     * translation the block did have.
      *
      * @param  list<int> $instanceIds
      * @param  string    $langCode
      * @param  object    $db
+     * @param  array<int, array<string, mixed>> $schemas declared fields per instance
      * @return array<int, array<string, mixed>>     keyed by instance_id
      */
     private function batchResolveBlockTranslations(
         array $instanceIds,
         string $langCode,
-        object $db
+        object $db,
+        array $schemas
     ): array {
         [$langId, $defaultLangId] = $this->resolveLanguageIds($langCode, $db);
+
+        // A database without an active target or default language is a valid
+        // empty-content state. Return before using nullable IDs as array keys.
+        if ($langId === null || $defaultLangId === null) {
+            return [];
+        }
 
         $langIds = array_unique(array_filter([$langId, $defaultLangId]));
 
@@ -350,16 +281,22 @@ class BlockInstanceSerializer
             ->get();
         $rows = $result ? $result->getResultArray() : [];
 
-        $map = [];
+        $byInstance = [];
         foreach ($rows as $row) {
-            $iid = (int) $row['instance_id'];
-            $lid = (int) $row['language_id'];
-            if (!isset($map[$iid]) || $lid === $langId) {
-                $map[$iid] = [
-                    'block_data'  => $row['block_data'],
-                    'is_fallback' => $lid !== $langId,
-                ];
-            }
+            $data = is_string($row['block_data']) ? json_decode($row['block_data'], true) : $row['block_data'];
+            $byInstance[(int) $row['instance_id']][(int) $row['language_id']] = is_array($data) ? $data : [];
+        }
+
+        $resolver = new TranslationFallbackResolver();
+        $map = [];
+        foreach ($instanceIds as $instanceId) {
+            $instanceId = (int) $instanceId;
+            $map[$instanceId] = $resolver->resolve(
+                $byInstance[$instanceId][$langId] ?? [],
+                $byInstance[$instanceId][$defaultLangId] ?? [],
+                $schemas[$instanceId] ?? [],
+                $langId === $defaultLangId,
+            );
         }
 
         return $map;
@@ -373,9 +310,14 @@ class BlockInstanceSerializer
      */
     private function resolveLanguageIds(string $langCode, object $db): array
     {
+        // Without the group the condition reads `code = X OR (is_default AND
+        // is_active)`, so a row matching the code was selected even when the
+        // language had been deactivated.
         $result = $db->table('cms_languages')
-            ->whereIn('code', [$langCode])
-            ->orWhere('is_default', 1)
+            ->groupStart()
+                ->where('code', $langCode)
+                ->orWhere('is_default', 1)
+            ->groupEnd()
             ->where('is_active', 1)
             ->get();
         $rows = $result ? $result->getResultArray() : [];

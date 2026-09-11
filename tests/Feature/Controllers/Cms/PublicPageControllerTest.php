@@ -141,6 +141,36 @@ final class PublicPageControllerTest extends CIUnitTestCase
         $this->assertSame($this->draftPageTitle, $body['data']['title']);
     }
 
+    public function testNestedPageSlugIsPreservedByThePublicRoute(): void
+    {
+        $parentSlug = 'section';
+        $childSlug = 'details';
+        $parent = $this->fixtures->page([
+            [
+                'language_id' => $this->languages[0]['id'],
+                'slug'        => $parentSlug,
+                'title'       => 'Section',
+            ],
+        ]);
+        $child = $this->fixtures->page([
+            [
+                'language_id' => $this->languages[0]['id'],
+                'slug'        => $childSlug,
+                'title'       => 'Details',
+            ],
+        ], [
+            'parent_id' => $parent['id'],
+        ]);
+
+        $result = $this->get($this->pagePath($parentSlug . '/' . $childSlug));
+
+        $result->assertStatus(200);
+        $body = json_decode($result->getJSON(), true);
+        $this->assertSame($child['id'], $body['data']['id']);
+        $this->assertSame($childSlug, $body['data']['slug']);
+        $this->assertSame('Details', $body['data']['title']);
+    }
+
     /** @return array<string, mixed> */
     private function pageTranslation(int $languagePosition): array
     {

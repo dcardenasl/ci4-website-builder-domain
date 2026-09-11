@@ -22,6 +22,14 @@ interface TranslationAuditServiceInterface
     public function getMissingTranslationsReport(array $filters = []): array;
 
     /**
+     * Get one bounded page of the missing/incomplete translation report.
+     *
+     * @param array<string, mixed> $filters
+     * @return array{items: list<array<string, mixed>>, meta: array{page:int, per_page:int, total_items:int, last_page:int}}
+     */
+    public function getMissingTranslationsReportPage(array $filters = []): array;
+
+    /**
      * Audit a single resource instance for translation completeness.
      *
      * @param string $resourceType

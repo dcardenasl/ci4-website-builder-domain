@@ -4,12 +4,15 @@ declare(strict_types=1);
 
 namespace App\DTO\Request\Cms;
 
+use App\DTO\Request\Support\TracksProvidedFields;
 use dcardenasl\Ci4ApiCore\Dto\BaseRequestDTO;
 use OpenApi\Attributes as OA;
 
 #[OA\Schema(schema: 'BlockTypeUpdateRequest')]
 readonly class BlockTypeUpdateRequestDTO extends BaseRequestDTO
 {
+    use TracksProvidedFields;
+
     #[OA\Property(description: 'block_key', type: 'string', nullable: true)]
     public ?string $block_key;
     #[OA\Property(description: 'name', type: 'string', nullable: true)]
@@ -59,6 +62,7 @@ readonly class BlockTypeUpdateRequestDTO extends BaseRequestDTO
      */
     protected function map(array $data): void
     {
+        $this->trackProvidedFields($data);
         $this->block_key = $data['block_key'] ?? null;
         $this->name = $data['name'] ?? null;
         $this->description = $data['description'] ?? null;
@@ -77,7 +81,7 @@ readonly class BlockTypeUpdateRequestDTO extends BaseRequestDTO
      */
     public function toArray(): array
     {
-        return array_filter([
+        return $this->filterProvidedFields([
             'block_key' => $this->block_key,
             'name' => $this->name,
             'description' => $this->description,
@@ -89,6 +93,6 @@ readonly class BlockTypeUpdateRequestDTO extends BaseRequestDTO
             'is_container' => $this->is_container,
             'is_active' => $this->is_active,
             'sort_order' => $this->sort_order,
-        ], static fn (mixed $value): bool => $value !== null);
+        ]);
     }
 }

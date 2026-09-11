@@ -28,6 +28,7 @@ class PublicCollectionReader
         private readonly RepositoryInterface $pageRepository,
         private readonly TranslationResolver $translationResolver,
         private readonly SlugRouter $slugRouter,
+        private readonly ?\App\Libraries\Translation\CollectionPublicSlugProjection $publicSlugProjection = null,
     ) {
     }
 
@@ -51,17 +52,7 @@ class PublicCollectionReader
                 ? $this->resolveIndexPageData((int) $indexPage->id, $activeLanguages)
                 : null;
 
-            $localizedSlugs = [];
-            foreach ($activeLanguages as $activeLanguage) {
-                if (!$activeLanguage instanceof LanguageEntity) {
-                    continue;
-                }
-                $translation = $this->translationResolver->resolve('collection', (int) $collection->id, $activeLanguage->code);
-                $slug = $translation['slug'] ?? null;
-                if (is_string($slug) && $slug !== '') {
-                    $localizedSlugs[$activeLanguage->code] = $slug;
-                }
-            }
+            $localizedSlugs = $this->publicSlugs((int) $collection->id, $activeLanguages);
 
             $collectionPayload = array_merge($collection->toArray(), [
                 'slug'                     => $resolved['slug'] ?? null,
@@ -84,6 +75,32 @@ class PublicCollectionReader
         }
 
         return $resolvedCollections;
+    }
+
+    /**
+     * @param list<LanguageEntity> $activeLanguages
+     * @return array<string, string>
+     */
+    private function publicSlugs(int $collectionId, array $activeLanguages): array
+    {
+        $sidecarSlugs = $this->publicSlugProjection?->slugs($collectionId) ?? [];
+        if ($sidecarSlugs !== []) {
+            return $sidecarSlugs;
+        }
+
+        $localizedSlugs = [];
+        foreach ($activeLanguages as $activeLanguage) {
+            if (! $activeLanguage instanceof LanguageEntity) {
+                continue;
+            }
+            $translation = $this->translationResolver->resolve('collection', $collectionId, $activeLanguage->code);
+            $slug = $translation['slug'] ?? null;
+            if (is_string($slug) && $slug !== '') {
+                $localizedSlugs[$activeLanguage->code] = $slug;
+            }
+        }
+
+        return $localizedSlugs;
     }
 
     private function resolveCollectionIndexPage(int $collectionId): ?PageEntity

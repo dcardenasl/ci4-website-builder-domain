@@ -38,6 +38,7 @@ final class PublicCollectionControllerTest extends CIUnitTestCase
         $this->configureWebAppKey();
 
         $this->db->disableForeignKeyChecks();
+        $this->db->query("DELETE FROM `public_slugs`");
         $this->db->query("DELETE FROM `cms_collection_translations`");
         $this->db->query("DELETE FROM `cms_collections`");
         $this->db->query("DELETE FROM `cms_languages`");
@@ -85,6 +86,28 @@ final class PublicCollectionControllerTest extends CIUnitTestCase
         $this->assertSame($primary['slug'], $body['data'][0]['localized_slugs'][$this->languages[0]['code']]);
         $this->assertSame($secondary['slug'], $body['data'][0]['localized_slugs'][$this->languages[1]['code']]);
         $this->assertArrayNotHasKey('url_prefix', $body['data'][0]);
+    }
+
+    public function testBackfillCreatesGenericLocaleSlugsUsedByPublicResolution(): void
+    {
+        command('cms:backfill-public-slugs');
+
+        $slugs = $this->db->table('public_slugs')
+            ->where('resource_type', 'collection')
+            ->where('resource_id', $this->collection['id'])
+            ->orderBy('locale', 'ASC')
+            ->get()
+            ->getResultArray();
+
+        $this->assertCount(2, $slugs);
+        $result = $this->get('/api/v1/public/' . $this->languages[1]['code'] . '/collections');
+        $result->assertStatus(200);
+
+        $body = json_decode($result->getJSON(), true);
+        $this->assertSame(
+            $this->collection['translations'][1]['slug'],
+            $body['data'][0]['localized_slugs'][$this->languages[1]['code']],
+        );
     }
 
     /**
@@ -139,5 +162,108 @@ final class PublicCollectionControllerTest extends CIUnitTestCase
         $body = json_decode($result->getJSON(), true);
 
         $this->assertSame($fallbackName, $body['data'][0]['listing_title']);
+    }
+
+    public function testPublicCollectionsSupportSparseFieldsets(): void
+    {
+        $result = $this->get(
+            '/api/v1/public/' . $this->languages[0]['code'] . '/collections?fields=id,name,localized_slugs'
+        );
+
+        $result->assertStatus(200);
+        $body = json_decode($result->getJSON(), true);
+        $this->assertSame(
+            ['id', 'name', 'localized_slugs'],
+            array_keys($body['data'][0]),
+        );
+    }
+
+    public function testPublicLayoutAndPageBootstrapComposeColdPageData(): void
+    {
+        $pageSlug = $this->fixtures->slug('bootstrap-page', $this->languages[0]['code']);
+        $pageTitle = $this->fixtures->text('bootstrap-page-title', $this->languages[0]['code']);
+        $this->fixtures->page([
+            [
+                'language_id' => $this->languages[0]['id'],
+                'slug'        => $pageSlug,
+                'title'       => $pageTitle,
+            ],
+        ]);
+
+        $layout = $this->get('/api/v1/public/layout');
+        $layout->assertStatus(200);
+        $layoutBody = json_decode($layout->getJSON(), true);
+        $this->assertSame(['main', 'footer', 'legal'], array_keys($layoutBody['data']['menus']));
+
+        $bootstrap = $this->withHeaders([
+            'Accept-Language' => $this->languages[0]['code'],
+            ...$this->webAppKeyHeader(),
+        ])->get('/api/v1/public/page-bootstrap/' . $pageSlug);
+        $bootstrap->assertStatus(200);
+        $bootstrapBody = json_decode($bootstrap->getJSON(), true);
+        $this->assertSame('page', $bootstrapBody['data']['route']['type']);
+        $this->assertSame($pageTitle, $bootstrapBody['data']['route']['data']['title']);
+        $this->assertArrayHasKey('settings', $bootstrapBody['data']['layout']);
+    }
+
+    public function testPageBootstrapPreservesLocalizedCollectionAndEntrySlugs(): void
+    {
+        $collectionIndexEs = 'coleccion-es';
+        $collectionIndexEn = 'collection-en';
+        $entrySlugEs = 'entrada-es';
+        $entrySlugEn = 'entry-en';
+        $entryTitleEs = 'Entrada en español';
+        $entryTitleEn = 'Entry in English';
+
+        $this->fixtures->page([
+            [
+                'language_id' => $this->languages[0]['id'],
+                'slug'        => $collectionIndexEs,
+                'title'       => 'Colección',
+            ],
+            [
+                'language_id' => $this->languages[1]['id'],
+                'slug'        => $collectionIndexEn,
+                'title'       => 'Collection',
+            ],
+        ], [
+            'collection_id' => $this->collection['id'],
+            'page_type'     => 'collection_index',
+        ]);
+
+        $this->fixtures->entry($this->collection['id'], [
+            [
+                'language_id' => $this->languages[0]['id'],
+                'slug'        => $entrySlugEs,
+                'title'       => $entryTitleEs,
+            ],
+            [
+                'language_id' => $this->languages[1]['id'],
+                'slug'        => $entrySlugEn,
+                'title'       => $entryTitleEn,
+            ],
+        ]);
+
+        $bootstrapEs = $this->withHeaders([
+            'Accept-Language' => $this->languages[0]['code'],
+            ...$this->webAppKeyHeader(),
+        ])->get('/api/v1/public/page-bootstrap/' . $collectionIndexEs . '/' . $entrySlugEs);
+
+        $bootstrapEs->assertStatus(200);
+        $bodyEs = json_decode($bootstrapEs->getJSON(), true);
+        $this->assertSame('entry', $bodyEs['data']['route']['type']);
+        $this->assertSame($entrySlugEs, $bodyEs['data']['route']['data']['slug']);
+        $this->assertSame($entryTitleEs, $bodyEs['data']['route']['data']['title']);
+
+        $bootstrapEn = $this->withHeaders([
+            'Accept-Language' => $this->languages[1]['code'],
+            ...$this->webAppKeyHeader(),
+        ])->get('/api/v1/public/page-bootstrap/' . $collectionIndexEn . '/' . $entrySlugEn);
+
+        $bootstrapEn->assertStatus(200);
+        $bodyEn = json_decode($bootstrapEn->getJSON(), true);
+        $this->assertSame('entry', $bodyEn['data']['route']['type']);
+        $this->assertSame($entrySlugEn, $bodyEn['data']['route']['data']['slug']);
+        $this->assertSame($entryTitleEn, $bodyEn['data']['route']['data']['title']);
     }
 }

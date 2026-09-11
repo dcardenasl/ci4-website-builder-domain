@@ -4,12 +4,15 @@ declare(strict_types=1);
 
 namespace App\DTO\Request\Cms;
 
+use App\DTO\Request\Support\TracksProvidedFields;
 use dcardenasl\Ci4ApiCore\Dto\BaseRequestDTO;
 use OpenApi\Attributes as OA;
 
 #[OA\Schema(schema: 'RedirectUpdateRequest')]
 readonly class RedirectUpdateRequestDTO extends BaseRequestDTO
 {
+    use TracksProvidedFields;
+
     #[OA\Property(description: 'old_path', type: 'string', nullable: true)]
     public ?string $old_path;
     #[OA\Property(description: 'new_url', type: 'string', nullable: true)]
@@ -43,6 +46,7 @@ readonly class RedirectUpdateRequestDTO extends BaseRequestDTO
      */
     protected function map(array $data): void
     {
+        $this->trackProvidedFields($data);
         $this->old_path = $data['old_path'] ?? null;
         $this->new_url = $data['new_url'] ?? null;
         $this->redirect_type = isset($data['redirect_type']) ? (int) $data['redirect_type'] : null;
@@ -56,13 +60,13 @@ readonly class RedirectUpdateRequestDTO extends BaseRequestDTO
      */
     public function toArray(): array
     {
-        return array_filter([
+        return $this->filterProvidedFields([
             'old_path' => $this->old_path,
             'new_url' => $this->new_url,
             'redirect_type' => $this->redirect_type,
             'is_active' => $this->is_active,
             'hit_count' => $this->hit_count,
             'note' => $this->note,
-        ], static fn (mixed $value): bool => $value !== null);
+        ]);
     }
 }
